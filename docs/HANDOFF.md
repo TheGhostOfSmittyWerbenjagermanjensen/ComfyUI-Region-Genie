@@ -147,6 +147,21 @@ The pack used to be called **Regional Mask Kit** (folder `ComfyUI-RegionalMaskKi
 - **Earlier:** Krea 2 auto-apart, Ideogram JSON per Ideogram's guide, `scene_prompt_background`, file renames, Resolution Selector sizing, Krea 2 and Ideogram 4 one-pass, rename to Region Genie.
 - **Standing features:** keep all regions apart, layer clipboard and pop-ups, LLM Prompt Enhancer, tag autocomplete, Settings defaults, UI decisions (node width 700, square canvas, collapsible list, CIELAB region colors, color picker, snap magnet, overlay-scrollbar padding).
 
+## 4b. Agreed for round 9 (planned Nov 11, not built yet)
+
+Test in the real ComfyUI latest release (v0.45.2, frontend 1.58.5; clone from GitHub, torch CPU from PyPI, Impact Pack from GitHub), legacy and Nodes 2.0, as well as the stub harness.
+
+- **Image size row** (replaces the width / height widgets): one compact DOM row at the top of the node, where width / height are now. A 3-way icon switch picks the mode; each mode remembers its own settings; the final size shows at the right.
+  - Ratio: ComfyUI's Resolution Selector (its 8 aspect ratios, megapixels 0.1-16 step 0.01, multiple 8-128 step 4, the same formula as `comfy_extras/nodes_resolution.py`), plus a swap button for the mirrored ratio.
+  - Presets: one list shared by every node, kept in Settings > Region Genie, edited from the dropdown's last entry "Edit list…" (add current size, rename, delete, reorder). It starts with 1024x1024, 1152x896, 896x1152, 1216x832, 832x1216, 1344x768, 768x1344, 1536x640, 640x1536.
+  - Manual: W, H, swap, keep-ratio link.
+  - The hidden width / height widgets keep holding the final size (Python and API unchanged). New optional sockets labelled "width" / "height" at the end of the inputs override the row (priority: size_from_image > size_from_latent > sockets > row). Old workflows open in Manual mode with their size, and links to the old width / height move to the new sockets.
+- **Wildcards (Impact Pack)**: Impact's own `impact.wildcards.process`, imported at run time; without Impact the text is unchanged and the controls are hidden. Every text field of the node is processed (scene positive / negative / background, region prompts and texts), wildcards first, then the LLM Prompt Enhancer (its cache keys on the filled text).
+  - Seed: a hidden `wildcard_seed` widget, shown as a compact footer control (seed field plus an icon cycling fixed / randomize / increment after each run). By default the same seed goes to every field; a Setting switches to a seed per field.
+  - Preview: after a run, the fields that had wildcards show what was used (tooltip; canvas labels). An icon by the seed previews the current seed without running (Impact's `POST /impact/wildcards`). A per-field "use the filled text" action replaces the wildcard text with what it produced, so it can be tweaked and rerun.
+  - Adding a wildcard: a picker icon in the scene and region pop-up editors, and autocomplete on `__` in every prompt field. No footer picker (the user's choice).
+- **Region eye**: a region-level on/off (`r.hidden`), ◉ / ○ in the region row before the index. A hidden region is not drawn and is left out of every output; its layers keep their own eye settings; the row is dimmed. The Python side skips its layers too.
+
 ## 5. Open items and offered ideas
 
 **Not verified on real hardware (no GPU in the sandbox):**
