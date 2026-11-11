@@ -40,6 +40,11 @@ export const ICONS = {
     // image input: traced over (backdrop) / read as the color map
     imgBackdrop: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M1.8 11l3.6-3.6 3 3 2-2 3.8 3.8"/><circle cx="10.6" cy="5.9" r="1.1"/>',
     imgColorMap: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M8 2.8v10.4M1.8 8h6.2"/><rect x="2.6" y="3.6" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/><rect x="8.8" y="8.8" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/>',
+    // image size row: aspect ratio + megapixels (Resolution Selector) / presets list / manual width and height
+    sizeRatio: '<rect x="1.8" y="3.8" width="12.4" height="8.4" rx="1.2"/><path d="M4.4 9.6l7.2-3.2" stroke-dasharray="1.6 1.3"/>',
+    sizeList: '<rect x="1.8" y="2.4" width="12.4" height="11.2" rx="1.2"/><path d="M4.4 5.6h7.2M4.4 8h7.2M4.4 10.4h4.6"/>',
+    sizeManual: '<rect x="1.8" y="3.8" width="12.4" height="8.4" rx="1.2"/><path d="M4.4 8h2.6M9 8h2.6M5.3 6.6L4.2 8l1.1 1.4M10.7 6.6L11.8 8l-1.1 1.4"/>',
+    swapWH: '<path d="M4.6 2.4v10.8M2.6 11.2l2 2 2-2"/><path d="M11.4 13.6V2.8M9.4 4.8l2-2 2 2"/>',
     // Select object: add the pending selection / discard it
     check: '<path d="M2.8 8.6l3.4 3.4 7-7.6"/>',
     close: '<path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8"/>',
@@ -427,10 +432,51 @@ export async function setSetting(id, v) {
         else await app.ui?.settings?.setSettingValueAsync?.(id, v);
     } catch (e) { console.warn("[Region Genie] could not save setting", id, e); }
 }
+// ---------------------------------------------------------------- image size (shared by the size row and Settings)
+// ComfyUI's Resolution Selector (comfy_extras/nodes_resolution.py): its aspect ratios and its formula
+export const SIZE_ASPECTS = [["1:1 (Square)", 1, 1], ["2:3 (Portrait Photo)", 2, 3], ["3:2 (Photo)", 3, 2],
+    ["3:4 (Portrait Standard)", 3, 4], ["4:3 (Standard)", 4, 3], ["9:16 (Portrait Widescreen)", 9, 16],
+    ["16:9 (Widescreen)", 16, 9], ["21:9 (Ultrawide)", 21, 9]];
+export const pyRound = (x) => { const f = Math.floor(x), d = x - f; return d > 0.5 ? f + 1 : d < 0.5 ? f : (f % 2 === 0 ? f : f + 1); };
+export function ratioSize(wr, hr, mp, multiple) {
+    const scale = Math.sqrt((mp * 1024 * 1024) / (wr * hr));
+    return [pyRound(wr * scale / multiple) * multiple, pyRound(hr * scale / multiple) * multiple];
+}
+// presets: "1024x1024; 1216x832 landscape; ..." (a name after the size is optional)
+export const SIZE_PRESETS_DEFAULT = "1024x1024; 1152x896; 896x1152; 1216x832; 832x1216; 1344x768; 768x1344; 1536x640; 640x1536";
+export function parseSizePresets(text) {
+    const out = [];
+    for (const part of String(text ?? "").split(/[;\n]/)) {
+        const m = /^\s*(\d+)\s*[x×*]\s*(\d+)\s*(.*?)\s*$/i.exec(part);
+        if (!m) continue;
+        const w = Math.max(16, Math.min(16384, +m[1])), h = Math.max(16, Math.min(16384, +m[2]));
+        out.push({ w, h, name: m[3].replace(/[;\n]/g, " ").trim() });
+    }
+    return out;
+}
+export const formatSizePresets = (list) => list.map((p) => `${p.w}x${p.h}${p.name ? " " + p.name : ""}`).join("; ");
+// "3:2" for 1216 x 832: the simplest ratio within 3 % (else the closest one), for the presets list
+export function ratioLabel(w, h) {
+    let best = null;
+    for (let b = 1; b <= 16; b++) {
+        const a = Math.round(w / h * b);
+        if (a < 1) continue;
+        const err = Math.abs(a / b - w / h) / (w / h);
+        if (err <= 0.03) return `${a}:${b}`;
+        if (!best || err < best.err - 1e-9) best = { a, b, err };
+    }
+    return best ? `${best.a}:${best.b}` : "";
+}
+
 export const SET = {
     acDefault: AC_DEFAULT_SETTING,
     llmContext: "RegionGenie.LLM.Context",
     llmNewRegions: "RegionGenie.LLM.NewRegionsOn",
+    sizeMode: "RegionGenie.Size.Mode",
+    sizeAspect: "RegionGenie.Size.Aspect",
+    sizeMegapixels: "RegionGenie.Size.Megapixels",
+    sizeMultiple: "RegionGenie.Size.Multiple",
+    sizePresets: "RegionGenie.Size.Presets",
     cmWidth: "RegionGenie.Main.Width",
     cmHeight: "RegionGenie.Main.Height",
     cmImageMode: "RegionGenie.Main.ImageMode",
@@ -663,8 +709,21 @@ const SETTINGS = [
                 + "(and more wrong things), higher finds fewer.",
             category: CAT("Select object", "3 threshold"),
         },
-        { id: SET.cmWidth, name: "Width", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "01 width") },
-        { id: SET.cmHeight, name: "Height", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "02 height") },
+        { id: SET.sizeMode, name: "Image size: mode", type: "combo", defaultValue: "aspect ratio", options: ["aspect ratio", "presets", "manual"],
+          tooltip: "How a new node's image size is set: aspect ratio + megapixels (like ComfyUI's Resolution Selector), a size from "
+              + "the presets list, or width and height typed in. " + NEW_NODES, category: CAT("Image size", "1 mode") },
+        { id: SET.sizeAspect, name: "Aspect ratio", type: "combo", defaultValue: SIZE_ASPECTS[0][0], options: SIZE_ASPECTS.map((a) => a[0]),
+          tooltip: NEW_NODES, category: CAT("Image size", "2 aspect") },
+        { id: SET.sizeMegapixels, name: "Megapixels", type: "number", defaultValue: 1, attrs: { min: 0.1, max: 16, step: 0.01 },
+          tooltip: "Target total megapixels (1.0 MP = 1024 x 1024 for square). " + NEW_NODES, category: CAT("Image size", "3 megapixels") },
+        { id: SET.sizeMultiple, name: "Multiple", type: "number", defaultValue: 8, attrs: { min: 8, max: 128, step: 4 },
+          tooltip: "Width and height are rounded to a multiple of this. " + NEW_NODES, category: CAT("Image size", "4 multiple") },
+        { id: SET.sizePresets, name: "Presets", type: "text", defaultValue: SIZE_PRESETS_DEFAULT,
+          tooltip: "The sizes in the presets list of every Region Genie node, separated by ';', each as WIDTHxHEIGHT and an optional "
+              + "name (e.g. '1216x832 landscape'). Easier to edit from the node: the last entry of its presets list, 'Edit list…'.",
+          category: CAT("Image size", "5 presets") },
+        { id: SET.cmWidth, name: "Manual: width", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Image size", "6 width") },
+        { id: SET.cmHeight, name: "Manual: height", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Image size", "7 height") },
         { id: SET.cmImageMode, name: "image_mode", type: "combo", defaultValue: "backdrop (trace over)", options: ["backdrop (trace over)", "use as color map"], tooltip: NEW_NODES, category: CAT("Region Genie node", "03 image") },
         {
             id: SET.cmMinPixels, name: "Color map: min region pixels", type: "number", defaultValue: 64, attrs: { min: 1, max: 1000000, step: 1 },
