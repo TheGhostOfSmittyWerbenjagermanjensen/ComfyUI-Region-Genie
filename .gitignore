@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+
+# test output and local copies
+tests/out/
+tests/harness/extensions/
+node_modules/
+
+# never commit these: personal data, caches, models, secrets
+*.safetensors
+*.ckpt
+llm_cache.json
+comfy.settings.json
+.env
+*.env
