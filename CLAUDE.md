@@ -18,6 +18,8 @@ Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the d
 - UI: compact header controls; icons with tooltips over words, except these words the owner kept: "▼ LoRAs", "▼ All", "separation", "until", and every "LoRA"/"＋LoRA" label. Reuse existing icons.
 - The owner often can't test right away: explain behavior changes clearly, and end every task with what was tested and what wasn't (real GPU runs never are).
 - After each round, update `docs/HANDOFF.md` (decisions, open items) and `README.md`.
+- Before implementing anything (features, fixes, docs), fetch from GitHub and make sure the local copy matches the latest version of the branch the working branch is based on (its base branch: often `main`, but it depends on the situation), plus any newer commits on the working branch itself. If a PR from the working branch has been merged, start the new work from the current base branch.
+- When an instruction is unclear or could be read more than one way, ask the owner before acting on it.
 
 ## Checks before pushing
 

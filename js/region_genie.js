@@ -3,7 +3,9 @@ import { api } from "../../scripts/api.js";
 import { svgIcon, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName,
          autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, inAutocompleteList, autocompleteToggle,
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
-         onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings } from "./rg_shared.js";
+         onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
+         ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
+         wildcardsInstalled, onWildcardInfo } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
 import { openColorPicker, inColorPicker } from "./rg_colorpicker.js";
@@ -350,6 +352,41 @@ input.rg-sw[type=color]::-moz-color-swatch { border:none; border-radius:2px; }
 .rg-eye { width:20px; text-align:center; }
 .rg-pseudo { font-style:italic; opacity:.85; flex:1 1 auto; }
 .rg-hint { opacity:.65; font-size:11px; }
+.rg-row.region.off > :not(.rg-reye):not(.rg-chev) { opacity:.45; }
+.rg-size { display:flex; align-items:center; gap:3px; width:100%; height:100%; box-sizing:border-box; overflow:hidden;
+  font:12px sans-serif; color:var(--input-text,#ddd); pointer-events:auto; }
+.rg-size .rg-btn, .rg-size .rg-sel, .rg-size .rg-num, .rg-presets .rg-btn, .rg-presets .rg-num { background:var(--comfy-input-bg,#222);
+  color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; padding:1px 4px; font:inherit; }
+.rg-size .rg-btn { cursor:pointer; }
+.rg-size .rg-btn.on { background:#3a6ea5; border-color:#5b8fd0; color:#fff; }
+.rg-size .rg-btn.icon { padding:2px 4px; line-height:0; }
+.rg-size .rg-btn.icon svg { width:16px; height:16px; display:block; }
+.rg-size .rg-seg { display:inline-flex; flex:0 0 auto; }
+.rg-size .rg-seg .rg-btn { border-radius:0; margin:0; }
+.rg-size .rg-seg .rg-btn + .rg-btn { border-left-width:0; }
+.rg-size .rg-seg .rg-btn:first-child { border-radius:4px 0 0 4px; }
+.rg-size .rg-seg .rg-btn:last-child { border-radius:0 4px 4px 0; }
+.rg-size-part { display:inline-flex; align-items:center; gap:3px; min-width:0; flex:0 1 auto; }
+.rg-size .rg-sel { min-width:0; max-width:170px; flex:0 1 auto; }
+.rg-size .rg-hint { opacity:.65; font-size:11px; }
+.rg-size-out { margin-left:auto; padding-left:4px; white-space:nowrap; opacity:.8; font-variant-numeric:tabular-nums; }
+.rg-size.ext .rg-size-part, .rg-size.ext .rg-seg { opacity:.45; }
+.rg-size.ext .rg-size-out { opacity:1; color:#8fb8e8; }
+.rg-size.editsized .rg-size-part > select:first-child { opacity:.45; }
+.rg-presets { position:fixed; z-index:10000; display:flex; flex-direction:column; gap:4px; padding:6px 8px; max-height:70vh;
+  background:var(--comfy-menu-bg,#2a2a2a); color:var(--input-text,#ddd); border:1px solid var(--border-color,#555); border-radius:6px;
+  font:12px sans-serif; box-shadow:0 4px 16px rgba(0,0,0,.5); }
+.rg-presets-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:600; }
+.rg-presets-list { display:flex; flex-direction:column; gap:3px; overflow:auto; }
+.rg-presets-row { display:flex; align-items:center; gap:3px; }
+.rg-presets-name { width:110px; background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555);
+  border-radius:4px; padding:1px 4px; font:inherit; }
+.rg-presets-foot { display:flex; gap:4px; justify-content:flex-end; }
+.rg-presets .rg-btn:disabled { opacity:.4; }
+.rg-wc-filled { box-shadow:inset 3px 0 0 -1px #c9a14a; }
+.rg-pop-lbl .rg-wc-use { margin-left:6px; padding:0 3px; line-height:0; vertical-align:middle; }
+.rg-pop .rg-wc-use svg, .rg-pop .rg-wc-pick svg { width:14px; height:14px; display:block; }
+.rg-pop .rg-wc-pick { line-height:0; padding:1px 3px; }
 .rg-msg { display:flex; gap:6px; align-items:flex-start; flex:0 0 auto; font-size:12px; padding:4px 6px; margin:2px 0;
   background:#3a2424; border:1px solid #b05656; border-radius:4px; color:#f6dddd; user-select:text; -webkit-user-select:text; cursor:auto; }
 .rg-msg-icon { flex:0 0 auto; line-height:20px; }
@@ -364,7 +401,7 @@ function injectStyle() {
     for (const id of ["rg-style", "rg-style-v2", "rg-style-v3", "rg-style-v4", "rg-style-v5", "rg-style-v6", "rg-style-v7", "rg-style-v8"]) document.getElementById(id)?.remove();
     const s = document.createElement("style");
     s.id = "rg-style-v8";
-    s.textContent = STYLE + CHIP_CSS;
+    s.textContent = STYLE + CHIP_CSS + WC_CSS;
     document.head.appendChild(s);
 }
 
@@ -686,7 +723,7 @@ app.registerExtension({
             queueMicrotask(fixImportMode); setTimeout(fixImportMode, 0);
             // paint_data, and the rarely used settings (shown as small controls in the bottom-left corner instead)
             const minW = findW("min_region_pixels");
-            for (const w of [dataW, modeW, minW, impW, fmtW, editW, areaW]) {
+            for (const w of [dataW, modeW, minW, impW, fmtW, editW, areaW, wW, hW]) {
                 if (!w) continue;
                 w.hidden = true;
                 w.computeSize = () => [0, -4];
@@ -707,6 +744,7 @@ app.registerExtension({
                         if (isEdit()) { d.edit = editSettings(); d.editMask = editMaskNow(); }
                         d.llmCache = llmCacheSettings();
                         d.minPixels = minPixelsNow();
+                        d.wcPerField = !!getSetting(SET.wcPerField, false);
                         d.importMode = importModeNow();
                         return JSON.stringify(d);
                     } catch (e) { return v; }
@@ -717,15 +755,41 @@ app.registerExtension({
             if (sceneBgW?.options) { sceneBgW.options.getMinHeight = () => 36; sceneBgW.options.getMaxHeight = () => 56; }
             // LoRA Manager's tag autocomplete in both scene prompts (if that pack is installed)
             // the scene prompts: tag autocomplete, and a double-click opens them in the pop-up editor
+            // ---- wildcards (Impact Pack): what each field became in the last run (or a preview)
+            let wcFilled = {};                       // field key -> { raw, filled }
+            const filledFor = (key, raw) => { const f = wcFilled[key]; return f && f.raw === (raw ?? "") && f.filled !== f.raw ? f.filled : null; };
+            const sceneTA = {};                      // positive / negative / background -> their textareas
+            const SCENE_KEYS = { positive: "scene", negative: "negative", background: "background" };
+            function wcFields() {
+                const f = { scene: sceneW?.value || "", negative: sceneNegW?.value || "", background: sceneBgW?.value || "" };
+                for (const r of state.regions) {
+                    if (r.hidden) continue;
+                    f["r" + r.id] = r.prompt || "";
+                    if (r.type === "text" && r.text) f[`r${r.id}.text`] = r.text;
+                }
+                return f;
+            }
+            // a field's tooltip / marker: the text the wildcards filled in (when it's for the text in the field now)
+            function wcMark(t, key, raw, base) {
+                if (!t) return;
+                if (base != null) t.dataset.baseTitle = base;
+                const f = filledFor(key, raw), b = t.dataset.baseTitle ?? "";
+                const title = (b ? b + "\n" : "") + (f != null ? `Wildcards filled in (last run or preview):\n${f}` : "");
+                if (t.title !== title) t.title = title;
+                t.classList.toggle("rg-wc-filled", f != null);
+            }
             const SCENE_FIELDS = { scene_prompt_positive: "positive", scene_prompt_negative: "negative",
                                    scene_prompt_background: "background" };
             autocompleteWidgets(node, Object.keys(SCENE_FIELDS), (name, t) => {
                 if (!SCENE_FIELDS[name]) return;
+                sceneTA[SCENE_FIELDS[name]] = t;
                 t.addEventListener("dblclick", (e) => {
                     e.preventDefault(); e.stopPropagation();
                     editScene(SCENE_FIELDS[name]);
                 });
                 if (!/double-click/i.test(t.title || "")) t.title = (t.title ? t.title + "\n" : "") + "Double-click: open in the pop-up editor";
+                t.dataset.baseTitle = t.title;
+                t.addEventListener("input", () => wcMark(t, SCENE_KEYS[SCENE_FIELDS[name]], t.value));
             });
 
             // ---------------- editor state ----------------
@@ -1100,9 +1164,41 @@ app.registerExtension({
             });
             llmSetBtn.innerHTML = sparkleSvg(false);
             llmSetBtn.classList.add("rg-llmset");
-            settings.append(editSeg.box, areaCtl.lab, fmtCtl.lab, llmSetBtn, acCtl.el);
+            // ---- wildcards (Impact Pack): what each field became in the last run (or a preview), and the seed control
+            function wcMarkScene() {
+                for (const [which, w] of [["positive", sceneW], ["negative", sceneNegW], ["background", sceneBgW]]) {
+                    wcMark(sceneTA[which], SCENE_KEYS[which], String(w?.value ?? ""));
+                }
+            }
+            function wcSetFilled(filled, preview, msg) {
+                wcFilled = { ...(preview ? {} : wcFilled), ...(filled || {}) };
+                if (!preview) wcFilled = { ...(filled || {}) };
+                wcMarkScene(); renderRegions(); editor?.refresh(); requestDraw();
+                const n = Object.keys(filled || {}).length;
+                if (msg) hint(msg);
+                else if (preview) hint(n ? `Preview: wildcards filled in ${n} field${n > 1 ? "s" : ""} (hover a field, or see the labels). Right-click the seed: use the filled text` : "Nothing to fill");
+            }
+            function wcUseAll() {
+                let n = 0;
+                for (const [which, w] of [["positive", sceneW], ["negative", sceneNegW], ["background", sceneBgW]]) {
+                    const f = filledFor(SCENE_KEYS[which], String(w?.value ?? ""));
+                    if (f != null) { setWidget(w, f); n++; }
+                }
+                const regs = state.regions.filter((r) => filledFor("r" + r.id, r.prompt || "") != null || filledFor(`r${r.id}.text`, r.text || "") != null);
+                if (regs.length) change(() => {
+                    for (const r of regs) {
+                        const p = filledFor("r" + r.id, r.prompt || ""), t = filledFor(`r${r.id}.text`, r.text || "");
+                        if (p != null) { r.prompt = p; n++; }
+                        if (t != null) { r.text = t; n++; }
+                    }
+                });
+                wcMarkScene(); editor?.refresh();
+                hint(n ? `The filled text is now in ${n} field${n > 1 ? "s" : ""} (Ctrl+Z undoes the regions)` : "No filled text yet: run the workflow or preview first");
+            }
+            const wcCtl = wildcardSeedControl(node, el, { fields: wcFields, onFilled: wcSetFilled, useAll: wcUseAll });
+            settings.append(editSeg.box, areaCtl.lab, fmtCtl.lab, llmSetBtn, acCtl.el, wcCtl.el);
             const syncSettings = () => {
-                fmtCtl.sync(); areaCtl.sync(); acCtl.refresh();
+                fmtCtl.sync(); areaCtl.sync(); acCtl.refresh(); wcCtl.refresh();
                 editSeg.set(isEdit() ? "edit" : "generate");
                 imgSeg.set(modeW?.value === "use as color map" ? "use as color map" : "backdrop (trace over)");
                 const ed = isEdit();
@@ -1425,7 +1521,262 @@ app.registerExtension({
                 serialize: false, hideOnZoom: false, getMinHeight: () => 620,
             });
             domW.serialize = false;
-            keepWidgetValuesByName(node, ["width", "height", "scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background", "image_mode",
+            // ---------------- image size row (top of the node, where the width / height widgets were) ----------------
+            // node.properties.rg_size keeps the row's settings (each mode its own); the hidden width / height widgets
+            // hold the result, so the Python side, saved workflows and API prompts keep using width / height.
+            const SIZE_MODES = ["aspect ratio", "presets", "manual"];
+            const clampNum = (v, lo, hi, d) => { v = +v; return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
+            function sizeDefaults() {
+                const mode = getSetting(SET.sizeMode, "aspect ratio"), asp = getSetting(SET.sizeAspect, SIZE_ASPECTS[0][0]);
+                const first = parseSizePresets(getSetting(SET.sizePresets, SIZE_PRESETS_DEFAULT))[0] || { w: 1024, h: 1024 };
+                return {
+                    mode: SIZE_MODES.includes(mode) ? mode : "aspect ratio",
+                    ratio: { aspect: SIZE_ASPECTS.some((a) => a[0] === asp) ? asp : SIZE_ASPECTS[0][0], swap: false,
+                             mp: clampNum(getSetting(SET.sizeMegapixels, 1), 0.1, 16, 1), multiple: clampNum(getSetting(SET.sizeMultiple, 8), 8, 128, 8) },
+                    preset: { w: first.w, h: first.h, swap: false },
+                    manual: { w: Math.round(clampNum(getSetting(SET.cmWidth, 1024), 16, 16384, 1024)),
+                              h: Math.round(clampNum(getSetting(SET.cmHeight, 1024), 16, 16384, 1024)), link: false },
+                };
+            }
+            function sizeCfg() {
+                node.properties = node.properties || {};
+                let c = node.properties.rg_size;
+                if (!c || typeof c !== "object") {           // a node saved before the size row: manual, with its size
+                    c = { ...sizeDefaults(), mode: "manual" };
+                    c.manual = { w: Math.round(clampNum(wW?.value, 16, 16384, 1024)), h: Math.round(clampNum(hW?.value, 16, 16384, 1024)), link: false };
+                    node.properties.rg_size = c;
+                }
+                const d = sizeDefaults();
+                for (const k of ["ratio", "preset", "manual"]) c[k] = { ...d[k], ...(c[k] && typeof c[k] === "object" ? c[k] : {}) };
+                if (!SIZE_MODES.includes(c.mode)) c.mode = "manual";
+                return c;
+            }
+            function sizeOfCfg(c) {
+                if (c.mode === "aspect ratio") {
+                    const a = SIZE_ASPECTS.find((x) => x[0] === c.ratio.aspect) || SIZE_ASPECTS[0];
+                    const [w, h] = ratioSize(a[1], a[2], clampNum(c.ratio.mp, 0.1, 16, 1), clampNum(c.ratio.multiple, 8, 128, 8));
+                    return c.ratio.swap ? [h, w] : [w, h];
+                }
+                if (c.mode === "presets") return c.preset.swap ? [c.preset.h, c.preset.w] : [c.preset.w, c.preset.h];
+                return [c.manual.w, c.manual.h];
+            }
+            function applySize() {
+                const [w, h] = sizeOfCfg(sizeCfg());
+                setWidget(wW, w); setWidget(hW, h);
+                syncSizeRow();
+                if (sizeReady) onDimsChanged();
+                node.setDirtyCanvas?.(true, true);
+            }
+            // a size set from elsewhere (an imported layout): typed in, so the row shows it
+            function setManualSize(w, h) {
+                const c = sizeCfg();
+                if (JSON.stringify(sizeOfCfg(c)) === JSON.stringify([w, h])) return;
+                c.mode = "manual"; c.manual = { ...c.manual, w, h };
+                applySize();
+            }
+            let sizeReady = false;                     // the editor below is set up (onDimsChanged can run)
+            const sizeRow = el("div", "rg-size");
+            const sizeSeg = segmented([
+                ["aspect ratio", svgIcon("sizeRatio"), "Image size from an aspect ratio and megapixels, like ComfyUI's Resolution Selector"],
+                ["presets", svgIcon("sizeList"), "Image size from the presets list (shared by every Region Genie node; 'Edit list…' at its end)"],
+                ["manual", svgIcon("sizeManual"), "Image size: width and height typed in"],
+            ], (v) => { sizeCfg().mode = v; applySize(); });
+            const sizeNum = (min, max, step, title, width) => {
+                const i = el("input", "rg-num"); i.type = "number"; i.min = String(min); i.max = String(max); i.step = String(step);
+                i.title = title; if (width) i.style.width = width;
+                i.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") i.blur(); });
+                return i;
+            };
+            const tiny = (text, title) => { const t = el("span", "rg-hint"); t.textContent = text; t.title = title; return t; };
+            // aspect ratio
+            const aspSel = el("select", "rg-sel");
+            aspSel.title = "Aspect ratio (as in ComfyUI's Resolution Selector)";
+            for (const [name] of SIZE_ASPECTS) aspSel.appendChild(opt(name, name));
+            aspSel.addEventListener("change", () => { sizeCfg().ratio.aspect = aspSel.value; applySize(); });
+            const mpIn = sizeNum(0.1, 16, 0.01, "Megapixels: the target pixel count (1.0 = 1024 x 1024 for square)", "48px");
+            mpIn.addEventListener("change", () => { const c = sizeCfg(); c.ratio.mp = Math.round(clampNum(mpIn.value, 0.1, 16, 1) * 100) / 100; applySize(); });
+            const multIn = sizeNum(8, 128, 4, "Multiple: width and height are rounded to a multiple of this", "38px");
+            multIn.addEventListener("change", () => { const c = sizeCfg(); c.ratio.multiple = Math.round(clampNum(multIn.value, 8, 128, 8)); applySize(); });
+            const ratioBox = el("span", "rg-size-part");
+            const swapBtn = (mode) => iconBtn("swapWH", "Swap width and height (portrait / landscape)", () => {
+                const c = sizeCfg();
+                if (mode === "manual") c.manual = { ...c.manual, w: c.manual.h, h: c.manual.w }; else c[mode].swap = !c[mode].swap;
+                applySize();
+            });
+            const swapR = swapBtn("ratio"), swapP = swapBtn("preset"), swapM = swapBtn("manual");
+            ratioBox.append(aspSel, swapR, tiny("MP", mpIn.title), mpIn, tiny("×", multIn.title), multIn);
+            // presets
+            const preSel = el("select", "rg-sel rg-size-pre");
+            preSel.title = "Image size presets (Settings > Region Genie > Image size; 'Edit list…' to change them)";
+            const EDIT_LIST = "__edit__";
+            let presetsText = null;
+            preSel.addEventListener("change", () => {
+                if (preSel.value === EDIT_LIST) { syncSizeRow(true); openPresetEditor(); return; }
+                const [w, h] = preSel.value.split("x").map(Number);
+                const c = sizeCfg(); c.preset = { ...c.preset, w, h };
+                applySize();
+            });
+            const preBox = el("span", "rg-size-part");
+            preBox.append(preSel, swapP);
+            // manual
+            const wIn = sizeNum(16, 16384, 1, "Width (px)", "54px"), hIn = sizeNum(16, 16384, 1, "Height (px)", "54px");
+            const linkBtn = iconBtn("unlink", "", () => { const c = sizeCfg(); c.manual.link = !c.manual.link; syncSizeRow(); });
+            const manualSet = (which) => {
+                const c = sizeCfg(), m = c.manual, v = Math.round(clampNum((which === "w" ? wIn : hIn).value, 16, 16384, m[which]));
+                if (m.link && m.w > 0 && m.h > 0) {           // keep the ratio: the other side follows
+                    if (which === "w") c.manual = { ...m, w: v, h: Math.round(clampNum(v * m.h / m.w, 16, 16384, m.h)) };
+                    else c.manual = { ...m, h: v, w: Math.round(clampNum(v * m.w / m.h, 16, 16384, m.w)) };
+                } else c.manual = { ...m, [which]: v };
+                applySize();
+            };
+            wIn.addEventListener("change", () => manualSet("w"));
+            hIn.addEventListener("change", () => manualSet("h"));
+            const manBox = el("span", "rg-size-part");
+            manBox.append(tiny("W", wIn.title), wIn, swapM, tiny("H", hIn.title), hIn, linkBtn);
+            const sizeOut = el("span", "rg-size-out");
+            sizeRow.append(sizeSeg.box, ratioBox, preBox, manBox, sizeOut);
+            for (const ev of ["pointerdown", "mousedown", "dblclick", "wheel"]) sizeRow.addEventListener(ev, (e) => e.stopPropagation());
+            function presetOptions() {
+                const text = String(getSetting(SET.sizePresets, SIZE_PRESETS_DEFAULT) ?? "");
+                if (text === presetsText) return;
+                presetsText = text;
+                preSel.replaceChildren();
+                for (const p of parseSizePresets(text)) {
+                    preSel.appendChild(opt(`${p.w}x${p.h}`, `${p.w} × ${p.h}  (${p.name || ratioLabel(p.w, p.h)})`));
+                }
+                const sep = opt("", "──────────"); sep.disabled = true;
+                preSel.append(sep, opt(EDIT_LIST, "Edit list…"));
+            }
+            function syncSizeRow(force) {
+                const c = sizeCfg();
+                sizeSeg.set(c.mode);
+                ratioBox.style.display = c.mode === "aspect ratio" ? "" : "none";
+                preBox.style.display = c.mode === "presets" ? "" : "none";
+                manBox.style.display = c.mode === "manual" ? "" : "none";
+                const idle = (i) => force || document.activeElement !== i;
+                if (idle(aspSel)) aspSel.value = c.ratio.aspect;
+                if (idle(mpIn)) mpIn.value = String(c.ratio.mp);
+                if (idle(multIn)) multIn.value = String(c.ratio.multiple);
+                presetOptions();
+                const key = `${c.preset.w}x${c.preset.h}`;
+                if (idle(preSel)) {
+                    if (![...preSel.options].some((o) => o.value === key)) {          // not in the list (any more): keep it shown
+                        const o = opt(key, `${c.preset.w} × ${c.preset.h}  (not in the list)`); o.dataset.extra = "1";
+                        preSel.querySelector("option[data-extra]")?.remove();
+                        preSel.insertBefore(o, preSel.firstChild);
+                    }
+                    preSel.value = key;
+                }
+                if (idle(wIn)) wIn.value = String(c.manual.w);
+                if (idle(hIn)) hIn.value = String(c.manual.h);
+                linkBtn.innerHTML = svgIcon(c.manual.link ? "link" : "unlink");
+                linkBtn.classList.toggle("on", !!c.manual.link);
+                linkBtn.title = c.manual.link ? "Ratio kept: changing one side changes the other. Click to set them separately"
+                    : "Keep the ratio: changing one side changes the other";
+                swapR.classList.toggle("on", !!c.ratio.swap); swapP.classList.toggle("on", !!c.preset.swap);
+                if (!sizeReady) { sizeOut.textContent = sizeOfCfg(c).join(" × "); return; }
+                // what decides the size in the end (same priority as the Python side)
+                const [W, H] = dims();
+                const from = isLinked("size_from_image") ? "from size_from_image" : isLinked("size_from_latent") ? "from size_from_latent"
+                    : editSized() ? "Edit: the image's shape at this many pixels"
+                    : isLinked("width_in") || isLinked("height_in") ? "from the width / height inputs" : "";
+                sizeOut.textContent = `${W} × ${H}`;
+                sizeOut.title = from ? `Image size ${W} x ${H}: ${from}` : `Image size: ${W} x ${H}`;
+                sizeRow.classList.toggle("ext", /^from/.test(from));
+                sizeRow.classList.toggle("editsized", from.startsWith("Edit"));
+            }
+            // the presets list editor (a small pop-up; the list is a Setting shared by every node)
+            let presetPop = null;
+            function closePresetEditor() {
+                if (!presetPop) return;
+                presetPop.remove(); presetPop = null;
+                window.removeEventListener("pointerdown", presetOutside, true);
+            }
+            function presetOutside(e) { if (presetPop && !presetPop.contains(e.target)) closePresetEditor(); }
+            function openPresetEditor() {
+                closePresetEditor();
+                const pop = el("div", "rg-presets");
+                presetPop = pop;
+                let list = parseSizePresets(getSetting(SET.sizePresets, SIZE_PRESETS_DEFAULT));
+                const save = () => { setSetting(SET.sizePresets, formatSizePresets(list)); presetsText = null; syncSizeRow(true); };
+                const body = el("div", "rg-presets-list");
+                const render = () => {
+                    body.replaceChildren();
+                    list.forEach((p, i) => {
+                        const row = el("div", "rg-presets-row");
+                        const w = sizeNum(16, 16384, 1, "Width", "54px"), h = sizeNum(16, 16384, 1, "Height", "54px");
+                        w.value = String(p.w); h.value = String(p.h);
+                        const name = el("input", "rg-presets-name"); name.type = "text"; name.value = p.name; name.placeholder = ratioLabel(p.w, p.h);
+                        name.title = "Name (optional; shown instead of the ratio)";
+                        name.addEventListener("keydown", (e) => e.stopPropagation());
+                        const upd = () => { list[i] = { w: Math.round(clampNum(w.value, 16, 16384, p.w)), h: Math.round(clampNum(h.value, 16, 16384, p.h)), name: name.value.replace(/[;\n]/g, " ").trim() }; save(); };
+                        for (const x of [w, h, name]) x.addEventListener("change", upd);
+                        const up = btn("↑", "Move up", () => { if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; save(); render(); } });
+                        up.disabled = i === 0;
+                        const dn = btn("↓", "Move down", () => { if (i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; save(); render(); } });
+                        dn.disabled = i === list.length - 1;
+                        const del = btn("✕", "Remove from the list", () => { list.splice(i, 1); save(); render(); });
+                        row.append(w, tiny("×", ""), h, name, up, dn, del);
+                        body.appendChild(row);
+                    });
+                    if (!list.length) { const t = tiny("The list is empty: add the current size below.", ""); body.appendChild(t); }
+                };
+                const head = el("div", "rg-presets-head");
+                const title = el("span"); title.textContent = "Image size presets (every Region Genie node)";
+                head.append(title, btn("✕", "Close", () => closePresetEditor()));
+                const foot = el("div", "rg-presets-foot");
+                const addCur = btn("＋ Current size", "Add the node's current image size to the list", () => {
+                    const [cw, ch] = sizeOfCfg(sizeCfg());
+                    if (!list.some((p) => p.w === cw && p.h === ch)) { list.push({ w: cw, h: ch, name: "" }); save(); render(); }
+                });
+                const reset = btn("Defaults", "Put the starting list back", () => { list = parseSizePresets(SIZE_PRESETS_DEFAULT); save(); render(); });
+                foot.append(addCur, reset);
+                pop.append(head, body, foot);
+                for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "keydown"]) pop.addEventListener(ev, (e) => e.stopPropagation());
+                render();
+                document.body.appendChild(pop);
+                const r = preSel.getBoundingClientRect();
+                const pw = pop.offsetWidth, ph = pop.offsetHeight;
+                pop.style.left = Math.max(6, Math.min(window.innerWidth - pw - 6, r.left)) + "px";
+                pop.style.top = (r.bottom + 4 + ph <= window.innerHeight - 6 ? r.bottom + 4 : Math.max(6, r.top - 4 - ph)) + "px";
+                setTimeout(() => window.addEventListener("pointerdown", presetOutside, true), 0);
+            }
+            const sizeW = node.addDOMWidget("rg_size", "RgSize", sizeRow, {
+                // legacy mode takes 'margin' off each side of a DOM widget (10 px by default): a 24 px row
+                serialize: false, hideOnZoom: false, margin: 3, getMinHeight: () => 30, getMaxHeight: () => 30,
+            });
+            sizeW.serialize = false;
+            // a fixed-height row: legacy mode sizes a widget with computeSize first (26 + 4 px, minus the margins = 24 px);
+            // Nodes 2.0 stretches every widget that has computeLayoutSize, so this one hides it (min-content row there)
+            sizeW.computeSize = (w) => [w ?? node.size?.[0] ?? 700, 26];
+            sizeW.computeLayoutSize = undefined;
+            {                                              // at the top, where width / height were
+                const ws = node.widgets || [], iS = ws.indexOf(sizeW);
+                if (iS > -1) { ws.splice(iS, 1); const iW = ws.indexOf(wW); ws.splice(iW > -1 ? iW : 0, 0, sizeW); }
+            }
+            // the optional width / height sockets (internal names width_in / height_in) show as "width" / "height"
+            const labelSizeInputs = () => {
+                for (const inp of node.inputs || []) {
+                    if (inp.name === "width_in" && inp.label !== "width") inp.label = "width";
+                    if (inp.name === "height_in" && inp.label !== "height") inp.label = "height";
+                }
+            };
+            labelSizeInputs();
+            // workflows from before the size row: links into the old width / height sockets move to the new ones
+            function moveSizeLinks() {
+                for (const [from, to] of [["width", "width_in"], ["height", "height_in"]]) {
+                    const i = (node.inputs || []).findIndex((x) => x.name === from);
+                    if (i < 0) continue;
+                    const id = node.inputs[i].link, j = node.inputs.findIndex((x) => x.name === to);
+                    if (id != null && j >= 0 && node.inputs[j].link == null) {
+                        const l = linkOf(node.graph, id);
+                        if (l) { l.target_slot = j; node.inputs[j].link = id; node.inputs[i].link = null; }
+                    }
+                    node.removeInput((node.inputs || []).findIndex((x) => x.name === from));
+                }
+                labelSizeInputs();
+            }
+            keepWidgetValuesByName(node, ["wildcard_seed", "width", "height", "scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background", "image_mode",
                                           "min_region_pixels", "import_mode", "prompt_format", "mode", "edit_area"]);
             // ComfyUI's right-side properties panel renders the selected node's widgets and writes its own
             // panel width into widget.width, which the classic canvas then uses for the node (the "squished"
@@ -1585,7 +1936,7 @@ app.registerExtension({
                 const s = loadImageSize(srcOf("image"));
                 if (!s) return null;
                 const pick = (name, widget) => isLinked(name) ? (numberOf(node, name) ?? widget?.value ?? 1024) : (widget?.value ?? 1024);
-                const sc = Math.sqrt(+pick("width", wW) * +pick("height", hW) / Math.max(1, s[0] * s[1]));
+                const sc = Math.sqrt(+pick("width_in", wW) * +pick("height_in", hW) / Math.max(1, s[0] * s[1]));
                 return [Math.max(16, pyRound(s[0] * sc / 16) * 16), Math.max(16, pyRound(s[1] * sc / 16) * 16)];
             }
             function guessInputDims() {
@@ -1609,7 +1960,7 @@ app.registerExtension({
                 if (fromInput) return [Math.max(1, Math.round(fromInput[0])), Math.max(1, Math.round(fromInput[1]))];
                 const pick = (name, widget, i) => isLinked(name)
                     ? (numberOf(node, name) ?? execDims?.[i] ?? widget?.value ?? 1024) : (widget?.value ?? 1024);
-                return [Math.max(1, Math.round(pick("width", wW, 0))), Math.max(1, Math.round(pick("height", hW, 1)))];
+                return [Math.max(1, Math.round(pick("width_in", wW, 0))), Math.max(1, Math.round(pick("height_in", hW, 1)))];
             }
             function resizeCanvas() {
                 const dpr = window.devicePixelRatio || 1;
@@ -1638,8 +1989,9 @@ app.registerExtension({
                 }
                 {
                     dimsLbl.textContent = `${W} x ${H}` + (isLinked("size_from_image") ? " (from image)" : isLinked("size_from_latent") ? " (from latent)"
-                        : isLinked("width") || isLinked("height") ? " (from input)" : "");
+                        : isLinked("width_in") || isLinked("height_in") ? " (from input)" : "");
                 }
+                syncSizeRow();
                 requestDraw();
             }
             const toImg = (sx, sy) => [(sx - view.x) / view.z, (sy - view.y) / view.z];
@@ -1780,7 +2132,18 @@ app.registerExtension({
                 if (curRegion == null || !regionById(curRegion)) {
                     curRegion = state.regions[0]?.id ?? newRegion().id;
                 }
+                revealRegion(curRegion);
                 return curRegion;
+            }
+            // a layer is drawn and output when its own eye and its region's eye are both on
+            const isShown = (L) => L.visible !== false && !(L.region !== UNSPEC && regionById(L.region)?.hidden);
+            function revealRegion(rid) {                   // drawing into a hidden region shows it again
+                const r = regionById(rid);
+                if (!r?.hidden) return;
+                delete r.hidden;
+                keepHintUntil = performance.now() + 3000;
+                hint(`'${String(regionLabel(rid)).slice(0, 40)}' was hidden: shown again so you can see what you add`);
+                refreshUI();
             }
             const selLayer = () => state.layers.find((l) => l.id === selId) || null;
             const nextLayerId = () => state.layers.reduce((m, l) => Math.max(m, Number(l.id) || 0), 0) + 1;
@@ -1993,10 +2356,10 @@ app.registerExtension({
                 syncToolOpts();
                 bSlider.style.display = t === "brush" || t === "erase" ? "" : "none";
                 hideBTip(); updateBrushSlider();
-                hint("");
+                if (performance.now() > keepHintUntil) hint("");       // a note just shown (e.g. region shown again) stays
                 requestDraw();
             }
-            let hintTimer = 0;
+            let hintTimer = 0, keepHintUntil = 0;
             function hint(text) {
                 statusLbl.textContent = text || "";
                 clearTimeout(hintTimer);
@@ -2049,7 +2412,7 @@ app.registerExtension({
                 let list = state.layers;
                 if (pending) { list = [...state.layers]; list.splice(slotFor(pending.region), 0, pending); }
                 for (const L of list) {
-                    if (L.visible === false) continue;
+                    if (!isShown(L)) continue;
                     const extra = drag?.mode === "paint" && (drag.target === L || L === pending) ? drag.op : null;
                     const needsScratch = L.ops.some((o) => o.e) || extra?.e;
                     if (!needsScratch) { drawLayerOn(c, L, extra, pre); continue; }
@@ -2144,7 +2507,7 @@ app.registerExtension({
                 drawLabels();
                 updateRegionIndices();
                 const L = selLayer();
-                if (L && L.visible !== false && hiddenSel !== selId) {
+                if (L && isShown(L) && hiddenSel !== selId) {
                     const cs = boxCornersImg(L);
                     if (cs) {
                         outline(cs, "#5b8fd0", tool !== "select");
@@ -2184,7 +2547,7 @@ app.registerExtension({
                 const x = hatchCtx;
                 x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "source-over"; x.clearRect(0, 0, w, h);
                 for (const L of state.layers) {
-                    if (L.visible === false || (L.region !== UNSPEC && !regionById(L.region))) continue;
+                    if (!isShown(L) || (L.region !== UNSPEC && !regionById(L.region))) continue;
                     hatchTmpCtx.setTransform(1, 0, 0, 1, 0, 0); hatchTmpCtx.clearRect(0, 0, w, h);
                     drawLayerOn(hatchTmpCtx, L, null, null, "#fff");      // on its own canvas: its erasers stay inside it
                     x.globalCompositeOperation = keep.has(L.region) ? "source-over" : "destination-out";
@@ -2239,7 +2602,7 @@ app.registerExtension({
             function hitLayer(dx, dy) {
                 for (let i = state.layers.length - 1; i >= 0; i--) {
                     const L = state.layers[i];
-                    if (L.visible === false) continue;
+                    if (!isShown(L)) continue;
                     hctx.setTransform(1, 0, 0, 1, 0, 0);
                     hctx.clearRect(0, 0, 1, 1);
                     drawLayerOn(hctx, L, null, [1, 0, 0, 1, -dx, -dy]);
@@ -2276,7 +2639,7 @@ app.registerExtension({
                 if (pending) { list = [...state.layers]; list.splice(slotFor(pending.region), 0, pending); }
                 try {
                     for (const L of list) {
-                        if (L.visible === false) continue;
+                        if (!isShown(L)) continue;
                         const k = L.region === UNSPEC ? 0 : kOf.get(L.region);
                         if (k == null) continue;
                         const extra = drag?.mode === "paint" && (drag.target === L || L === pending) ? drag.op : null;
@@ -2298,7 +2661,7 @@ app.registerExtension({
                 const present = new Set(regionLabelBoxes().map((b) => b.k));
                 let n = 0;
                 return state.regions.map((r, k) =>
-                    present.has(k) || r.fromImage || detectedSet.has(r.color.toUpperCase()) ? n++ : null);
+                    !r.hidden && (present.has(k) || r.fromImage || detectedSet.has(r.color.toUpperCase())) ? n++ : null);
             }
             let idxKey = "";
             function updateRegionIndices(map) {
@@ -2310,7 +2673,8 @@ app.registerExtension({
                     const v = map[Number(sp.dataset.k)];
                     sp.textContent = v == null ? "–" : String(v);
                     sp.classList.toggle("none", v == null);
-                    sp.title = v == null ? "No visible pixels yet, so this region is not in the outputs"
+                    sp.title = v == null ? (state.regions[Number(sp.dataset.k)]?.hidden ? "Hidden, so this region is not in the outputs"
+                        : "No visible pixels yet, so this region is not in the outputs")
                         : `Output index ${v}: masks, bboxes, elements, layouts and Mask Picker / BBoxes to Masks 'index'`;
                 }
             }
@@ -2403,7 +2767,7 @@ app.registerExtension({
                 for (const b of regionLabelBoxes()) {
                     const rg = state.regions[b.k];
                     if (!rg) continue;
-                    let text = rg.prompt.trim() || "(no prompt)";
+                    let text = (filledFor("r" + rg.id, rg.prompt) ?? rg.prompt).trim() || "(no prompt)";
                     if (rg.type === "text" && rg.text) text += `  "${rg.text}"`;
                     if (rg.type === "character") text = "👤 " + text;
                     if (rg.keep && isEdit()) text = "🔒 " + text;            // Edit Mode: kept as it is in the source
@@ -2509,9 +2873,9 @@ app.registerExtension({
                     }
                 }
                 if (!m.some((v) => v)) return false;
-                const rid = ensureRegion();
                 const op = { t: "bitmap", e: false, w, h, runs: encodeRuns(m), x0: 0, y0: 0, x1: W / s, y1: H / s };
                 change(() => {
+                    const rid = ensureRegion();
                     const sel = selLayer();
                     if (sel && sel.region === rid && sel.visible !== false && identityFrame(sel)) sel.ops.push(op);
                     else { const L = newPaintLayer(rid); L.name = `${name} ${L.id}`; L.ops.push(op); addLayer(L); }
@@ -2948,7 +3312,7 @@ app.registerExtension({
                     const L = selLayer();
                     const shown = hiddenSel !== selId;
                     hiddenSel = null;
-                    if (L && L.visible !== false && shown) {
+                    if (L && isShown(L) && shown) {
                         const hd = handles(L).find((h) => Math.hypot(h.x - dx, h.y - dy) <= 9 * dprNow());
                         if (hd) {
                             const L0 = { ...L };
@@ -3177,7 +3541,12 @@ app.registerExtension({
                 const sw = el("span", "rg-sw"); sw.dataset.swatch = String(r.id);
                 const x = el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close (Enter / Esc)";
                 x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
-                head.append(title, num, sw, x);
+                let lastTa = null;                         // the field the picker inserts into
+                const wcPick = el("button", "rg-btn ico rg-wc-pick"); wcPick.innerHTML = svgIcon("wildcard");
+                wcPick.title = "Insert a wildcard (ComfyUI Impact Pack) at the cursor";
+                wcPick.addEventListener("click", (e) => pickWildcard(e, (name) => insertAtCursor(lastTa || prompt.ta, name)));
+                wcPick.style.display = wildcardsInstalled() ? "" : "none";
+                head.append(title, num, sw, wcPick, x);
                 // type buttons
                 const types = el("div", "rg-pop-types");
                 const typeBtns = {};
@@ -3193,6 +3562,24 @@ app.registerExtension({
                     const wrapF = el("div", "rg-pop-field");
                     const lab = el("div", "rg-pop-lbl"); lab.textContent = label;
                     const ta = el("textarea"); ta.rows = rows; ta.placeholder = placeholder; ta.spellcheck = false; ta.value = r[key] || "";
+                    const fkey = key === "prompt" ? "r" + r.id : `r${r.id}.text`;
+                    const use = el("button", "rg-btn ico rg-wc-use"); use.innerHTML = svgIcon("useFilled");
+                    use.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const f = filledFor(fkey, r[key] || "");
+                        if (f == null) return;
+                        change(() => { r[key] = f; });
+                        ta.value = f; syncUse();
+                    });
+                    const syncUse = () => {
+                        const f = filledFor(fkey, r[key] || "");
+                        use.style.display = f != null ? "" : "none";
+                        use.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : "";
+                    };
+                    lab.appendChild(use);
+                    ta.addEventListener("focus", () => { lastTa = ta; });
+                    ta.addEventListener("input", syncUse);
+                    ta.__rgSyncUse = syncUse;
                     ta.addEventListener("focus", () => {
                         if (editor?.field && editor.field.ta !== ta) editor.endField(false);
                         if (editor) editor.field = { ta, key, before: snapshot(), orig: r[key] || "" };
@@ -3243,6 +3630,8 @@ app.registerExtension({
                         box.style.borderColor = colorOf(rid) || "#5b8fd0";
                         for (const [t, b] of Object.entries(typeBtns)) b.classList.toggle("on", rr.type === t);
                         text.wrapF.style.display = rr.type === "text" ? "" : "none";
+                        prompt.ta.__rgSyncUse?.(); text.ta.__rgSyncUse?.();
+                        wcPick.style.display = wildcardsInstalled() ? "" : "none";
                         for (const [f, key] of [[prompt, "prompt"], [text, "text"]]) {
                             if (document.activeElement !== f.ta && f.ta.value !== (rr[key] || "")) f.ta.value = rr[key] || "";
                         }
@@ -3321,12 +3710,30 @@ app.registerExtension({
                                       background: "Background (scene_prompt_background)" }[which];
                 const x = el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close (Enter / Esc)";
                 x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
-                head.append(title, x);
+                const wcPickS = el("button", "rg-btn ico rg-wc-pick"); wcPickS.innerHTML = svgIcon("wildcard");
+                wcPickS.title = "Insert a wildcard (ComfyUI Impact Pack) at the cursor";
+                wcPickS.addEventListener("click", (e) => pickWildcard(e, (name) => insertAtCursor(ta, name)));
+                wcPickS.style.display = wildcardsInstalled() ? "" : "none";
+                head.append(title, wcPickS, x);
                 const wrapF = el("div", "rg-pop-field");
                 const ta = el("textarea"); ta.rows = 6; ta.spellcheck = false; ta.value = String(w.value ?? "");
                 ta.placeholder = { positive: "the whole picture: setting, style, lighting ...", negative: "what to avoid in the whole picture",
                                    background: "behind the regions: ground, floor, sky, room ..." }[which];
                 const orig = ta.value;
+                const skey = SCENE_KEYS[which];
+                const useS = el("button", "rg-btn ico rg-wc-use"); useS.innerHTML = svgIcon("useFilled");
+                const syncUseS = () => {
+                    const f = filledFor(skey, String(w.value ?? ""));
+                    useS.style.display = f != null ? "" : "none";
+                    useS.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : "";
+                };
+                useS.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const f = filledFor(skey, String(w.value ?? ""));
+                    if (f == null) return;
+                    setWidget(w, f); ta.value = f; syncUseS(); wcMarkScene();
+                });
+                ta.addEventListener("input", () => syncUseS());
                 ta.addEventListener("input", () => { setWidget(w, ta.value); if (pos) updateLlmButtons(); });
                 ta.addEventListener("keydown", (e) => {
                     if (e.key === "Enter" && !e.shiftKey && !autocompleteOpen(ta, e)) { e.preventDefault(); closeEditor(true); }
@@ -3336,7 +3743,8 @@ app.registerExtension({
                 const dyn = el("div", "rg-pop-dyn");
                 const foot = el("div", "rg-pop-foot");
                 foot.textContent = "Enter: done · Shift+Enter: new line · Esc: close, putting the text back";
-                box.append(head, wrapF, dyn, foot);
+                const useRow = el("div", "rg-pop-lbl"); useRow.append(useS);
+                box.append(head, useRow, wrapF, dyn, foot);
                 wrap.appendChild(box);
                 const ed = {
                     scene: which, box, field: { cancelable: true },
@@ -3347,6 +3755,7 @@ app.registerExtension({
                     },
                     refresh() {
                         if (document.activeElement !== ta && ta.value !== String(w.value ?? "")) ta.value = String(w.value ?? "");
+                        syncUseS(); wcPickS.style.display = wildcardsInstalled() ? "" : "none";
                         box.style.borderColor = "#5b8fd0";
                         if (!pos) { dyn.replaceChildren(); ed.place(); return; }
                         const ctl = el("div", "rg-row pop-ctl");
@@ -4019,7 +4428,7 @@ app.registerExtension({
 
                 state.regions.forEach((r, i) => {
                     const lays = layersOf(r.id);
-                    const row = el("div", "rg-row region" + (curRegion === r.id ? " sel" : ""));
+                    const row = el("div", "rg-row region" + (curRegion === r.id ? " sel" : "") + (r.hidden ? " off" : ""));
                     const pick = () => { if (activateRegion(r.id)) { markRegionRows(); requestDraw(); } };
                     row.addEventListener("pointerdown", (e) => { if (e.target === row || e.target.classList.contains("rg-idx") || e.target.classList.contains("rg-cnt")) pick(); });
                     const sw = regionSwatch(r, pick);
@@ -4029,8 +4438,9 @@ app.registerExtension({
                     ty.addEventListener("change", () => change(() => { r.type = ty.value; }));
                     const pr = el("textarea", "rg-prompt"); pr.rows = 1; pr.placeholder = r.fromImage ? "prompt for this image color" : "prompt";
                     const dblTip = (v) => (v ? v + "\n" : "") + "Double-click: open in the pop-up editor";
-                    pr.value = r.prompt; pr.dataset.rid = String(r.id); pr.title = dblTip(r.prompt); pr.spellcheck = false;
-                    pr.addEventListener("blur", () => { pr.scrollTop = 0; pr.title = dblTip(r.prompt); refreshChips(r.id); });
+                    pr.value = r.prompt; pr.dataset.rid = String(r.id); pr.spellcheck = false;
+                    wcMark(pr, "r" + r.id, r.prompt, dblTip(r.prompt));
+                    pr.addEventListener("blur", () => { pr.scrollTop = 0; wcMark(pr, "r" + r.id, r.prompt, dblTip(r.prompt)); refreshChips(r.id); });
                     // double-click: the region's pop-up editor, next to this row
                     const openPop = (field) => (e) => { e.preventDefault(); e.stopPropagation(); e.target.blur(); editPrompt(r.id, null, field); };
                     pr.addEventListener("dblclick", openPop("prompt"));
@@ -4044,13 +4454,18 @@ app.registerExtension({
                     const ix = el("span", "rg-idx"); ix.dataset.k = String(i);
                     const cnt = el("span", "rg-cnt"); cnt.textContent = lays.length ? String(lays.length) : ""; cnt.title = `${lays.length} layer(s)`;
                     const kinds = subKinds(r);
-                    row.append(chevron(r.id, kinds.length > 0, "this region's " + (kinds.map((k) => ({ layers: "layers", loras: "LoRAs", palette: "palette" })[k]).join(", ") || "layers")), ix, sw, ty, pr);
+                    const eye = ico(r.hidden ? "○" : "◉", r.hidden ? "Hidden: not drawn and not output. Click to show it again (its layers keep their own show / hide)"
+                        : "Show / hide this region: a hidden region is not drawn and is left out of every output; its layers keep their own show / hide",
+                        () => change(() => { if (r.hidden) delete r.hidden; else r.hidden = true; }));
+                    eye.classList.add("rg-reye");
+                    row.append(chevron(r.id, kinds.length > 0, "this region's " + (kinds.map((k) => ({ layers: "layers", loras: "LoRAs", palette: "palette" })[k]).join(", ") || "layers")), eye, ix, sw, ty, pr);
                     if (r.type === "text") {
                         // text to render: grows while edited, like the prompt (Shift+Enter = new line)
                         const tx = el("textarea", "rg-prompt rg-text"); tx.rows = 1; tx.placeholder = "text"; tx.value = r.text;
-                        tx.title = dblTip(r.text || "Text to render"); tx.spellcheck = false;
+                        tx.spellcheck = false;
+                        wcMark(tx, `r${r.id}.text`, r.text, dblTip(r.text || "Text to render"));
                         tx.addEventListener("focus", () => pick());
-                        tx.addEventListener("blur", () => { tx.scrollTop = 0; tx.title = dblTip(r.text || "Text to render"); });
+                        tx.addEventListener("blur", () => { tx.scrollTop = 0; wcMark(tx, `r${r.id}.text`, r.text, dblTip(r.text || "Text to render")); });
                         tx.addEventListener("dblclick", openPop("text"));
                         tx.addEventListener("input", () => { r.text = tx.value; save(); });
                         tx.addEventListener("keydown", (e) => {
@@ -4147,7 +4562,7 @@ app.registerExtension({
 
             // ---------------- layout import / export ----------------
             const sizeLinked = () => (node.inputs || []).some((i) =>
-                ["width", "height", "size_from_image", "size_from_latent"].includes(i.name) && i.link != null);
+                ["width_in", "height_in", "size_from_image", "size_from_latent"].includes(i.name) && i.link != null);
             // Edit Mode on: add the edit LoRA set in Settings for the model of the last run (for every model with one
             // when no run has said which), to the 'Whole image' LoRAs; off: remove the rows it added
             const lastArchOf = () => node.properties?.rg_model_arch || null;   // the model of the last run (kept in the workflow)
@@ -4191,7 +4606,7 @@ app.registerExtension({
                 if (scene != null) setWidget(sceneW, String(scene));
                 if (sceneNeg != null) setWidget(sceneNegW, String(sceneNeg));
                 if (sceneBg != null) setWidget(sceneBgW, String(sceneBg));
-                if (size && !sizeLinked()) { setWidget(wW, size[0]); setWidget(hW, size[1]); }
+                if (size && !sizeLinked()) setManualSize(Math.round(size[0]), Math.round(size[1]));
                 userView = false; onDimsChanged(); fitView(); requestDraw();
             }
             function exportLayout() {
@@ -4260,6 +4675,11 @@ app.registerExtension({
                 let llmMsg = null;
                 try { llmMsg = JSON.parse(message?.llm?.[0] || "null"); } catch (e) { /* ignore */ }
                 if (llmMsg) storeLlmResults(llmMsg);
+                if (Array.isArray(message?.wildcards)) {
+                    let f = {};
+                    try { f = JSON.parse(message.wildcards[0] || "{}") || {}; } catch (e) { /* ignore */ }
+                    wcSetFilled(f, false);
+                }
                 else if (imp?.action === "pending") {
                     pendingImport = imp;
                     bannerText.textContent = `import_json has a new layout (${imp.state?.regions?.length ?? 0} regions). This run used the canvas.`;
@@ -4286,16 +4706,19 @@ app.registerExtension({
                 }
                 onDimsChanged();
             });
-            chain(node, "onConfigure", function () { remapOutputs(node, nodeData.output_name, nodeData.output); configured = true; fixImportMode(); load(); pushLlmCache(); syncLlm(); updateLlmButtons(); });
+            chain(node, "onConfigure", function () { remapOutputs(node, nodeData.output_name, nodeData.output); configured = true;
+                moveSizeLinks(); setTimeout(() => { sizeCfg(); syncSizeRow(true); onDimsChanged(); }, 0); fixImportMode(); load(); pushLlmCache(); syncLlm(); updateLlmButtons(); });
             for (const w of [wW, hW]) if (w) chain(w, "callback", () => onDimsChanged());
             if (modeW) chain(modeW, "callback", () => requestDraw());
 
             const ro = new ResizeObserver(() => requestDraw());
             ro.observe(cvBox);
+            sizeReady = true; syncSizeRow();
             const poll = setInterval(() => {
                 if (!node.graph) return;
                 fixImportMode();
                 syncSettings();
+                labelSizeInputs();
                 onDimsChanged();
                 liveBackdrop();
                 syncLlm();
@@ -4322,6 +4745,7 @@ app.registerExtension({
                 return c.toDataURL();
             };
             node.__rgState = () => state;
+            node.__rgRefresh = () => { version++; save(); refreshUI(); };
             node.__rgActive = () => curRegion;
             node.__rgSetBackdrop = (img, ref) => { backdrop = img; backdropKey = "test:" + Math.random(); backdropRef = ref || null; requestDraw(); };
             // regions in output order (what Mask Picker / Regional LoRAs index into)
@@ -4361,8 +4785,9 @@ app.registerExtension({
                 // Settings > Region Genie: defaults for a node that was just added (not loaded or pasted)
                 setTimeout(() => {
                     if (configured) return;
-                    setWidget(wW, Math.round(+getSetting(SET.cmWidth, 1024)) || 1024);
-                    setWidget(hW, Math.round(+getSetting(SET.cmHeight, 1024)) || 1024);
+                    node.properties = node.properties || {};
+                    node.properties.rg_size = sizeDefaults();
+                    applySize();
                     setWidget(modeW, getSetting(SET.cmImageMode, "backdrop (trace over)"));
                     const f = Math.max(0, Math.round(+getSetting(SET.cmFeather, 0)) || 0);
                     const sp = +getSetting(SET.cmSeparation, 0.85), un = +getSetting(SET.cmUntil, 0.25);

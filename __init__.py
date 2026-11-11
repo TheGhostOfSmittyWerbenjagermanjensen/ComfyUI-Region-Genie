@@ -30,6 +30,7 @@ from .regional_lora import CreateHookLoRAQuantized, RegionalLoRAs
 from . import lora_triggers  # noqa: F401  (registers the trigger-word route)
 from . import llm_enhance  # noqa: F401  (LLM Prompt Enhancer routes)
 from . import region_select  # noqa: F401  (Select object: SAM 3.1 routes)
+from . import wildcards  # noqa: F401  (wildcards through Impact Pack: list / preview routes)
 
 WEB_DIRECTORY = "./js"
 

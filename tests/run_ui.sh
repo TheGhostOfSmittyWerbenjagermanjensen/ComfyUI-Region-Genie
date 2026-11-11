@@ -9,7 +9,7 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory harness >/dev/null 2>&1
 trap 'kill $SERVER 2>/dev/null' EXIT
 sleep 1
 status=0
-for t in ui_test.cjs ui_test6.cjs ui_test_select.cjs; do
+for t in ui_test.cjs ui_test6.cjs ui_test_select.cjs ui_test9.cjs; do
   echo "== $t"; node "$t" || status=1
 done
 exit $status

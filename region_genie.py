@@ -957,6 +957,17 @@ class RegionGenie:
                                                       "file saved with Export (e.g. through a Load Text node), MOSS-Image "
                                                       "layout JSON, Ideogram caption JSON / elements, or bboxes. Each "
                                                       "new import_json is used once; edits made afterwards are kept."}),
+                # shown as "width" / "height" (the size row at the top sets the hidden width / height widgets)
+                "width_in": ("INT", {"forceInput": True, "min": 16, "max": 16384,
+                                     "tooltip": "Optional: the image width from another node. Overrides the size row at the "
+                                                "top (size_from_image and size_from_latent still come first)."}),
+                "height_in": ("INT", {"forceInput": True, "min": 16, "max": 16384,
+                                      "tooltip": "Optional: the image height from another node. Overrides the size row at "
+                                                 "the top (size_from_image and size_from_latent still come first)."}),
+                # hidden; set with the seed control in the editor's footer (shown when Impact Pack is installed)
+                "wildcard_seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF,
+                                          "tooltip": "Seed for the wildcards in the prompt fields (ComfyUI Impact Pack's "
+                                                     "__name__ and {a|b} syntax)."}),
             },
         }
 
@@ -1005,8 +1016,13 @@ class RegionGenie:
             image=None,
             size_from_image=None, size_from_latent=None, import_json=None, import_mode=IMPORT_MODES[0],
             model=None, clip=None, scene_prompt_background="", prompt_format="auto", vae=None, mode=MODES[0],
-            edit_area=EDIT_AREAS[0]):
+            edit_area=EDIT_AREAS[0], width_in=None, height_in=None, wildcard_seed=0):
         from .bbox_masks import _resolve_size        # shared with BBoxes to Masks
+        # the width / height sockets override the size row (whose result is in the hidden width / height widgets)
+        if width_in is not None:
+            width = max(16, min(16384, int(width_in)))
+        if height_in is not None:
+            height = max(16, min(16384, int(height_in)))
         edit = mode == "edit"
         edit_notes = []
         if edit and image is not None and size_from_image is None and size_from_latent is None:
@@ -1061,6 +1077,34 @@ class RegionGenie:
                     notes.append("NOTE: import_json has a new layout, but the canvas is not empty: choose "
                                  "Replace or Keep on the node (this run used the canvas)")
 
+        # hidden regions (the region's eye in the list) are left out of everything; their layers are skipped like a
+        # deleted region's, and image colors that belong to them become unspecified
+        hidden_colors = {}
+        for r in regions:
+            if isinstance(r, dict) and r.get("hidden") is True:
+                rgb = _hex_to_rgb(r.get("color", ""))
+                if rgb is not None:
+                    hidden_colors[_rgb_to_hex(rgb)] = 0
+        regions = [r for r in regions if not (isinstance(r, dict) and r.get("hidden") is True)]
+
+        # wildcards (Impact Pack): every text field is filled before anything is built from it (and before the LLM
+        # Prompt Enhancer, so it sees the filled text). The editor shows what each field became.
+        from .wildcards import Filler
+        try:
+            wc_cfg = json.loads(paint_data) if isinstance(paint_data, str) and paint_data.strip() else {}
+        except (ValueError, TypeError):
+            wc_cfg = {}
+        fill = Filler(wildcard_seed, per_field=isinstance(wc_cfg, dict) and wc_cfg.get("wcPerField") is True, notes=notes)
+        scene_prompt_positive = fill("scene", scene_prompt_positive)
+        scene_prompt_negative = fill("negative", scene_prompt_negative)
+        scene_prompt_background = fill("background", scene_prompt_background)
+        regions = [dict(r) for r in regions]                # the filled text is for this run only
+        for r in regions:
+            if isinstance(r.get("prompt"), str):
+                r["prompt"] = fill(f"r{r['id']}", r["prompt"])
+            if isinstance(r.get("text"), str) and r["text"]:
+                r["text"] = fill(f"r{r['id']}.text", r["text"])
+
         # region table: UI regions first (in list order), then colors found only in the image
         table = []                     # dicts: color(hex), prompt, source
         id_to_index = {}
@@ -1092,10 +1136,17 @@ class RegionGenie:
         if isinstance(pdata, dict) and (pdata.get("sceneLlm") or any(r.get("llm") for r in regions)):
             from . import llm_enhance
             scene_prompt_positive, llm_ui = llm_enhance.apply(pdata, regions, table, scene_prompt_positive, clip, notes)
+            # the editor matches a result to the text typed in the field: give it the text before the wildcards
+            for key, res in [("scene", (llm_ui or {}).get("scene"))] + [(f"r{k}", v) for k, v in ((llm_ui or {}).get("regions") or {}).items()]:
+                f = fill.filled.get(key)
+                if isinstance(res, dict) and f and str(res.get("prompt", "")).strip() == str(f["filled"]).strip():
+                    res["prompt"] = f["raw"]
 
         index_img = Image.new("L", (width, height), 0)
         detected = []
         ui = {"dims": [width, height]}
+        if fill.mod is not None:
+            ui["wildcards"] = [json.dumps(fill.filled, ensure_ascii=False)]
         if llm_ui is not None:
             ui["llm"] = [json.dumps(llm_ui, ensure_ascii=False)]
 
@@ -1106,6 +1157,8 @@ class RegionGenie:
                 img_idx, img_colors = quantize_image(arr, min_region_pixels)
                 remap = np.zeros(len(img_colors) + 1, np.uint8)
                 for k, hexc in enumerate(img_colors, start=1):
+                    if hexc not in color_to_index and hidden_colors and _match_color(hexc, hidden_colors) is not None:
+                        continue                                  # a hidden region's color: stays unspecified (0)
                     match = _match_color(hexc, color_to_index)
                     if match is None:
                         if len(table) >= MAX_REGIONS:
