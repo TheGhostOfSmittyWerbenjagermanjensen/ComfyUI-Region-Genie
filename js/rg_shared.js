@@ -40,8 +40,12 @@ export const ICONS = {
     // image input: traced over (backdrop) / read as the color map
     imgBackdrop: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M1.8 11l3.6-3.6 3 3 2-2 3.8 3.8"/><circle cx="10.6" cy="5.9" r="1.1"/>',
     imgColorMap: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M8 2.8v10.4M1.8 8h6.2"/><rect x="2.6" y="3.6" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/><rect x="8.8" y="8.8" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/>',
-    // magic wand (contiguous) and its 'all similar colors' variant
+    // Select object: add the pending selection / discard it
+    check: '<path d="M2.8 8.6l3.4 3.4 7-7.6"/>',
+    close: '<path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8"/>',
+    // Select object (SAM): a frame, a figure and a pointer
     samSelect: '<path d="M2 5V3a1 1 0 0 1 1-1h2M11 2h2a1 1 0 0 1 1 1v2M14 11v2a1 1 0 0 1-1 1h-2M5 14H3a1 1 0 0 1-1-1v-2"/><circle cx="6.6" cy="5.8" r="1.6"/><path d="M3.8 11c.3-1.7 1.4-2.8 2.8-2.8"/><path d="M8.8 8.2l4.6 1.8-2 .8-.8 2z" fill="currentColor" stroke-width="1"/>',
+    // magic wand (contiguous) and its 'all similar colors' variant
     wand: '<path d="M2.4 13.6l7.4-7.4"/><path d="M9.2 4.6l2.2 2.2"/><path d="M11.8 1.6v2M14.4 4.2h-2M13.6 2.4l-1.2 1.2M9.6 2.4l.9.9M13.6 6.4l-.9-.9"/>',
     wandGlobal: '<path d="M2.4 13.6l7.4-7.4"/><path d="M9.2 4.6l2.2 2.2"/><path d="M11.8 1.6v2M14.4 4.2h-2M13.6 2.4l-1.2 1.2M9.6 2.4l.9.9M13.6 6.4l-.9-.9"/><circle cx="3.2" cy="4" r="1.3" fill="currentColor" stroke="none"/><circle cx="12.6" cy="12.4" r="1.3" fill="currentColor" stroke="none"/>',
     fillGaps: '<path d="M2.6 7.6L7.4 2.8l5 5-4.8 4.8a1.3 1.3 0 0 1-1.8 0L2.6 9.4a1.3 1.3 0 0 1 0-1.8z"/><path d="M2.8 8h9.4"/><path d="M12.6 10.4v1.4M12.6 13.2v1.4M14.6 12.4h-1.2M11.8 12.4h-1.2" stroke-width="1.2"/>',
