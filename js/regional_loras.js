@@ -1,6 +1,7 @@
 import { app } from "../../scripts/app.js";
 import { getLoras, knownLoras, pickLora, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName, appendWord,
-         autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, autocompleteToggle, getSetting, SET } from "./rg_shared.js";
+         autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, autocompleteToggle, getSetting, SET,
+         wildcardSeedControl, WC_CSS } from "./rg_shared.js";
 
 // Editor of the "Regional LoRAs" node: one row per LoRA (on, mask index, LoRA, strength, words for
 // that region's caption with the LoRA's trigger words as chips), stored as JSON in the hidden "loras_data" widget.
@@ -55,7 +56,7 @@ app.registerExtension({
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (!NODE_NAMES.includes(nodeData.name)) return;
         if (!document.getElementById("rg-rl-style")) {
-            const s = document.createElement("style"); s.id = "rg-rl-style"; s.textContent = CSS + CHIP_CSS; document.head.appendChild(s);
+            const s = document.createElement("style"); s.id = "rg-rl-style"; s.textContent = CSS + CHIP_CSS + WC_CSS; document.head.appendChild(s);
         }
         const onCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
@@ -67,14 +68,36 @@ app.registerExtension({
         nodeType.prototype.onExecuted = function (message) {
             onExecuted?.apply(this, arguments);
             if (typeof message?.mask_count?.[0] === "number") { this.__rgrlMaskCount = message.mask_count[0]; this.__rgrlRefresh?.(); }
+            if (Array.isArray(message?.wildcards)) {
+                let f = {};
+                try { f = JSON.parse(message.wildcards[0] || "{}") || {}; } catch (e) { /* ignore */ }
+                this.__rgrlFilled?.(f);
+            }
         };
     },
 });
 
 function setup(node) {
     keepWidgetValuesByName(node, ["prompt", "negative_prompt", "feather", "lora_masking", "region_separation", "separation_until",
-                                  "separate_all_regions", "share_background"]);
-    autocompleteWidgets(node, ["prompt", "negative_prompt"]);
+                                  "separate_all_regions", "share_background", "wildcard_seed"]);
+    // wildcards (Impact Pack): what each field became in the last run (or a preview)
+    let wcFilled = {};
+    const filledFor = (key, raw) => { const f = wcFilled[key]; return f && f.raw === (raw ?? "") && f.filled !== f.raw ? f.filled : null; };
+    const widgetTA = {};                                      // prompt / negative_prompt -> textarea
+    const WKEY = { prompt: "prompt", negative_prompt: "negative" };
+    const wcMark = (t, key, raw) => {
+        if (!t) return;
+        if (t.dataset.baseTitle == null) t.dataset.baseTitle = t.title || "";
+        const f = filledFor(key, raw), b = t.dataset.baseTitle;
+        const title = (b ? b + "\n" : "") + (f != null ? `Wildcards filled in (last run or preview):\n${f}` : "");
+        if (t.title !== title) t.title = title;
+        t.style.boxShadow = f != null ? "inset 3px 0 0 -1px #c9a14a" : "";
+    };
+    autocompleteWidgets(node, ["prompt", "negative_prompt"], (name, t) => {
+        if (!WKEY[name]) return;
+        widgetTA[name] = t;
+        t.addEventListener("input", () => wcMark(t, WKEY[name], t.value));
+    });
     for (const n of ["prompt", "negative_prompt"]) {
         const w = node.widgets?.find((x) => x.name === n);
         if (w?.options) { w.options.getMinHeight = () => 48; w.options.getMaxHeight = () => 96; }
@@ -94,6 +117,13 @@ function setup(node) {
         rows = rows.map((r) => ({ on: r.on !== false, index: Number.isFinite(+r.index) ? Math.trunc(+r.index) : 0,
                                   lora: String(r.lora || ""), strength: Number.isFinite(+r.strength) ? +r.strength : 1, prompt: String(r.prompt || "") }));
     };
+    // the per-field wildcard Setting goes to the run with the rows
+    if (dataW) {
+        dataW.serializeValue = () => {
+            try { return JSON.stringify({ ...JSON.parse(dataW.value || "{}"), wcPerField: !!getSetting(SET.wcPerField, false) }); }
+            catch (e) { return dataW.value; }
+        };
+    }
     const save = () => {
         if (dataW) dataW.value = JSON.stringify({ v: 2, rows });
         node.setDirtyCanvas?.(true, true);
@@ -107,7 +137,31 @@ function setup(node) {
     const hint = el("span", "rg-rl-hint");
     const acCtl = autocompleteToggle(node, el);
     acCtl.el.style.marginLeft = "auto";
-    head.append(addBtn, hint, acCtl.el);
+    const linked = (n) => !!node.inputs?.some((i) => i.name === n && i.link != null);
+    const wval = (n) => (linked(n) ? "" : String(node.widgets?.find((x) => x.name === n)?.value ?? ""));
+    const wcFields = () => {
+        const f = { prompt: wval("prompt"), negative: wval("negative_prompt") };
+        rows.forEach((r, k) => { if (r.prompt) f["row" + k] = r.prompt; });
+        return f;
+    };
+    function markAll() {
+        for (const [n, key] of Object.entries(WKEY)) wcMark(widgetTA[n], key, wval(n));
+        rowEls.forEach((e, k) => wcMark(e?.pr, "row" + k, rows[k]?.prompt || ""));
+    }
+    node.__rgrlFilled = (f) => { wcFilled = { ...(f || {}) }; markAll(); };
+    const wcCtl = wildcardSeedControl(node, el, {
+        fields: wcFields,
+        onFilled: (f, preview, msg) => { wcFilled = { ...(f || {}) }; markAll(); hint.textContent = msg || (Object.keys(f || {}).length ? "Preview: hover a field to see what it becomes" : ""); },
+        useAll: () => {
+            for (const [n, key] of Object.entries(WKEY)) {
+                const f = filledFor(key, wval(n)), w = node.widgets?.find((x) => x.name === n);
+                if (f != null && w) { w.value = f; try { w.callback?.(f); } catch (e) { /* ignore */ } }
+            }
+            rows.forEach((r, k) => { const f = filledFor("row" + k, r.prompt); if (f != null) r.prompt = f; });
+            save(); render(); markAll();
+        },
+    });
+    head.append(addBtn, hint, acCtl.el, wcCtl.el);
     const list = el("div");
     list.style.cssText = "display:flex;flex-direction:column;gap:4px;";
     wrap.append(head, list);
@@ -240,7 +294,9 @@ function setup(node) {
             list.append(row);
             rowEls[i] = { sw, text: regText, pr };
             fillChips(chips, r);
+            pr.addEventListener("input", () => wcMark(pr, "row" + i, r.prompt));
         });
+        markAll();
         updateHints();
         fit(true);
     }
@@ -292,7 +348,7 @@ function setup(node) {
         set("share_background", !!getSetting(SET.hlShareBg, false));
         node.setDirtyCanvas?.(true, true);
     }, 0);
-    const poll = setInterval(() => { if (!node.graph) return; fixMode(); updateHints(); }, 1000);
+    const poll = setInterval(() => { if (!node.graph) return; fixMode(); updateHints(); wcCtl.refresh(); }, 1000);
     const onRemoved = node.onRemoved;
     node.onRemoved = function () { clearInterval(poll); return onRemoved?.apply(this, arguments); };
 }

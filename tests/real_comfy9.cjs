@@ -118,6 +118,102 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`${M}: run ok, output 1368 x 768 from the Resolution Selector`, run.status === "success" && JSON.stringify(run.size) === "[1368,768]");
     check(`${M}: shown region in the color map, hidden region black`, run.left?.some((v) => v > 40) && run.right?.every((v) => v < 10));
 
+    // ---------------- wildcards (needs Impact Pack, and a wildcards/rgtest/color.txt file in it)
+    const wcInstalled = await page.evaluate(async () => (await (await fetch("/region_genie/wildcards")).json()).installed);
+    if (!wcInstalled) console.log("SKIP wildcards: Impact Pack is not installed");
+    else {
+        const wc = await page.evaluate(async () => {
+            const app = window.app, LG = window.LiteGraph;
+            app.graph.clear();
+            const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+            const pv = LG.createNode("PreviewImage"); pv.pos = [900, 40]; app.graph.add(pv);
+            rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), pv, 0);
+            await new Promise((r) => setTimeout(r, 1200));
+            const seedW = rg.widgets.find((w) => w.name === "wildcard_seed");
+            const ctl = document.querySelector(".rg-wc");
+            const before = (await app.graphToPrompt()).output[rg.id].inputs.wildcard_seed;
+            const st = rg.__rgState();
+            st.regions.push({ id: 1, color: "#E6194B", prompt: "a __rgtest/color__ car", type: "object", text: "" });
+            st.layers.push({ id: 1, name: "Rect 1", region: 1, visible: true, shape: "rect", sides: 5, bw: 1, bh: 1, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0, ops: [] });
+            rg.__rgRefresh();
+            seedW.value = 5; rg.properties.rg_wc_mode = "fixed";
+            app.canvas.ds.offset = [0, -560]; app.canvas.setDirty(true, true);       // the list and the footer in view
+            await new Promise((r) => setTimeout(r, 400));
+            const after = (await app.graphToPrompt()).output[rg.id].inputs.wildcard_seed;
+            return { hidden: !!seedW.hidden, socket: rg.inputs.some((i) => i.name === "wildcard_seed"), shown: !!ctl && getComputedStyle(ctl).display !== "none",
+                     before, after };
+        });
+        check(`${M}: wildcard seed control in the footer, hidden widget, no socket`, wc.shown && wc.hidden && !wc.socket);
+        check(`${M}: seed sent as 0 while no field has wildcards, as set once one has`, wc.before === 0 && wc.after === 5);
+        // preview with this seed
+        await page.locator(".rg-wc .rg-btn[title^='Preview']").first().click();
+        await page.waitForTimeout(800);
+        const pv = await page.evaluate(() => { const t = document.querySelector(".rg-list textarea.rg-prompt"); return { cls: t.classList.contains("rg-wc-filled"), title: t.title }; });
+        const expected = await page.evaluate(async () => (await (await fetch("/region_genie/wildcards/fill", { method: "POST", body: JSON.stringify({ fields: { r1: "a __rgtest/color__ car" }, seed: 5 }) })).json()).filled.r1.filled);
+        check(`${M}: preview marks the field and shows the filled text (${expected})`, pv.cls && pv.title.includes(expected));
+        // a real run: the same text as the preview (seed fixed), the seed stays
+        const runWc = await page.evaluate(async () => {
+            const app = window.app, rg = window.__rg;
+            await fetch("/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clear: true }) });
+            await app.queuePrompt(0, 1);
+            let out = null;
+            for (let i = 0; i < 120 && !out; i++) {
+                await new Promise((r) => setTimeout(r, 500));
+                const h = await (await fetch("/history")).json();
+                const e = Object.values(h)[0];
+                if (e?.status?.completed || e?.status?.status_str) out = e;
+            }
+            const o = out?.outputs?.[String(rg.id)];
+            return { status: out?.status?.status_str, filled: o?.wildcards ? JSON.parse(o.wildcards[0]) : null,
+                     seed: rg.widgets.find((w) => w.name === "wildcard_seed").value };
+        });
+        check(`${M}: run fills the wildcards like the preview`, runWc.status === "success" && runWc.filled?.r1?.filled === expected);
+        check(`${M}: fixed seed stays after the run`, runWc.seed === 5);
+        // randomize: a new seed after the run
+        await page.evaluate(() => { window.__rg.properties.rg_wc_mode = "randomize"; });
+        await page.evaluate(async () => { await window.app.queuePrompt(0, 1); });
+        await page.waitForTimeout(1500);
+        check(`${M}: randomize gives a new seed after queueing`, await page.evaluate(() => window.__rg.widgets.find((w) => w.name === "wildcard_seed").value !== 5));
+        // right-click the seed: use the filled text in all fields
+        await page.locator(".rg-wc").first().click({ button: "right" });
+        await page.waitForTimeout(300);
+        await page.locator(".litemenu-entry", { hasText: "Use the filled text in all fields" }).first().click();
+        await page.waitForTimeout(300);
+        const used = await page.evaluate(() => window.__rg.__rgState().regions[0].prompt);
+        check(`${M}: 'use the filled text' puts it in the field`, used === expected);
+        // the region pop-up: __ autocomplete and the picker
+        await page.locator(".rg-list textarea.rg-prompt").first().dblclick();
+        await page.waitForTimeout(400);
+        const ta = page.locator(".rg-pop textarea").first();
+        await ta.press("End"); await ta.type(" __rgt");
+        await page.waitForTimeout(300);
+        const acOk = await page.locator(".rg-wc-ac .rg-wc-item", { hasText: "__rgtest/color__" }).first().isVisible().catch(() => false);
+        await page.keyboard.press("Enter");
+        await page.waitForTimeout(200);
+        const afterAc = await page.evaluate(() => ({ v: document.querySelector(".rg-pop textarea")?.value, open: !!document.querySelector(".rg-pop") }));
+        check(`${M}: typing __ suggests wildcards; Enter inserts one and keeps the pop-up open`, acOk && afterAc.open && afterAc.v?.endsWith("__rgtest/color__"));
+        await page.locator(".rg-pop .rg-wc-pick").first().click();
+        await page.waitForTimeout(300);
+        await page.locator(".litemenu-entry", { hasText: "__samples/flower__" }).first().click();
+        await page.waitForTimeout(200);
+        const afterPick = await page.evaluate(() => document.querySelector(".rg-pop textarea")?.value || "");
+        check(`${M}: the pop-up's wildcard picker inserts at the cursor`, afterPick.includes("__samples/flower__"));
+        await page.keyboard.press("Escape");
+        // Regional LoRAs: the seed control and the per-field Setting go with the run
+        const rl = await page.evaluate(async () => {
+            const app = window.app, LG = window.LiteGraph;
+            const n = LG.createNode("Region-Genie_RegionalLoRAs"); n.pos = [60, 900]; app.graph.add(n);
+            await new Promise((r) => setTimeout(r, 1200));
+            n.widgets.find((w) => w.name === "prompt").value = "a {red|blue} hat";
+            const p = (await app.graphToPrompt()).output[n.id]?.inputs || {};
+            return { ctl: !!n.widgets.find((w) => w.name === "wildcard_seed")?.hidden && !n.inputs.some((i) => i.name === "wildcard_seed"),
+                     shown: [...document.querySelectorAll(".rg-rl-head .rg-wc")].some((e) => getComputedStyle(e).display !== "none"),
+                     seed: p.wildcard_seed, per: (() => { try { return "wcPerField" in JSON.parse(p.loras_data); } catch (e) { return false; } })() };
+        });
+        check(`${M}: Regional LoRAs: seed control, hidden widget, per-field Setting sent`, rl.ctl && rl.shown && typeof rl.seed === "number" && rl.per);
+        await page.screenshot({ path: require("path").join(__dirname, "out", `real9_wc_${vue ? "vue" : "legacy"}.png`) });
+    }
+
     check(`${M}: no Region Genie errors in the console` + (errors.length ? ": " + errors.slice(0, 3).join(" / ") : ""), errors.length === 0);
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");

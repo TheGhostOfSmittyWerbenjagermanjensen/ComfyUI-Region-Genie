@@ -45,6 +45,11 @@ export const ICONS = {
     sizeList: '<rect x="1.8" y="2.4" width="12.4" height="11.2" rx="1.2"/><path d="M4.4 5.6h7.2M4.4 8h7.2M4.4 10.4h4.6"/>',
     sizeManual: '<rect x="1.8" y="3.8" width="12.4" height="8.4" rx="1.2"/><path d="M4.4 8h2.6M9 8h2.6M5.3 6.6L4.2 8l1.1 1.4M10.7 6.6L11.8 8l-1.1 1.4"/>',
     swapWH: '<path d="M4.6 2.4v10.8M2.6 11.2l2 2 2-2"/><path d="M11.4 13.6V2.8M9.4 4.8l2-2 2 2"/>',
+    // wildcards (Impact Pack): the picker / seed label, seed modes (fixed = lock), use the filled text
+    wildcard: '<path d="M5.4 2.6c-1.4 0-2 .7-2 2v1.6c0 .9-.5 1.5-1.4 1.8.9.3 1.4.9 1.4 1.8v1.6c0 1.3.6 2 2 2"/><path d="M10.6 2.6c1.4 0 2 .7 2 2v1.6c0 .9.5 1.5 1.4 1.8-.9.3-1.4.9-1.4 1.8v1.6c0 1.3-.6 2-2 2"/><path d="M8 5.4v5.2M5.8 6.7l4.4 2.6M10.2 6.7L5.8 9.3" stroke-width="1.2"/>',
+    dice: '<rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.2"/><circle cx="5.4" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="5.4" cy="10.6" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="10.6" r="1" fill="currentColor" stroke="none"/>',
+    plusOne: '<path d="M2.4 8h4.4M4.6 5.8v4.4"/><path d="M9.6 5.2l2-1.6v8.8"/>',
+    useFilled: '<path d="M8 1.8v7.6M4.8 6.4L8 9.6l3.2-3.2"/><path d="M2.4 12.8h11.2"/>',
     // Select object: add the pending selection / discard it
     check: '<path d="M2.8 8.6l3.4 3.4 7-7.6"/>',
     close: '<path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8"/>',
@@ -238,6 +243,229 @@ export const CHIP_CSS = `
 .rg-chip.used { border-color:#4a8a5a; color:#9fd8a8; cursor:default; }
 `;
 
+// ---------------------------------------------------------------- wildcards (ComfyUI Impact Pack)
+// The run fills them with Impact Pack's own code (wildcards.py); here: the list for the picker and the __ autocomplete,
+// the syntax check, and the seed control. Nothing shows while Impact Pack isn't installed.
+let wcInfo = null, wcLoading = null;
+const wcListeners = new Set();
+export function wildcardInfo(refresh = false) {
+    if (wcLoading && !refresh) return wcLoading;
+    wcLoading = api.fetchApi(`/region_genie/wildcards${refresh ? "?refresh=1" : ""}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => (wcInfo = { installed: !!j?.installed, names: Array.isArray(j?.names) ? j.names : [] }))
+        .catch(() => (wcInfo = { installed: false, names: [] }))
+        .then((info) => { for (const f of wcListeners) { try { f(info); } catch (e) { /* ignore */ } } return info; });
+    return wcLoading;
+}
+export const wildcardsInstalled = () => !!wcInfo?.installed;
+export const onWildcardInfo = (f) => { wcListeners.add(f); if (wcInfo) f(wcInfo); else wildcardInfo(); return () => wcListeners.delete(f); };
+const WC_SYNTAX = /__[\w.\-+/*\\]+?__|\{[^{}]*\}/;
+// same rule as wildcards.has_syntax: wildcard syntax, and not a JSON layout
+export function hasWildcards(text) {
+    if (typeof text !== "string" || !WC_SYNTAX.test(text)) return false;
+    const t = text.trim();
+    if (t[0] === "{" || t[0] === "[") { try { JSON.parse(t); return false; } catch (e) { /* not JSON */ } }
+    return true;
+}
+export function insertAtCursor(ta, text) {
+    const a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a;
+    ta.focus();
+    ta.setRangeText(text, a, b, "end");
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+}
+// the picker (pop-up editors): every wildcard Impact Pack knows, and reloading the files
+export async function pickWildcard(ev, onPick) {
+    ev.preventDefault(); ev.stopPropagation();
+    const info = await wildcardInfo();
+    if (!info.installed) return false;
+    const RELOAD = "↻ Reload the wildcard files";
+    const items = info.names.length ? [...info.names, null, RELOAD] : ["(no wildcards: put .txt files in Impact Pack's wildcards folder)", null, RELOAD];
+    contextMenu(ev, items, "Wildcard", async (v) => {
+        const name = typeof v === "string" ? v : (v?.content ?? v?.value);
+        if (name === RELOAD) { await wildcardInfo(true); return; }
+        if (typeof name === "string" && /^__.+__$/.test(name)) onPick(name);
+    });
+    return true;
+}
+// __ autocomplete (our own small list; works with or without a tag autocomplete pack)
+const wcAc = { el: null, box: null, items: [], sel: 0, start: 0 };
+function wcToken(el) {
+    const p = el.selectionStart;
+    if (p == null || p !== el.selectionEnd) return null;
+    const m = /(?<![\w])__([\w.\-+/*\\]*)$/.exec(el.value.slice(0, p));
+    if (!m || /__$/.test(m[1]) && m[1].length > 2) return null;          // a closed __name__ before the cursor
+    return { start: p - m[0].length, text: m[1].toLowerCase() };
+}
+function wcHide() { if (wcAc.box) wcAc.box.style.display = "none"; wcAc.el = null; wcAc.items = []; }
+const wcVisible = (el) => !!wcAc.el && wcAc.el === el && wcAc.box?.style.display !== "none" && wcAc.items.length > 0;
+function wcAccept(i) {
+    const el = wcAc.el, name = wcAc.items[i];
+    if (!el || !name) return;
+    const p = el.selectionStart;
+    el.setRangeText(name, wcAc.start, p, "end");
+    wcHide();
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+}
+function wcRender() {
+    const box = wcAc.box;
+    box.replaceChildren();
+    wcAc.items.forEach((n, i) => {
+        const d = document.createElement("div");
+        d.className = "rg-wc-item" + (i === wcAc.sel ? " sel" : "");
+        d.textContent = n;
+        d.addEventListener("mousedown", (e) => { e.preventDefault(); wcAccept(i); });
+        box.appendChild(d);
+    });
+}
+function wcUpdate(el) {
+    const tok = wildcardsInstalled() ? wcToken(el) : null;
+    if (!tok) { if (wcAc.el === el) wcHide(); return; }
+    const names = wcInfo.names, q = tok.text;
+    const items = names.filter((n) => n.toLowerCase().slice(2).startsWith(q))
+        .concat(names.filter((n) => !n.toLowerCase().slice(2).startsWith(q) && n.toLowerCase().includes(q))).slice(0, 12);
+    if (!items.length) { wcHide(); return; }
+    if (!wcAc.box) {
+        wcAc.box = document.createElement("div");
+        wcAc.box.className = "rg-wc-ac";
+        wcAc.box.style.cssText = "position:fixed;z-index:10001;min-width:160px;max-width:360px;max-height:260px;overflow:auto;"
+            + "background:var(--comfy-menu-bg,#2a2a2a);color:var(--input-text,#ddd);border:1px solid var(--border-color,#555);"
+            + "border-radius:4px;font:12px sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.5);";
+        const st = document.createElement("style");
+        st.textContent = ".rg-wc-item{padding:2px 8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+            + ".rg-wc-item.sel,.rg-wc-item:hover{background:#3a6ea5;color:#fff}";
+        document.head.appendChild(st);
+        document.body.appendChild(wcAc.box);
+    }
+    hideList(attached.get(el));                    // the tag list makes way
+    wcAc.el = el; wcAc.items = items; wcAc.start = tok.start;
+    wcAc.sel = Math.min(wcAc.sel, items.length - 1);
+    wcRender();
+    const r = el.getBoundingClientRect();
+    wcAc.box.style.display = "";
+    const h = wcAc.box.offsetHeight;
+    wcAc.box.style.left = Math.max(4, Math.min(window.innerWidth - wcAc.box.offsetWidth - 4, r.left)) + "px";
+    wcAc.box.style.top = (r.bottom + 2 + h <= window.innerHeight ? r.bottom + 2 : Math.max(4, r.top - 2 - h)) + "px";
+}
+function attachWildcardComplete(el) {
+    el.addEventListener("input", () => { wcAc.sel = 0; wcUpdate(el); });
+    el.addEventListener("keydown", (e) => {
+        if (!wcVisible(el)) return;
+        const k = e.key;
+        if (k === "ArrowDown" || k === "ArrowUp") wcAc.sel = (wcAc.sel + (k === "ArrowDown" ? 1 : wcAc.items.length - 1)) % wcAc.items.length, wcRender();
+        else if (k === "Enter" || k === "Tab") wcAccept(wcAc.sel);
+        else if (k === "Escape") wcHide();
+        else return;
+        e.preventDefault(); e.stopImmediatePropagation();
+    }, true);
+    el.addEventListener("blur", () => setTimeout(() => { if (wcAc.el === el && document.activeElement !== el) wcHide(); }, 120));
+    el.addEventListener("mousedown", () => { if (wcAc.el === el) wcHide(); });
+}
+
+// The wildcard seed control: a seed field, what happens to it after each run (fixed / randomize / increment, like
+// ComfyUI's 'control after generate'), and a preview. It drives the node's hidden 'wildcard_seed' widget.
+// host: { fields(): {key: text}, onFilled(filled, preview), useAll(), extraMenu?: [[label, fn]] }
+const WC_MODES = { fixed: ["lock", "fixed: the seed stays as it is"], randomize: ["dice", "randomize: a new random seed after each run"],
+                   increment: ["plusOne", "increment: the seed goes up by 1 after each run"] };
+export function wildcardSeedControl(node, mk, host) {
+    const box = mk("span", "rg-wc");
+    box.style.display = "none";
+    const seedW = node.widgets?.find((w) => w.name === "wildcard_seed");
+    const btn = (name, title, fn) => {
+        const b = mk("button", "rg-btn icon"); b.type = "button"; b.innerHTML = svgIcon(name); b.title = title;
+        b.addEventListener("pointerdown", (e) => e.stopPropagation());
+        b.addEventListener("click", (e) => { e.preventDefault(); fn(e); });
+        return b;
+    };
+    const lbl = mk("span", "rg-wc-lbl"); lbl.innerHTML = svgIcon("wildcard");
+    const inp = mk("input", "rg-num rg-wc-seed"); inp.type = "number"; inp.min = "0"; inp.step = "1";
+    inp.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") inp.blur(); });
+    inp.addEventListener("pointerdown", (e) => e.stopPropagation());
+    inp.addEventListener("change", () => { setSeed(Math.max(0, Math.floor(+inp.value || 0))); });
+    const mode = () => (WC_MODES[node.properties?.rg_wc_mode] ? node.properties.rg_wc_mode : "randomize");
+    const modeBtn = btn("dice", "", () => {
+        const order = Object.keys(WC_MODES), next = order[(order.indexOf(mode()) + 1) % order.length];
+        node.properties = node.properties || {}; node.properties.rg_wc_mode = next;
+        refresh(); app.graph?.change?.();
+    });
+    const prevBtn = btn("eye", "Preview: fill the wildcards with this seed now (without running); hover a field to see "
+        + "what it becomes. Right-click for more.", () => preview());
+    box.append(lbl, inp, modeBtn, prevBtn);
+    const used = () => Object.values(host.fields() || {}).some((t) => hasWildcards(t));
+    function setSeed(v) {
+        if (!seedW) return;
+        seedW.value = v;
+        try { seedW.callback?.(v); } catch (e) { /* ignore */ }
+        refresh(); app.graph?.change?.();
+    }
+    async function preview() {
+        const fields = {};
+        for (const [k, t] of Object.entries(host.fields() || {})) if (hasWildcards(t)) fields[k] = t;
+        if (!Object.keys(fields).length) { host.onFilled({}, true, "No wildcards in this node's prompt fields"); return; }
+        try {
+            const r = await api.fetchApi("/region_genie/wildcards/fill", { method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ fields, seed: seedW?.value ?? 0, perField: !!getSetting(SET.wcPerField, false) }) });
+            const j = await r.json();
+            host.onFilled(j.filled || {}, true);
+        } catch (e) { host.onFilled({}, true, "Preview failed: " + (e?.message || e)); }
+    }
+    box.addEventListener("contextmenu", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const items = [{ content: "Preview with this seed", fn: preview }, { content: "Use the filled text in all fields", fn: () => host.useAll() },
+            { content: "New random seed", fn: () => setSeed(randomSeed()) }, null,
+            ...Object.entries(WC_MODES).map(([k, [, t]]) => ({ content: (mode() === k ? "✓ " : "   ") + "After each run: " + t, fn: () => {
+                node.properties = node.properties || {}; node.properties.rg_wc_mode = k; refresh(); } })),
+            null, { content: "Insert a wildcard… (in a pop-up editor)", disabled: true },
+            { content: "↻ Reload the wildcard files", fn: () => wildcardInfo(true) }, ...(host.extraMenu || [])];
+        contextMenu(e, items, "Wildcards", (v) => v?.fn?.());
+    });
+    const randomSeed = () => Math.floor(Math.random() * 2 ** 50);
+    // the hidden widget: 0 is sent while no field has wildcards (so the node stays cached), and after each run the
+    // seed changes as the mode says (ComfyUI's 'Widget control mode' before / after is followed)
+    if (seedW) {
+        seedW.hidden = true;
+        seedW.computeSize = () => [0, -4];
+        const i = node.inputs?.findIndex((x) => x.name === "wildcard_seed");
+        if (i != null && i !== -1) node.removeInput(i);
+        seedW.serializeValue = () => (used() ? seedW.value : 0);
+        const step = () => {
+            if (!used()) return;
+            const m = mode();
+            if (m === "randomize") setSeed(randomSeed());
+            else if (m === "increment") setSeed((Number(seedW.value) || 0) + 1);
+        };
+        const before = () => getSetting("Comfy.WidgetControlMode", "after") === "before";
+        let queuedOnce = false;
+        seedW.beforeQueued = () => { if (before() && queuedOnce) step(); queuedOnce = true; };
+        seedW.afterQueued = () => { if (!before()) step(); };
+    }
+    function refresh() {
+        const show = wildcardsInstalled() && !!seedW ? "" : "none";
+        if (box.style.display !== show) box.style.display = show;
+        if (document.activeElement !== inp && seedW) inp.value = String(seedW.value ?? 0);
+        const [icon, t] = WC_MODES[mode()];
+        if (modeBtn.dataset.mode !== mode()) { modeBtn.innerHTML = svgIcon(icon); modeBtn.dataset.mode = mode(); }
+        modeBtn.title = `After each run (when a field has wildcards): ${t}. Click to change.`;
+        const u = used();
+        lbl.title = inp.title = "Wildcard seed (ComfyUI Impact Pack): fills __name__ and {a|b} in this node's prompt fields"
+            + (u ? "." : ". No field has wildcards right now, so it isn't used.") + " Right-click for more.";
+        box.classList.toggle("idle", !u);
+    }
+    onWildcardInfo(() => refresh());
+    return { el: box, refresh, preview };
+}
+export const WC_CSS = `
+.rg-wc { display:inline-flex; align-items:center; gap:2px; }
+.rg-wc.idle .rg-wc-lbl, .rg-wc.idle .rg-wc-seed { opacity:.5; }
+.rg-wc-lbl { line-height:0; opacity:.85; }
+.rg-wc-lbl svg { width:15px; height:15px; display:block; }
+.rg-wc-seed { width:122px !important; }
+.rg-wc .rg-btn, .rg-wc .rg-num { background:var(--comfy-input-bg,#222); color:var(--input-text,#ddd); border:1px solid var(--border-color,#555);
+  border-radius:4px; font:12px sans-serif; }
+.rg-wc .rg-btn { cursor:pointer; padding:2px 4px; line-height:0; }
+.rg-wc .rg-btn svg { width:16px; height:16px; display:block; }
+.rg-wc .rg-num { padding:1px 3px; }
+`;
+
 // ---------------------------------------------------------------- tag autocomplete
 // Two engines are supported, both loaded from their own packs and following their own settings:
 //  - the AutoCompleter of ComfyUI-Custom-Scripts (pysssss), preferred while it is installed and enabled
@@ -328,6 +556,7 @@ function hideList(st) {
 // Pass the key event: when the engine's own handler ran first it has already used the key (defaultPrevented).
 export function autocompleteOpen(el, ev) {
     if (ev?.defaultPrevented) return true;
+    if (wcVisible(el)) return true;
     const st = attached.get(el);
     if (!listVisible(st)) return false;
     if (!ev) return true;
@@ -337,7 +566,7 @@ export function autocompleteOpen(el, ev) {
     return true;
 }
 // clicks in an autocomplete list are not "outside" an editor
-export const inAutocompleteList = (target) => !!target?.closest?.(".comfy-autocomplete-dropdown, .lm-popover, .pysssss-autocomplete");
+export const inAutocompleteList = (target) => !!target?.closest?.(".comfy-autocomplete-dropdown, .lm-popover, .pysssss-autocomplete, .rg-wc-ac");
 
 // make the element use the engine it should right now (on focus, and when a switch or setting changes)
 function syncElement(el) {
@@ -367,6 +596,7 @@ export function attachAutocomplete(el, node) {
     sweepAutocomplete();
     const st = { node, engine: null, inst: null, pys: null };
     attached.set(el, st);
+    attachWildcardComplete(el);
     // our listeners come first, so moving the cursor or clicking in the text closes the list before the
     // engine would update it (typing opens it again)
     el.addEventListener("mousedown", () => { if (listVisible(st)) hideList(st); });
@@ -472,6 +702,7 @@ export const SET = {
     acDefault: AC_DEFAULT_SETTING,
     llmContext: "RegionGenie.LLM.Context",
     llmNewRegions: "RegionGenie.LLM.NewRegionsOn",
+    wcPerField: "RegionGenie.Wildcards.PerField",
     sizeMode: "RegionGenie.Size.Mode",
     sizeAspect: "RegionGenie.Size.Aspect",
     sizeMegapixels: "RegionGenie.Size.Megapixels",
@@ -709,6 +940,11 @@ const SETTINGS = [
                 + "(and more wrong things), higher finds fewer.",
             category: CAT("Select object", "3 threshold"),
         },
+        { id: SET.wcPerField, name: "A seed per field", type: "boolean", defaultValue: false,
+          tooltip: "Off: every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing "
+              + "one seed), so the same wildcard in two fields usually picks the same value. On: each field gets its own seed, "
+              + "derived from the wildcard seed and the field, so they pick independently (still the same result for the same seed).",
+          category: CAT("Wildcards (Impact Pack)", "1 per field") },
         { id: SET.sizeMode, name: "Image size: mode", type: "combo", defaultValue: "aspect ratio", options: ["aspect ratio", "presets", "manual"],
           tooltip: "How a new node's image size is set: aspect ratio + megapixels (like ComfyUI's Resolution Selector), a size from "
               + "the presets list, or width and height typed in. " + NEW_NODES, category: CAT("Image size", "1 mode") },

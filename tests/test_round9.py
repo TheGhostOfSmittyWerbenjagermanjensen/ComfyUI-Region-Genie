@@ -54,5 +54,57 @@ det = json.loads(out["ui"]["detected"][0])
 check("color map: hidden region's color is not a region", len(det) == 1 and det[0].upper() == "#E6194B")
 check("color map: one mask", R(out, "masks").shape[0] == 1)
 
+# ---------------------------------------------------------------- wildcards (a stand-in for Impact Pack's module)
+import types  # noqa: E402
+import zlib  # noqa: E402
+from rgpack import wildcards as wc  # noqa: E402
+
+COLORS = ["red", "green", "blue"]
+def fake_process(text, seed=None):
+    import re
+    out = re.sub(r"__color__", lambda m: COLORS[int(seed) % 3], text)
+    return re.sub(r"\{([^{}|]*)\|([^{}]*)\}", lambda m: m.group(1 + int(seed) % 2), out)
+fake = types.ModuleType("impact.wildcards")
+fake.process = fake_process
+fake.available_wildcards = {"color": "x.txt", "animals/cat": "y.txt"}
+fake.wildcard_dict = {}
+fake.wildcard_load = lambda: None
+pkg = types.ModuleType("impact"); pkg.wildcards = fake
+
+check("syntax: __name__", wc.has_syntax("a __color__ car"))
+check("syntax: {a|b}", wc.has_syntax("a {red|blue} car"))
+check("syntax: plain text is not", not wc.has_syntax("a red car"))
+check("syntax: a JSON layout is not (Regional LoRAs' prompt from Region Genie)", not wc.has_syntax('{"caption": "a {red|blue} car", "items": []}'))
+check("seed: the same for every field by default", wc.field_seed(7, "scene", False) == wc.field_seed(7, "r3", False) == 7)
+check("seed per field: derived from the field", wc.field_seed(7, "r3", True) == (7 + zlib.crc32(b"r3")) & wc.SEED_MAX)
+
+sys.modules.pop("impact", None); sys.modules.pop("impact.wildcards", None)
+notes = []
+f0 = wc.Filler(1, notes=notes)
+check("without Impact Pack: text unchanged, one note", f0("scene", "__color__ sky") == "__color__ sky" and f0("r1", "{a|b}") == "{a|b}" and len(notes) == 1)
+check("without Impact Pack: no list", wc.wildcard_names() is None)
+
+sys.modules["impact"] = pkg; sys.modules["impact.wildcards"] = fake
+check("list: every wildcard Impact knows (on-demand ones too)", wc.wildcard_names() == ["__animals/cat__", "__color__"])
+pd = {"v": 2, "regions": [{"id": 1, "color": "#E6194B", "prompt": "a __color__ car", "type": "object", "text": ""},
+                          {"id": 2, "color": "#3CB44B", "prompt": "a plain dog", "type": "text", "text": "{YES|NO}"}],
+      "layers": [rect(1, 1, -.25), rect(2, 2, .25)]}
+out = run(pd, scene_prompt_positive="a __color__ sky", wildcard_seed=1)
+P = R(out, "prompt")
+check("run: region prompt filled (seed 1 -> green)", "a green car" in P and "__color__" not in P)
+check("run: scene prompt filled with the same seed", "a green sky" in P)
+check("run: text to render filled (MOSS JSON carries it)", '"text":"NO"' in R(run(pd, wildcard_seed=1, prompt_format="MOSS JSON"), "prompt").replace(" ", ""))
+filled = json.loads(out["ui"]["wildcards"][0])
+check("run: the UI gets raw and filled text per field", filled.get("r1") == {"raw": "a __color__ car", "filled": "a green car"}
+      and set(filled) == {"scene", "r1", "r2.text"})
+check("run: the canvas state is not changed", pd["regions"][0]["prompt"] == "a __color__ car")
+out2 = run(dict(pd, wcPerField=True), scene_prompt_positive="a __color__ sky", wildcard_seed=1)
+f2 = json.loads(out2["ui"]["wildcards"][0])
+exp = lambda key: COLORS[((1 + zlib.crc32(key.encode())) & wc.SEED_MAX) % 3]
+check("run, seed per field: each field from its own seed", f2["r1"]["filled"] == f"a {exp('r1')} car" and f2["scene"]["filled"] == f"a {exp('scene')} sky")
+out3 = run(pd, scene_prompt_positive="no wildcards", wildcard_seed=2)
+check("run: seed 2 -> blue", "a blue car" in R(out3, "prompt"))
+sys.modules.pop("impact", None); sys.modules.pop("impact.wildcards", None)
+
 print("\n" + (f"{len(fails)} failed" if fails else "all passed"))
 sys.exit(1 if fails else 0)

@@ -4,7 +4,8 @@ import { svgIcon, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChip
          autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, inAutocompleteList, autocompleteToggle,
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
-         ratioLabel, SIZE_PRESETS_DEFAULT } from "./rg_shared.js";
+         ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
+         wildcardsInstalled, onWildcardInfo } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
 import { openColorPicker, inColorPicker } from "./rg_colorpicker.js";
@@ -382,6 +383,10 @@ input.rg-sw[type=color]::-moz-color-swatch { border:none; border-radius:2px; }
   border-radius:4px; padding:1px 4px; font:inherit; }
 .rg-presets-foot { display:flex; gap:4px; justify-content:flex-end; }
 .rg-presets .rg-btn:disabled { opacity:.4; }
+.rg-wc-filled { box-shadow:inset 3px 0 0 -1px #c9a14a; }
+.rg-pop-lbl .rg-wc-use { margin-left:6px; padding:0 3px; line-height:0; vertical-align:middle; }
+.rg-pop .rg-wc-use svg, .rg-pop .rg-wc-pick svg { width:14px; height:14px; display:block; }
+.rg-pop .rg-wc-pick { line-height:0; padding:1px 3px; }
 .rg-msg { display:flex; gap:6px; align-items:flex-start; flex:0 0 auto; font-size:12px; padding:4px 6px; margin:2px 0;
   background:#3a2424; border:1px solid #b05656; border-radius:4px; color:#f6dddd; user-select:text; -webkit-user-select:text; cursor:auto; }
 .rg-msg-icon { flex:0 0 auto; line-height:20px; }
@@ -396,7 +401,7 @@ function injectStyle() {
     for (const id of ["rg-style", "rg-style-v2", "rg-style-v3", "rg-style-v4", "rg-style-v5", "rg-style-v6", "rg-style-v7", "rg-style-v8"]) document.getElementById(id)?.remove();
     const s = document.createElement("style");
     s.id = "rg-style-v8";
-    s.textContent = STYLE + CHIP_CSS;
+    s.textContent = STYLE + CHIP_CSS + WC_CSS;
     document.head.appendChild(s);
 }
 
@@ -739,6 +744,7 @@ app.registerExtension({
                         if (isEdit()) { d.edit = editSettings(); d.editMask = editMaskNow(); }
                         d.llmCache = llmCacheSettings();
                         d.minPixels = minPixelsNow();
+                        d.wcPerField = !!getSetting(SET.wcPerField, false);
                         d.importMode = importModeNow();
                         return JSON.stringify(d);
                     } catch (e) { return v; }
@@ -749,15 +755,41 @@ app.registerExtension({
             if (sceneBgW?.options) { sceneBgW.options.getMinHeight = () => 36; sceneBgW.options.getMaxHeight = () => 56; }
             // LoRA Manager's tag autocomplete in both scene prompts (if that pack is installed)
             // the scene prompts: tag autocomplete, and a double-click opens them in the pop-up editor
+            // ---- wildcards (Impact Pack): what each field became in the last run (or a preview)
+            let wcFilled = {};                       // field key -> { raw, filled }
+            const filledFor = (key, raw) => { const f = wcFilled[key]; return f && f.raw === (raw ?? "") && f.filled !== f.raw ? f.filled : null; };
+            const sceneTA = {};                      // positive / negative / background -> their textareas
+            const SCENE_KEYS = { positive: "scene", negative: "negative", background: "background" };
+            function wcFields() {
+                const f = { scene: sceneW?.value || "", negative: sceneNegW?.value || "", background: sceneBgW?.value || "" };
+                for (const r of state.regions) {
+                    if (r.hidden) continue;
+                    f["r" + r.id] = r.prompt || "";
+                    if (r.type === "text" && r.text) f[`r${r.id}.text`] = r.text;
+                }
+                return f;
+            }
+            // a field's tooltip / marker: the text the wildcards filled in (when it's for the text in the field now)
+            function wcMark(t, key, raw, base) {
+                if (!t) return;
+                if (base != null) t.dataset.baseTitle = base;
+                const f = filledFor(key, raw), b = t.dataset.baseTitle ?? "";
+                const title = (b ? b + "\n" : "") + (f != null ? `Wildcards filled in (last run or preview):\n${f}` : "");
+                if (t.title !== title) t.title = title;
+                t.classList.toggle("rg-wc-filled", f != null);
+            }
             const SCENE_FIELDS = { scene_prompt_positive: "positive", scene_prompt_negative: "negative",
                                    scene_prompt_background: "background" };
             autocompleteWidgets(node, Object.keys(SCENE_FIELDS), (name, t) => {
                 if (!SCENE_FIELDS[name]) return;
+                sceneTA[SCENE_FIELDS[name]] = t;
                 t.addEventListener("dblclick", (e) => {
                     e.preventDefault(); e.stopPropagation();
                     editScene(SCENE_FIELDS[name]);
                 });
                 if (!/double-click/i.test(t.title || "")) t.title = (t.title ? t.title + "\n" : "") + "Double-click: open in the pop-up editor";
+                t.dataset.baseTitle = t.title;
+                t.addEventListener("input", () => wcMark(t, SCENE_KEYS[SCENE_FIELDS[name]], t.value));
             });
 
             // ---------------- editor state ----------------
@@ -1132,9 +1164,41 @@ app.registerExtension({
             });
             llmSetBtn.innerHTML = sparkleSvg(false);
             llmSetBtn.classList.add("rg-llmset");
-            settings.append(editSeg.box, areaCtl.lab, fmtCtl.lab, llmSetBtn, acCtl.el);
+            // ---- wildcards (Impact Pack): what each field became in the last run (or a preview), and the seed control
+            function wcMarkScene() {
+                for (const [which, w] of [["positive", sceneW], ["negative", sceneNegW], ["background", sceneBgW]]) {
+                    wcMark(sceneTA[which], SCENE_KEYS[which], String(w?.value ?? ""));
+                }
+            }
+            function wcSetFilled(filled, preview, msg) {
+                wcFilled = { ...(preview ? {} : wcFilled), ...(filled || {}) };
+                if (!preview) wcFilled = { ...(filled || {}) };
+                wcMarkScene(); renderRegions(); editor?.refresh(); requestDraw();
+                const n = Object.keys(filled || {}).length;
+                if (msg) hint(msg);
+                else if (preview) hint(n ? `Preview: wildcards filled in ${n} field${n > 1 ? "s" : ""} (hover a field, or see the labels). Right-click the seed: use the filled text` : "Nothing to fill");
+            }
+            function wcUseAll() {
+                let n = 0;
+                for (const [which, w] of [["positive", sceneW], ["negative", sceneNegW], ["background", sceneBgW]]) {
+                    const f = filledFor(SCENE_KEYS[which], String(w?.value ?? ""));
+                    if (f != null) { setWidget(w, f); n++; }
+                }
+                const regs = state.regions.filter((r) => filledFor("r" + r.id, r.prompt || "") != null || filledFor(`r${r.id}.text`, r.text || "") != null);
+                if (regs.length) change(() => {
+                    for (const r of regs) {
+                        const p = filledFor("r" + r.id, r.prompt || ""), t = filledFor(`r${r.id}.text`, r.text || "");
+                        if (p != null) { r.prompt = p; n++; }
+                        if (t != null) { r.text = t; n++; }
+                    }
+                });
+                wcMarkScene(); editor?.refresh();
+                hint(n ? `The filled text is now in ${n} field${n > 1 ? "s" : ""} (Ctrl+Z undoes the regions)` : "No filled text yet: run the workflow or preview first");
+            }
+            const wcCtl = wildcardSeedControl(node, el, { fields: wcFields, onFilled: wcSetFilled, useAll: wcUseAll });
+            settings.append(editSeg.box, areaCtl.lab, fmtCtl.lab, llmSetBtn, acCtl.el, wcCtl.el);
             const syncSettings = () => {
-                fmtCtl.sync(); areaCtl.sync(); acCtl.refresh();
+                fmtCtl.sync(); areaCtl.sync(); acCtl.refresh(); wcCtl.refresh();
                 editSeg.set(isEdit() ? "edit" : "generate");
                 imgSeg.set(modeW?.value === "use as color map" ? "use as color map" : "backdrop (trace over)");
                 const ed = isEdit();
@@ -1712,7 +1776,7 @@ app.registerExtension({
                 }
                 labelSizeInputs();
             }
-            keepWidgetValuesByName(node, ["width", "height", "scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background", "image_mode",
+            keepWidgetValuesByName(node, ["wildcard_seed", "width", "height", "scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background", "image_mode",
                                           "min_region_pixels", "import_mode", "prompt_format", "mode", "edit_area"]);
             // ComfyUI's right-side properties panel renders the selected node's widgets and writes its own
             // panel width into widget.width, which the classic canvas then uses for the node (the "squished"
@@ -2703,7 +2767,7 @@ app.registerExtension({
                 for (const b of regionLabelBoxes()) {
                     const rg = state.regions[b.k];
                     if (!rg) continue;
-                    let text = rg.prompt.trim() || "(no prompt)";
+                    let text = (filledFor("r" + rg.id, rg.prompt) ?? rg.prompt).trim() || "(no prompt)";
                     if (rg.type === "text" && rg.text) text += `  "${rg.text}"`;
                     if (rg.type === "character") text = "👤 " + text;
                     if (rg.keep && isEdit()) text = "🔒 " + text;            // Edit Mode: kept as it is in the source
@@ -3477,7 +3541,12 @@ app.registerExtension({
                 const sw = el("span", "rg-sw"); sw.dataset.swatch = String(r.id);
                 const x = el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close (Enter / Esc)";
                 x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
-                head.append(title, num, sw, x);
+                let lastTa = null;                         // the field the picker inserts into
+                const wcPick = el("button", "rg-btn ico rg-wc-pick"); wcPick.innerHTML = svgIcon("wildcard");
+                wcPick.title = "Insert a wildcard (ComfyUI Impact Pack) at the cursor";
+                wcPick.addEventListener("click", (e) => pickWildcard(e, (name) => insertAtCursor(lastTa || prompt.ta, name)));
+                wcPick.style.display = wildcardsInstalled() ? "" : "none";
+                head.append(title, num, sw, wcPick, x);
                 // type buttons
                 const types = el("div", "rg-pop-types");
                 const typeBtns = {};
@@ -3493,6 +3562,24 @@ app.registerExtension({
                     const wrapF = el("div", "rg-pop-field");
                     const lab = el("div", "rg-pop-lbl"); lab.textContent = label;
                     const ta = el("textarea"); ta.rows = rows; ta.placeholder = placeholder; ta.spellcheck = false; ta.value = r[key] || "";
+                    const fkey = key === "prompt" ? "r" + r.id : `r${r.id}.text`;
+                    const use = el("button", "rg-btn ico rg-wc-use"); use.innerHTML = svgIcon("useFilled");
+                    use.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const f = filledFor(fkey, r[key] || "");
+                        if (f == null) return;
+                        change(() => { r[key] = f; });
+                        ta.value = f; syncUse();
+                    });
+                    const syncUse = () => {
+                        const f = filledFor(fkey, r[key] || "");
+                        use.style.display = f != null ? "" : "none";
+                        use.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : "";
+                    };
+                    lab.appendChild(use);
+                    ta.addEventListener("focus", () => { lastTa = ta; });
+                    ta.addEventListener("input", syncUse);
+                    ta.__rgSyncUse = syncUse;
                     ta.addEventListener("focus", () => {
                         if (editor?.field && editor.field.ta !== ta) editor.endField(false);
                         if (editor) editor.field = { ta, key, before: snapshot(), orig: r[key] || "" };
@@ -3543,6 +3630,8 @@ app.registerExtension({
                         box.style.borderColor = colorOf(rid) || "#5b8fd0";
                         for (const [t, b] of Object.entries(typeBtns)) b.classList.toggle("on", rr.type === t);
                         text.wrapF.style.display = rr.type === "text" ? "" : "none";
+                        prompt.ta.__rgSyncUse?.(); text.ta.__rgSyncUse?.();
+                        wcPick.style.display = wildcardsInstalled() ? "" : "none";
                         for (const [f, key] of [[prompt, "prompt"], [text, "text"]]) {
                             if (document.activeElement !== f.ta && f.ta.value !== (rr[key] || "")) f.ta.value = rr[key] || "";
                         }
@@ -3621,12 +3710,30 @@ app.registerExtension({
                                       background: "Background (scene_prompt_background)" }[which];
                 const x = el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close (Enter / Esc)";
                 x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
-                head.append(title, x);
+                const wcPickS = el("button", "rg-btn ico rg-wc-pick"); wcPickS.innerHTML = svgIcon("wildcard");
+                wcPickS.title = "Insert a wildcard (ComfyUI Impact Pack) at the cursor";
+                wcPickS.addEventListener("click", (e) => pickWildcard(e, (name) => insertAtCursor(ta, name)));
+                wcPickS.style.display = wildcardsInstalled() ? "" : "none";
+                head.append(title, wcPickS, x);
                 const wrapF = el("div", "rg-pop-field");
                 const ta = el("textarea"); ta.rows = 6; ta.spellcheck = false; ta.value = String(w.value ?? "");
                 ta.placeholder = { positive: "the whole picture: setting, style, lighting ...", negative: "what to avoid in the whole picture",
                                    background: "behind the regions: ground, floor, sky, room ..." }[which];
                 const orig = ta.value;
+                const skey = SCENE_KEYS[which];
+                const useS = el("button", "rg-btn ico rg-wc-use"); useS.innerHTML = svgIcon("useFilled");
+                const syncUseS = () => {
+                    const f = filledFor(skey, String(w.value ?? ""));
+                    useS.style.display = f != null ? "" : "none";
+                    useS.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : "";
+                };
+                useS.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const f = filledFor(skey, String(w.value ?? ""));
+                    if (f == null) return;
+                    setWidget(w, f); ta.value = f; syncUseS(); wcMarkScene();
+                });
+                ta.addEventListener("input", () => syncUseS());
                 ta.addEventListener("input", () => { setWidget(w, ta.value); if (pos) updateLlmButtons(); });
                 ta.addEventListener("keydown", (e) => {
                     if (e.key === "Enter" && !e.shiftKey && !autocompleteOpen(ta, e)) { e.preventDefault(); closeEditor(true); }
@@ -3636,7 +3743,8 @@ app.registerExtension({
                 const dyn = el("div", "rg-pop-dyn");
                 const foot = el("div", "rg-pop-foot");
                 foot.textContent = "Enter: done · Shift+Enter: new line · Esc: close, putting the text back";
-                box.append(head, wrapF, dyn, foot);
+                const useRow = el("div", "rg-pop-lbl"); useRow.append(useS);
+                box.append(head, useRow, wrapF, dyn, foot);
                 wrap.appendChild(box);
                 const ed = {
                     scene: which, box, field: { cancelable: true },
@@ -3647,6 +3755,7 @@ app.registerExtension({
                     },
                     refresh() {
                         if (document.activeElement !== ta && ta.value !== String(w.value ?? "")) ta.value = String(w.value ?? "");
+                        syncUseS(); wcPickS.style.display = wildcardsInstalled() ? "" : "none";
                         box.style.borderColor = "#5b8fd0";
                         if (!pos) { dyn.replaceChildren(); ed.place(); return; }
                         const ctl = el("div", "rg-row pop-ctl");
@@ -4329,8 +4438,9 @@ app.registerExtension({
                     ty.addEventListener("change", () => change(() => { r.type = ty.value; }));
                     const pr = el("textarea", "rg-prompt"); pr.rows = 1; pr.placeholder = r.fromImage ? "prompt for this image color" : "prompt";
                     const dblTip = (v) => (v ? v + "\n" : "") + "Double-click: open in the pop-up editor";
-                    pr.value = r.prompt; pr.dataset.rid = String(r.id); pr.title = dblTip(r.prompt); pr.spellcheck = false;
-                    pr.addEventListener("blur", () => { pr.scrollTop = 0; pr.title = dblTip(r.prompt); refreshChips(r.id); });
+                    pr.value = r.prompt; pr.dataset.rid = String(r.id); pr.spellcheck = false;
+                    wcMark(pr, "r" + r.id, r.prompt, dblTip(r.prompt));
+                    pr.addEventListener("blur", () => { pr.scrollTop = 0; wcMark(pr, "r" + r.id, r.prompt, dblTip(r.prompt)); refreshChips(r.id); });
                     // double-click: the region's pop-up editor, next to this row
                     const openPop = (field) => (e) => { e.preventDefault(); e.stopPropagation(); e.target.blur(); editPrompt(r.id, null, field); };
                     pr.addEventListener("dblclick", openPop("prompt"));
@@ -4352,9 +4462,10 @@ app.registerExtension({
                     if (r.type === "text") {
                         // text to render: grows while edited, like the prompt (Shift+Enter = new line)
                         const tx = el("textarea", "rg-prompt rg-text"); tx.rows = 1; tx.placeholder = "text"; tx.value = r.text;
-                        tx.title = dblTip(r.text || "Text to render"); tx.spellcheck = false;
+                        tx.spellcheck = false;
+                        wcMark(tx, `r${r.id}.text`, r.text, dblTip(r.text || "Text to render"));
                         tx.addEventListener("focus", () => pick());
-                        tx.addEventListener("blur", () => { tx.scrollTop = 0; tx.title = dblTip(r.text || "Text to render"); });
+                        tx.addEventListener("blur", () => { tx.scrollTop = 0; wcMark(tx, `r${r.id}.text`, r.text, dblTip(r.text || "Text to render")); });
                         tx.addEventListener("dblclick", openPop("text"));
                         tx.addEventListener("input", () => { r.text = tx.value; save(); });
                         tx.addEventListener("keydown", (e) => {
@@ -4564,6 +4675,11 @@ app.registerExtension({
                 let llmMsg = null;
                 try { llmMsg = JSON.parse(message?.llm?.[0] || "null"); } catch (e) { /* ignore */ }
                 if (llmMsg) storeLlmResults(llmMsg);
+                if (Array.isArray(message?.wildcards)) {
+                    let f = {};
+                    try { f = JSON.parse(message.wildcards[0] || "{}") || {}; } catch (e) { /* ignore */ }
+                    wcSetFilled(f, false);
+                }
                 else if (imp?.action === "pending") {
                     pendingImport = imp;
                     bannerText.textContent = `import_json has a new layout (${imp.state?.regions?.length ?? 0} regions). This run used the canvas.`;

@@ -1434,6 +1434,13 @@ class RegionalLoRAs:
                                                 "one picture. Each region's caption still speaks only to its own region. "
                                                 "Off: they are kept apart from the rest of the image too."}),
             },
+            "optional": {
+                # hidden; set with the seed control in the rows editor (shown when Impact Pack is installed)
+                "wildcard_seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF,
+                                          "tooltip": "Seed for the wildcards in prompt, negative_prompt and the rows' words "
+                                                     "(ComfyUI Impact Pack's __name__ and {a|b} syntax). A prompt that "
+                                                     "comes as MOSS / Ideogram JSON is left as it is."}),
+            },
         }
 
     RETURN_TYPES = ("MODEL", "CONDITIONING", "CONDITIONING", "STRING")
@@ -1461,13 +1468,25 @@ class RegionalLoRAs:
         return True
 
     def run(self, model, clip, masks, prompt, negative_prompt, feather, loras_data, lora_masking=MASKING_MODES[0],
-            region_separation=0.85, separation_until=0.25, separate_all_regions=False, share_background=False):
+            region_separation=0.85, separation_until=0.25, separate_all_regions=False, share_background=False,
+            wildcard_seed=0):
         from .bbox_masks import box_blur
-        rows = [r for r in parse_rows(loras_data) if r["on"] and r["lora"] and r["strength"] != 0]
+        from .wildcards import Filler
+        all_rows = parse_rows(loras_data)
         m = masks if masks.dim() == 3 else masks.unsqueeze(0)
         n = int(m.shape[0])
         lines, warn = [], []
         prompt = str(prompt or "")
+        # wildcards (Impact Pack) in the typed text: prompt (unless it's a JSON layout), negative_prompt, rows' words
+        try:
+            per_field = json.loads(loras_data).get("wcPerField") is True
+        except (ValueError, TypeError, AttributeError):
+            per_field = False
+        fill = Filler(wildcard_seed, per_field=per_field, notes=warn)
+        prompt = fill("prompt", prompt)
+        negative_prompt = fill("negative", str(negative_prompt or ""))
+        rows = [dict(r, prompt=fill(f"row{k}", r["prompt"])) if r.get("prompt") else r for k, r in enumerate(all_rows)
+                if r["on"] and r["lora"] and r["strength"] != 0]
 
         token_mode = lora_masking != MASKING_MODES[1]
         if token_mode and rows and not one_pass_ok(model):
@@ -1580,4 +1599,7 @@ class RegionalLoRAs:
 
         info = "\n".join(lines + warn)
         _log(f"{LOG} Regional LoRAs:\n{info}")
-        return {"ui": {"lora_info": [info], "mask_count": [n]}, "result": (model_out, positive, negative, info)}
+        ui = {"lora_info": [info], "mask_count": [n]}
+        if fill.mod is not None:
+            ui["wildcards"] = [json.dumps(fill.filled, ensure_ascii=False)]
+        return {"ui": ui, "result": (model_out, positive, negative, info)}
