@@ -2,7 +2,7 @@
 
 **Latest version:** `ComfyUI-Region-Genie.zip`, delivered Nov 11, 2026, after rounds 5, 6 and 7 (round 7 = Select object with SAM 3.1). It is 201,205 bytes and its SHA-256 starts `8b16ddd1583265734a6c5c274c51a36b7a04a949d146fd7a80fcdde2d2b13f45`. The project's Context files match it.
 
-**Planned move:** the user asked for instructions to move this project to a GitHub repo and Claude Code on the web (Nov 11). If a repo exists when you read this, the repo is the source of truth, not the Context files. Check with the user.
+**Moved to GitHub (Nov 11):** the project now lives in a GitHub repo and is worked on in Claude Code on the web. **The repo is the source of truth**; the Context files and the zip described above are the state before round 8. Rounds from 8 on are commits on the repo.
 
 **Where the files are.** The Context holds the files flat:
 - Files that kept their old name are at the top level: `__init__.py`, `bbox_masks.py`, `llm_enhance.py`, `lora_triggers.py`, `README.md`, `bbox_masks.js`, `hook_lora.js`.
@@ -102,6 +102,8 @@ The pack used to be called **Regional Mask Kit** (folder `ComfyUI-RegionalMaskKi
     - rounded rectangle (`radius` field, layer key `radius`), Alt+drag draws a shape from its centre, Shift+click straight lines for brush/eraser (`lastStrokeEnd`), Alt+click eyedropper for painting tools.
     - Arrange pop-over (`.rg-arrange`, fixed in `document.body`): flip H/V (shapes: H = mirror ops; V = rot+180 + mirror), align ×6 + centre, grow/shrink N px (`growLayer` turns the layer into one bitmap op).
     - shared helpers `rasterSize`, `regionLabels`, `flood`, `commitMask` (into the selected plain layer of the active region, else a new layer).
+  - **Round 8 Select object fixes:** the tool button uses icon `samSelect` (`addTool(key, title, icon)`; it used to look up `ICONS.object`, which doesn't exist, so the button was blank). ✓ / ✕ buttons after the find field (`pickOkBtn` / `pickNoBtn`, icons `check` / `close`, kept in step by `syncPickBtns()` on every draw). `pickSettle()`: leaving the tool (or the image going away) adds a finished selection, or waits for the answer in flight (`pick.acceptOnAnswer`), instead of discarding it. `pickNext()`: Shift+click / Shift+drag adds the selection so far and starts a new one. `pickAccept` in Edit Mode makes a new region per selection (`asRegion`; find-all Enter = one region with the text as prompt), in Generate mode unchanged (`commitMask` into the active region, merging into its selected plain layer). Errors go to the message bar (`msgBar`, `.rg-msg`, between the canvas and the list: `showMsg` linkifies URLs, Copy link via `copyText` with an `execCommand` fallback for non-secure pages, `hideMsg` on ✕ / another tool / mode change / a successful answer). Ctrl+C with text selected in the bar is left to the browser (`msgSelected()`), and the click-capture that focuses the key sink skips the bar.
+  - **Round 8 list pop-up:** double-clicking a region's prompt (or text) field in the list opens `editPrompt(rid, null, field)`; with no label rect, `place()` anchors the pop-up just below the row (else just above), converting screen px to CSS px with `wrap.offsetWidth / rect.width` for the graph zoom.
   - **Round 7 Select object (Q):** `pick` state `{pts [[x,y,label]], box, text, masks, R, sent}`; `pickRequest` (one request at a time, re-sends the latest state; busy → retry), `pickPointer`, `pickFind`, `pickAccept(each)` (Shift+Enter = one new region per found object, prompt = its phrase), `pickCancel`/`pickRelease`, `drawPick` overlay. `backdropRef` = `{filename, subfolder, type}` of the backdrop (Load Image input, or the run preview), sent to the server. The find field `.rg-find` shows with the tool.
   - Test hooks: `__rgState`, `__rgActive`, `__rgSetBackdrop(img, ref)`, `__rgToClient`, `__rgOutputRegions`, `__rgLabels`, `__rgHandles`, `__rgBox`, `__rgView`, `__rgRender`. Style element id `rg-style-v8`.
 - **`rg_shared.js`:** icons (round 6/7 added tag/tagOff, imgBackdrop/imgColorMap, wand/wandGlobal, fillGaps, lassoMagnetic/lassoEraseMagnetic, arrange, flipH/V, align*, layerGrow/Shrink, samSelect), LoRA list, trigger chips, autocomplete layer (`autocompleteToggle` is now an icon button `.rg-ac-btn`), `keepWidgetValuesByName`, `migrateProps`, Settings (`SETTINGS`, `SET`, `getSetting`, `setSetting`, `TOOL_VARIANTS`, `TOOL_NUMBERS`, `toolDefault`, `toolNumber`, `onToolDefault`, `llmCacheSettings`, `postLlmCache`, `editMaskDefaults`).
@@ -119,6 +121,12 @@ The pack used to be called **Regional Mask Kit** (folder `ComfyUI-RegionalMaskKi
 - Select object: model file (`RegionGenie.Select.Model`), after a selection keep loaded / unload (`RegionGenie.Select.KeepLoaded`, default keep), find-all confidence (`RegionGenie.Select.Threshold`, 0.5).
 
 ## 4. Feature state and decisions (most recent first)
+
+### Round 8 (Nov 11): bug fixes from the user's first real runs
+- Reported: blank Select object button; the missing-model message vanished after 3.5 s and couldn't be copied (it was a `hint()` in the list header; Ctrl+C was the layer-copy shortcut); selections didn't show in the region list (they were only previews until Enter, and switching tools discarded them silently); the user asked for double-click on list prompts to open the pop-up editor (it never existed; only the focus-expand did).
+- User's choices (multiple choice): message bar under the canvas with Copy link and ✕; Enter or a ✓ button, switching tools adds instead of discarding, only Esc discards; Edit Mode makes a new region per selection, Generate mode keeps going into the active region; the list pop-up opens by the row.
+- Decided without asking (told to the user): ✓ / ✕ are icons with tooltips (the mock-up said "✓ Add"; the owner's rule prefers icons); Shift+click starts the next object; the message bar also closes when a later selection succeeds; `tests/run_ui.sh` now starts the server with `--directory` (it used to leak the server, so a second run could exit 1).
+- Still open: whether Enter reached the editor in the user's real ComfyUI (asked; the harness says it works). If not, the ✓ button is the way around it, but it would be a separate bug.
 
 ### Round 7 (Nov 11): Select object (SAM 3.1)
 - User's choices: keep the model loaded after first use (Settings option to unload after each selection); include text "find all".
@@ -141,6 +149,7 @@ The pack used to be called **Regional Mask Kit** (folder `ComfyUI-RegionalMaskKi
 ## 5. Open items and offered ideas
 
 **Not verified on real hardware (no GPU in the sandbox):**
+- Round 8 in the real ComfyUI frontend (legacy and Nodes 2.0, 4K): the message bar's text selection, right-click menu and Copy link (clipboard API needs https or localhost; otherwise the `execCommand` fallback), the list double-click, and Edit Mode regions from Select object.
 - Select object mask quality: the real SAM 3.1 weights couldn't be downloaded (huggingface.co blocked); all checks used a random-weight model with the real architecture. Real speed on GPU, and how the ComfyUI offload/reload feels.
 - Magnetic lasso and magic wand on real photos.
 - Everything from rounds 3-6 on the user's machine at 4K (footer B, Arrange pop-over, tool rows, edit mask, shared background in real sampling).
@@ -165,9 +174,9 @@ The pack used to be called **Regional Mask Kit** (folder `ComfyUI-RegionalMaskKi
   - SAM 3.1 fixture: `make_fake_sam.py` builds ComfyUI's SAM3Model (image_model SAM31) and SAM3 CLIP with random weights and saves them in the real checkpoint key layout (1.75 GB, detected by ComfyUI's own loader). Masks are meaningless; it tests the plumbing.
   - On 2 CPUs: first click ~38 s (trunk), later clicks ~4 s.
 - **Test files (rebuild as needed; they don't carry over):**
-  - `test_round5.py` (49), `test_round6.py` (18): Python with a numpy-backed torch stub and comfy / folder_paths stubs.
+  - `test_round5.py` (49), `test_round6.py` (16): Python with a numpy-backed torch stub and comfy / folder_paths stubs.
   - `test_select.py` (31): region_select against real ComfyUI code: path safety, busy, loading, ComfyUI tracking the model, cached == uncached (points+box and text), output masks, unload and idle timer.
-  - Browser tests in a stub harness (`/tmp/harness`, stub `app.js` / `api.js` with `window.__apiHandlers`), Playwright Chromium at `/opt/pw-browsers`: `ui_test.cjs` (30, round 5), `ui_test6.cjs` (46, round 6), `ui_test_select.cjs` (26, Select object with a stubbed server).
+  - Browser tests in a stub harness (`/tmp/harness`, stub `app.js` / `api.js` with `window.__apiHandlers`), Playwright Chromium at `/opt/pw-browsers`: `ui_test.cjs` (29, round 5), `ui_test6.cjs` (46, round 6), `ui_test_select.cjs` (46 since round 8: Select object with a stubbed server, icons not blank, ✓ / tool-switch / Shift+click, Edit Mode regions, list double-click pop-up, the message bar). The harness is in the repo now (`tests/harness`), run with `tests/run_ui.sh`; Playwright is preinstalled in cloud sessions, scipy may need `pip install scipy`. The run scripts aren't executable in git: run them with `bash`.
   - `real_comfy.cjs`: smoke test in the real frontend, legacy and Nodes 2.0 (`Comfy.VueNodes.Enabled`); dismiss the template dialog with Escape first.
 - **Lint:** no ESLint installed this time; `node --check` on every JS file.
 

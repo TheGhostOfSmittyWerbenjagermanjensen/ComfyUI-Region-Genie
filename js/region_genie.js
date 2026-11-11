@@ -350,6 +350,12 @@ input.rg-sw[type=color]::-moz-color-swatch { border:none; border-radius:2px; }
 .rg-eye { width:20px; text-align:center; }
 .rg-pseudo { font-style:italic; opacity:.85; flex:1 1 auto; }
 .rg-hint { opacity:.65; font-size:11px; }
+.rg-msg { display:flex; gap:6px; align-items:flex-start; flex:0 0 auto; font-size:12px; padding:4px 6px; margin:2px 0;
+  background:#3a2424; border:1px solid #b05656; border-radius:4px; color:#f6dddd; user-select:text; -webkit-user-select:text; cursor:auto; }
+.rg-msg-icon { flex:0 0 auto; line-height:20px; }
+.rg-msg-text { flex:1 1 auto; min-width:0; line-height:20px; overflow-wrap:anywhere; white-space:pre-wrap; }
+.rg-msg-text a { color:#9cc4ff; text-decoration:underline; cursor:pointer; }
+.rg-msg .rg-btn { flex:0 0 auto; user-select:none; -webkit-user-select:none; }
 .rg-banner { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12px; padding:4px 6px; margin:2px 0;
   background:#3a3220; border:1px solid #b08d3c; border-radius:4px; color:#f2e3bf; }
 `;
@@ -762,7 +768,7 @@ app.registerExtension({
             keySink.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:0;top:0;border:0;padding:0;";
             const isField = (t) => t && (t.tagName === "TEXTAREA" || t.tagName === "SELECT" || (t.tagName === "INPUT" && t !== keySink && !["range", "checkbox", "button"].includes(t.type)));
             const focusSink = () => keySink.focus({ preventScroll: true });
-            wrap.addEventListener("click", (e) => { if (!isField(e.target)) focusSink(); }, true);
+            wrap.addEventListener("click", (e) => { if (!isField(e.target) && !e.target?.closest?.(".rg-msg")) focusSink(); }, true);
             const bar1 = el("div", "rg-bar");
             function iconBtn(name, title, fn, cls = "") {
                 const b = el("button", "rg-btn icon" + (cls ? " " + cls : ""));
@@ -772,8 +778,8 @@ app.registerExtension({
             }
             const sep = () => el("span", "rg-sep");
             const toolBtns = {};
-            const addTool = (key, title) => {
-                const b = iconBtn(key, title, () => setTool(key));
+            const addTool = (key, title, icon = key) => {
+                const b = iconBtn(icon, title, () => setTool(key));
                 toolBtns[key] = b; bar1.appendChild(b); return b;
             };
             addTool("select", "Select: move, resize and rotate layers (V). Shift keeps proportions / snaps angles to 15°.");
@@ -827,7 +833,7 @@ app.registerExtension({
             addTool("object", "Select object (Q): SAM 3.1 finds the object you click in the image under the canvas. Click to add "
                 + "a point on the object, Ctrl+click a point that isn't part of it, drag a box around it; Backspace undoes the "
                 + "last point, Enter adds the selection to the active region, Esc cancels. Or type what to find in the field "
-                + "next to it. Needs the SAM 3.1 model (Settings > Region Genie > Select object).");
+                + "next to it. Needs the SAM 3.1 model (Settings > Region Genie > Select object).", "samSelect");
             const findIn = el("input", "rg-find");
             findIn.type = "text"; findIn.placeholder = "find all…"; findIn.style.display = "none";
             findIn.title = "Find all: type what to select and press Enter, e.g. 'person' or 'red car, dog' (commas: several "
@@ -841,6 +847,18 @@ app.registerExtension({
             });
             findIn.addEventListener("pointerdown", (e) => e.stopPropagation());
             bar1.appendChild(findIn);
+            // the pending selection: add it (Enter) / discard it (Esc); shown while there is one
+            const pickOkBtn = iconBtn("check", "Add the selection (Enter). In Edit Mode it becomes a new region; in Generate "
+                + "mode it goes into the active region. Switching to another tool adds it too.", () => { if (pick) pickAccept(false); focusSink(); });
+            const pickNoBtn = iconBtn("close", "Discard the selection (Esc)", () => { if (pick) pickCancel(); focusSink(); });
+            pickOkBtn.style.display = pickNoBtn.style.display = "none";
+            bar1.append(pickOkBtn, pickNoBtn);
+            function syncPickBtns() {
+                const show = tool === "object" && !!pick ? "" : "none";
+                if (pickOkBtn.style.display !== show) pickOkBtn.style.display = pickNoBtn.style.display = show;
+                const ok = !!pick && !pickBusy && pick.masks.some((m) => !m.off);
+                if (pickOkBtn.disabled === ok) pickOkBtn.disabled = !ok;
+            }
             addTool("erase", "Eraser: erase from the selected layer (E). Shift+click draws a straight line from where the last stroke ended.");
             addTool("lassoErase", "");
             // tools with variants: right-click chooses (small triangle in the corner); Settings > Canvas tools sets the start
@@ -1130,6 +1148,51 @@ app.registerExtension({
             });
             banner.append(bannerText, replaceBtn, keepBtn);
             function hideBanner() { pendingImport = null; banner.style.display = "none"; }
+            // message bar under the canvas (Select object errors): stays until closed, another tool is picked or the mode
+            // changes. Its text can be selected and copied, links open in a new tab, "Copy link" copies the first link.
+            const msgBar = el("div", "rg-msg"); msgBar.style.display = "none";
+            const msgIcon = el("span", "rg-msg-icon"); msgIcon.textContent = "⚠";
+            const msgText = el("div", "rg-msg-text");
+            let msgUrl = "";
+            const msgCopy = btn("Copy link", "Copy the link to the clipboard", async () => {
+                hint(await copyText(msgUrl) ? "Link copied" : "Couldn't copy: select the link and press Ctrl+C");
+            });
+            const msgClose = btn("✕", "Close this message", () => { hideMsg(); focusSink(); });
+            msgBar.append(msgIcon, msgText, msgCopy, msgClose);
+            // keep LiteGraph / Nodes 2.0 from treating a text selection as a node drag; the browser's own menu on right-click
+            for (const ev of ["pointerdown", "mousedown", "dblclick", "contextmenu", "wheel"]) msgBar.addEventListener(ev, (e) => e.stopPropagation());
+            function showMsg(text) {
+                msgText.replaceChildren();
+                msgUrl = "";
+                const re = /https?:\/\/[^\s()<>"']+/g;
+                let last = 0, m;
+                while ((m = re.exec(text))) {
+                    const url = m[0].replace(/[.,;:]+$/, "");
+                    msgText.append(text.slice(last, m.index));
+                    const a = el("a"); a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = url;
+                    msgText.append(a);
+                    last = m.index + url.length;
+                    if (!msgUrl) msgUrl = url;
+                }
+                msgText.append(text.slice(last));
+                msgCopy.style.display = msgUrl ? "" : "none";
+                msgBar.style.display = "";
+            }
+            function hideMsg() { if (msgBar.style.display !== "none") msgBar.style.display = "none"; }
+            const msgSelected = () => {
+                const sel = window.getSelection?.();
+                return !!(sel && !sel.isCollapsed && msgBar.style.display !== "none" && msgBar.contains(sel.anchorNode));
+            };
+            async function copyText(t) {
+                try { await navigator.clipboard.writeText(t); return true; } catch (e) { /* not a secure page: fall back */ }
+                const ta = document.createElement("textarea");
+                ta.value = t; ta.style.cssText = "position:fixed;left:-9999px;top:0;";
+                document.body.appendChild(ta); ta.select();
+                let ok = false;
+                try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+                ta.remove(); focusSink();
+                return ok;
+            }
             function notify(msg, isError) {
                 try { app.extensionManager?.toast?.add({ severity: isError ? "error" : "info", summary: "Region Genie", detail: msg, life: 5000 }); }
                 catch (e) { console[isError ? "error" : "log"]("[Region Genie]", msg); }
@@ -1358,7 +1421,7 @@ app.registerExtension({
             const openSub = (rid, kind) => { expanded.add(rid); subOpen.add(`${rid}:${kind}`); };
 
             wrap.style.position = "relative";
-            wrap.append(keySink, bar1, banner, cvBox, tree, foot);
+            wrap.append(keySink, bar1, banner, cvBox, msgBar, tree, foot);
             const domW = node.addDOMWidget("color_map_canvas", "ColorMapCanvas", wrap, {
                 serialize: false, hideOnZoom: false, getMinHeight: () => 620,
             });
@@ -1923,7 +1986,9 @@ app.registerExtension({
             }
             function setTool(t) {
                 if (clickPoly && t !== tool) clickPoly = null;
-                if (pick && t !== "object") pickCancel();
+                if (pick && t !== "object") pickSettle();
+                else if (pick && t === "object") pick.acceptOnAnswer = false;
+                if (t !== "object") hideMsg();
                 tool = t;
                 for (const [k, b] of Object.entries(toolBtns)) b.classList.toggle("on", k === t);
                 syncToolOpts();
@@ -2053,6 +2118,7 @@ app.registerExtension({
                     if (t) { ctx.save(); ctx.globalAlpha = 0.75; drawLayerOn(ctx, t); ctx.restore(); outline(boxCornersImg(t, [0, 0, t.bw, t.bh]), "#fff", true); }
                 }
                 if (pick || drag?.mode === "pickbox") drawPick(ix, iy, iw, ih);
+                syncPickBtns();
                 const poly = drag?.mode === "lasso" ? drag : clickPoly;
                 if (poly && poly.pts.length) {
                     let pts = clickPoly && hover ? [...poly.pts, toImg(...hover)] : poly.pts;
@@ -2549,6 +2615,7 @@ app.registerExtension({
                     const [x0, y0] = d.start, [x1, y1] = d.cur;
                     const b = [Math.max(0, Math.min(x0, x1)), Math.max(0, Math.min(y0, y1)), Math.min(W, Math.max(x0, x1)), Math.min(H, Math.max(y0, y1))];
                     if (b[2] - b[0] < 2 || b[3] - b[1] < 2) return;
+                    if (d.shift && !pickNext()) return;
                     if (!pick || pick.text) pickStart();
                     pick.box = b;
                     pick.masks = []; pick.overlay = null;
@@ -2567,9 +2634,23 @@ app.registerExtension({
                     pickCountHint();
                     return;
                 }
+                if (d.shift && !pickNext()) return;
                 if (!pick) pickStart();
                 pick.pts.push([ix, iy, d.ctrl ? 0 : 1]);
                 pickRequest();
+            }
+            // Shift+click / Shift+drag: add the selection made so far, then start a new one
+            function pickNext() {
+                if (!pick) return true;
+                if (pickBusy) { hint("Still selecting…"); return false; }
+                if (pick.masks.some((m) => !m.off)) pickAccept(false); else pickCancel();
+                return true;
+            }
+            // leaving the tool (or the image going away): add what is selected instead of throwing it away
+            function pickSettle() {
+                if (!pick) return;
+                if (pickBusy || pickAgain) { pick.acceptOnAnswer = true; return; }
+                if (pick.masks.some((m) => !m.off)) pickAccept(false); else pickCancel();
             }
             function pickFind(text) {
                 if (!backdrop || !backdropRef) { hint("Select object " + NEEDS_IMAGE); return; }
@@ -2580,10 +2661,11 @@ app.registerExtension({
             function pickCountHint() {
                 if (!pick) return;
                 const on = pick.masks.filter((m) => !m.off).length;
-                if (pick.text) stickyHint(pick.masks.length ? `Found ${pick.masks.length}${on < pick.masks.length ? `, ${on} kept` : ""}: Enter adds `
-                    + "them to the active region, Shift+Enter one region each, Ctrl+click leaves one out, Esc cancels" : `Nothing found for "${pick.text}"`);
-                else stickyHint(pick.masks.length ? "Enter: add to the active region · click / Ctrl+click: more points · drag: box · "
-                    + "Backspace: undo · Esc: cancel" : "Nothing selected there: try another point or a box");
+                const where = isEdit() ? "as a new region" : "to the active region";
+                if (pick.text) stickyHint(pick.masks.length ? `Found ${pick.masks.length}${on < pick.masks.length ? `, ${on} kept` : ""}: Enter or ✓ adds `
+                    + `them ${where}, Shift+Enter one region each, Ctrl+click leaves one out, Esc discards` : `Nothing found for "${pick.text}"`);
+                else stickyHint(pick.masks.length ? `Enter or ✓: add ${where} · click / Ctrl+click: more points · drag: box · `
+                    + "Shift+click: add this one and start the next · Backspace: undo · Esc: discard" : "Nothing selected there: try another point or a box");
             }
             async function pickRequest() {
                 if (!pick) return;
@@ -2598,6 +2680,7 @@ app.registerExtension({
                 };
                 if (!body.points.length && !body.box && !body.text) { p.masks = []; p.overlay = null; pickCountHint(); requestDraw(); return; }
                 pickBusy = true; p.sent = true;
+                let retrying = false;
                 stickyHint(samUsed ? (p.text ? "Finding…" : "Selecting…") : "Loading SAM 3.1 (the first selection takes a few seconds)…");
                 try {
                     const r = await api.fetchApi("/region_genie/sam_select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -2605,21 +2688,24 @@ app.registerExtension({
                     if (pick !== p) return;
                     if (j.code === "busy") {
                         stickyHint("Select object waits while a workflow is running…");
+                        retrying = true;
                         setTimeout(() => { if (pick === p) pickRequest(); }, 2000);
                         return;
                     }
-                    if (!r.ok || j.error) { hint(j.error || `Select object failed (${r.status})`); return; }
+                    if (!r.ok || j.error) { stickyHint(""); showMsg(j.error || `Select object failed (${r.status})`); return; }
+                    hideMsg();
                     samUsed = true;
                     p.R = { w: j.w, h: j.h };
                     p.masks = (j.masks || []).map((m) => ({ mask: decodeRuns(m.runs, j.w * j.h), box: m.box, score: m.score, label: m.label || "", area: m.area || 0, off: false }));
                     p.overlay = null;
                     pickCountHint();
                 } catch (e) {
-                    if (pick === p) hint("Select object: no answer from the server (" + (e?.message || e) + ")");
+                    if (pick === p) { stickyHint(""); showMsg("Select object: no answer from the server (" + (e?.message || e) + ")"); }
                 } finally {
                     pickBusy = false;
                     requestDraw();
                     if (pickAgain) { pickAgain = false; pickRequest(); }
+                    else if (!retrying && pick === p && p.acceptOnAnswer) pickSettle();
                 }
             }
             function pickRelease() {
@@ -2647,23 +2733,32 @@ app.registerExtension({
                 if (!on.length) { hint("Nothing selected yet"); return; }
                 const R = { ...rasterSize(), w: pick.R.w, h: pick.R.h };
                 const sent = pick.sent;
-                if (each && pick.text && on.length > 1) {
-                    const [W, H] = dims(), s = Math.min(W, H);
-                    change(() => {
-                        for (const m of on.slice().reverse()) {              // the best match ends up on top
-                            const rg = newRegion();
-                            rg.prompt = m.label || pick.text;
-                            const L = newPaintLayer(rg.id);
-                            L.name = `Object ${L.id}`;
-                            L.ops.push({ t: "bitmap", e: false, w: R.w, h: R.h, runs: encodeRuns(growMask01(m.mask, R.w, R.h, 1)), x0: 0, y0: 0, x1: W / s, y1: H / s });
-                            addLayer(L);
-                        }
-                    });
-                    hint(`Added ${on.length} regions`);
-                } else {
+                const [W, H] = dims(), s = Math.min(W, H);
+                const asRegion = (mask, prompt) => {                    // one new region with the mask as its layer
+                    const rg = newRegion();
+                    rg.prompt = prompt || "";
+                    const L = newPaintLayer(rg.id);
+                    L.name = `Object ${L.id}`;
+                    L.ops.push({ t: "bitmap", e: false, w: R.w, h: R.h, runs: encodeRuns(growMask01(mask, R.w, R.h, 1)), x0: 0, y0: 0, x1: W / s, y1: H / s });
+                    addLayer(L);
+                    return rg;
+                };
+                const union = () => {
                     const u = new Uint8Array(R.w * R.h);
                     for (const m of on) for (let i = 0; i < u.length; i++) if (m.mask[i]) u[i] = 1;
-                    if (commitMask(R, u, "Object")) hint(on.length > 1 ? `Added ${on.length} objects` : "Added the object");
+                    return u;
+                };
+                if (each && pick.text && on.length > 1) {
+                    change(() => { for (const m of on.slice().reverse()) asRegion(m.mask, m.label || pick.text); });   // the best match ends up on top
+                    hint(`Added ${on.length} regions`);
+                } else if (isEdit()) {                                  // Edit Mode: each selection is its own region
+                    const text = pick.text;
+                    let rg = null;
+                    change(() => { rg = asRegion(union(), text); });
+                    if (rg) { openSub(rg.id, "layers"); refreshUI(); }
+                    hint(on.length > 1 ? `Added ${on.length} objects as a new region` : "Added the object as a new region");
+                } else {
+                    if (commitMask(R, union(), "Object")) hint(on.length > 1 ? `Added ${on.length} objects` : "Added the object");
                 }
                 pick = null; pickAgain = false;
                 if (sent) pickRelease();
@@ -2886,7 +2981,7 @@ app.registerExtension({
                     return;
                 }
                 if (tool === "object") {
-                    drag = { mode: "pickbox", start: [ix, iy], cur: [ix, iy], sd: [dx, dy], moved: 0, ctrl: e.ctrlKey || e.metaKey };
+                    drag = { mode: "pickbox", start: [ix, iy], cur: [ix, iy], sd: [dx, dy], moved: 0, ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey };
                     labelClick = null;
                     return;
                 }
@@ -3068,7 +3163,8 @@ app.registerExtension({
                 refreshUI();
                 focusSink();
             }
-            function editPrompt(rid, rect) {
+            // rect: the label on the canvas it opens from; null = from the region's row in the list. focus: "prompt" | "text"
+            function editPrompt(rid, rect, focus = "prompt") {
                 closeEditor(true);
                 const r = regionById(rid);
                 if (!r) return;
@@ -3180,6 +3276,17 @@ app.registerExtension({
                             return;
                         }
                         ed.placed = true;
+                        const row = !rect && regList.querySelector(`textarea.rg-prompt[data-rid="${rid}"]`)?.closest(".rg-row");
+                        if (row) {                                 // from the list: just below the row, else just above it
+                            const wr = wrap.getBoundingClientRect(), rr = row.getBoundingClientRect();
+                            const sc = wrap.offsetWidth / Math.max(1, wr.width);        // the graph's zoom: screen px -> CSS px
+                            const y0 = (rr.top - wr.top) * sc + wrap.scrollTop, y1 = (rr.bottom - wr.top) * sc + wrap.scrollTop;
+                            const top = y1 + 4 + h <= H - 6 ? y1 + 4 : (y0 - 4 - h >= 6 ? y0 - 4 - h : Math.max(6, H - 6 - h));
+                            box.style.left = Math.max(6, (W - w) / 2) + "px";
+                            box.style.top = top + "px";
+                            return;
+                        }
+                        if (!rect) { box.style.left = Math.max(6, (W - w) / 2) + "px"; box.style.top = "6px"; return; }
                         const cx = cvBox.offsetLeft + (rect.x0 + rect.x1) / 2 * k;
                         const below = cvBox.offsetTop + rect.y1 * k + 6, above = cvBox.offsetTop + rect.y0 * k - 6 - h;
                         const top = below + h <= H - 6 ? below : (above >= 6 ? above : Math.max(6, H - 6 - h));
@@ -3196,7 +3303,8 @@ app.registerExtension({
                 editor = ed;
                 window.addEventListener("pointerdown", ed.outside, true);
                 ed.refresh();
-                prompt.ta.focus(); prompt.ta.setSelectionRange(prompt.ta.value.length, prompt.ta.value.length);
+                const first = focus === "text" && r.type === "text" ? text : prompt;
+                first.ta.focus(); first.ta.setSelectionRange(first.ta.value.length, first.ta.value.length);
             }
             // pop-up editor for scene_prompt_positive / _negative / _background (double-click the text box).
             // Positive: also the LLM Prompt Enhancer and the whole-image LoRAs. Enter or clicking elsewhere closes it,
@@ -3323,6 +3431,7 @@ app.registerExtension({
             wrap.addEventListener("keydown", (e) => {
                 if (isField(e.target)) return;
                 const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
+                if (mod && k === "c" && msgSelected()) { e.stopPropagation(); return; }     // copy the message text, not a layer
                 if (editor && !(mod && (k === "z" || k === "y"))) {          // pop-up editor open: only close / undo
                     if (k === "escape" || k === "enter") { e.preventDefault(); e.stopPropagation(); closeEditor(true); }
                     return;
@@ -3926,8 +4035,12 @@ app.registerExtension({
                     ty.value = r.type;
                     ty.addEventListener("change", () => change(() => { r.type = ty.value; }));
                     const pr = el("textarea", "rg-prompt"); pr.rows = 1; pr.placeholder = r.fromImage ? "prompt for this image color" : "prompt";
-                    pr.value = r.prompt; pr.dataset.rid = String(r.id); pr.title = r.prompt || ""; pr.spellcheck = false;
-                    pr.addEventListener("blur", () => { pr.scrollTop = 0; pr.title = r.prompt || ""; refreshChips(r.id); });
+                    const dblTip = (v) => (v ? v + "\n" : "") + "Double-click: open in the pop-up editor";
+                    pr.value = r.prompt; pr.dataset.rid = String(r.id); pr.title = dblTip(r.prompt); pr.spellcheck = false;
+                    pr.addEventListener("blur", () => { pr.scrollTop = 0; pr.title = dblTip(r.prompt); refreshChips(r.id); });
+                    // double-click: the region's pop-up editor, next to this row
+                    const openPop = (field) => (e) => { e.preventDefault(); e.stopPropagation(); e.target.blur(); editPrompt(r.id, null, field); };
+                    pr.addEventListener("dblclick", openPop("prompt"));
                     pr.addEventListener("focus", () => pick());
                     pr.addEventListener("input", () => { r.prompt = pr.value; save(); llmBtns.get(r.id)?.(); });
                     pr.addEventListener("keydown", (e) => {
@@ -3942,9 +4055,10 @@ app.registerExtension({
                     if (r.type === "text") {
                         // text to render: grows while edited, like the prompt (Shift+Enter = new line)
                         const tx = el("textarea", "rg-prompt rg-text"); tx.rows = 1; tx.placeholder = "text"; tx.value = r.text;
-                        tx.title = r.text || "Text to render"; tx.spellcheck = false;
+                        tx.title = dblTip(r.text || "Text to render"); tx.spellcheck = false;
                         tx.addEventListener("focus", () => pick());
-                        tx.addEventListener("blur", () => { tx.scrollTop = 0; tx.title = r.text || "Text to render"; });
+                        tx.addEventListener("blur", () => { tx.scrollTop = 0; tx.title = dblTip(r.text || "Text to render"); });
+                        tx.addEventListener("dblclick", openPop("text"));
                         tx.addEventListener("input", () => { r.text = tx.value; save(); });
                         tx.addEventListener("keydown", (e) => {
                             e.stopPropagation();
@@ -4023,7 +4137,7 @@ app.registerExtension({
             function liveBackdrop() {
                 const inp = node.inputs?.find((i) => i.name === "image");
                 if (!inp || inp.link == null) {
-                    if (backdrop || backdropKey) { backdrop = null; backdropKey = ""; backdropRef = null; if (pick) pickCancel(); requestDraw(); }
+                    if (backdrop || backdropKey) { backdrop = null; backdropKey = ""; backdropRef = null; if (pick) pickSettle(); requestDraw(); }
                     return;
                 }
                 const link = linkOf(node.graph, inp.link);
@@ -4045,6 +4159,7 @@ app.registerExtension({
             // when no run has said which), to the 'Whole image' LoRAs; off: remove the rows it added
             const lastArchOf = () => node.properties?.rg_model_arch || null;   // the model of the last run (kept in the workflow)
             function onEditModeChanged() {
+                hideMsg();
                 const lastArch = lastArchOf();
                 const cur = state.sceneLoras || [];
                 if (isEdit()) {

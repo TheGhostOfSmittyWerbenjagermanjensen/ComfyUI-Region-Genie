@@ -48,6 +48,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
 
     const objBtn = page.locator('.rg-bar .rg-btn.icon[title^="Select object"]');
     check("Select object button", await objBtn.count() === 1);
+    check("Select object button has its icon", await objBtn.evaluate((b) => b.querySelector("svg")?.childElementCount > 0 && !/undefined/.test(b.innerHTML)));
+    const blank = await page.evaluate(() => [...document.querySelectorAll(".rg-btn.icon")].filter((b) => /undefined/.test(b.innerHTML) || (b.querySelector("svg") && !b.querySelector("svg").childElementCount)).map((b) => b.title.slice(0, 30)));
+    check("no icon button is blank" + (blank.length ? ": " + blank.join(", ") : ""), blank.length === 0);
     await page.keyboard.press("q").catch(() => {});
     await objBtn.click();
     const findIn = page.locator(".rg-bar .rg-find");
@@ -72,7 +75,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("click sends one include point, normalized, with the image", b0 && b0.points.length === 1 && b0.points[0][2] === 1
         && Math.abs(b0.points[0][0] - 0.25) < 0.01 && b0.image.filename === "photo.png" && b0.image.subfolder === "sub");
     check("request: raster size, Settings model, keep loaded", b0.size[0] === 256 && b0.model === "sam3.1_multiplex_fp16.safetensors" && b0.keep_loaded === true);
-    check("status: how to go on", /Enter: add/.test(await status()));
+    check("status: how to go on", /Enter or ✓: add/.test(await status()));
     const px = await page.evaluate(() => { const c = document.querySelector(".rg-cv canvas"), n = window.__node.__rgView(); const d = c.getContext("2d").getImageData(Math.round(n.x + 64 * n.z), Math.round(n.y + 64 * n.z), 1, 1).data; return [...d]; });
     check("selection shown on the canvas (tinted)", px[0] !== 0x33 || px[1] !== 0x33);
     await clickImg(200, 200, ["Control"]);
@@ -114,7 +117,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await clickImg(120, 120);
     check("busy: says it waits", /waits while a workflow is running/.test(await status()));
     await page.waitForTimeout(2300);
-    check("busy: asks again by itself", (await sent()).length >= n0 + 2 && /Enter: add/.test(await status()));
+    check("busy: asks again by itself", (await sent()).length >= n0 + 2 && /Enter or ✓: add/.test(await status()));
     await page.keyboard.press("Escape");
 
     // find all
@@ -134,16 +137,90 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     s = await st();
     check("Shift+Enter: one new region each, named by what was found", s.regions.length === nReg + 2 && s.regions.slice(0, 2).map((r) => r.prompt).sort().join() === "cat,dog");
     check("find field cleared after adding", await findIn.inputValue() === "");
-    // switching tools cancels
+    // switching tools adds what is selected (it isn't thrown away)
+    const okBtn = page.locator('.rg-bar .rg-btn.icon[title^="Add the selection"]');
     await findIn.fill("cat"); await findIn.press("Enter"); await page.waitForTimeout(150);
+    check("✓ shown with a pending selection", await okBtn.isVisible() && await okBtn.isEnabled());
+    const nOps = async () => (await st()).layers.reduce((n, l) => n + l.ops.filter((o) => o.t === "bitmap").length, 0);
+    const nObj = await nOps();
     await page.locator('.rg-bar .rg-btn.icon[title^="Brush"]').click();
     await page.waitForTimeout(100);
-    check("another tool cancels the selection", !/Found/.test(await status()) && (await sent()).at(-1)[0].includes("release"));
-    // the error the server gives for a missing model reaches the user
-    await page.evaluate(() => { window.__apiHandlers["/region_genie/sam_select"] = async () => [404, { error: "Select object needs the SAM 3.1 model: put …", code: "no_model" }]; });
+    check("another tool adds the selection", await nOps() === nObj + 1
+        && (await sent()).at(-1)[0].includes("release") && !await okBtn.isVisible());
+    // ✓ button
+    await objBtn.click();
+    await clickImg(40, 200);
+    const nObj2 = await nOps();
+    await okBtn.click(); await page.waitForTimeout(120);
+    check("✓ adds the selection", await nOps() === nObj2 + 1 && /Added the object/.test(await status()) && !await okBtn.isVisible());
+
+    // Edit Mode: each selection becomes a new region; Shift+click adds the one so far and starts the next
+    await page.locator(".rg-settings .rg-seg button", { hasText: "Edit" }).click();
+    await page.waitForTimeout(120);
+    await objBtn.click();
+    let r0 = (await st()).regions.length;
+    await clickImg(60, 60);
+    check("edit: status says it becomes a new region", /as a new region/.test(await status()));
+    await page.keyboard.press("Enter"); await page.waitForTimeout(150);
+    s = await st();
+    check("edit: Enter makes a new region with the object as its layer", s.regions.length === r0 + 1
+        && s.layers.some((l) => l.region === s.regions[0].id && l.name.startsWith("Object") && l.ops[0].t === "bitmap"));
+    check("edit: the new region is in the list", await page.locator(`.rg-list textarea.rg-prompt[data-rid="${s.regions[0].id}"]`).count() === 1);
+    r0 = s.regions.length;
+    await clickImg(200, 60);
+    await clickImg(200, 200, ["Shift"]);
+    await page.waitForTimeout(150);
+    s = await st();
+    check("edit: Shift+click adds the first and starts the next", s.regions.length === r0 + 1 && /Enter or ✓/.test(await status()));
+    await page.locator('.rg-bar .rg-btn.icon[title^="Brush"]').click(); await page.waitForTimeout(150);
+    check("edit: switching tool adds the second as its own region", (await st()).regions.length === r0 + 2);
+    await page.locator(".rg-settings .rg-seg button", { hasText: "Generate" }).click();
+    await page.waitForTimeout(120);
+
+    // double-click a region prompt in the list: the region pop-up, by the row
+    const firstRid = (await st()).regions[0].id;
+    const prIn = page.locator(`.rg-list textarea.rg-prompt[data-rid="${firstRid}"]`);
+    await prIn.dblclick(); await page.waitForTimeout(150);
+    const pop = page.locator(".rg-pop");
+    const popOk = await pop.count() === 1 && await page.evaluate(() => document.activeElement?.closest?.(".rg-pop") != null);
+    check("list prompt double-click opens the region pop-up, prompt focused", popOk);
+    if (popOk) {
+        const [pb, rb] = [await pop.boundingBox(), await page.locator(`.rg-list textarea.rg-prompt[data-rid="${firstRid}"]`).boundingBox()];
+        check("pop-up sits by the row", Math.abs(pb.y - (rb.y + rb.height)) < 80 || Math.abs(pb.y + pb.height - rb.y) < 80);
+        await page.keyboard.type(" edited");
+        await page.keyboard.press("Enter"); await page.waitForTimeout(100);
+        check("pop-up edits the region's prompt", (await st()).regions[0].prompt.endsWith(" edited") && await pop.count() === 0);
+    }
+
+    // the error the server gives for a missing model: a message bar that stays
+    const URL = "https://huggingface.co/Comfy-Org/sam3.1/resolve/main/checkpoints/sam3.1_multiplex_fp16.safetensors";
+    await page.evaluate((u) => { window.__apiHandlers["/region_genie/sam_select"] = async () => [404, { error: `Select object needs the SAM 3.1 model: put it in models/checkpoints (${u}), then try again`, code: "no_model" }]; }, URL);
+    await page.locator(".rg-settings .rg-seg button", { hasText: "Edit" }).click();
     await objBtn.click();
     await clickImg(80, 80);
-    check("missing model: the server's message is shown", /needs the SAM 3.1 model/.test(await status()));
+    const msg = page.locator(".rg-msg");
+    check("missing model: message bar under the canvas", await msg.isVisible() && /needs the SAM 3.1 model/.test(await msg.textContent()));
+    check("missing model: the link is a link", await msg.locator("a").getAttribute("href") === URL);
+    await page.waitForTimeout(4000);
+    check("missing model: still there after 4 s", await msg.isVisible());
+    // select the link text and press Ctrl+C: the browser copies it (no layer copy), the message stays
+    await page.evaluate(() => { const a = document.querySelector(".rg-msg a"), r = document.createRange(); r.selectNodeContents(a); const s = getSelection(); s.removeAllRanges(); s.addRange(r); });
+    await page.locator(".rg-wrap, .rg-msg").first().evaluate((w) => w.focus?.());
+    await page.keyboard.press("Control+c"); await page.waitForTimeout(100);
+    check("Ctrl+C on selected message text: no layer copy, message stays", !/Copied '/.test(await status()) && await msg.isVisible());
+    await msg.click({ button: "right" }).catch(() => {});
+    await page.keyboard.press("Escape").catch(() => {});
+    check("right-click keeps the message", await msg.isVisible());
+    await msg.locator("button", { hasText: "Copy link" }).click(); await page.waitForTimeout(100);
+    check("Copy link button", /Link copied|Couldn't copy/.test(await status()));
+    await page.locator(".rg-settings .rg-seg button", { hasText: "Generate" }).click(); await page.waitForTimeout(80);
+    check("going back to Generate closes the message", !await msg.isVisible());
+    await objBtn.click(); await clickImg(80, 80);
+    await page.locator('.rg-bar .rg-btn.icon[title^="Brush"]').click(); await page.waitForTimeout(80);
+    check("another tool closes the message", !await msg.isVisible());
+    await objBtn.click(); await clickImg(80, 80);
+    await msg.locator("button", { hasText: "✕" }).click(); await page.waitForTimeout(80);
+    check("✕ closes the message", !await msg.isVisible());
     const ids = await page.evaluate(() => window.__settingsExt.settings.map((s) => s.id));
     check("Settings: Select object entries", ["RegionGenie.Select.Model", "RegionGenie.Select.KeepLoaded", "RegionGenie.Select.Threshold"].every((i) => ids.includes(i)));
     await browser.close();
