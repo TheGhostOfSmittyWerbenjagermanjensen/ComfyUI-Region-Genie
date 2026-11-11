@@ -848,8 +848,7 @@ app.registerExtension({
             findIn.addEventListener("pointerdown", (e) => e.stopPropagation());
             bar1.appendChild(findIn);
             // the pending selection: add it (Enter) / discard it (Esc); shown while there is one
-            const pickOkBtn = iconBtn("check", "Add the selection (Enter). In Edit Mode it becomes a new region; in Generate "
-                + "mode it goes into the active region. Switching to another tool adds it too.", () => { if (pick) pickAccept(false); focusSink(); });
+            const pickOkBtn = iconBtn("check", "Add the selection to the active region (Enter). Switching to another tool adds it too.", () => { if (pick) pickAccept(false); focusSink(); });
             const pickNoBtn = iconBtn("close", "Discard the selection (Esc)", () => { if (pick) pickCancel(); focusSink(); });
             pickOkBtn.style.display = pickNoBtn.style.display = "none";
             bar1.append(pickOkBtn, pickNoBtn);
@@ -2661,7 +2660,7 @@ app.registerExtension({
             function pickCountHint() {
                 if (!pick) return;
                 const on = pick.masks.filter((m) => !m.off).length;
-                const where = isEdit() ? "as a new region" : "to the active region";
+                const where = "to the active region";
                 if (pick.text) stickyHint(pick.masks.length ? `Found ${pick.masks.length}${on < pick.masks.length ? `, ${on} kept` : ""}: Enter or ✓ adds `
                     + `them ${where}, Shift+Enter one region each, Ctrl+click leaves one out, Esc discards` : `Nothing found for "${pick.text}"`);
                 else stickyHint(pick.masks.length ? `Enter or ✓: add ${where} · click / Ctrl+click: more points · drag: box · `
@@ -2751,12 +2750,6 @@ app.registerExtension({
                 if (each && pick.text && on.length > 1) {
                     change(() => { for (const m of on.slice().reverse()) asRegion(m.mask, m.label || pick.text); });   // the best match ends up on top
                     hint(`Added ${on.length} regions`);
-                } else if (isEdit()) {                                  // Edit Mode: each selection is its own region
-                    const text = pick.text;
-                    let rg = null;
-                    change(() => { rg = asRegion(union(), text); });
-                    if (rg) { openSub(rg.id, "layers"); refreshUI(); }
-                    hint(on.length > 1 ? `Added ${on.length} objects as a new region` : "Added the object as a new region");
                 } else {
                     if (commitMask(R, union(), "Object")) hint(on.length > 1 ? `Added ${on.length} objects` : "Added the object");
                 }

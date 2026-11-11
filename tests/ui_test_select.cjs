@@ -154,26 +154,22 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await okBtn.click(); await page.waitForTimeout(120);
     check("✓ adds the selection", await nOps() === nObj2 + 1 && /Added the object/.test(await status()) && !await okBtn.isVisible());
 
-    // Edit Mode: each selection becomes a new region; Shift+click adds the one so far and starts the next
+    // Edit Mode: selections go into the active region like in Generate (layers to build each region); Shift+click adds and starts the next
     await page.locator(".rg-settings .rg-seg button", { hasText: "Edit" }).click();
     await page.waitForTimeout(120);
     await objBtn.click();
-    let r0 = (await st()).regions.length;
+    let r0 = (await st()).regions.length, ops0 = await nOps();
     await clickImg(60, 60);
-    check("edit: status says it becomes a new region", /as a new region/.test(await status()));
+    check("edit: status says it goes to the active region", /to the active region/.test(await status()));
     await page.keyboard.press("Enter"); await page.waitForTimeout(150);
     s = await st();
-    check("edit: Enter makes a new region with the object as its layer", s.regions.length === r0 + 1
-        && s.layers.some((l) => l.region === s.regions[0].id && l.name.startsWith("Object") && l.ops[0].t === "bitmap"));
-    check("edit: the new region is in the list", await page.locator(`.rg-list textarea.rg-prompt[data-rid="${s.regions[0].id}"]`).count() === 1);
-    r0 = s.regions.length;
+    check("edit: Enter adds to the active region (no new region)", s.regions.length === r0 && await nOps() === ops0 + 1);
     await clickImg(200, 60);
     await clickImg(200, 200, ["Shift"]);
     await page.waitForTimeout(150);
-    s = await st();
-    check("edit: Shift+click adds the first and starts the next", s.regions.length === r0 + 1 && /Enter or ✓/.test(await status()));
+    check("edit: Shift+click adds the first and starts the next", await nOps() === ops0 + 2 && /Enter or ✓/.test(await status()));
     await page.locator('.rg-bar .rg-btn.icon[title^="Brush"]').click(); await page.waitForTimeout(150);
-    check("edit: switching tool adds the second as its own region", (await st()).regions.length === r0 + 2);
+    check("edit: switching tool adds the second", await nOps() === ops0 + 3 && (await st()).regions.length === r0);
     await page.locator(".rg-settings .rg-seg button", { hasText: "Generate" }).click();
     await page.waitForTimeout(120);
 
