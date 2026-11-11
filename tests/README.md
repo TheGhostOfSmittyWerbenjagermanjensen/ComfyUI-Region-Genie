@@ -1,0 +1,29 @@
+# Tests
+
+None of these need a GPU. Screenshots go to `tests/out/` (not committed).
+
+| What | How | Needs |
+|---|---|---|
+| Python, stubbed (`test_round5.py`, `test_round6.py`) | `tests/run_py.sh` | numpy, Pillow, scipy |
+| Editor in a stub page (`ui_test*.cjs`) | `tests/run_ui.sh` | Node, `npm i -D playwright`, `npx playwright install chromium` |
+| Select object against real ComfyUI code (`test_select.py`) | see below | a ComfyUI checkout, torch, the SAM 3.1 checkpoint (or the random-weight fixture) |
+| Smoke test in the real ComfyUI frontend (`real_comfy.cjs [vue]`) | see below | a running ComfyUI with this pack in `custom_nodes` |
+
+## Real ComfyUI (CPU)
+
+```bash
+git clone --depth 1 https://github.com/Comfy-Org/ComfyUI.git /tmp/comfy_src
+pip install torch torchvision                       # from PyPI; runs on CPU
+pip install -r /tmp/comfy_src/requirements.txt
+ln -s "$PWD/.." /tmp/comfy_src/custom_nodes/ComfyUI-Region-Genie
+```
+
+SAM 3.1 model: the real file is `sam3.1_multiplex_fp16.safetensors` from huggingface.co/Comfy-Org/sam3.1. When huggingface.co can't be reached, `make_fake_sam.py` writes a checkpoint with the real architecture and key layout but random weights (masks are meaningless; it tests the plumbing):
+
+```bash
+mkdir -p /tmp/comfy_models/checkpoints
+COMFY_DIR=/tmp/comfy_src python3 tests/make_fake_sam.py /tmp/comfy_models/checkpoints/sam3.1_multiplex_fp16.safetensors
+COMFY_DIR=/tmp/comfy_src RG_MODELS=/tmp/comfy_models python3 tests/test_select.py      # ~2 min on CPU
+```
+
+Smoke test: start ComfyUI with `--cpu --listen 127.0.0.1 --port 8188` and an `extra_model_paths.yaml` pointing at `/tmp/comfy_models`, copy a test image to `input/rg_test.png`, then `node tests/real_comfy.cjs` (legacy) and `node tests/real_comfy.cjs vue` (Nodes 2.0).

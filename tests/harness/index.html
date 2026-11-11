@@ -1,0 +1,27 @@
+<!doctype html><html><body style="margin:0;background:#202020">
+<script type="module">
+window.__settings = { "RegionGenie.Tools.Lasso": "spline", "RegionGenie.Edit.MaskGrow": 8, "RegionGenie.Edit.MaskFeather": 16 };
+window.__errors = [];
+window.addEventListener("error", (e) => window.__errors.push(String(e.message)));
+await import("./extensions/rg/rg_shared.js");
+await import("./extensions/rg/region_genie.js");
+const ext = window.__exts.find((e) => e.name === "RegionGenie.Main");
+const nodeType = function () {}; nodeType.prototype = {};
+await ext.beforeRegisterNodeDef(nodeType, { name: "Region-Genie_Main", output_name: [], output: [] });
+const W = (name, value, values) => ({ name, value, options: values ? { values } : {} });
+const node = {
+  id: 1, properties: {}, inputs: [], outputs: [], size: [700, 1400],
+  widgets: [W("width", 256), W("height", 256), W("scene_prompt_positive", ""), W("scene_prompt_negative", ""),
+            W("image_mode", "backdrop (trace over)", ["backdrop (trace over)", "use as color map"]), W("min_region_pixels", 64),
+            W("paint_data", ""), W("import_mode", "ask before replacing", ["ask before replacing", "always replace"]),
+            W("scene_prompt_background", ""), W("prompt_format", "auto", ["auto", "MOSS JSON", "Ideogram JSON", "text"]),
+            W("mode", "generate", ["generate", "edit"]), W("edit_area", "only the regions", ["only the regions", "whole image"])],
+  addDOMWidget(name, type, el) { el.style.width = "700px"; el.style.height = "1000px"; document.body.appendChild(el); return {}; },
+  removeInput() {}, setSize(s) { this.size = s; }, setDirtyCanvas() {}, computeSize() { return [700, 1400]; },
+  graph: { links: {}, getNodeById: () => null, setDirtyCanvas() {} },
+};
+nodeType.prototype.onNodeCreated.call(node);
+window.__node = node;
+window.__settingsExt = window.__exts.find((e) => e.name === "RegionGenie.Settings");
+window.__ready = true;
+</script></body></html>

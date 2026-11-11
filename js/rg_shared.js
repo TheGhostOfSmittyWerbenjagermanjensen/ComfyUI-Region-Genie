@@ -1,0 +1,903 @@
+// Region Genie: helpers shared by the editors (LoRA list and picker, trigger words, icons,
+// tag autocomplete from ComfyUI-Lora-Manager). Not an extension by itself.
+import { app } from "../../scripts/app.js";
+import { api } from "../../scripts/api.js";
+
+// ---------------------------------------------------------------- icons (16x16, stroke = text color)
+export const ICONS = {
+    select: '<path d="M3.5 2l8.5 6-3.6.9 2 3.9-1.6.8-2-3.9L4.2 12.3z" fill="currentColor" stroke="none"/>',
+    shape: '<rect x="2" y="2" width="7.5" height="7.5"/><circle cx="11" cy="11" r="3.4"/>',
+    brush: '<path d="M14 2L8.3 8.4"/><path d="M8.6 8.1c-1.9-.6-3.7.3-3.9 2.3-.1 1.3-.9 2.1-2.2 2.3 1.6 1.4 5.6 1.2 6.4-1.2.4-1.2.2-2.3-.3-3.4z"/>',
+    lasso: '<ellipse cx="8.8" cy="6" rx="5.4" ry="3.6"/><path d="M5.2 8.7c-1.5.8-1.3 2.5.1 2.9 1.3.4 1.7 1.7.8 2.9"/>',
+    fill: '<path d="M2.6 7.6L7.4 2.8l5 5-4.8 4.8a1.3 1.3 0 0 1-1.8 0L2.6 9.4a1.3 1.3 0 0 1 0-1.8z"/><path d="M2.8 8h9.4"/><path d="M13.6 10.2c.7 1 1.1 1.7 1.1 2.3a1.1 1.1 0 0 1-2.2 0c0-.6.4-1.3 1.1-2.3z" fill="currentColor"/>',
+    erase: '<path d="M6.2 13.5L2.8 10.1a1.3 1.3 0 0 1 0-1.8l5.6-5.6a1.3 1.3 0 0 1 1.8 0l3.4 3.4a1.3 1.3 0 0 1 0 1.8l-5.6 5.6z"/><path d="M5.4 5.6l5 5"/><path d="M6.2 13.5h7.6"/>',
+    lassoSpline: '<path d="M2.6 7.6C2.2 4.2 6.4 2.2 10.2 2.6c3.4.4 4.6 3 2.6 4.6-1.8 1.4-5.4 1.8-8.2 1"/><path d="M4.4 8.4c-1.4.9-1 2.4.3 2.8 1.3.4 1.6 1.7.7 2.8"/><rect x="1.3" y="6.3" width="2.6" height="2.6" fill="currentColor" stroke="none"/><rect x="8.9" y="1.3" width="2.6" height="2.6" fill="currentColor" stroke="none"/><rect x="12.4" y="4.9" width="2.6" height="2.6" fill="currentColor" stroke="none"/>',
+    lassoEraseSpline: '<ellipse cx="7.6" cy="6.4" rx="5.4" ry="3.7" stroke-dasharray="2.2 1.6"/><rect x="0.9" y="5.1" width="2.6" height="2.6" fill="currentColor" stroke="none"/><rect x="6.3" y="1.4" width="2.6" height="2.6" fill="currentColor" stroke="none"/><rect x="11.7" y="5.1" width="2.6" height="2.6" fill="currentColor" stroke="none"/><path d="M10.6 10.6l3.6 3.6M14.2 10.6l-3.6 3.6"/>',
+    magnet: '<path d="M3 2.5h3v5.4a2 2 0 0 0 4 0V2.5h3v5.4a5 5 0 0 1-10 0z"/><path d="M3 5h3M10 5h3"/>',
+    magnetOff: '<path d="M3 2.5h3v5.4a2 2 0 0 0 4 0V2.5h3v5.4a5 5 0 0 1-10 0z"/><path d="M3 5h3M10 5h3"/><path d="M1.8 14.2L14.2 1.8"/>',
+    lassoErase: '<ellipse cx="7.6" cy="6.4" rx="5.4" ry="3.7" stroke-dasharray="2.2 1.6"/><path d="M10.6 10.6l3.6 3.6M14.2 10.6l-3.6 3.6"/>',
+    undo: '<path d="M5.6 3.6L2.6 6.6l3 3"/><path d="M2.9 6.6h7.3a3.4 3.4 0 0 1 0 6.8H7.2"/>',
+    redo: '<path d="M10.4 3.6l3 3-3 3"/><path d="M13.1 6.6H5.8a3.4 3.4 0 0 0 0 6.8h3"/>',
+    clear: '<path d="M2.8 4.4h10.4"/><path d="M6.3 4.4V2.8h3.4v1.6"/><path d="M4.3 4.4l.7 9.2h6l.7-9.2"/><path d="M6.8 6.8v4.6M9.2 6.8v4.6"/>',
+    eye: '<path d="M1.4 8S3.8 3.6 8 3.6 14.6 8 14.6 8 12.2 12.4 8 12.4 1.4 8 1.4 8z"/><circle cx="8" cy="8" r="2.1"/>',
+    eyeOff: '<path d="M1.4 7.4S3.8 10.8 8 10.8s6.6-3.4 6.6-3.4"/><path d="M3.4 9.6l-1.3 1.7M8 10.8v2.2M12.6 9.6l1.3 1.7"/>',
+    link: '<path d="M6.4 9.6l3.2-3.2"/><path d="M7.4 4.6l1.4-1.4a2.6 2.6 0 0 1 3.7 3.7L11.1 8.3"/><path d="M8.6 11.4l-1.4 1.4a2.6 2.6 0 0 1-3.7-3.7l1.4-1.4"/>',
+    unlink: '<path d="M7.4 4.6l1.4-1.4a2.6 2.6 0 0 1 3.7 3.7L11.1 8.3"/><path d="M8.6 11.4l-1.4 1.4a2.6 2.6 0 0 1-3.7-3.7l1.4-1.4"/><path d="M5.4 2v1.8M2 5.4h1.8M10.6 14v-1.8M14 10.6h-1.8"/>',
+    edges: '<rect x="2.5" y="2.5" width="11" height="11" stroke-dasharray="2 1.6"/><rect x="5.5" y="5.5" width="5" height="5" fill="currentColor" stroke="none" opacity=".55"/>',
+    feather: '<path d="M13.6 2.4C9.2 2.6 5 5.8 4.2 10.6L3.6 13"/><path d="M13.6 2.4c.4 4.6-2.6 8.8-7.9 9.6"/><path d="M4.3 10.2l4.6-4.6"/><path d="M6.4 11.6l3.3.1"/><path d="M8.4 5.2l3.4.2"/>',
+    regionAdd: '<rect x="1.5" y="3" width="9" height="9" rx="1.5"/><path d="M13 1.8v4.4M10.8 4h4.4"/>',
+    layerAdd: '<path d="M6.5 3.5L1.5 6l5 2.5 5-2.5z"/><path d="M1.5 9l5 2.5 5-2.5"/><path d="M13 9.5v4.4M10.8 11.7h4.4"/>',
+    layers: '<path d="M8 2.5L2 5.5l6 3 6-3z"/><path d="M2 8.5l6 3 6-3"/><path d="M2 11.2l6 3 6-3"/>',
+    allApart: '<rect x="1.5" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="1.5" y="9.3" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="9.3" width="5.2" height="5.2" rx="1"/>',
+    // the four tiles on a shaded backdrop: kept apart from each other, the background shared
+    allApartShared: '<rect x="0.6" y="0.6" width="14.8" height="14.8" rx="2" fill="currentColor" stroke="none" opacity=".32"/><rect x="2.4" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="2.4" y="9.2" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="9.2" width="4.4" height="4.4" rx=".9"/>',
+    // Edit Mode: a region that changes (pencil) / is kept as it is in the source (lock)
+    pencil: '<path d="M11.3 2.3l2.4 2.4-8 8-3.1.7.7-3.1z"/><path d="M9.8 3.8l2.4 2.4"/>',
+    lock: '<rect x="3.4" y="7.2" width="9.2" height="6.8" rx="1.2"/><path d="M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2"/>',
+    // tag autocomplete on / off (lit / slashed, like the magnet and eye buttons)
+    tag: '<path d="M2.4 2.4h5.4l5.9 5.9-5.4 5.4-5.9-5.9z"/><circle cx="5.4" cy="5.4" r="1.1"/>',
+    tagOff: '<path d="M2.4 2.4h5.4l5.9 5.9-5.4 5.4-5.9-5.9z"/><circle cx="5.4" cy="5.4" r="1.1"/><path d="M1.6 14.4L14.4 1.6"/>',
+    // image input: traced over (backdrop) / read as the color map
+    imgBackdrop: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M1.8 11l3.6-3.6 3 3 2-2 3.8 3.8"/><circle cx="10.6" cy="5.9" r="1.1"/>',
+    imgColorMap: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M8 2.8v10.4M1.8 8h6.2"/><rect x="2.6" y="3.6" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/><rect x="8.8" y="8.8" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/>',
+    // magic wand (contiguous) and its 'all similar colors' variant
+    samSelect: '<path d="M2 5V3a1 1 0 0 1 1-1h2M11 2h2a1 1 0 0 1 1 1v2M14 11v2a1 1 0 0 1-1 1h-2M5 14H3a1 1 0 0 1-1-1v-2"/><circle cx="6.6" cy="5.8" r="1.6"/><path d="M3.8 11c.3-1.7 1.4-2.8 2.8-2.8"/><path d="M8.8 8.2l4.6 1.8-2 .8-.8 2z" fill="currentColor" stroke-width="1"/>',
+    wand: '<path d="M2.4 13.6l7.4-7.4"/><path d="M9.2 4.6l2.2 2.2"/><path d="M11.8 1.6v2M14.4 4.2h-2M13.6 2.4l-1.2 1.2M9.6 2.4l.9.9M13.6 6.4l-.9-.9"/>',
+    wandGlobal: '<path d="M2.4 13.6l7.4-7.4"/><path d="M9.2 4.6l2.2 2.2"/><path d="M11.8 1.6v2M14.4 4.2h-2M13.6 2.4l-1.2 1.2M9.6 2.4l.9.9M13.6 6.4l-.9-.9"/><circle cx="3.2" cy="4" r="1.3" fill="currentColor" stroke="none"/><circle cx="12.6" cy="12.4" r="1.3" fill="currentColor" stroke="none"/>',
+    fillGaps: '<path d="M2.6 7.6L7.4 2.8l5 5-4.8 4.8a1.3 1.3 0 0 1-1.8 0L2.6 9.4a1.3 1.3 0 0 1 0-1.8z"/><path d="M2.8 8h9.4"/><path d="M12.6 10.4v1.4M12.6 13.2v1.4M14.6 12.4h-1.2M11.8 12.4h-1.2" stroke-width="1.2"/>',
+    lassoMagnetic: '<ellipse cx="8.8" cy="6" rx="5.4" ry="3.6"/><path d="M5.2 8.7c-1.5.8-1.3 2.5.1 2.9"/><path d="M8.2 10.6h1.8v2.6a1 1 0 0 0 2 0v-2.6h1.8v2.6a2.8 2.8 0 0 1-5.6 0z" stroke-width="1.2"/>',
+    lassoEraseMagnetic: '<ellipse cx="7.6" cy="6.4" rx="5.4" ry="3.7" stroke-dasharray="2.2 1.6"/><path d="M1.4 10.6h1.8v2.2a1 1 0 0 0 2 0v-2.2h1.8v2.2a2.8 2.8 0 0 1-5.6 0z" stroke-width="1.2"/><path d="M10.6 10.6l3.6 3.6M14.2 10.6l-3.6 3.6"/>',
+    // the selected layer: flip, align, grow / shrink (one button, a small panel)
+    arrange: '<rect x="2" y="2" width="5" height="5" rx=".8"/><rect x="9" y="9" width="5" height="5" rx=".8"/><path d="M9.5 3.5h3v3M6.5 12.5h-3v-3"/><path d="M12.5 3.5l-3 3M3.5 12.5l3-3"/>',
+    flipH: '<path d="M8 1.6v12.8" stroke-dasharray="1.6 1.4"/><path d="M6 4L2 12h4z"/><path d="M10 4l4 8h-4z" fill="currentColor" stroke="none" opacity=".55"/>',
+    flipV: '<path d="M1.6 8h12.8" stroke-dasharray="1.6 1.4"/><path d="M4 6L12 2v4z"/><path d="M4 10l8 4v-4z" fill="currentColor" stroke="none" opacity=".55"/>',
+    alignL: '<path d="M2.4 1.8v12.4"/><rect x="4.4" y="3.6" width="8.6" height="3.2" rx=".6"/><rect x="4.4" y="9.2" width="5.4" height="3.2" rx=".6"/>',
+    alignCH: '<path d="M8 1.8v12.4"/><rect x="3.4" y="3.6" width="9.2" height="3.2" rx=".6"/><rect x="5" y="9.2" width="6" height="3.2" rx=".6"/>',
+    alignR: '<path d="M13.6 1.8v12.4"/><rect x="3" y="3.6" width="8.6" height="3.2" rx=".6"/><rect x="6.2" y="9.2" width="5.4" height="3.2" rx=".6"/>',
+    alignT: '<path d="M1.8 2.4h12.4"/><rect x="3.6" y="4.4" width="3.2" height="8.6" rx=".6"/><rect x="9.2" y="4.4" width="3.2" height="5.4" rx=".6"/>',
+    alignCV: '<path d="M1.8 8h12.4"/><rect x="3.6" y="3.4" width="3.2" height="9.2" rx=".6"/><rect x="9.2" y="5" width="3.2" height="6" rx=".6"/>',
+    alignB: '<path d="M1.8 13.6h12.4"/><rect x="3.6" y="3" width="3.2" height="8.6" rx=".6"/><rect x="9.2" y="6.2" width="3.2" height="5.4" rx=".6"/>',
+    alignCenter: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.2" stroke-dasharray="2 1.6"/><rect x="5.4" y="5.4" width="5.2" height="5.2" rx=".8"/>',
+    layerGrow: '<rect x="5.2" y="5.2" width="5.6" height="5.6" rx="1"/><path d="M8 4.2V1.6M8 11.8v2.6M4.2 8H1.6M11.8 8h2.6M6.8 2.8L8 1.6l1.2 1.2M6.8 13.2L8 14.4l1.2-1.2M2.8 6.8L1.6 8l1.2 1.2M13.2 6.8L14.4 8l-1.2 1.2"/>',
+    layerShrink: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.5" stroke-dasharray="2 1.7"/><rect x="6" y="6" width="4" height="4" rx=".8"/><path d="M8 2.6v2.2M8 13.4v-2.2M2.6 8h2.2M13.4 8h-2.2"/>',
+    // the edit mask grows (or shrinks) by this many px
+    maskGrow: '<rect x="5.2" y="5.2" width="5.6" height="5.6" rx="1" fill="currentColor" stroke="none" opacity=".55"/><rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.5" stroke-dasharray="2 1.7"/><path d="M8 4.6V2.9M8 11.4v1.7M4.6 8H2.9M11.4 8h1.7"/>',
+    palette: '<path d="M8 1.8C4.4 1.8 1.8 4.4 1.8 7.7c0 3.4 2.7 6.3 6 6.3 1 0 1.6-.6 1.6-1.4 0-.8-.6-1.1-.6-1.8 0-.8.6-1.4 1.5-1.4h1.6c1.6 0 2.4-1.2 2.4-2.6 0-2.8-2.9-5-6.3-5z"/><circle cx="5" cy="7" r=".9" fill="currentColor"/><circle cx="7.4" cy="4.6" r=".9" fill="currentColor"/><circle cx="10.5" cy="5.1" r=".9" fill="currentColor"/><circle cx="4.9" cy="10.1" r=".9" fill="currentColor"/>',
+};
+export const svgIcon = (name) =>
+    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
+
+// ---------------------------------------------------------------- saved node properties
+// Property keys renamed with Region Genie (workflows saved before still have the old ones). An old key always
+// wins over the new one: a node gets its defaults before the workflow's properties are copied in.
+const RENAMED_PROPS = { rg_llm: "rmk_llm", rg_autocomplete: "rmk_autocomplete", rg_widget_values: "rmk_widget_values",
+                        rg_labels: "cml_labels" };
+export function migrateProps(props) {
+    if (!props || typeof props !== "object") return props;
+    for (const [key, old] of Object.entries(RENAMED_PROPS)) {
+        if (!(old in props)) continue;
+        props[key] = props[old];
+        delete props[old];
+    }
+    return props;
+}
+
+// ---------------------------------------------------------------- widget values
+// Widget values are saved by position, and some frontend versions line positions up differently on load
+// (they count connection-only inputs), which shifts values into the wrong widgets. Keep a copy by name
+// in the node's properties and put each value back where it belongs after loading.
+export function keepWidgetValuesByName(node, names) {
+    const onSerialize = node.onSerialize;
+    node.onSerialize = function (o) {
+        const r = onSerialize?.apply(this, arguments);
+        const vals = {};
+        for (const n of names) { const w = this.widgets?.find((w) => w.name === n); if (w) vals[n] = w.value; }
+        o.properties = o.properties || {};
+        o.properties.rg_widget_values = vals;
+        return r;
+    };
+    const restore = (vals) => {
+        if (!vals || typeof vals !== "object") return;
+        for (const [n, v] of Object.entries(vals)) {
+            const w = node.widgets?.find((w) => w.name === n);
+            if (!w || v === undefined || w.value === v) continue;
+            const opts = w.options?.values;
+            if (Array.isArray(opts) && !opts.includes(v)) continue;
+            w.value = v;
+        }
+        node.setDirtyCanvas?.(true, true);
+    };
+    const onConfigure = node.onConfigure;
+    node.onConfigure = function (info) {
+        migrateProps(info?.properties);
+        migrateProps(this.properties);
+        const r = onConfigure?.apply(this, arguments);
+        const vals = info?.properties?.rg_widget_values;
+        restore(vals);
+        setTimeout(() => restore(vals), 0);
+        return r;
+    };
+}
+
+// ---------------------------------------------------------------- LoRA files
+let loraList = null, loraTime = 0, loraPromise = null;
+export const knownLoras = () => loraList;
+export async function getLoras(force) {
+    if (loraList && !force && performance.now() - loraTime < 5000) return loraList;
+    if (!loraPromise) {
+        loraPromise = (async () => {
+            try {
+                const r = await api.fetchApi("/models/loras");
+                const d = await r.json();
+                if (Array.isArray(d)) { loraList = d.map((x) => (typeof x === "string" ? x : x?.name)).filter(Boolean); loraTime = performance.now(); }
+            } catch (e) { console.warn("[Region Genie] could not list LoRAs:", e); }
+            loraPromise = null;
+            return loraList || [];
+        })();
+    }
+    return loraPromise;
+}
+
+// trigger words saved next to a LoRA (see lora_triggers.py)
+const triggerCache = new Map();
+export function getTriggers(name) {
+    const empty = { words: [], wordSources: [], sources: [] };
+    if (!name) return Promise.resolve(empty);
+    if (!triggerCache.has(name)) {
+        triggerCache.set(name, (async () => {
+            try {
+                const r = await api.fetchApi(`/region_genie/lora_triggers?name=${encodeURIComponent(name)}`);
+                if (!r.ok) return empty;
+                const d = await r.json();
+                const words = Array.isArray(d.words) ? d.words.map(String) : [];
+                const ws = Array.isArray(d.word_sources) ? d.word_sources : [];
+                const keep = words.map((w, i) => [w, ws[i] || (d.sources || [])[0] || ""]).filter(([w]) => w.trim());
+                return { words: keep.map((x) => x[0]), wordSources: keep.map((x) => x[1]), sources: d.sources || [] };
+            } catch (e) { return empty; }
+        })());
+    }
+    return triggerCache.get(name);
+}
+
+// ComfyUI's list menu, so Easy-Use / rgthree folder nesting and the list filter apply
+function ensureActiveCanvas() {
+    const LGC = window.LGraphCanvas;
+    if (LGC && !LGC.active_canvas && app.canvas) LGC.active_canvas = app.canvas;
+}
+export function contextMenu(ev, items, title, onPick) {
+    ensureActiveCanvas();
+    new LiteGraph.ContextMenu(items, {
+        event: ev, scale: Math.max(1, app.canvas?.ds?.scale || 1), className: "dark", title,
+        callback: (v) => onPick(v),
+    });
+}
+export async function pickLora(ev, onPick) {
+    ev.preventDefault(); ev.stopPropagation();
+    const loras = await getLoras(true);
+    if (!loras.length) return false;
+    contextMenu(ev, [...loras], "LoRA", (v) => {
+        const name = typeof v === "string" ? v : (v?.content ?? v?.value);
+        if (typeof name === "string" && name) onPick(name);
+    });
+    return true;
+}
+
+// true if the word / phrase is in the prompt as whole words (case-insensitive)
+export const promptHas = (prompt, word) => {
+    const w = String(word || "").trim();
+    if (!w) return false;
+    const esc = w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    try { return new RegExp(`(?<![\\p{L}\\p{N}_])${esc}(?![\\p{L}\\p{N}_])`, "iu").test(String(prompt || "")); }
+    catch (e) { return String(prompt || "").toLowerCase().includes(w.toLowerCase()); }
+};
+export const appendWord = (prompt, word) => {
+    const p = String(prompt || "").replace(/[\s,]+$/, "");
+    return p ? `${p}, ${word.trim()}` : word.trim();
+};
+
+// trigger-word chips of one LoRA: el.replaceChildren(...); onAdd(word) adds a word to the prompt
+export function fillTriggerChips(box, loraName, getPrompt, onAdd, mk) {
+    getTriggers(loraName).then(({ words, wordSources }) => {
+        box.textContent = "";
+        if (!words.length) {
+            const lbl = mk("span", "rg-chip-hint");
+            lbl.textContent = "no trigger words found";
+            lbl.title = "Looked for .cm-info.json, .civitai.info, .metadata.json and .json next to the LoRA, "
+                + "and in the LoRA file's own metadata";
+            box.appendChild(lbl);
+            return;
+        }
+        const lbl = mk("span", "rg-chip-hint"); lbl.textContent = "triggers:";
+        box.appendChild(lbl);
+        words.forEach((w, i) => {
+            const used = promptHas(getPrompt(), w);
+            const from = wordSources[i] ? ` (from ${wordSources[i]})` : "";
+            const c = mk("span", "rg-chip" + (used ? " used" : ""));
+            c.textContent = (used ? "✓ " : "+ ") + w;
+            c.title = (used ? "Already in the prompt" : "Click to add to the prompt") + from;
+            c.addEventListener("pointerdown", (e) => e.stopPropagation());
+            if (!used) c.addEventListener("click", () => onAdd(w));
+            box.appendChild(c);
+        });
+    });
+}
+export const CHIP_CSS = `
+.rg-chip-hint { opacity:.65; font-size:10px; }
+.rg-chip { font-size:10px; line-height:14px; padding:0 6px; border-radius:8px; border:1px solid #666; cursor:pointer;
+  background:#2a2a2a; color:#ddd; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+.rg-chip:hover { border-color:#5b8fd0; }
+.rg-chip.used { border-color:#4a8a5a; color:#9fd8a8; cursor:default; }
+`;
+
+// ---------------------------------------------------------------- tag autocomplete
+// Two engines are supported, both loaded from their own packs and following their own settings:
+//  - the AutoCompleter of ComfyUI-Custom-Scripts (pysssss), preferred while it is installed and enabled
+//    (Settings > pysssss > Text Autocomplete: separator, underscores, Tab/Enter, suggestion count ...)
+//  - the Tag Autocomplete of ComfyUI-Lora-Manager (Settings > LoRA Manager > Autocomplete)
+// Every Region Genie node has its own on/off switch; new nodes start with the global default
+// (Settings > Region Genie > Tag autocomplete). Without either pack nothing happens.
+export const AC_DEFAULT_SETTING = "RegionGenie.Autocomplete.DefaultOn";
+export const AC_PROPERTY = "rg_autocomplete";
+const engines = { pysssss: undefined, lm: undefined };       // undefined = not looked for yet, null = not installed
+let enginesLoading = null;
+async function importExt(match, rel) {
+    const exts = await api.getExtensions();
+    const url = (exts || []).find(match);
+    if (!url) return null;
+    const full = new URL(rel, new URL(api.fileURL ? api.fileURL(url) : url, location.href)).href;
+    return await import(full);
+}
+export function loadAutocompleteEngines() {
+    if (enginesLoading) return enginesLoading;
+    enginesLoading = (async () => {
+        try {
+            const mod = await importExt((u) => /custom[-_ ]?scripts/i.test(u) && /\/autocompleter\.js$/i.test(u), "./common/autocomplete.js");
+            engines.pysssss = typeof mod?.TextAreaAutoComplete === "function" ? mod.TextAreaAutoComplete : null;
+        } catch (e) { engines.pysssss = null; console.warn("[Region Genie] Custom-Scripts autocomplete not available:", e); }
+        try {
+            const mod = await importExt((u) => /lora[-_ ]?manager/i.test(u) && /\/autocomplete\.js$/i.test(u), "./autocomplete.js");
+            if (typeof mod?.AutoComplete === "function") {
+                let settings = null;
+                try { settings = await importExt((u) => /lora[-_ ]?manager/i.test(u) && /\/autocomplete\.js$/i.test(u), "./settings.js"); } catch (e) { settings = null; }
+                engines.lm = { AutoComplete: mod.AutoComplete, settings };
+            } else engines.lm = null;
+        } catch (e) { engines.lm = null; console.warn("[Region Genie] LoRA Manager autocomplete not available:", e); }
+        resyncAll();
+        return engines;
+    })();
+    return enginesLoading;
+}
+const pysssssOn = () => !!engines.pysssss && engines.pysssss.enabled !== false;
+// the engine in use right now: Custom-Scripts when installed and enabled, else LoRA Manager, else none
+export function activeEngine() {
+    if (pysssssOn()) return "pysssss";
+    if (engines.lm) return "lm";
+    return null;
+}
+export const engineName = (e = activeEngine()) => ({ pysssss: "ComfyUI-Custom-Scripts AutoCompleter", lm: "LoRA Manager Tag Autocomplete" })[e] || "";
+export function autocompleteDefault() { return getSetting(AC_DEFAULT_SETTING, true) !== false; }
+export function autocompleteEnabledFor(node) {
+    const v = migrateProps(node?.properties)?.[AC_PROPERTY];
+    return typeof v === "boolean" ? v : autocompleteDefault();
+}
+export function setAutocompleteFor(node, on) {
+    node.properties = node.properties || {};
+    node.properties[AC_PROPERTY] = !!on;
+    node.setDirtyCanvas?.(true, true);
+    app.graph?.change?.();
+    resyncAll();
+}
+
+// element -> { node, engine, inst, pys }
+const attached = new Map();
+function sweepAutocomplete() {
+    for (const [el, st] of attached) {
+        if (el.isConnected) continue;
+        if (st.engine === "lm" && st.inst) { try { st.inst.destroy(); } catch (e) { /* ignore */ } }
+        if (st.pys) { try { st.pys.dropdown?.remove(); } catch (e) { /* ignore */ } }
+        attached.delete(el);
+    }
+}
+function lmAcceptsKey(key) {
+    let mode = "both";
+    try { mode = engines.lm?.settings?.getAutocompleteAcceptKeyPreference?.() || "both"; } catch (e) { mode = "both"; }
+    if (/tab/i.test(mode) && !/enter|both/i.test(mode)) return key === "Tab";
+    if (/enter/i.test(mode) && !/tab|both/i.test(mode)) return key === "Enter";
+    return key === "Tab" || key === "Enter";
+}
+function listVisible(st) {
+    if (!st) return false;
+    if (st.engine === "lm") return !!st.inst?.isVisible;
+    if (st.engine === "pysssss") return !!st.pys?.dropdown?.parentElement;
+    return false;
+}
+function hideList(st) {
+    if (st?.engine === "lm") { try { st.inst?.hide?.(); } catch (e) { /* ignore */ } }
+    if (st?.pys) { try { st.pys.dropdown?.remove(); st.pys.selected = null; } catch (e) { /* ignore */ } }
+}
+// true while the list is open and this key belongs to it (Enter/Tab accept, arrows move, Esc closes).
+// Pass the key event: when the engine's own handler ran first it has already used the key (defaultPrevented).
+export function autocompleteOpen(el, ev) {
+    if (ev?.defaultPrevented) return true;
+    const st = attached.get(el);
+    if (!listVisible(st)) return false;
+    if (!ev) return true;
+    if (st.engine === "lm" && (ev.key === "Enter" || ev.key === "Tab")) return lmAcceptsKey(ev.key);
+    if (st.engine === "pysssss" && ev.key === "Enter") return engines.pysssss?.insertOnEnter !== false && !ev.ctrlKey;
+    if (st.engine === "pysssss" && ev.key === "Tab") return engines.pysssss?.insertOnTab !== false;
+    return true;
+}
+// clicks in an autocomplete list are not "outside" an editor
+export const inAutocompleteList = (target) => !!target?.closest?.(".comfy-autocomplete-dropdown, .lm-popover, .pysssss-autocomplete");
+
+// make the element use the engine it should right now (on focus, and when a switch or setting changes)
+function syncElement(el) {
+    const st = attached.get(el);
+    if (!st || !el.isConnected) return;
+    const want = autocompleteEnabledFor(st.node) ? activeEngine() : null;
+    if (st.engine === want && (want !== "pysssss" || st.pys?.overrideWords !== RG_NO_WORDS)) return;
+    // leave the current engine
+    if (st.engine === "lm" && st.inst) { try { st.inst.destroy(); } catch (e) { /* ignore */ } st.inst = null; }
+    if (st.pys) { hideList({ pys: st.pys }); st.pys.overrideWords = RG_NO_WORDS; }    // can't be removed: no words = silent
+    st.engine = want;
+    try {
+        if (want === "lm") {
+            st.inst = new engines.lm.AutoComplete(el, "prompt", { maxItems: 20, minChars: 1, debounceDelay: 200, itemHeight: 24 });
+            st.inst.dropdown?.classList.add("rg-ac");
+        } else if (want === "pysssss") {
+            if (!st.pys) { st.pys = new engines.pysssss(el); st.pys.dropdown?.classList.add("rg-ac"); }
+            st.pys.overrideWords = undefined;                // its global word list again
+        }
+    } catch (e) { console.warn("[Region Genie] autocomplete:", e); st.engine = null; }
+}
+const RG_NO_WORDS = Object.freeze({});
+export function resyncAll() { for (const el of [...attached.keys()]) syncElement(el); }
+export function attachAutocomplete(el, node) {
+    if (!el) return;
+    if (attached.has(el)) { attached.get(el).node = node || attached.get(el).node; return; }
+    sweepAutocomplete();
+    const st = { node, engine: null, inst: null, pys: null };
+    attached.set(el, st);
+    // our listeners come first, so moving the cursor or clicking in the text closes the list before the
+    // engine would update it (typing opens it again)
+    el.addEventListener("mousedown", () => { if (listVisible(st)) hideList(st); });
+    const NAV = new Set(["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"]);
+    el.addEventListener("keydown", (e) => { if (NAV.has(e.key) && listVisible(st)) { hideList(st); st.navHidden = true; } });
+    el.addEventListener("keyup", (e) => { if (NAV.has(e.key) && st.navHidden) { st.navHidden = false; if (st.engine === "pysssss") e.preventDefault(); } });
+    el.addEventListener("focus", () => syncElement(el));
+    if (engines.pysssss === undefined || engines.lm === undefined) loadAutocompleteEngines().then(() => syncElement(el));
+    else syncElement(el);
+}
+export function detachAutocomplete(el) {
+    const st = attached.get(el);
+    if (st?.engine === "lm" && st.inst) { try { st.inst.destroy(); } catch (e) { /* ignore */ } }
+    if (st?.pys) { hideList(st); st.pys.overrideWords = RG_NO_WORDS; }
+    attached.delete(el);
+}
+// our own prompt fields
+export function autocompleteOnFocus(el, node) { attachAutocomplete(el, node); }
+
+// the switch shown on the nodes: a tag icon, lit when on and slashed when off (hidden while neither pack is installed)
+export function autocompleteToggle(node, mk) {
+    const b = mk("button", "rg-ac-btn");
+    b.type = "button";
+    b.style.display = "none";
+    let shown = "";
+    const refresh = () => {
+        const eng = activeEngine(), on = autocompleteEnabledFor(node);
+        const disp = eng ? "" : "none";
+        if (b.style.display !== disp) b.style.display = disp;
+        const title = (on ? "Tag autocomplete on" : "Tag autocomplete off") + ` in this node's prompt fields (${engineName(eng)}; `
+            + "its own settings apply). Click to switch it for this node; new nodes start with the default from "
+            + "Settings > Region Genie.";
+        const sig = `${on}|${title}`;
+        if (sig === shown) return;                     // don't touch it while a tooltip may be showing
+        shown = sig;
+        b.innerHTML = svgIcon(on ? "tag" : "tagOff");
+        b.classList.toggle("on", on);
+        b.title = title;
+        b.setAttribute("aria-pressed", String(on));
+    };
+    b.addEventListener("pointerdown", (e) => e.stopPropagation());
+    b.addEventListener("click", (e) => { e.preventDefault(); setAutocompleteFor(node, !autocompleteEnabledFor(node)); refresh(); });
+    loadAutocompleteEngines().then(refresh);
+    toggles.add(refresh);
+    refresh();
+    return { el: b, refresh };
+}
+const toggles = new Set();
+setInterval(() => { for (const f of toggles) f(); }, 2000);      // engines can be switched on/off in their settings
+
+// ---------------------------------------------------------------- Settings > Region Genie
+// Defaults for the nodes of this pack. Most apply when a node is added (nodes in saved workflows keep their values).
+export function getSetting(id, dflt) {
+    try {
+        const v = app.extensionManager?.setting?.get?.(id) ?? app.ui?.settings?.getSettingValue?.(id);
+        return v === undefined || v === null ? dflt : v;
+    } catch (e) { return dflt; }
+}
+// change a setting from a node's own control (the same value as in the Settings dialog)
+export async function setSetting(id, v) {
+    try {
+        if (app.extensionManager?.setting?.set) await app.extensionManager.setting.set(id, v);
+        else await app.ui?.settings?.setSettingValueAsync?.(id, v);
+    } catch (e) { console.warn("[Region Genie] could not save setting", id, e); }
+}
+export const SET = {
+    acDefault: AC_DEFAULT_SETTING,
+    llmContext: "RegionGenie.LLM.Context",
+    llmNewRegions: "RegionGenie.LLM.NewRegionsOn",
+    cmWidth: "RegionGenie.Main.Width",
+    cmHeight: "RegionGenie.Main.Height",
+    cmImageMode: "RegionGenie.Main.ImageMode",
+    cmMinPixels: "RegionGenie.Main.MinRegionPixels",
+    cmImportMode: "RegionGenie.Main.ImportMode",
+    cmFeather: "RegionGenie.Main.Feather",
+    cmSeparation: "RegionGenie.Main.RegionSeparation",
+    cmUntil: "RegionGenie.Main.SeparationUntil",
+    cmSnap: "RegionGenie.Main.Snap",
+    cmGrid: "RegionGenie.Main.Grid",
+    cmAllRegions: "RegionGenie.Main.AllRegionsApart",
+    cmKrea2Apart: "RegionGenie.Main.Krea2AllRegionsApart",     // before 'keep all regions apart automatically' per model
+    cmAutoApart: "RegionGenie.Main.AutoApart",
+    cmShareBg: "RegionGenie.Main.ShareBackground",
+    toolLasso: "RegionGenie.Tools.Lasso",
+    toolLassoErase: "RegionGenie.Tools.LassoErase",
+    toolWand: "RegionGenie.Tools.Wand",
+    toolWandTolerance: "RegionGenie.Tools.WandTolerance",
+    toolFill: "RegionGenie.Tools.Fill",
+    toolFillGap: "RegionGenie.Tools.FillGap",
+    samModel: "RegionGenie.Select.Model",
+    samKeep: "RegionGenie.Select.KeepLoaded",
+    samThreshold: "RegionGenie.Select.Threshold",
+    llmCacheDisk: "RegionGenie.LLM.CacheOnDisk",
+    llmCacheDays: "RegionGenie.LLM.CacheDays",
+    llmCacheMax: "RegionGenie.LLM.CacheMaxEntries",
+    editMaskGrow: "RegionGenie.Edit.MaskGrow",
+    editMaskFeather: "RegionGenie.Edit.MaskFeather",
+    editLora: "RegionGenie.Edit.LoRA",              // + "." + model key
+    editRef: "RegionGenie.Edit.Reference",          // + "." + model key
+    editRefSize: "RegionGenie.Edit.ReferenceSize",
+    editMossFormat: "RegionGenie.Edit.MossFormat",
+    hlAllRegions: "RegionGenie.RegionalLoRAs.SeparateAllRegions",
+    hlShareBg: "RegionGenie.RegionalLoRAs.ShareBackground",
+    hlFeather: "RegionGenie.RegionalLoRAs.Feather",
+    hlMasking: "RegionGenie.RegionalLoRAs.LoraMasking",
+    hlSeparation: "RegionGenie.RegionalLoRAs.RegionSeparation",
+    hlUntil: "RegionGenie.RegionalLoRAs.SeparationUntil",
+};
+// models without a layout format of their own: [family name used by the Python side, settings ID suffix]
+export const AUTO_APART_MODELS = [["Krea 2", "Krea2"], ["Flux", "Flux"], ["Flux 3", "Flux3"], ["Anima", "Anima"], ["SDXL / SD1.5", "SDXL"]];
+// the 'keep all regions apart automatically' settings, as sent to Python in paint_data
+export function autoApartSettings() {
+    const out = { all: getSetting(SET.cmAutoApart, true) !== false };
+    for (const [fam, key] of AUTO_APART_MODELS) out[fam] = getSetting(SET.cmAutoApart + "." + key, "default") || "default";
+    return out;
+}
+// Edit Mode: [model name as the Python side reports it (ui.model_arch), settings ID suffix, reads a reference image]
+export const EDIT_MODELS = [["MOSS Image", "MOSS", true], ["Krea 2", "Krea2", true], ["Ideogram 4", "Ideogram4", false],
+    ["Flux.1", "Flux1", true], ["Flux.2", "Flux2", true], ["Flux 3", "Flux3", true], ["Anima", "Anima", false],
+    ["SDXL", "SDXL", false], ["SD1.5", "SD15", false]];
+export const NO_LORA = "(none)";
+// the edit LoRA set for each model: [[model name, LoRA file], ...] (models without one left out)
+export function editLoras() {
+    const out = [];
+    for (const [name, key] of EDIT_MODELS) {
+        const v = getSetting(SET.editLora + "." + key, NO_LORA);
+        if (typeof v === "string" && v && v !== NO_LORA) out.push([name, v]);
+    }
+    return out;
+}
+// the Edit Mode settings, as sent to Python in paint_data.edit
+export function editSettings() {
+    const refs = {};
+    for (const [name, key, ref] of EDIT_MODELS) if (ref) refs[name] = getSetting(SET.editRef + "." + key, true) !== false;
+    const size = Number(getSetting(SET.editRefSize, 1024));
+    return { refs, refSize: Number.isFinite(size) && size >= 0 ? Math.round(size) : 1024, mossFormat: getSetting(SET.editMossFormat, "auto") || "auto" };
+}
+// Edit Mode: the edit mask's grow / feather (px) for nodes that haven't set their own (list header in Edit Mode)
+export function editMaskDefaults() {
+    const g = Math.round(Number(getSetting(SET.editMaskGrow, 8))), f = Math.round(Number(getSetting(SET.editMaskFeather, 16)));
+    return { grow: Number.isFinite(g) ? Math.max(-256, Math.min(256, g)) : 8, feather: Number.isFinite(f) ? Math.max(0, Math.min(256, f)) : 16 };
+}
+
+// Canvas tools: which variant each tool with variants starts in (Settings > Region Genie > Canvas tools). The
+// right-click choice on a tool button still switches it for the rest of the session.
+export const TOOL_VARIANTS = { lasso: ["plain", "spline", "magnetic"], lassoErase: ["plain", "spline", "magnetic"],
+                               wand: ["contiguous", "global"], fill: ["normal", "gaps"] };
+const TOOL_SETTING = { lasso: SET.toolLasso, lassoErase: SET.toolLassoErase, wand: SET.toolWand, fill: SET.toolFill };
+export function toolDefault(tool) {
+    const v = getSetting(TOOL_SETTING[tool], TOOL_VARIANTS[tool][0]);
+    return TOOL_VARIANTS[tool].includes(v) ? v : TOOL_VARIANTS[tool][0];
+}
+const toolListeners = new Set();
+// fn(tool, variant): a tool's default variant was changed in Settings
+export const onToolDefault = (fn) => { toolListeners.add(fn); return () => toolListeners.delete(fn); };
+let settingsReady = false;                 // after setup(): settings are loaded, onChange means the user changed one
+// numbers that go with a tool (magic wand tolerance, fill gap size), from Settings
+export const TOOL_NUMBERS = { wandTol: [SET.toolWandTolerance, 32, 0, 255], fillGap: [SET.toolFillGap, 4, 1, 64] };
+export function toolNumber(key) {
+    const [id, d, lo, hi] = TOOL_NUMBERS[key];
+    const v = Math.round(Number(getSetting(id, d)));
+    return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d;
+}
+// tool: a key of TOOL_VARIANTS (v: its new default variant) or of TOOL_NUMBERS (v: the new number)
+const toolChanged = (tool, v) => {
+    if (!settingsReady || (TOOL_VARIANTS[tool] && !TOOL_VARIANTS[tool].includes(v))) return;
+    for (const f of toolListeners) { try { f(tool, v); } catch (e) { console.warn(e); } }
+};
+
+// LLM cache (Settings > Region Genie > LLM cache): told to the server at start-up and whenever one changes; also
+// sent with every run in paint_data
+export function llmCacheSettings(over = {}) {
+    const num = (id, d) => { const v = Number(over[id] ?? getSetting(id, d)); return Number.isFinite(v) ? Math.round(v) : d; };
+    return { disk: (over[SET.llmCacheDisk] ?? getSetting(SET.llmCacheDisk, false)) === true,
+             days: Math.max(0, num(SET.llmCacheDays, 30)), max: Math.max(10, num(SET.llmCacheMax, 500)) };
+}
+function postLlmCache(over) {
+    if (!settingsReady) return;
+    api.fetchApi("/region_genie/llm_cache_config", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                     body: JSON.stringify(llmCacheSettings(over)) }).catch(() => {});
+}
+
+const NEW_NODES = "Applies to nodes added from now on; nodes already in a workflow keep their own value.";
+const CAT = (section, key) => ["Region Genie", section, key];
+const SETTINGS = [
+        {
+            id: AC_DEFAULT_SETTING, name: "Tag autocomplete on in new Region Genie nodes", type: "boolean", defaultValue: true,
+            tooltip: "Default for the 'autocomplete' switch on the Region Genie and Regional LoRAs nodes (nodes where you set "
+                + "the switch yourself keep their own choice). The autocomplete itself comes from ComfyUI-Custom-Scripts "
+                + "(preferred when enabled) or ComfyUI-Lora-Manager and follows that pack's settings.",
+            category: CAT("Tag autocomplete", "1 default"),
+            onChange: () => { resyncAll(); for (const f of toggles) f(); },
+        },
+        {
+            id: SET.llmContext, name: "What the LLM Prompt Enhancer sees", type: "combo", defaultValue: "prompt",
+            options: [{ text: "Only the prompt", value: "prompt" }, { text: "The prompt + the scene and the other regions", value: "context" }],
+            tooltip: "Default for Region Genie nodes whose LLM Settings say 'Settings default'. With context, the LLM "
+                + "also gets scene_prompt_positive and the other regions' prompts (to keep them consistent) but only "
+                + "rewrites the one prompt.",
+            category: CAT("LLM Prompt Enhancer", "1 context"),
+        },
+        {
+            id: SET.llmNewRegions, name: "New regions start with the LLM Prompt Enhancer on", type: "boolean", defaultValue: false,
+            category: CAT("LLM Prompt Enhancer", "2 new regions"),
+        },
+        {
+            id: SET.llmCacheDisk, name: "Keep LLM results on disk between ComfyUI restarts", type: "boolean", defaultValue: false,
+            tooltip: "Off (default): enhanced prompts are kept in memory for this session, and in each workflow that used "
+                + "them (a saved workflow brings its own results back when it is opened), so re-running a workflow never "
+                + "needs the LLM again. On: they are also saved to <ComfyUI user dir>/region_genie/llm_cache.json, which "
+                + "only helps workflows queued through the API without opening them. Turning this off deletes that file.",
+            category: CAT("LLM cache", "1 disk"),
+            onChange: (v) => postLlmCache({ [SET.llmCacheDisk]: v }),
+        },
+        {
+            id: SET.llmCacheDays, name: "Forget LLM results after (days; 0 = never)", type: "number", defaultValue: 30,
+            attrs: { min: 0, max: 3650, step: 1 },
+            tooltip: "Results older than this are dropped from the cache (memory and disk).",
+            category: CAT("LLM cache", "2 days"),
+            onChange: (v) => postLlmCache({ [SET.llmCacheDays]: v }),
+        },
+        {
+            id: SET.llmCacheMax, name: "Most LLM results to keep", type: "number", defaultValue: 500,
+            attrs: { min: 10, max: 100000, step: 10 },
+            tooltip: "Beyond this, the oldest results are dropped first (memory and disk).",
+            category: CAT("LLM cache", "3 max"),
+            onChange: (v) => postLlmCache({ [SET.llmCacheMax]: v }),
+        },
+        {
+            id: SET.toolLasso, name: "Lasso: default", type: "combo", defaultValue: "plain",
+            options: [{ text: "Lasso (straight lines)", value: "plain" }, { text: "Spline lasso (smooth curve)", value: "spline" },
+                      { text: "Magnetic lasso (follows edges in the image)", value: "magnetic" }],
+            tooltip: "Which lasso the Lasso button starts as in every Region Genie node. Right-clicking the button still "
+                + "switches it for the rest of the session.",
+            category: CAT("Canvas tools", "1 lasso"),
+            onChange: (v) => toolChanged("lasso", v),
+        },
+        {
+            id: SET.toolLassoErase, name: "Lasso erase: default", type: "combo", defaultValue: "plain",
+            options: [{ text: "Lasso erase (straight lines)", value: "plain" }, { text: "Spline lasso erase (smooth curve)", value: "spline" },
+                      { text: "Magnetic lasso erase (follows edges in the image)", value: "magnetic" }],
+            tooltip: "Which lasso the Lasso erase button starts as in every Region Genie node. Right-clicking the button "
+                + "still switches it for the rest of the session.",
+            category: CAT("Canvas tools", "2 lasso erase"),
+            onChange: (v) => toolChanged("lassoErase", v),
+        },
+        {
+            id: SET.toolWand, name: "Magic wand: default", type: "combo", defaultValue: "contiguous",
+            options: [{ text: "Connected area of similar color", value: "contiguous" }, { text: "Every similar color in the image", value: "global" }],
+            tooltip: "What a click with the magic wand selects in the image: the connected area of similar color around "
+                + "the click, or every pixel of similar color. Right-clicking the button still switches it for the session.",
+            category: CAT("Canvas tools", "3 wand"),
+            onChange: (v) => toolChanged("wand", v),
+        },
+        {
+            id: SET.toolWandTolerance, name: "Magic wand: tolerance", type: "number", defaultValue: 32,
+            attrs: { min: 0, max: 255, step: 1 },
+            tooltip: "How different a color may be from the clicked one (0-255 per channel) and still be selected. The field "
+                + "next to the wand changes it for the session.",
+            category: CAT("Canvas tools", "4 wand tolerance"),
+            onChange: (v) => toolChanged("wandTol", v),
+        },
+        {
+            id: SET.toolFill, name: "Fill: default", type: "combo", defaultValue: "normal",
+            options: [{ text: "Fill", value: "normal" }, { text: "Fill, closing small gaps", value: "gaps" }],
+            tooltip: "Closing small gaps: the fill doesn't leak out through openings narrower than about twice the gap size "
+                + "(set next to the Fill button). Right-clicking the button still switches it for the session.",
+            category: CAT("Canvas tools", "5 fill"),
+            onChange: (v) => toolChanged("fill", v),
+        },
+        {
+            id: SET.toolFillGap, name: "Fill: gap size (px)", type: "number", defaultValue: 4,
+            attrs: { min: 1, max: 64, step: 1 },
+            tooltip: "Fill, closing small gaps: openings narrower than about twice this many pixels are closed.",
+            category: CAT("Canvas tools", "6 fill gap"),
+            onChange: (v) => toolChanged("fillGap", v),
+        },
+        {
+            id: SET.samModel, name: "Model (in models/checkpoints)", type: "text", defaultValue: "sam3.1_multiplex_fp16.safetensors",
+            tooltip: "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download "
+                + "sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. "
+                + "When this file isn't there, another SAM 3 checkpoint in that folder is used.",
+            category: CAT("Select object", "1 model"),
+        },
+        {
+            id: SET.samKeep, name: "After a selection", type: "combo", defaultValue: "keep loaded",
+            options: [{ text: "Keep the model loaded (faster next time)", value: "keep loaded" },
+                { text: "Unload the model after each selection", value: "unload" }],
+            tooltip: "Keep loaded: the model stays in memory for the session (about 1.7 GB). ComfyUI still moves it out of "
+                + "VRAM into system RAM when a workflow needs the room, and back on the next click. Unload: the model is "
+                + "freed when you accept or cancel a selection (and after 3 idle minutes), so each new selection loads it "
+                + "from disk again.",
+            category: CAT("Select object", "2 keep"),
+        },
+        {
+            id: SET.samThreshold, name: "Find all: confidence", type: "slider", defaultValue: 0.5,
+            attrs: { min: 0.05, max: 0.95, step: 0.05 },
+            tooltip: "Find all (typed text): how sure SAM must be that something matches to select it. Lower finds more "
+                + "(and more wrong things), higher finds fewer.",
+            category: CAT("Select object", "3 threshold"),
+        },
+        { id: SET.cmWidth, name: "Width", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "01 width") },
+        { id: SET.cmHeight, name: "Height", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "02 height") },
+        { id: SET.cmImageMode, name: "image_mode", type: "combo", defaultValue: "backdrop (trace over)", options: ["backdrop (trace over)", "use as color map"], tooltip: NEW_NODES, category: CAT("Region Genie node", "03 image") },
+        {
+            id: SET.cmMinPixels, name: "Color map: min region pixels", type: "number", defaultValue: 64, attrs: { min: 1, max: 1000000, step: 1 },
+            tooltip: "With the image used as a color map: a color becomes a region when it has at least this many flat pixels "
+                + "(blended edges and specks go to the nearest region). Applies to every Region Genie node at its next run; "
+                + "the node's image control shows it too while 'color map' is chosen.",
+            category: CAT("Region Genie node", "04 min"),
+        },
+        {
+            id: SET.cmImportMode, name: "import_json when the canvas isn't empty", type: "combo", defaultValue: "ask before replacing",
+            options: ["ask before replacing", "always replace"],
+            tooltip: "Ask before replacing: the run keeps the canvas and the node asks (Replace canvas / Keep canvas). Always "
+                + "replace: the new layout replaces the canvas right away. An empty canvas is always filled. Applies to every "
+                + "Region Genie node at its next run.",
+            category: CAT("Region Genie node", "05 import"),
+        },
+        { id: SET.cmFeather, name: "Feather (px, linked regions)", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "06 feather") },
+        { id: SET.cmSeparation, name: "LoRA region separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "07 separation") },
+        { id: SET.cmUntil, name: "LoRA separation until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "08 until") },
+        { id: SET.cmAllRegions, name: "Keep all regions apart (not only those with LoRAs)", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Region Genie node", "085 all regions") },
+        {
+            id: SET.cmShareBg, name: "Keep regions apart: share the background", type: "boolean", defaultValue: false,
+            tooltip: "Regions that are kept apart stay apart from each other, but not from the image around them, so "
+                + "lighting and setting stay one picture. " + NEW_NODES,
+            category: CAT("Region Genie node", "0855 share background"),
+        },
+        {
+            id: SET.cmAutoApart, name: "Models without a layout format: keep all regions apart automatically", type: "boolean", defaultValue: true,
+            tooltip: "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 get the regions as plain sentences: the Region Genie node "
+                + "places each region by tying its sentence to its region in attention ('keep all regions apart'). On: "
+                + "with such a model on 'model', clip connected and at least one region prompt, that switch is on for the "
+                + "run even when the node's own switch is off. Off: only the node's switch counts. The settings below "
+                + "change it for one model. Applies to every Region Genie node at its next run.",
+            category: CAT("Region Genie node", "086 auto apart"),
+        },
+        ...AUTO_APART_MODELS.map(([fam, key], i) => ({
+            id: SET.cmAutoApart + "." + key, name: `${fam}: keep all regions apart automatically`, type: "combo", defaultValue: "default",
+            options: [{ text: "As set for all models (above)", value: "default" }, { text: "On", value: "on" }, { text: "Off", value: "off" }],
+            tooltip: `For ${fam} models only; 'As set for all models' follows the setting above.`,
+            category: CAT("Region Genie node", "087 auto apart " + i),
+        })),
+        { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
+        { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
+        ...EDIT_MODELS.map(([name, key], i) => ({
+            id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: "combo", defaultValue: NO_LORA,
+            // the LoRA list is read when ComfyUI starts (and refreshed when a LoRA picker opens); the set value is always listed
+            options: (value) => {
+                const list = knownLoras() || [];
+                const cur = typeof value === "string" && value && value !== NO_LORA && !list.includes(value) ? [value] : [];
+                return [NO_LORA, ...cur, ...list];
+            },
+            tooltip: `Switching a Region Genie node to Edit Mode adds this LoRA to its 'Whole image' LoRAs (marked 'edit '`
+                + `LoRA'), and switching back to generate removes it again. It is applied only when the model on 'model' is `
+                + `${name}, so one LoRA per model can be set here.`
+                + (key === "MOSS" ? " For MOSS Image, e.g. the Moss-Image-Edit LoRA; its file decides the edit layout (see below)." : ""),
+            category: CAT("Edit Mode", "1 lora " + String(i).padStart(2, "0")),
+        })),
+        ...EDIT_MODELS.filter((m) => m[2]).map(([name, key], i) => ({
+            id: SET.editRef + "." + key, name: `${name}: send the source image as a reference`, type: "boolean", defaultValue: true,
+            tooltip: `In Edit Mode, the source image (on 'image') is also given to ${name} as a reference image `
+                + "(reference_latents on positive and negative), as edit models such as "
+                + ({ MOSS: "MOSS Image Edit", Krea2: "Krea 2 edit packs", Flux1: "Flux.1 Kontext", Flux2: "Flux.2 / Klein", Flux3: "Flux 3" }[key])
+                + " expect. Off: image-to-image from the latent only."
+                + (key === "Flux1" ? " Flux.1 dev and Kontext can't be told apart: turn this off for plain Flux.1 dev." : ""),
+            category: CAT("Edit Mode", "2 ref " + i),
+        })),
+        {
+            id: SET.editRefSize, name: "Reference image size (long edge, px; 0 = output size)", type: "number", defaultValue: 1024,
+            attrs: { min: 0, max: 8192, step: 16 },
+            tooltip: "The reference image is scaled down to this long edge before it is encoded (never up). Larger is slower.",
+            category: CAT("Edit Mode", "3 ref size"),
+        },
+        {
+            id: SET.editMossFormat, name: "MOSS Image edit layout", type: "combo", defaultValue: "auto",
+            options: [{ text: "Auto (from the edit LoRA file)", value: "auto" }, "Moss-Image-Edit", "ai-toolkit", "ai-toolkit (kv_cache off)"],
+            tooltip: "How the reference is given to MOSS Image (as in ComfyUI's TextEncodeMOSSImageEdit node). Auto: LoRAs "
+                + "trained with ai-toolkit (fused qkv weights) get 'ai-toolkit', others (e.g. the Moss-Image-Edit LoRA) get "
+                + "'Moss-Image-Edit'.",
+            category: CAT("Edit Mode", "4 moss format"),
+        },
+        {
+            id: SET.editMaskGrow, name: "Edit mask: grow (px; negative shrinks)", type: "number", defaultValue: 8,
+            attrs: { min: -256, max: 256, step: 1 },
+            tooltip: "The edit mask (what the sampler may change in Edit Mode) grows by this many pixels past the regions, "
+                + "so edits blend into their surroundings; negative values shrink it. Kept regions are never grown into. "
+                + "For nodes whose list header doesn't set their own value.",
+            category: CAT("Edit Mode", "5 mask grow"),
+        },
+        {
+            id: SET.editMaskFeather, name: "Edit mask: feather (px)", type: "number", defaultValue: 16,
+            attrs: { min: 0, max: 256, step: 1 },
+            tooltip: "Softens the edit mask's edge by this many pixels (after growing), independent of the regions' own "
+                + "feather. For nodes whose list header doesn't set their own value.",
+            category: CAT("Edit Mode", "6 mask feather"),
+        },
+        { id: SET.hlFeather, name: "feather", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "1 feather") },
+        { id: SET.hlMasking, name: "lora_masking", type: "combo", defaultValue: "inside the model (one pass)", options: ["inside the model (one pass)", "separate passes (classic hooks)"], tooltip: NEW_NODES, category: CAT("Regional LoRAs", "2 masking") },
+        { id: SET.hlSeparation, name: "region_separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "3 separation") },
+        { id: SET.hlAllRegions, name: "separate_all_regions", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "5 all regions") },
+        { id: SET.hlShareBg, name: "share_background", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "6 share background") },
+        { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
+];
+SETTINGS.forEach((x, i) => { x.sortOrder = 1000 - i; });         // listed in this order (higher sortOrder first)
+// The pack was called "Regional Mask Kit" before: on the first start after the rename, copy the values set under
+// the old setting IDs to the new ones (only where the new one isn't set yet). To be removed in a later version.
+const OLD_PREFIX = "RegionalMaskKit.";
+const oldSettingId = (id) => OLD_PREFIX + id.slice("RegionGenie.".length).replace(/^Main\./, "ColorMap.").replace(/^RegionalLoRAs\./, "HookLoRAs.");
+async function migrateOldSettings() {
+    let stored = null;
+    try { stored = await api.getSettings(); } catch (e) { return; }
+    if (!stored || typeof stored !== "object") return;
+    for (const { id } of SETTINGS) {
+        const old = oldSettingId(id);
+        if (!(old in stored) || id in stored) continue;
+        try {
+            if (app.extensionManager?.setting?.set) await app.extensionManager.setting.set(id, stored[old]);
+            else await app.ui?.settings?.setSettingValueAsync?.(id, stored[old]);
+        } catch (e) { console.warn("[Region Genie] could not copy setting", old, e); }
+    }
+    // "Krea 2: keep all regions apart automatically" turned off before it became one setting per model
+    const krea2 = SET.cmAutoApart + ".Krea2";
+    if (stored[SET.cmKrea2Apart] === false && !(krea2 in stored)) {
+        try {
+            if (app.extensionManager?.setting?.set) await app.extensionManager.setting.set(krea2, "off");
+            else await app.ui?.settings?.setSettingValueAsync?.(krea2, "off");
+        } catch (e) { console.warn("[Region Genie] could not copy setting", SET.cmKrea2Apart, e); }
+    }
+}
+app.registerExtension({
+    name: "RegionGenie.Settings",
+    settings: SETTINGS,
+    setup() {
+        loadAutocompleteEngines(); migrateOldSettings(); getLoras();
+        settingsReady = true;
+        postLlmCache({});                     // the server learns the LLM cache settings (and deletes the file when off)
+    },
+});
+
+export const AC_CSS = `
+.rg-ac.comfy-autocomplete-dropdown .comfy-autocomplete-item { padding:2px 10px !important; }
+.rg-ac.pysssss-autocomplete .pysssss-autocomplete-item { padding:1px 7px; line-height:1.25; }
+.rg-ac.pysssss-autocomplete .pysssss-autocomplete-pill { padding-top:0; padding-bottom:0; }
+.rg-ac-btn { background:var(--comfy-input-bg,#222); color:var(--input-text,#ddd); border:1px solid var(--border-color,#555);
+  border-radius:4px; padding:2px 4px; line-height:0; cursor:pointer; flex:0 0 auto; }
+.rg-ac-btn svg { width:16px; height:16px; display:block; }
+.rg-ac-btn:not(.on) { opacity:.55; }
+.rg-ac-btn.on { background:#3a6ea5; border-color:#5b8fd0; color:#fff; }
+`;
+(function injectAcCss() {
+    if (document.getElementById("rg-ac-style")) return;
+    const st = document.createElement("style"); st.id = "rg-ac-style"; st.textContent = AC_CSS;
+    document.head.appendChild(st);
+})();
+// ComfyUI's own multiline widgets of a node (legacy: widget.inputEl; Nodes 2.0: the textarea whose
+// <label for> names the widget, inside the node's [data-node-id] box). Widgets are rebuilt on mode or
+// tab switches, so the check also runs whenever a textarea gets focus.
+const widgetWatch = new Set();       // {node, names}
+function widgetTextareaName(entry, t) {
+    const { node, names } = entry;
+    for (const n of names) if (node.widgets?.find((x) => x.name === n)?.inputEl === t) return n;
+    if (!t.closest(`[data-node-id="${node.id}"]`)) return null;
+    const lab = t.id ? t.closest(`[data-node-id="${node.id}"]`).querySelector(`label[for="${CSS.escape(t.id)}"]`) : null;
+    const text = (lab?.textContent || t.placeholder || t.getAttribute("aria-label") || "").trim();
+    for (const n of names) {
+        const w = node.widgets?.find((x) => x.name === n);
+        if (text && (text === n || text === w?.label)) return n;
+    }
+    return null;
+}
+// overlay scrollbars (Windows 11 / Firefox style: drawn over the content and wider on hover) would cover the
+// right edge of lists and text: pad those edges then. Classic scrollbars take their own space and need nothing.
+let overlaySB = null;
+export function overlayScrollbars() {
+    if (overlaySB != null) return overlaySB;
+    const d = document.createElement("div");
+    d.style.cssText = "position:absolute;left:-9999px;top:0;width:100px;height:60px;overflow:scroll;visibility:hidden;";
+    d.appendChild(document.createElement("div")).style.cssText = "width:200px;height:200px;";
+    document.body.appendChild(d);
+    overlaySB = d.offsetWidth - d.clientWidth === 0;
+    d.remove();
+    document.documentElement.classList.toggle("rg-osb", overlaySB);
+    if (!document.getElementById("rg-osb-style")) {
+        const st = document.createElement("style"); st.id = "rg-osb-style";
+        st.textContent = `
+html.rg-osb .rg-list { padding-right:14px; }
+html.rg-osb .rg-pop { padding-right:18px; }
+html.rg-osb .rg-row textarea.rg-prompt:focus, html.rg-osb .rg-pop textarea, html.rg-osb .rg-rl-prompt:focus,
+html.rg-osb textarea.rg-sbpad { padding-right:14px !important; }`;
+        document.head.appendChild(st);
+    }
+    return overlaySB;
+}
+
+function hookTextarea(entry, t, name) {
+    t.classList.add("rg-sbpad");                    // room for an overlay scrollbar (see overlayScrollbars)
+    if (entry.ac) attachAutocomplete(t, entry.node);
+    if (entry.onTextarea) {
+        entry.seen = entry.seen || new WeakSet();
+        if (!entry.seen.has(t)) { entry.seen.add(t); entry.onTextarea(name || widgetTextareaName(entry, t), t); }
+    }
+}
+function scanWidgets(entry) {
+    const { node, names } = entry;
+    for (const n of names) {
+        const el = node.widgets?.find((x) => x.name === n)?.inputEl;
+        if (el && el.isConnected) hookTextarea(entry, el, n);
+    }
+    const box = document.querySelector(`[data-node-id="${node.id}"]`);
+    for (const t of box?.querySelectorAll("textarea") || []) if (widgetTextareaName(entry, t)) hookTextarea(entry, t);
+}
+let widgetListener = false;
+function watchWidgets(node, names, ac, onTextarea) {
+    overlayScrollbars();
+    const entry = { node, names, ac, onTextarea };
+    widgetWatch.add(entry);
+    scanWidgets(entry);
+    setTimeout(() => scanWidgets(entry), 500);
+    if (widgetListener) return;
+    widgetListener = true;
+    document.addEventListener("focusin", (e) => {
+        const t = e.target;
+        if (t?.tagName !== "TEXTAREA") return;
+        for (const en of [...widgetWatch]) {
+            if (!en.node.graph) { widgetWatch.delete(en); continue; }
+            if (widgetTextareaName(en, t)) { hookTextarea(en, t); break; }
+        }
+    }, true);
+    // Nodes 2.0 rebuilds widget textareas (mode switch, collapse, subgraphs): look again now and then
+    setInterval(() => {
+        for (const en of [...widgetWatch]) {
+            if (!en.node.graph) { widgetWatch.delete(en); continue; }
+            scanWidgets(en);
+        }
+    }, 1500);
+}
+// LoRA Manager's tag autocomplete (and overlay-scrollbar room) for some of a node's ComfyUI text widgets
+// onTextarea(name, textarea): called once for each textarea found (also the ones Nodes 2.0 makes again)
+export const autocompleteWidgets = (node, names, onTextarea) => watchWidgets(node, names, true, onTextarea);
+// only the overlay-scrollbar room (read-only info boxes)
+export const padWidgets = (node, names) => watchWidgets(node, names, false);
