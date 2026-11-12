@@ -13,6 +13,15 @@ None of these need a GPU. Screenshots go to `tests/out/` (not committed).
 
 ## Real ComfyUI (CPU)
 
+**One command** (ComfyUI v0.45.2, torch from PyPI, ComfyUI Impact Pack, this pack linked into `custom_nodes`, the test wildcard; about 5 GB, a few minutes; safe to run again):
+
+```bash
+bash tests/setup_real_comfy.sh --start
+```
+
+Then `node tests/real_comfy9.cjs`, `node tests/real_comfy9.cjs vue` and `COMFY_DIR=/tmp/comfy_src python3 tests/test_control.py`. Options: a folder as the first argument (default `/tmp/comfy_src`), `COMFY_TAG` for another ComfyUI release, `COMFY_PORT`. The manual steps it does:
+
+
 ```bash
 git clone --depth 1 https://github.com/Comfy-Org/ComfyUI.git /tmp/comfy_src
 pip install torch torchvision                       # from PyPI; runs on CPU
