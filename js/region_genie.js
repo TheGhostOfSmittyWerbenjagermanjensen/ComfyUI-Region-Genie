@@ -10,6 +10,11 @@ import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, s
          closeLlmSettings } from "./rg_llm.js";
 import { openColorPicker, inColorPicker } from "./rg_colorpicker.js";
 
+// values this pack just wrote to Settings, read back before the Settings store has them (it saves asynchronously)
+const RG_RECENT = new Map();
+const recentSetting = (id, dflt) => (RG_RECENT.has(id) ? RG_RECENT.get(id) : getSetting(id, dflt));
+const rememberSetting = (id, v) => { RG_RECENT.set(id, v); setSetting(id, v); setTimeout(() => { if (RG_RECENT.get(id) === v) RG_RECENT.delete(id); }, 3000); };
+
 // Layered region editor of the "Region Genie" node (formerly "Color Map to Layout").
 // paint_data v2 (JSON, hidden widget):
 //   { v: 2, regions: [{id, color, prompt, type: "object"|"character"|"text", text, loras: [{lora, strength, on}],
@@ -266,19 +271,28 @@ const STYLE = `
 .rg-paladd { background:transparent; padding:0; }
 button.rg-sw.pick { padding:0; cursor:pointer; font:inherit; }
 button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
-.rg-row textarea.rg-text { flex:0 1 72px; }
-.rg-row textarea.rg-text:focus { flex:1.2 1 140px; }
+.rg-row .rg-pwrap.rg-twrap { flex:0 1 72px; }
+.rg-row .rg-pwrap.rg-twrap:has(textarea:focus) { flex:1.2 1 140px; }
 .rg-pop { position:absolute; z-index:6; box-sizing:border-box; display:flex; flex-direction:column; gap:5px; padding:6px 8px 5px;
   background:#1a1a1a; color:#eee; border:2px solid #5b8fd0; border-radius:6px; box-shadow:0 4px 18px rgba(0,0,0,.65);
   overflow-y:auto; scrollbar-width:thin; font:12px sans-serif; }
-.rg-pop-head { display:flex; align-items:center; gap:6px; font-weight:600; }
+.rg-pop-head { display:flex; align-items:center; gap:6px; font-weight:600; cursor:move; user-select:none; touch-action:none; }
+.rg-pop-head .rg-btn { cursor:pointer; }
+.rg-pop-head .rg-pop-font { margin-left:auto; padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
+.rg-pop-head .rg-pop-font + .rg-pop-font { margin-left:0; }
+.rg-pop-head .rg-pop-font ~ .rg-x { margin-left:0; }
+.rg-pop.sized .rg-pop-field.grow { flex:1 1 auto; display:flex; flex-direction:column; min-height:60px; }
+.rg-pop.sized .rg-pop-field.grow textarea { flex:1 1 auto; min-height:40px; resize:none; }
+.rg-pop-grip { position:absolute; right:1px; bottom:1px; width:14px; height:14px; cursor:nwse-resize; touch-action:none; opacity:.7;
+  background:linear-gradient(135deg, transparent 52%, #5b8fd0 52% 60%, transparent 60% 70%, #5b8fd0 70% 78%, transparent 78%); }
+.rg-pop-grip:hover { opacity:1; }
 .rg-pop-head .rg-idx { flex:0 0 auto; text-align:left; }
 .rg-pop-head .rg-sw { cursor:default; }
 .rg-pop-head .rg-x { margin-left:auto; padding:0 5px; line-height:16px; }
 .rg-pop-types { display:flex; gap:4px; }
 .rg-pop-types .rg-btn { flex:1 1 0; padding:3px 6px; }
 .rg-pop-lbl { font-size:11px; opacity:.75; margin:0 0 2px 1px; }
-.rg-pop textarea { width:100%; box-sizing:border-box; resize:vertical; background:var(--comfy-input-bg,#222); color:inherit;
+.rg-pop textarea { width:100%; box-sizing:border-box; resize:none; background:var(--comfy-input-bg,#222); color:inherit;
   border:1px solid var(--border-color,#555); border-radius:4px; padding:3px 5px; font:inherit; line-height:15px; scrollbar-width:thin; }
 .rg-pop textarea:focus { border-color:#5b8fd0; outline:none; }
 .rg-pop .rg-row { padding:1px 0; }
@@ -338,10 +352,20 @@ input.rg-sw[type=color] { padding:0; background:none; -webkit-appearance:none; a
 input.rg-sw[type=color]::-webkit-color-swatch-wrapper { padding:0; }
 input.rg-sw[type=color]::-webkit-color-swatch { border:none; border-radius:2px; }
 input.rg-sw[type=color]::-moz-color-swatch { border:none; border-radius:2px; }
+.rg-pwrap { position:relative; display:flex; flex:1 1 auto; min-width:0; }
+.rg-pwrap > textarea.rg-prompt { padding-right:18px !important; }
+.rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:transparent;
+  color:var(--input-text,#ddd); opacity:.3; cursor:pointer; line-height:0; }
+.rg-expand svg { width:12px; height:12px; display:block; margin:2px; }
+.rg-expand:hover { opacity:1; background:rgba(91,143,208,.35); }
+*:hover > .rg-expand { opacity:.75; }
+textarea.rg-scene-ta { padding-right:20px !important; }
 .rg-row textarea.rg-prompt { flex:1 1 auto; min-width:0; background:var(--comfy-input-bg,#222); color:inherit; resize:none;
-  border:1px solid var(--border-color,#555); border-radius:3px; padding:1px 4px; font:inherit; height:18px; line-height:15px;
-  overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-.rg-row textarea.rg-prompt:focus { height:64px; white-space:pre-wrap; overflow-x:hidden; overflow-y:auto; position:relative; z-index:2;
+  border:1px solid var(--border-color,#555); border-radius:3px; padding:1px 4px; font-family:inherit; font-size:var(--rg-fs-r,12px);
+  line-height:var(--rg-lh-r,15px); height:calc(var(--rg-lh-r,15px) + 3px); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.rg-row textarea.rg-prompt.rg-text { font-size:var(--rg-fs-t,12px); line-height:var(--rg-lh-t,15px); height:calc(var(--rg-lh-t,15px) + 3px); }
+.rg-row textarea.rg-prompt.rg-text:focus { height:calc(var(--rg-lh-t,15px) * 4 + 4px); }
+.rg-row textarea.rg-prompt:focus { height:calc(var(--rg-lh-r,15px) * 4 + 4px); white-space:pre-wrap; overflow-x:hidden; overflow-y:auto; position:relative; z-index:2;
   scrollbar-gutter:stable; scrollbar-width:thin; padding-right:2px; }
 .rg-row textarea.rg-prompt:focus::-webkit-scrollbar { width:8px; }
 .rg-row textarea.rg-prompt:focus::-webkit-scrollbar-thumb { background:#666; border-radius:4px; }
@@ -778,16 +802,41 @@ app.registerExtension({
                 if (t.title !== title) t.title = title;
                 t.classList.toggle("rg-wc-filled", f != null);
             }
+            // the expand button: opens a text field in its pop-up editor (double-click stays the browser's word selection).
+            // It sits in the field's bottom-right corner, left of a scrollbar, inside the field's parent element.
+            function addExpandButton(t, title, onOpen) {
+                const host = t.parentElement;
+                if (!host) return null;
+                const old = host.querySelector(":scope > .rg-expand");
+                if (old && old.__rgFor === t) return old;
+                old?.remove();
+                if (getComputedStyle(host).position === "static") host.style.position = "relative";
+                const b = document.createElement("button");
+                b.type = "button"; b.className = "rg-expand"; b.innerHTML = svgIcon("expand"); b.title = title; b.tabIndex = -1;
+                b.__rgFor = t;
+                for (const ev of ["pointerdown", "mousedown", "dblclick"]) b.addEventListener(ev, (e) => { e.stopPropagation(); if (ev !== "pointerdown") e.preventDefault(); });
+                b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); onOpen(); });
+                const place = () => {
+                    if (!t.isConnected) return;
+                    const sb = Math.max(0, t.offsetWidth - t.clientWidth - (t.clientLeft || 0) * 2);   // a scrollbar, if any
+                    const right = host.clientWidth - (t.offsetLeft + t.offsetWidth) + (t.clientLeft || 0) + sb + 2;
+                    const bottom = host.clientHeight - (t.offsetTop + t.offsetHeight) + (t.clientTop || 0) + 2;
+                    b.style.right = Math.round(right) + "px"; b.style.bottom = Math.round(bottom) + "px";
+                };
+                for (const ev of ["mouseenter", "focus", "input", "blur"]) t.addEventListener(ev, () => requestAnimationFrame(place));
+                try { new ResizeObserver(place).observe(t); } catch (e) { /* old browser */ }
+                host.addEventListener("mouseenter", place);
+                host.appendChild(b);
+                place();
+                return b;
+            }
             const SCENE_FIELDS = { scene_prompt_positive: "positive", scene_prompt_negative: "negative",
                                    scene_prompt_background: "background" };
             autocompleteWidgets(node, Object.keys(SCENE_FIELDS), (name, t) => {
                 if (!SCENE_FIELDS[name]) return;
                 sceneTA[SCENE_FIELDS[name]] = t;
-                t.addEventListener("dblclick", (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    editScene(SCENE_FIELDS[name]);
-                });
-                if (!/double-click/i.test(t.title || "")) t.title = (t.title ? t.title + "\n" : "") + "Double-click: open in the pop-up editor";
+                t.classList.add("rg-scene-ta");
+                addExpandButton(t, "Open in the pop-up editor", () => editScene(SCENE_FIELDS[name]));
                 t.dataset.baseTitle = t.title;
                 t.addEventListener("input", () => wcMark(t, SCENE_KEYS[SCENE_FIELDS[name]], t.value));
             });
@@ -3510,6 +3559,111 @@ app.registerExtension({
             // Text edits show live; each edited field is one undo step. Enter or clicking elsewhere closes it,
             // Shift+Enter = new line, Esc closes it and undoes the text edit in progress.
             let editor = null;
+            // ---- pop-up editors: the size (every node; a hidden Setting), the place (this node, saved with the workflow) and the
+            // text size (Settings > Region Genie > Text size, per kind of field). They live inside the node and stay inside it.
+            const POP_W = { scene: 640, region: 560 };
+            const FS_POP = { scene: SET.fsPopScene, prompt: SET.fsPopRegion, text: SET.fsPopText };
+            const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+            const popSizes = () => { try { const v = JSON.parse(recentSetting(SET.popSizes, "{}") || "{}"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } };
+            const fsPop = (cat) => clampN(Math.round(+recentSetting(FS_POP[cat], 14)) || 14, 8, 40);
+            function applyPopFont(ta, cat) { const f = fsPop(cat); ta.style.fontSize = f + "px"; ta.style.lineHeight = Math.round(f * 1.3) + "px"; }
+            // size, then place: the saved size and place (kept inside the node), else the default width and autoPlace(w, h, W, H)
+            function popLayout(ed, kind, autoPlace) {
+                const box = ed.box, W = wrap.clientWidth, H = wrap.clientHeight;
+                const sz = popSizes()[kind] || {};
+                const w = clampN(Math.round(sz.w || POP_W[kind]), 240, Math.max(240, W - 12));
+                box.style.width = w + "px";
+                if (sz.h) { box.style.height = clampN(Math.round(sz.h), 160, Math.max(160, H - 12)) + "px"; box.style.maxHeight = ""; box.classList.add("sized"); }
+                else { box.style.height = ""; box.style.maxHeight = Math.max(120, H - 12) + "px"; box.classList.remove("sized"); }
+                const keepInside = () => {
+                    box.style.left = clampN(parseFloat(box.style.left) || 6, 6, Math.max(6, W - box.offsetWidth - 6)) + "px";
+                    box.style.top = clampN(parseFloat(box.style.top) || 6, 6, Math.max(6, H - box.offsetHeight - 6)) + "px";
+                };
+                if (ed.placed) { keepInside(); return; }
+                ed.placed = true;
+                const at = node.properties?.rg_pop?.[kind];
+                if (at && Number.isFinite(at.x) && Number.isFinite(at.y)) { box.style.left = at.x + "px"; box.style.top = at.y + "px"; keepInside(); return; }
+                autoPlace(w, box.offsetHeight, W, H);
+            }
+            // A− / A+ (the field in use: curCat()), dragging by the title bar, the resize grip
+            function popFrame(ed, kind, head, curCat, applyFonts) {
+                const box = ed.box;
+                const zoom = () => wrap.offsetWidth / Math.max(1, wrap.getBoundingClientRect().width);   // screen px -> CSS px
+                const font = (d) => {
+                    const cat = curCat();
+                    rememberSetting(FS_POP[cat], clampN(fsPop(cat) + d, 8, 40));
+                    applyFonts();
+                };
+                const fm = el("button", "rg-btn rg-pop-font"); fm.type = "button"; fm.textContent = "A−";
+                const fp = el("button", "rg-btn rg-pop-font"); fp.type = "button"; fp.textContent = "A+";
+                fm.title = "Smaller text in the box you're typing in (Settings > Region Genie > Text size)";
+                fp.title = "Larger text in the box you're typing in (Settings > Region Genie > Text size)";
+                fm.addEventListener("click", (e) => { e.preventDefault(); font(-1); });
+                fp.addEventListener("click", (e) => { e.preventDefault(); font(1); });
+                const x = head.querySelector(".rg-x");
+                head.insertBefore(fp, x?.previousElementSibling?.classList.contains("rg-wc-pick") ? x.previousElementSibling : x);
+                head.insertBefore(fm, fp);
+                head.title = "Drag to move (inside the node; remembered for this node). Double-click: back to the automatic place";
+                const drag = (e, onMove, onEnd) => {
+                    e.preventDefault(); e.stopPropagation();
+                    const t = e.currentTarget, k = zoom(), x0 = e.clientX, y0 = e.clientY;
+                    t.setPointerCapture?.(e.pointerId);
+                    const move = (ev) => onMove((ev.clientX - x0) * k, (ev.clientY - y0) * k);
+                    const up = () => { t.removeEventListener("pointermove", move); t.removeEventListener("pointerup", up); t.removeEventListener("pointercancel", up); onEnd(); };
+                    t.addEventListener("pointermove", move); t.addEventListener("pointerup", up); t.addEventListener("pointercancel", up);
+                };
+                head.addEventListener("pointerdown", (e) => {
+                    if (e.button !== 0 || e.target.closest("button, input, select, textarea")) return;
+                    const l0 = box.offsetLeft, t0 = box.offsetTop, W = wrap.clientWidth, H = wrap.clientHeight;
+                    drag(e, (dx, dy) => {
+                        box.style.left = clampN(l0 + dx, 6, Math.max(6, W - box.offsetWidth - 6)) + "px";
+                        box.style.top = clampN(t0 + dy, 6, Math.max(6, H - box.offsetHeight - 6)) + "px";
+                    }, () => {
+                        node.properties = node.properties || {};
+                        node.properties.rg_pop = { ...(node.properties.rg_pop || {}), [kind]: { x: Math.round(box.offsetLeft), y: Math.round(box.offsetTop) } };
+                    });
+                });
+                head.addEventListener("dblclick", (e) => {
+                    if (e.target.closest("button, input, select, textarea")) return;
+                    if (node.properties?.rg_pop) delete node.properties.rg_pop[kind];
+                    ed.placed = false; ed.place();
+                });
+                const grip = el("div", "rg-pop-grip");
+                grip.title = "Drag to resize (remembered for every Region Genie node). Double-click: back to the default size";
+                grip.addEventListener("pointerdown", (e) => {
+                    if (e.button !== 0) return;
+                    const w0 = box.offsetWidth, h0 = box.offsetHeight, W = wrap.clientWidth, H = wrap.clientHeight;
+                    drag(e, (dx, dy) => {
+                        box.style.width = clampN(w0 + dx, 240, Math.max(240, W - box.offsetLeft - 6)) + "px";
+                        box.style.height = clampN(h0 + dy, 160, Math.max(160, H - box.offsetTop - 6)) + "px";
+                        box.style.maxHeight = ""; box.classList.add("sized");
+                    }, () => {
+                        const all = popSizes(); all[kind] = { w: Math.round(box.offsetWidth), h: Math.round(box.offsetHeight) };
+                        rememberSetting(SET.popSizes, JSON.stringify(all));
+                    });
+                });
+                grip.addEventListener("dblclick", (e) => {
+                    e.stopPropagation();
+                    const all = popSizes(); delete all[kind];
+                    rememberSetting(SET.popSizes, JSON.stringify(all));
+                    ed.place();
+                });
+                box.appendChild(grip);
+                applyFonts();
+            }
+            // text size of the node's own fields (Settings > Region Genie > Text size; 0 = as before)
+            function applyFieldFonts() {
+                const fs = (id) => clampN(Math.round(+recentSetting(id, 0)) || 0, 0, 40);
+                const a = fs(SET.fsNodeScene), b = fs(SET.fsNodeRegion), c = fs(SET.fsNodeText);
+                for (const t of Object.values(sceneTA)) {
+                    const want = a ? a + "px" : "";
+                    if (t.style.fontSize !== want) { t.style.fontSize = want; t.style.lineHeight = a ? Math.round(a * 1.3) + "px" : ""; }
+                }
+                for (const [n, f] of [["r", b], ["t", c]]) {
+                    if (f) { wrap.style.setProperty(`--rg-fs-${n}`, f + "px"); wrap.style.setProperty(`--rg-lh-${n}`, Math.round(f * 1.25) + "px"); }
+                    else { wrap.style.removeProperty(`--rg-fs-${n}`); wrap.style.removeProperty(`--rg-lh-${n}`); }
+                }
+            }
             function closeEditor(commit = true) {
                 if (!editor) return;
                 const ed = editor;
@@ -3592,9 +3746,10 @@ app.registerExtension({
                     wrapF.append(lab, ta);
                     return { wrapF, ta };
                 };
-                const prompt = field("Prompt", "prompt", 4, "prompt: what is in this region");
+                const prompt = field("Prompt", "prompt", 8, "prompt: what is in this region");
+                prompt.wrapF.classList.add("grow");
                 autocompleteOnFocus(prompt.ta, node);
-                const text = field("Text", "text", 2, "text to render");
+                const text = field("Text", "text", 3, "text to render");
                 // feather, palette, LoRAs (rebuilt on every change)
                 const dyn = el("div", "rg-pop-dyn");
                 const foot = el("div", "rg-pop-foot");
@@ -3644,20 +3799,9 @@ app.registerExtension({
                         ed.place();
                     },
                     placed: false,
-                    place() {
-                        // near the label, inside the node; scrolls when the node is short
+                    place() { popLayout(ed, "region", (w, h, W, H) => {
+                        // near the label (or the list row), inside the node; scrolls when the node is short
                         const k = cvBox.clientWidth / Math.max(1, cv.width);           // canvas px -> CSS px
-                        const W = wrap.clientWidth, H = wrap.clientHeight;
-                        const w = Math.min(W - 12, 440);
-                        box.style.width = w + "px";
-                        box.style.maxHeight = Math.max(120, H - 12) + "px";
-                        const h = box.offsetHeight;
-                        if (ed.placed) {                           // later changes: stay put, only keep it inside
-                            const t = parseFloat(box.style.top) || 6;
-                            if (t + h > H - 6) box.style.top = Math.max(6, H - 6 - h) + "px";
-                            return;
-                        }
-                        ed.placed = true;
                         const row = !rect && regList.querySelector(`textarea.rg-prompt[data-rid="${rid}"]`)?.closest(".rg-row");
                         if (row) {                                 // from the list: just below the row, else just above it
                             const wr = wrap.getBoundingClientRect(), rr = row.getBoundingClientRect();
@@ -3674,7 +3818,7 @@ app.registerExtension({
                         const top = below + h <= H - 6 ? below : (above >= 6 ? above : Math.max(6, H - 6 - h));
                         box.style.left = Math.max(6, Math.min(W - w - 6, cx - w / 2)) + "px";
                         box.style.top = Math.max(6, top) + "px";
-                    },
+                    }); },
                     // a click outside closes it (not the LoRA list, the autocomplete list or a color picker)
                     outside(e) {
                         const t = e.target;
@@ -3683,6 +3827,8 @@ app.registerExtension({
                     },
                 };
                 editor = ed;
+                popFrame(ed, "region", head, () => (lastTa === text.ta ? "text" : "prompt"),
+                         () => { applyPopFont(prompt.ta, "prompt"); applyPopFont(text.ta, "text"); });
                 window.addEventListener("pointerdown", ed.outside, true);
                 ed.refresh();
                 const first = focus === "text" && r.type === "text" ? text : prompt;
@@ -3715,8 +3861,8 @@ app.registerExtension({
                 wcPickS.addEventListener("click", (e) => pickWildcard(e, (name) => insertAtCursor(ta, name)));
                 wcPickS.style.display = wildcardsInstalled() ? "" : "none";
                 head.append(title, wcPickS, x);
-                const wrapF = el("div", "rg-pop-field");
-                const ta = el("textarea"); ta.rows = 6; ta.spellcheck = false; ta.value = String(w.value ?? "");
+                const wrapF = el("div", "rg-pop-field grow");
+                const ta = el("textarea"); ta.rows = 12; ta.spellcheck = false; ta.value = String(w.value ?? "");
                 ta.placeholder = { positive: "the whole picture: setting, style, lighting ...", negative: "what to avoid in the whole picture",
                                    background: "behind the regions: ground, floor, sky, room ..." }[which];
                 const orig = ta.value;
@@ -3782,21 +3928,11 @@ app.registerExtension({
                         ed.place();
                     },
                     placed: false,
-                    place() {
+                    place() { popLayout(ed, "scene", (wd, h, W) => {
                         // at the top of the canvas area (right under the scene prompts), inside the node
-                        const W = wrap.clientWidth, H = wrap.clientHeight;
-                        const wd = Math.min(W - 12, 520);
-                        box.style.width = wd + "px";
-                        box.style.maxHeight = Math.max(120, H - 12) + "px";
-                        if (ed.placed) {
-                            const t = parseFloat(box.style.top) || 6, h = box.offsetHeight;
-                            if (t + h > H - 6) box.style.top = Math.max(6, H - 6 - h) + "px";
-                            return;
-                        }
-                        ed.placed = true;
                         box.style.left = Math.max(6, (W - wd) / 2) + "px";
                         box.style.top = "6px";
-                    },
+                    }); },
                     outside(e) {
                         const t = e.target;
                         if (box.contains(t) || inAutocompleteList(t) || inColorPicker(t) || inLlmSettings(t) || t?.closest?.(".litecontextmenu, .litemenu-entry, .comfy-context-menu, .p-contextmenu")) return;
@@ -3804,6 +3940,7 @@ app.registerExtension({
                     },
                 };
                 editor = ed;
+                popFrame(ed, "scene", head, () => "scene", () => applyPopFont(ta, "scene"));
                 window.addEventListener("pointerdown", ed.outside, true);
                 ed.refresh();
                 ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -4437,13 +4574,13 @@ app.registerExtension({
                     ty.value = r.type;
                     ty.addEventListener("change", () => change(() => { r.type = ty.value; }));
                     const pr = el("textarea", "rg-prompt"); pr.rows = 1; pr.placeholder = r.fromImage ? "prompt for this image color" : "prompt";
-                    const dblTip = (v) => (v ? v + "\n" : "") + "Double-click: open in the pop-up editor";
+                    const dblTip = (v) => v || "";
                     pr.value = r.prompt; pr.dataset.rid = String(r.id); pr.spellcheck = false;
                     wcMark(pr, "r" + r.id, r.prompt, dblTip(r.prompt));
                     pr.addEventListener("blur", () => { pr.scrollTop = 0; wcMark(pr, "r" + r.id, r.prompt, dblTip(r.prompt)); refreshChips(r.id); });
-                    // double-click: the region's pop-up editor, next to this row
-                    const openPop = (field) => (e) => { e.preventDefault(); e.stopPropagation(); e.target.blur(); editPrompt(r.id, null, field); };
-                    pr.addEventListener("dblclick", openPop("prompt"));
+                    // the expand button: the region's pop-up editor, next to this row
+                    const openPop = (field, t) => () => { t.blur(); editPrompt(r.id, null, field); };
+                    const prWrap = el("span", "rg-pwrap"); prWrap.appendChild(pr);
                     pr.addEventListener("focus", () => pick());
                     pr.addEventListener("input", () => { r.prompt = pr.value; save(); llmBtns.get(r.id)?.(); });
                     pr.addEventListener("keydown", (e) => {
@@ -4458,7 +4595,8 @@ app.registerExtension({
                         : "Show / hide this region: a hidden region is not drawn and is left out of every output; its layers keep their own show / hide",
                         () => change(() => { if (r.hidden) delete r.hidden; else r.hidden = true; }));
                     eye.classList.add("rg-reye");
-                    row.append(chevron(r.id, kinds.length > 0, "this region's " + (kinds.map((k) => ({ layers: "layers", loras: "LoRAs", palette: "palette" })[k]).join(", ") || "layers")), eye, ix, sw, ty, pr);
+                    row.append(chevron(r.id, kinds.length > 0, "this region's " + (kinds.map((k) => ({ layers: "layers", loras: "LoRAs", palette: "palette" })[k]).join(", ") || "layers")), eye, ix, sw, ty, prWrap);
+                    addExpandButton(pr, "Open this region in the pop-up editor", openPop("prompt", pr));
                     if (r.type === "text") {
                         // text to render: grows while edited, like the prompt (Shift+Enter = new line)
                         const tx = el("textarea", "rg-prompt rg-text"); tx.rows = 1; tx.placeholder = "text"; tx.value = r.text;
@@ -4466,13 +4604,15 @@ app.registerExtension({
                         wcMark(tx, `r${r.id}.text`, r.text, dblTip(r.text || "Text to render"));
                         tx.addEventListener("focus", () => pick());
                         tx.addEventListener("blur", () => { tx.scrollTop = 0; wcMark(tx, `r${r.id}.text`, r.text, dblTip(r.text || "Text to render")); });
-                        tx.addEventListener("dblclick", openPop("text"));
+
                         tx.addEventListener("input", () => { r.text = tx.value; save(); });
                         tx.addEventListener("keydown", (e) => {
                             e.stopPropagation();
                             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); tx.blur(); }
                         });
-                        row.appendChild(tx);
+                        const txWrap = el("span", "rg-pwrap rg-twrap"); txWrap.appendChild(tx);
+                        row.appendChild(txWrap);
+                        addExpandButton(tx, "Open this region in the pop-up editor (its text to render)", openPop("text", tx));
                     }
                     const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { r.loras = r.loras || []; addLoraTo(r.loras, e, () => openSub(r.id, "loras")); }, "txt");
                     const mergeAll = ico("⇊", "Merge all visible layers of this region into one layer", () => mergeRegion(r.id));
@@ -4718,6 +4858,7 @@ app.registerExtension({
                 if (!node.graph) return;
                 fixImportMode();
                 syncSettings();
+                applyFieldFonts();
                 labelSizeInputs();
                 onDimsChanged();
                 liveBackdrop();

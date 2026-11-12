@@ -173,13 +173,23 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator(".rg-settings .rg-seg button", { hasText: "Generate" }).click();
     await page.waitForTimeout(120);
 
-    // double-click a region prompt in the list: the region pop-up, by the row
+    // the expand button of a region prompt in the list: the region pop-up, by the row (double-click selects a word)
     const firstRid = (await st()).regions[0].id;
     const prIn = page.locator(`.rg-list textarea.rg-prompt[data-rid="${firstRid}"]`);
+    await page.evaluate((rid) => { const r = window.__node.__rgState().regions.find((x) => x.id === rid); r.prompt = "a tall green tree"; window.__node.__rgRefresh(); }, firstRid);
+    await page.waitForTimeout(100);
     await prIn.dblclick(); await page.waitForTimeout(150);
+    const sel = await page.evaluate(() => { const t = document.activeElement; return t?.tagName === "TEXTAREA" ? t.value.slice(t.selectionStart, t.selectionEnd) : ""; });
+    check("double-click in a list prompt selects a word (no pop-up)", await page.locator(".rg-pop").count() === 0 && /^(a|tall|green|tree)$/.test(sel));
+    await page.mouse.click(5, 5);
+    const exp = page.locator(`.rg-list .rg-pwrap:has(textarea[data-rid="${firstRid}"]) .rg-expand`);
+    check("expand button in the prompt's bottom-right corner", await exp.count() === 1 && await (async () => {
+        const [b, t] = [await exp.boundingBox(), await prIn.boundingBox()];
+        return b.x + b.width <= t.x + t.width + 1 && b.x + b.width >= t.x + t.width - 24 && b.y + b.height <= t.y + t.height + 1; })());
+    await exp.click(); await page.waitForTimeout(150);
     const pop = page.locator(".rg-pop");
     const popOk = await pop.count() === 1 && await page.evaluate(() => document.activeElement?.closest?.(".rg-pop") != null);
-    check("list prompt double-click opens the region pop-up, prompt focused", popOk);
+    check("expand button opens the region pop-up, prompt focused", popOk);
     if (popOk) {
         const [pb, rb] = [await pop.boundingBox(), await page.locator(`.rg-list textarea.rg-prompt[data-rid="${firstRid}"]`).boundingBox()];
         check("pop-up sits by the row", Math.abs(pb.y - (rb.y + rb.height)) < 80 || Math.abs(pb.y + pb.height - rb.y) < 80);

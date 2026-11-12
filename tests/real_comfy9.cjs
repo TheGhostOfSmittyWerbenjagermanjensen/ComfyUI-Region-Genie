@@ -118,6 +118,48 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`${M}: run ok, output 1368 x 768 from the Resolution Selector`, run.status === "success" && JSON.stringify(run.size) === "[1368,768]");
     check(`${M}: shown region in the color map, hidden region black`, run.left?.some((v) => v > 40) && run.right?.every((v) => v < 10));
 
+    // ---------------- round 10: expand buttons, the pop-up editor (drag, resize, A+), no node drag underneath
+    const r10 = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        app.canvas.ds.offset = [0, -200]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);    // the pop-up fully on screen
+        await new Promise((r) => setTimeout(r, 1500));
+        const tas = [...document.querySelectorAll("textarea.rg-scene-ta")];
+        return { n: tas.length, btns: tas.filter((t) => t.parentElement.querySelector(":scope > .rg-expand")).length, pos: [...rg.pos] };
+    });
+    check(`${M}: an expand button on each of the 3 scene prompts`, r10.n === 3 && r10.btns === 3);
+    const sceneTa = page.locator("textarea.rg-scene-ta").first();
+    await sceneTa.fill("a quiet harbour at dawn");
+    await sceneTa.dblclick(); await page.waitForTimeout(200);
+    check(`${M}: double-click in a scene prompt selects a word, no pop-up`, await page.locator(".rg-pop").count() === 0
+        && await page.evaluate(() => { const t = document.activeElement; return t?.tagName === "TEXTAREA" && t.selectionEnd > t.selectionStart; }));
+    await sceneTa.hover();
+    await page.locator("textarea.rg-scene-ta").first().locator("xpath=..").locator(":scope > .rg-expand").click();
+    await page.waitForTimeout(300);
+    const spop = page.locator(".rg-pop").first();
+    check(`${M}: the expand button opens the scene pop-up`, await spop.count() === 1);
+    const b1 = await spop.boundingBox();
+    const sh = await spop.locator(".rg-pop-head").boundingBox();
+    await page.mouse.move(sh.x + 40, sh.y + sh.height / 2); await page.mouse.down();
+    await page.mouse.move(sh.x + 40 + 30, sh.y + sh.height / 2 + 60, { steps: 6 }); await page.mouse.up();
+    await page.waitForTimeout(150);
+    const b2 = await spop.boundingBox();
+    const nodePos = await page.evaluate(() => [...window.__rg.pos]);
+    check(`${M}: dragging the title bar moves the pop-up, not the node`, b2.y - b1.y > 40 && JSON.stringify(nodePos) === JSON.stringify(r10.pos));
+    const g = await spop.locator(".rg-pop-grip").boundingBox();
+    await page.mouse.move(g.x + 6, g.y + 6); await page.mouse.down();
+    await page.mouse.move(g.x + 6 - 80, g.y + 6 + 100, { steps: 6 }); await page.mouse.up();
+    await page.waitForTimeout(150);
+    const b3 = await spop.boundingBox();
+    check(`${M}: the corner grip resizes it`, b3.width < b2.width - 40 && b3.height > b2.height + 40);
+    await spop.locator(".rg-pop-font", { hasText: "A+" }).click(); await page.waitForTimeout(100);
+    const fs = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-pop textarea")).fontSize));
+    check(`${M}: A+ makes the pop-up text larger (${fs} px)`, fs === 15);
+    await page.keyboard.press("Escape"); await page.waitForTimeout(100);
+    // put the shared Settings back for the next run of this test
+    await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Text.PopupScene", 14); await s.set("RegionGenie.Popup.Sizes", "{}"); });
+
     // ---------------- wildcards (needs Impact Pack, and a wildcards/rgtest/color.txt file in it)
     const wcInstalled = await page.evaluate(async () => (await (await fetch("/region_genie/wildcards")).json()).installed);
     if (!wcInstalled) console.log("SKIP wildcards: Impact Pack is not installed");
@@ -182,7 +224,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const used = await page.evaluate(() => window.__rg.__rgState().regions[0].prompt);
         check(`${M}: 'use the filled text' puts it in the field`, used === expected);
         // the region pop-up: __ autocomplete and the picker
-        await page.locator(".rg-list textarea.rg-prompt").first().dblclick();
+        await page.locator(".rg-list .rg-pwrap .rg-expand").first().click();
         await page.waitForTimeout(400);
         const ta = page.locator(".rg-pop textarea").first();
         await ta.press("End"); await ta.type(" __rgt");

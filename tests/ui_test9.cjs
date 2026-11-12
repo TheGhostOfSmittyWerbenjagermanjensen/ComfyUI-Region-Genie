@@ -128,6 +128,58 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const props = await page.evaluate(() => window.__node.properties.rg_size);
     check("kept in the node's properties (saved with the workflow)", props.mode === "aspect ratio" && props.manual.w === 300 && props.preset.w === 1216);
 
+    // ---------------- pop-up editor: bigger, A− / A+, drag, resize (round 10)
+    await page.evaluate(() => { const s = window.__node.__rgState(); s.regions[0].prompt = "a red boat on calm water"; window.__node.__rgRefresh(); });
+    await page.waitForTimeout(100);
+    const expBtn = page.locator(".rg-list .rg-pwrap .rg-expand").first();
+    await expBtn.click(); await page.waitForTimeout(150);
+    const ppop = page.locator(".rg-pop");
+    const wrapW = await page.evaluate(() => document.querySelector(".rg-wrap").clientWidth);
+    let pb = await ppop.boundingBox();
+    check("pop-up: wider by default (560 px or the node's width)", !!pb && Math.round(pb.width) === Math.min(560, wrapW - 12));
+    const fsOf = () => page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-pop textarea")).fontSize));
+    check("pop-up: region prompt text 14 px by default", await fsOf() === 14);
+    await ppop.locator(".rg-pop-font", { hasText: "A+" }).click(); await page.waitForTimeout(60);
+    await ppop.locator(".rg-pop-font", { hasText: "A+" }).click(); await page.waitForTimeout(60);
+    check("A+ twice: 16 px, saved in Settings", await fsOf() === 16 && await page.evaluate(() => window.__settings["RegionGenie.Text.PopupRegion"]) === 16);
+    // drag by the title bar
+    const hb = await ppop.locator(".rg-pop-head").boundingBox();
+    await page.mouse.move(hb.x + 60, hb.y + hb.height / 2); await page.mouse.down();
+    await page.mouse.move(hb.x + 60 - 40, hb.y + hb.height / 2 + 70, { steps: 5 }); await page.mouse.up();
+    await page.waitForTimeout(80);
+    const pb2 = await ppop.boundingBox();
+    check("drag the title bar: the pop-up moves", Math.abs(pb2.y - pb.y - 70) < 3 && Math.abs(pb2.x - pb.x + 40) < 3 || Math.abs(pb2.y - pb.y - 70) < 3);
+    const saved = await page.evaluate(() => window.__node.properties.rg_pop?.region);
+    check("its place is kept for this node", !!saved && Number.isFinite(saved.x) && Number.isFinite(saved.y));
+    // resize from the corner
+    const gb = await ppop.locator(".rg-pop-grip").boundingBox();
+    await page.mouse.move(gb.x + 6, gb.y + 6); await page.mouse.down();
+    await page.mouse.move(gb.x + 6 - 100, gb.y + 6 + 120, { steps: 5 }); await page.mouse.up();
+    await page.waitForTimeout(80);
+    const pb3 = await ppop.boundingBox();
+    const taH = await page.evaluate(() => document.querySelector(".rg-pop textarea").offsetHeight);
+    check("resize from the corner: narrower and taller, the prompt box grows", Math.abs(pb3.width - (pb2.width - 100)) < 3 && pb3.height > pb2.height + 20 && taH > 120);
+    const sizes = await page.evaluate(() => JSON.parse(window.__settings["RegionGenie.Popup.Sizes"] || "{}"));
+    check("the size is kept for every node (Settings)", sizes.region?.w === Math.round(pb3.width) || Math.abs(sizes.region?.w - pb3.width) < 2);
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
+    await expBtn.click(); await page.waitForTimeout(150);
+    const pb4 = await ppop.boundingBox();
+    check("reopened: same size and place", Math.abs(pb4.width - pb3.width) < 2 && Math.abs(pb4.height - pb3.height) < 2 && Math.abs(pb4.x - pb3.x) < 2 && Math.abs(pb4.y - pb3.y) < 2);
+    await ppop.locator(".rg-pop-head span").first().dblclick(); await page.waitForTimeout(80);
+    await ppop.locator(".rg-pop-grip").dblclick(); await page.waitForTimeout(80);
+    const pb5 = await ppop.boundingBox();
+    check("double-click title / grip: back to the automatic place and default size", !(await page.evaluate(() => window.__node.properties.rg_pop?.region))
+        && Math.round(pb5.width) === Math.min(560, wrapW - 12));
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
+    // the node's own fields: text size from Settings
+    await page.evaluate(() => { window.__settings["RegionGenie.Text.NodeRegion"] = 16; });
+    await page.waitForTimeout(700);
+    const nodeFs = await page.evaluate(() => { const t = document.querySelector(".rg-list textarea.rg-prompt"); return [parseFloat(getComputedStyle(t).fontSize), t.offsetHeight]; });
+    check("node's region prompts: 16 px from Settings, the field grows to fit", nodeFs[0] === 16 && nodeFs[1] >= 22);
+    await page.evaluate(() => { window.__settings["RegionGenie.Text.NodeRegion"] = 0; });
+    await page.waitForTimeout(700);
+    check("0: back to 12 px", await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-list textarea.rg-prompt")).fontSize)) === 12);
+
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");
     process.exit(fails.length ? 1 : 0);

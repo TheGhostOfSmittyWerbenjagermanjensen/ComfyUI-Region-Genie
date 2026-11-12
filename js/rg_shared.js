@@ -50,6 +50,8 @@ export const ICONS = {
     dice: '<rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.2"/><circle cx="5.4" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="5.4" cy="10.6" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="10.6" r="1" fill="currentColor" stroke="none"/>',
     plusOne: '<path d="M2.4 8h4.4M4.6 5.8v4.4"/><path d="M9.6 5.2l2-1.6v8.8"/>',
     useFilled: '<path d="M8 1.8v7.6M4.8 6.4L8 9.6l3.2-3.2"/><path d="M2.4 12.8h11.2"/>',
+    // open a text field in the pop-up editor
+    expand: '<path d="M9.4 2.4h4.2v4.2M13.6 2.4L9.2 6.8M6.6 13.6H2.4V9.4M2.4 13.6l4.4-4.4"/>',
     // Select object: add the pending selection / discard it
     check: '<path d="M2.8 8.6l3.4 3.4 7-7.6"/>',
     close: '<path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8"/>',
@@ -703,6 +705,10 @@ export const SET = {
     llmContext: "RegionGenie.LLM.Context",
     llmNewRegions: "RegionGenie.LLM.NewRegionsOn",
     wcPerField: "RegionGenie.Wildcards.PerField",
+    // text size per kind of field, in the node and in the pop-up editors (0 in the node = as before)
+    fsNodeScene: "RegionGenie.Text.NodeScene", fsNodeRegion: "RegionGenie.Text.NodeRegion", fsNodeText: "RegionGenie.Text.NodeText",
+    fsPopScene: "RegionGenie.Text.PopupScene", fsPopRegion: "RegionGenie.Text.PopupRegion", fsPopText: "RegionGenie.Text.PopupText",
+    popSizes: "RegionGenie.Popup.Sizes",
     sizeMode: "RegionGenie.Size.Mode",
     sizeAspect: "RegionGenie.Size.Aspect",
     sizeMegapixels: "RegionGenie.Size.Megapixels",
@@ -940,6 +946,15 @@ const SETTINGS = [
                 + "(and more wrong things), higher finds fewer.",
             category: CAT("Select object", "3 threshold"),
         },
+        ...[["fsNodeScene", "In the node: scene prompts", "1", 0, "the three scene_prompt boxes (0 = ComfyUI's own size)"],
+            ["fsNodeRegion", "In the node: region prompts", "2", 0, "the prompt fields in the region list (0 = the usual 12 px)"],
+            ["fsNodeText", "In the node: text to render", "3", 0, "the text-to-render fields in the region list (0 = the usual 12 px)"],
+            ["fsPopScene", "Pop-up editor: scene prompts", "4", 14, "the text box of the scene prompts' pop-up editor (A− / A+ in its header change it too)"],
+            ["fsPopRegion", "Pop-up editor: region prompts", "5", 14, "the Prompt box of the region pop-up editor (A− / A+ in its header change it too)"],
+            ["fsPopText", "Pop-up editor: text to render", "6", 14, "the Text box of the region pop-up editor (A− / A+ in its header, with the Text box in use)"]]
+            .map(([k, name, ord, dflt, what]) => ({ id: SET[k], name, type: "number", defaultValue: dflt, attrs: { min: k.startsWith("fsNode") ? 0 : 8, max: 40, step: 1 },
+                tooltip: `Text size in px for ${what}. Applies to every Region Genie node.`, category: CAT("Text size", `${ord} ${k}`) })),
+        { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
         { id: SET.wcPerField, name: "A seed per field", type: "boolean", defaultValue: false,
           tooltip: "Off: every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing "
               + "one seed), so the same wildcard in two fields usually picks the same value. On: each field gets its own seed, "
