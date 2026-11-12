@@ -38,13 +38,15 @@ printf "red\ngreen\nblue\npurple\n" > "$IMPACT/wildcards/rgtest/color.txt"      
 
 if [ "$START" = 1 ]; then
     echo "== starting ComfyUI on 127.0.0.1:$PORT (log: $DIR/comfy.log)"
-    (cd "$DIR" && nohup python3 main.py --cpu --listen 127.0.0.1 --port "$PORT" > "$DIR/comfy.log" 2>&1 &)
+    # detached: its own output goes to the log, so this script (and a pipe it writes to) can finish
+    ( cd "$DIR" && exec nohup python3 main.py --cpu --listen 127.0.0.1 --port "$PORT" ) > "$DIR/comfy.log" 2>&1 < /dev/null &
+    PID=$!
     for _ in $(seq 1 180); do
-        if grep -q "To see the GUI" "$DIR/comfy.log" 2>/dev/null; then echo "ready"; break; fi
-        if grep -qE "Error: |error while attempting to bind" "$DIR/comfy.log" 2>/dev/null; then echo "ComfyUI failed to start:"; tail -5 "$DIR/comfy.log"; exit 1; fi
+        if grep -q "To see the GUI" "$DIR/comfy.log" 2>/dev/null; then echo "ready (pid $PID)"; break; fi
+        if ! kill -0 "$PID" 2>/dev/null; then echo "ComfyUI stopped while starting:"; tail -8 "$DIR/comfy.log"; exit 1; fi
         sleep 1
     done
-    grep -q "To see the GUI" "$DIR/comfy.log" || { echo "ComfyUI didn't start within 3 minutes:"; tail -5 "$DIR/comfy.log"; exit 1; }
+    grep -q "To see the GUI" "$DIR/comfy.log" || { echo "ComfyUI didn't start within 3 minutes:"; tail -8 "$DIR/comfy.log"; exit 1; }
     grep -E "IMPORT FAILED" "$DIR/comfy.log" && { echo "a custom node failed to import (see $DIR/comfy.log)"; exit 1; } || true
 else
     echo "== done. Start it with: cd $DIR && python3 main.py --cpu --listen 127.0.0.1 --port $PORT"
