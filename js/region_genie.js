@@ -5,7 +5,7 @@ import { svgIcon, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChip
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
          ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
-         wildcardsInstalled, onWildcardInfo } from "./rg_shared.js";
+         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
 import { openColorPicker, inColorPicker } from "./rg_colorpicker.js";
@@ -318,9 +318,9 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-row.lora { margin-left:24px; font-size:11px; padding-top:0; padding-bottom:0; }
 .rg-row.lora .rg-num { width:calc(3.6ch + 26px); }    /* "0.95" next to the spin arrows, in any font */
 .rg-row.region { background:rgba(255,255,255,.035); }
-.rg-row.scene .rg-pseudo { font-style:normal; font-weight:600; user-select:none; }
-.rg-row.scene { cursor:pointer; }
-.rg-row.scene:hover { background:rgba(255,255,255,.06); }
+.rg-row.scene .rg-pseudo, .rg-row.ctrl .rg-pseudo { font-style:normal; font-weight:600; user-select:none; }
+.rg-row.scene, .rg-row.ctrl { cursor:pointer; }
+.rg-row.scene:hover, .rg-row.ctrl:hover { background:rgba(255,255,255,.06); }
 .rg-editmask { display:inline-flex; align-items:center; gap:2px; margin-right:6px; }
 .rg-loraopts .rg-editmask .rg-num { width:44px; }
 .rg-editmask .rg-num::placeholder { color:inherit; opacity:.45; }
@@ -411,6 +411,10 @@ textarea.rg-scene-ta { padding-right:20px !important; }
 .rg-pop-lbl .rg-wc-use { margin-left:6px; padding:0 3px; line-height:0; vertical-align:middle; }
 .rg-pop .rg-wc-use svg, .rg-pop .rg-wc-pick svg { width:14px; height:14px; display:block; }
 .rg-pop .rg-wc-pick { line-height:0; padding:1px 3px; }
+.rg-row.ctrl.off .rg-pseudo { opacity:.6; }
+.rg-row.ctrl .rg-num { width:44px; }
+.rg-row.ctrl .rg-sel { min-width:150px; max-width:190px; }
+.rg-subbody.ctrl .rg-row.lora { padding-left:30px; }
 .rg-msg { display:flex; gap:6px; align-items:flex-start; flex:0 0 auto; font-size:12px; padding:4px 6px; margin:2px 0;
   background:#3a2424; border:1px solid #b05656; border-radius:4px; color:#f6dddd; user-select:text; -webkit-user-select:text; cursor:auto; }
 .rg-msg-icon { flex:0 0 auto; line-height:20px; }
@@ -638,7 +642,9 @@ function emptyState() { return { v: 2, regions: [], layers: [] }; }
 function normLoras(a) {
     return (Array.isArray(a) ? a : []).filter((x) => x && typeof x.lora === "string")
         .map((x) => ({ lora: x.lora, strength: Number.isFinite(+x.strength) ? +x.strength : 1, on: x.on !== false,
-                       ...(typeof x.edit === "string" && x.edit ? { edit: x.edit } : {}) }));      // edit: added by Edit Mode, for that model
+                       ...(typeof x.edit === "string" && x.edit ? { edit: x.edit } : {}),        // edit: added by Edit Mode, for that model
+                       // control: added by the Control row, for that model (ckind: moss / depth / canny)
+                       ...(typeof x.control === "string" && x.control ? { control: x.control, ckind: String(x.ckind || "") } : {}) }));
 }
 function normLoraOpts(o) {
     o = o && typeof o === "object" ? o : {};
@@ -655,7 +661,11 @@ function normRegion(r) {
              ...(r.featherEdges ? { featherEdges: true } : {}),
              ...(normPalette(r.palette).length ? { palette: normPalette(r.palette) } : {}),
              ...(r.paletteOn ? { paletteOn: true } : {}),
-             ...(r.keep ? { keep: true } : {}) };                  // Edit Mode: keep this region as it is in the source
+             ...(r.keep ? { keep: true } : {}),                    // Edit Mode: keep this region as it is in the source
+             ...(r.hidden ? { hidden: true } : {}),                // the region's eye: not drawn, not output
+             ...(r.llm ? { llm: true } : {}),                      // LLM Prompt Enhancer on for this region
+             ...(Number.isFinite(+r.llmSalt) && +r.llmSalt ? { llmSalt: Math.round(+r.llmSalt) } : {}),
+             ...(r.noControl ? { noControl: true } : {}) };        // Control: switched off for this region
 }
 // Edit Mode: the edit mask's own grow / feather (px); null = follow Settings > Region Genie > Edit Mode
 function normEditMask(m) {
@@ -715,7 +725,20 @@ function parseState(text, W, H) {
         ...(d.loraOpts ? { loraOpts: normLoraOpts(d.loraOpts) } : {}),
         ...(+d.feather > 0 ? { feather: Math.round(+d.feather) } : {}),
         ...(normEditMask(d.editMask) ? { editMask: normEditMask(d.editMask) } : {}),
+        // LLM Prompt Enhancer: the scene prompt's switch / salt and the node's preset assignments
+        ...(d.sceneLlm ? { sceneLlm: true } : {}),
+        ...(Number.isFinite(+d.sceneLlmSalt) && +d.sceneLlmSalt ? { sceneLlmSalt: Math.round(+d.sceneLlmSalt) } : {}),
+        ...(d.llm && typeof d.llm === "object" ? { llm: d.llm } : {}),
+        ...(normControl(d.control) ? { control: normControl(d.control) } : {}),
     };
+}
+// the Control row: on / off, what the map is, strength and the part of the steps (fractions 0..1)
+const CONTROL_KINDS = ["color", "color+depth", "depth", "canny", "other"];
+function normControl(c) {
+    if (!c || typeof c !== "object") return null;
+    const n = (v, d, lo, hi) => (Number.isFinite(+v) ? Math.min(hi, Math.max(lo, +v)) : d);
+    return { on: !!c.on, kind: CONTROL_KINDS.includes(c.kind) ? c.kind : "depth", strength: n(c.strength, 1, 0, 10),
+             start: n(c.start, 0, 0, 1), end: n(c.end, 1, 0, 1) };
 }
 
 const LAYOUT_FORMAT = "region_genie_layout";
@@ -769,6 +792,7 @@ app.registerExtension({
                         d.llmCache = llmCacheSettings();
                         d.minPixels = minPixelsNow();
                         d.wcPerField = !!getSetting(SET.wcPerField, false);
+                        if (d.control?.on) d.control = { ...d.control, files: controlFiles() };
                         d.importMode = importModeNow();
                         return JSON.stringify(d);
                     } catch (e) { return v; }
@@ -1264,6 +1288,118 @@ app.registerExtension({
                 return { grow: m.grow ?? d.grow, feather: m.feather ?? d.feather };
             }
             // Edit Mode: keep this region as it is in the source (lock) or let it change (pencil)
+            // ---- Control (ControlNet / control LoRAs): the row under Whole image, the per-region switch, the LoRAs it adds
+            const CONTROL = "control";
+            const CONTROL_KIND_LABELS = [["color", "color map (MOSS)"], ["color+depth", "color map + depth (MOSS)"], ["depth", "depth"],
+                                         ["canny", "canny"], ["other", "your control_image"]];
+            const ctl = () => state.control || { on: false, kind: "depth", strength: 1, start: 0, end: 1 };
+            let controlMap = null, controlMapKey = "", controlShow = false;          // the map of the last run, shown on the canvas
+            // the control LoRAs the current settings want in Whole image: [{lora, control: model, ckind}]
+            function wantedControlLoras(c) {
+                if (!c.on) return [];
+                const files = controlFiles(), arch = node.properties?.rg_model_arch || null, out = [];
+                const add = (key, model, ckind) => { if (files[key] && (!arch || arch === model)) out.push({ lora: files[key], control: model, ckind }); };
+                if (["color", "color+depth", "depth"].includes(c.kind)) add("MOSS", "MOSS Image", "moss");
+                if (c.kind === "depth") add("Flux1Depth", "Flux.1", "depth");
+                if (c.kind === "canny") add("Flux1Canny", "Flux.1", "canny");
+                return out;
+            }
+            // keep the Whole image LoRAs in step (inside a change(): one undo step with the switch that caused it)
+            function syncControlLoras() {
+                const want = wantedControlLoras(ctl()), cur = state.sceneLoras || [];
+                const same = (a, b) => a.lora === b.lora && a.control === b.control && a.ckind === b.ckind;
+                const kept = cur.filter((x) => !x.control || want.some((w) => same(w, x)));
+                const add = want.filter((w) => !kept.some((x) => x.control && same(w, x))).map((w) => ({ ...w, strength: 1, on: true }));
+                if (kept.length === cur.length && !add.length) return false;
+                state.sceneLoras = [...kept, ...add];
+                if (!state.sceneLoras.length) delete state.sceneLoras;
+                if (add.length) expanded.add(SCENE);
+                return true;
+            }
+            function setControl(patch) {
+                change(() => { state.control = { ...ctl(), ...patch }; syncControlLoras(); });
+            }
+            function controlRow() {
+                const c = ctl();
+                const row = el("div", "rg-row ctrl" + (c.on ? "" : " off"));
+                const onBtn = el("button", "rg-btn mini" + (c.on ? " toggle on" : ""));
+                onBtn.innerHTML = svgIcon(c.on ? "control" : "controlOff");
+                onBtn.title = c.on ? "Control on: the model follows the control map (ControlNet / control LoRA for the connected model). Click to turn it off."
+                    : "Control off. Click to turn it on: the model follows a color map, depth, canny or your own control_image "
+                      + "(the files are set in Settings > Region Genie > Control).";
+                onBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+                onBtn.addEventListener("click", (e) => { e.preventDefault(); setControl({ on: !c.on }); if (!c.on) expanded.add(CONTROL); });
+                const lbl = el("span", "rg-pseudo"); lbl.textContent = "Control";
+                row.append(chevron(CONTROL, c.on, "the control files for each model"), onBtn, lbl);
+                if (c.on) {
+                    const kind = el("select", "rg-sel");
+                    kind.title = "What the model follows: the regions' color map and / or depth (MOSS Image's control LoRA), depth, canny, "
+                        + "or the map on 'control_image' (pose, lineart …). Depth and canny are made from 'image' when control_image isn't connected.";
+                    for (const [v, t] of CONTROL_KIND_LABELS) kind.appendChild(opt(v, t));
+                    kind.value = c.kind;
+                    kind.addEventListener("change", () => setControl({ kind: kind.value }));
+                    const num = (v, title, lo, hi, step, set) => {
+                        const i = el("input", "rg-num"); i.type = "number"; i.min = String(lo); i.max = String(hi); i.step = String(step);
+                        i.value = String(v); i.title = title;
+                        i.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") i.blur(); });
+                        i.addEventListener("change", () => set(Math.min(hi, Math.max(lo, +i.value || 0))));
+                        return i;
+                    };
+                    const str = num(c.strength, "Strength (1 = as trained)", 0, 10, 0.05, (v) => setControl({ strength: v }));
+                    const a = num(Math.round(c.start * 100), "Start, in % of the steps", 0, 100, 1, (v) => setControl({ start: v / 100 }));
+                    const b = num(Math.round(c.end * 100), "End, in % of the steps (ending early keeps the layout, then lets the shapes loosen)", 0, 100, 1, (v) => setControl({ end: v / 100 }));
+                    const pct = el("span", "rg-hint"); pct.textContent = "%";
+                    const dash = el("span", "rg-hint"); dash.textContent = "–";
+                    const eye = iconBtn(controlShow ? "eye" : "eyeOff", controlMap ? (controlShow ? "Hide the control map on the canvas" : "Show the control map of the last run on the canvas")
+                        : "The control map shows here after a run", () => { controlShow = !controlShow; renderRegions(); requestDraw(); });
+                    eye.disabled = !controlMap;
+                    eye.addEventListener("pointerdown", (e) => e.stopPropagation());
+                    for (const x of [kind, str, a, b]) x.addEventListener("pointerdown", (e) => e.stopPropagation());
+                    const gap = el("span"); gap.style.flex = "1 1 auto";
+                    row.append(kind, str, a, dash, b, pct, gap, eye);
+                }
+                row.addEventListener("pointerdown", (e) => {
+                    if (e.button !== 0 || e.target.closest?.("button, input, select, textarea") || !c.on) return;
+                    e.stopPropagation();
+                    if (expanded.has(CONTROL)) expanded.delete(CONTROL); else expanded.add(CONTROL);
+                    renderRegions();
+                });
+                return row;
+            }
+            // the details: which file each model uses for this kind, and where the map comes from
+            function controlDetails() {
+                const c = ctl(), files = controlFiles(), box = el("div", "rg-subbody ctrl");
+                const line = (text, title) => { const d = el("div", "rg-row lora"); const t = el("span", "rg-hint"); t.textContent = text; if (title) t.title = title; d.appendChild(t); box.appendChild(d); };
+                const arch = node.properties?.rg_model_arch || null;
+                const pick = (key) => files[key] || "—";
+                const per = c.kind === "color" || c.kind === "color+depth"
+                    ? [["MOSS Image", `LoRA ${pick("MOSS")}`]]
+                    : [["MOSS Image", c.kind === "depth" ? `LoRA ${pick("MOSS")}` : "— (color map / depth only)"],
+                       ["Flux.1", (c.kind === "depth" && files.Flux1Depth) ? `LoRA ${files.Flux1Depth}` : (c.kind === "canny" && files.Flux1Canny) ? `LoRA ${files.Flux1Canny}` : `ControlNet ${pick(`Flux1.${c.kind}`)}`],
+                       ["SDXL", `ControlNet ${pick(`SDXL.${c.kind}`)}`], ["SD1.5", `ControlNet ${pick(`SD15.${c.kind}`)}`],
+                       ["Anima", `LLLite ${pick(`Anima.${c.kind}`)}`]];
+                for (const [m, f] of per) line(`${m === arch ? "▸ " : ""}${m}: ${f}`, m === arch ? "The model of the last run" : "");
+                line("Krea 2, Flux.2, Flux 3, Ideogram 4: no ControlNet in ComfyUI yet");
+                const src = c.kind === "color" ? "the regions' colors (the color_map output)"
+                    : c.kind === "other" ? "the control_image input"
+                    : `control_image if connected, else made from 'image' (${c.kind === "canny" ? "ComfyUI's Canny" : `Depth Anything 3: ${files.DA3 || "set its model in Settings"}`})`
+                        + (c.kind === "color+depth" ? "; the color map from the regions" : "");
+                line("Map: " + src);
+                const off = state.regions.filter((r) => r.noControl).length;
+                line(off ? `${off} region(s) switched off: the control acts only inside the regions still on` : "Every region is on (the region rows' control button switches one off)");
+                line("Files: Settings > Region Genie > Control");
+                return box;
+            }
+            function controlToggle(r) {
+                const on = !r.noControl;
+                const b = el("button", "rg-btn mini" + (on ? " toggle on" : ""));
+                b.innerHTML = svgIcon(on ? "control" : "controlOff");
+                b.title = on ? "Control acts on this region. Click to leave it out (while any region is left out, the control acts only inside the regions still on)."
+                    : "Control leaves this region out. Click to include it again.";
+                b.addEventListener("pointerdown", (e) => e.stopPropagation());
+                b.addEventListener("click", (e) => { e.preventDefault(); change(() => { if (r.noControl) delete r.noControl; else r.noControl = true; }); });
+                return b;
+            }
             function keepToggle(r) {
                 const b = el("button", "rg-btn mini" + (r.keep ? " toggle on" : ""));
                 b.innerHTML = svgIcon(r.keep ? "lock" : "pencil");
@@ -2506,6 +2642,9 @@ app.registerExtension({
                 ctx.globalAlpha = 0.35;
                 ctx.drawImage(comp, 0, 0);
                 ctx.restore();
+                if (controlShow && controlMap && state.control?.on) {         // the control map of the last run
+                    ctx.save(); ctx.globalAlpha = 0.65; ctx.drawImage(controlMap, ix, iy, iw, ih); ctx.restore();
+                }
                 if (isEdit() && state.regions.some((r) => r.keep)) {        // Edit Mode: kept regions are hatched
                     ctx.save();
                     ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
@@ -4129,7 +4268,7 @@ app.registerExtension({
                 const frag = document.createDocumentFragment();
                 list.forEach((lo, i) => {
                     const row = el("div", "rg-row lora");
-                    const tag = el("span", "rg-hint"); tag.textContent = lo.edit ? "Edit" : "LoRA";
+                    const tag = el("span", "rg-hint"); tag.textContent = lo.control ? "Control" : lo.edit ? "Edit" : "LoRA";
                     if (lo.edit) {
                         tag.title = `Edit LoRA for ${lo.edit}, added by Edit Mode: used only in Edit Mode with a ${lo.edit} model, `
                             + "and removed when the node is switched back to generate (Settings > Region Genie > Edit Mode).";
@@ -4563,6 +4702,9 @@ app.registerExtension({
                     regList.appendChild(empty);
                 }
 
+                regList.appendChild(controlRow());
+                if (state.control?.on && expanded.has(CONTROL)) regList.appendChild(controlDetails());
+
                 state.regions.forEach((r, i) => {
                     const lays = layersOf(r.id);
                     const row = el("div", "rg-row region" + (curRegion === r.id ? " sel" : "") + (r.hidden ? " off" : ""));
@@ -4629,7 +4771,7 @@ app.registerExtension({
                         if (curRegion === r.id) curRegion = state.regions[0]?.id ?? null;
                         if (!selLayer()) selId = null;
                     }));
-                    row.append(llmButton(r.id), ...(isEdit() ? [keepToggle(r)] : []), cnt, featherBox(r), paletteToggle(r), addL,
+                    row.append(llmButton(r.id), ...(isEdit() ? [keepToggle(r)] : []), ...(state.control?.on ? [controlToggle(r)] : []), cnt, featherBox(r), paletteToggle(r), addL,
                                mergeAll, up, down, del);
                     regList.appendChild(row);
                     if (kinds.length && expanded.has(r.id)) {
@@ -4815,6 +4957,20 @@ app.registerExtension({
                 let llmMsg = null;
                 try { llmMsg = JSON.parse(message?.llm?.[0] || "null"); } catch (e) { /* ignore */ }
                 if (llmMsg) storeLlmResults(llmMsg);
+                const cm = Array.isArray(message?.control_map) ? message.control_map[0] : null;
+                if (cm?.filename) {
+                    const key = cm.filename + cm.subfolder;
+                    if (key !== controlMapKey) {
+                        controlMapKey = key;
+                        const img = new Image();
+                        img.onload = () => { controlMap = img; renderRegions(); requestDraw(); };
+                        img.src = api.apiURL(`/view?filename=${encodeURIComponent(cm.filename)}&type=${cm.type}&subfolder=${encodeURIComponent(cm.subfolder || "")}&t=${Date.now()}`);
+                    }
+                }
+                if (state.control?.on && Array.isArray(message?.model_arch) && message.model_arch[0]) {
+                    const before = JSON.stringify(state.sceneLoras || []);
+                    if (syncControlLoras() && JSON.stringify(state.sceneLoras || []) !== before) { save(); renderRegions(); }
+                }
                 if (Array.isArray(message?.wildcards)) {
                     let f = {};
                     try { f = JSON.parse(message.wildcards[0] || "{}") || {}; } catch (e) { /* ignore */ }

@@ -180,6 +180,56 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.waitForTimeout(700);
     check("0: back to 12 px", await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-list textarea.rg-prompt")).fontSize)) === 12);
 
+    // ---------------- Control row (round 10)
+    const crow = page.locator(".rg-list .rg-row.ctrl");
+    check("Control row under Whole image, off by default", await crow.count() === 1 && !(await st()).control?.on && await crow.locator("select").count() === 0);
+    await page.evaluate(() => { window.__settings["RegionGenie.Control.MOSS"] = "moss_ctrl.safetensors"; window.__settings["RegionGenie.Control.SDXL.canny"] = "cn_canny.safetensors"; });
+    await crow.locator(".rg-btn.mini").first().click(); await page.waitForTimeout(80);
+    s = await st();
+    check("toggle: control on (depth), MOSS control LoRA added to Whole image (no run yet: every model)", s.control?.on === true && s.control.kind === "depth"
+        && (s.sceneLoras || []).some((x) => x.lora === "moss_ctrl.safetensors" && x.control === "MOSS Image" && x.ckind === "moss"));
+    check("the LoRA row is marked 'Control'", await page.locator(".rg-list .rg-row.lora .rg-hint", { hasText: "Control" }).count() >= 1);
+    await crow.locator("select").selectOption("canny"); await page.waitForTimeout(80);
+    check("canny: the MOSS LoRA goes (it reads color / depth only)", !((await st()).sceneLoras || []).some((x) => x.control));
+    await crow.locator("select").selectOption("color"); await page.waitForTimeout(80);
+    const [cs, ca, cb] = [crow.locator("input.rg-num").nth(0), crow.locator("input.rg-num").nth(1), crow.locator("input.rg-num").nth(2)];
+    await cs.fill("0.8"); await cs.press("Enter"); await ca.fill("10"); await ca.press("Enter"); await cb.fill("70"); await cb.press("Enter");
+    await page.waitForTimeout(80);
+    s = await st();
+    check("strength / start / end", s.control.kind === "color" && s.control.strength === 0.8 && Math.abs(s.control.start - 0.1) < 1e-9 && Math.abs(s.control.end - 0.7) < 1e-9);
+    // details: which file each model uses
+    if (!await page.locator(".rg-subbody.ctrl").count()) await crow.locator(".rg-pseudo").click();
+    await page.waitForTimeout(80);
+    check("details list the files and the map's source", /MOSS Image: LoRA moss_ctrl/.test(await page.locator(".rg-subbody.ctrl").textContent())
+        && /regions' colors/.test(await page.locator(".rg-subbody.ctrl").textContent()));
+    // per-region switch
+    const rtog = page.locator('.rg-row.region .rg-btn.mini[title^="Control acts on this region"]');
+    check("a control switch on each region row while control is on", await rtog.count() === (await st()).regions.length);
+    await rtog.first().click(); await page.waitForTimeout(80);
+    check("switching a region off: noControl on the region", (await st()).regions[0].noControl === true);
+    // what the run gets: the control settings and the files from Settings
+    const sent = await page.evaluate(() => JSON.parse(window.__node.widgets.find((w) => w.name === "paint_data").serializeValue()));
+    check("paint_data: control and the Settings' files", sent.control?.on && sent.control.kind === "color" && sent.control.files?.MOSS === "moss_ctrl.safetensors"
+        && sent.control.files["SDXL.canny"] === "cn_canny.safetensors" && sent.regions[0].noControl === true);
+    // the model of the last run decides which LoRAs are added
+    await page.evaluate(() => { window.__node.properties.rg_model_arch = "Flux.1"; window.__settings["RegionGenie.Control.Flux1Depth"] = "flux-depth-lora.safetensors"; });
+    await crow.locator("select").selectOption("depth"); await page.waitForTimeout(80);
+    s = await st();
+    check("last run was Flux.1: only the Flux.1 depth LoRA", (s.sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "flux-depth-lora.safetensors");
+    // reloading the workflow keeps control, the region switches, the region eye and the LLM switches (loader fix)
+    await page.evaluate(() => { const st = window.__node.__rgState(); st.regions[1].hidden = true; st.regions[1].llm = true; st.sceneLlm = true; window.__node.__rgRefresh(); });
+    await page.evaluate(() => window.__node.onConfigure?.({ properties: window.__node.properties }));
+    await page.waitForTimeout(100);
+    s = await st();
+    check("reload keeps control, noControl, hidden, llm, sceneLlm, control LoRA tags", s.control?.on && s.control.kind === "depth" && s.regions[0].noControl
+        && s.regions[1].hidden && s.regions[1].llm && s.sceneLlm && (s.sceneLoras || []).some((x) => x.control === "Flux.1" && x.ckind === "depth"));
+    await page.evaluate(() => { const st = window.__node.__rgState(); delete st.regions[1].hidden; window.__node.__rgRefresh(); });
+    // off: the control LoRAs go; undo brings them back
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(80);
+    check("off: the control LoRAs leave Whole image", !(await st()).control.on && !((await st()).sceneLoras || []).some((x) => x.control));
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(80);
+    check("undo: on again with its LoRA", (await st()).control.on && ((await st()).sceneLoras || []).some((x) => x.control));
+
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");
     process.exit(fails.length ? 1 : 0);

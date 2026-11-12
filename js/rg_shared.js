@@ -50,6 +50,9 @@ export const ICONS = {
     dice: '<rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.2"/><circle cx="5.4" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="5.4" cy="10.6" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="10.6" r="1" fill="currentColor" stroke="none"/>',
     plusOne: '<path d="M2.4 8h4.4M4.6 5.8v4.4"/><path d="M9.6 5.2l2-1.6v8.8"/>',
     useFilled: '<path d="M8 1.8v7.6M4.8 6.4L8 9.6l3.2-3.2"/><path d="M2.4 12.8h11.2"/>',
+    // Control (ControlNet): contour lines of a depth map
+    control: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6"/><path d="M1.8 11.2c2.4-2.6 4.6-3.4 6.8-2.4s3.8.6 5.6-1.4"/><path d="M1.8 7.4c2-2 4-2.6 6-1.8s3.6.4 6.4-2" stroke-dasharray="1.6 1.4"/>',
+    controlOff: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6" stroke-dasharray="2 1.6"/><path d="M1.8 11.2c2.4-2.6 4.6-3.4 6.8-2.4s3.8.6 5.6-1.4" opacity=".5"/><path d="M2.4 13.6L13.6 2.4"/>',
     // open a text field in the pop-up editor
     expand: '<path d="M9.4 2.4h4.2v4.2M13.6 2.4L9.2 6.8M6.6 13.6H2.4V9.4M2.4 13.6l4.4-4.4"/>',
     // Select object: add the pending selection / discard it
@@ -138,6 +141,43 @@ export function keepWidgetValuesByName(node, names) {
 // ---------------------------------------------------------------- LoRA files
 let loraList = null, loraTime = 0, loraPromise = null;
 export const knownLoras = () => loraList;
+// other model folders' file lists (ControlNet, model patches, Depth Anything 3), read once and on request
+const modelLists = {};
+export function knownModels(folder, refresh = false) {
+    if (!modelLists[folder] || refresh) {
+        modelLists[folder] = modelLists[folder] || { list: [] };
+        api.fetchApi(`/models/${folder}`).then((r) => (r.ok ? r.json() : [])).then((l) => { if (Array.isArray(l)) modelLists[folder].list = l; }).catch(() => {});
+    }
+    return modelLists[folder].list;
+}
+
+// ---------------------------------------------------------------- Control (ControlNet / control LoRAs)
+// [Settings key, label, model folder, model (as ui.model_arch says), LoRA tag kind or null]. One file per model and kind;
+// the LoRA ones are added to 'Whole image' when control is on.
+export const CONTROL_FILES = [
+    ["MOSS", "MOSS Image: color / depth control LoRA", "loras", "MOSS Image", "moss"],
+    ["Flux1Depth", "Flux.1: depth LoRA (e.g. flux1-depth-dev-lora)", "loras", "Flux.1", "depth"],
+    ["Flux1Canny", "Flux.1: canny LoRA (e.g. flux1-canny-dev-lora)", "loras", "Flux.1", "canny"],
+    ...[["Flux1", "Flux.1"], ["SDXL", "SDXL"], ["SD15", "SD1.5"]].flatMap(([k, name]) => [
+        [`${k}.depth`, `${name}: depth ControlNet`, "controlnet", name, null],
+        [`${k}.canny`, `${name}: canny ControlNet`, "controlnet", name, null],
+        [`${k}.other`, `${name}: ControlNet for your control_image (pose, lineart, union …)`, "controlnet", name, null]]),
+    ["Anima.depth", "Anima: depth LLLite patch", "model_patches", "Anima", null],
+    ["Anima.canny", "Anima: canny LLLite patch", "model_patches", "Anima", null],
+    ["Anima.other", "Anima: LLLite patch for your control_image", "model_patches", "Anima", null],
+    ["DA3", "Depth Anything 3 model (makes depth maps from 'image')", "geometry_estimation", null, null],
+];
+export const CONTROL_NONE = "(none)";
+setTimeout(() => { for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f); }, 0);
+// the files set in Settings: { key: file } (unset ones left out)
+export function controlFiles() {
+    const out = {};
+    for (const [key] of CONTROL_FILES) {
+        const v = getSetting(SET.control + "." + key, CONTROL_NONE);
+        if (typeof v === "string" && v && v !== CONTROL_NONE) out[key] = v;
+    }
+    return out;
+}
 export async function getLoras(force) {
     if (loraList && !force && performance.now() - loraTime < 5000) return loraList;
     if (!loraPromise) {
@@ -705,6 +745,7 @@ export const SET = {
     llmContext: "RegionGenie.LLM.Context",
     llmNewRegions: "RegionGenie.LLM.NewRegionsOn",
     wcPerField: "RegionGenie.Wildcards.PerField",
+    control: "RegionGenie.Control",
     // text size per kind of field, in the node and in the pop-up editors (0 in the node = as before)
     fsNodeScene: "RegionGenie.Text.NodeScene", fsNodeRegion: "RegionGenie.Text.NodeRegion", fsNodeText: "RegionGenie.Text.NodeText",
     fsPopScene: "RegionGenie.Text.PopupScene", fsPopRegion: "RegionGenie.Text.PopupRegion", fsPopText: "RegionGenie.Text.PopupText",
@@ -1018,6 +1059,22 @@ const SETTINGS = [
         })),
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
         { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
+        ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
+            id: SET.control + "." + key, name, type: "combo", defaultValue: CONTROL_NONE,
+            // the file list is read when ComfyUI starts; the set value is always listed
+            options: (value) => {
+                const list = (folder === "loras" ? knownLoras() : knownModels(folder)) || [];
+                const cur = typeof value === "string" && value && value !== CONTROL_NONE && !list.includes(value) ? [value] : [];
+                return [CONTROL_NONE, ...cur, ...list];
+            },
+            tooltip: (tag ? `Turning on a Region Genie node's Control row adds this LoRA to its 'Whole image' LoRAs (marked 'Control') `
+                + `when the control uses it, and turning it off removes it again. It is applied only when the model on 'model' is ${model}.`
+                : model ? `The Region Genie node's Control row uses this file (models/${folder}) when the model on 'model' is ${model}.`
+                : "Makes the depth map from the node's 'image' input when no control_image is connected (models/geometry_estimation; "
+                    + "ComfyUI's Depth Anything 3).")
+                + " The same for every Region Genie node.",
+            category: CAT("Control", String(i).padStart(2, "0") + " " + key),
+        })),
         ...EDIT_MODELS.map(([name, key], i) => ({
             id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: "combo", defaultValue: NO_LORA,
             // the LoRA list is read when ComfyUI starts (and refreshed when a LoRA picker opens); the set value is always listed

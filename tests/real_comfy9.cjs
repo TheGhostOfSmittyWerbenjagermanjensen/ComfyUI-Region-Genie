@@ -160,6 +160,54 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // put the shared Settings back for the next run of this test
     await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Text.PopupScene", 14); await s.set("RegionGenie.Popup.Sizes", "{}"); });
 
+    // ---------------- round 10: Control (no model files here: the run notes it, the map overlay is fed a run's image)
+    const c10 = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        const pv = LG.createNode("PreviewImage"); pv.pos = [900, 40]; app.graph.add(pv);
+        rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), pv, 0);
+        app.canvas.ds.offset = [0, -560]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
+        await new Promise((r) => setTimeout(r, 1500));
+        const st = rg.__rgState();
+        st.regions.push({ id: 1, color: "#E6194B", prompt: "a boat", type: "object", text: "" });
+        st.layers.push({ id: 1, name: "Rect 1", region: 1, visible: true, shape: "rect", sides: 5, bw: 0.5, bh: 1, sx: 1, sy: 1, rot: 0, ox: -0.25, oy: 0, ops: [] });
+        rg.__rgRefresh();
+        await new Promise((r) => setTimeout(r, 300));
+        return { lastInputs: rg.inputs.filter((i) => !i.widget).map((i) => i.name).slice(-3), setting: app.extensionManager.setting.get("RegionGenie.Control.MOSS"),
+                 row: !!document.querySelector(".rg-list .rg-row.ctrl") };
+    });
+    check(`${M}: 'control_image' just before width / height; Control row and Settings exist`, JSON.stringify(c10.lastInputs) === '["control_image","width_in","height_in"]' && c10.row && c10.setting === "(none)");
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
+    await page.waitForTimeout(200);
+    const c11 = await page.evaluate(async () => {
+        const app = window.app, rg = window.__rg;
+        await fetch("/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clear: true }) });
+        await app.queuePrompt(0, 1);
+        let out = null;
+        for (let i = 0; i < 120 && !out; i++) {
+            await new Promise((r) => setTimeout(r, 500));
+            const e = Object.values(await (await fetch("/history")).json())[0];
+            if (e?.status?.status_str) out = e;
+        }
+        const o = out?.outputs?.[String(rg.id)], img = Object.values(out?.outputs || {}).find((x) => x.images)?.images?.[0];
+        return { status: out?.status?.status_str, info: o?.region_info?.[0] || "", img };
+    });
+    check(`${M}: a run with control on and no model: runs, and says why control isn't used`, c11.status === "success" && /control is on, but no model is connected/.test(c11.info));
+    // the map overlay: hand the editor a run's image as its control map
+    const ov = await page.evaluate(async (img) => {
+        const rg = window.__rg;
+        rg.onExecuted({ control_map: [img] });
+        await new Promise((r) => setTimeout(r, 800));
+        const eye = document.querySelector(".rg-list .rg-row.ctrl .rg-btn.icon");
+        const before = !!eye && !eye.disabled;
+        eye?.click();
+        await new Promise((r) => setTimeout(r, 300));
+        return { enabled: before, shown: eye ? /Hide the control map/.test(document.querySelector(".rg-list .rg-row.ctrl .rg-btn.icon").title) : false };
+    }, c11.img);
+    check(`${M}: after a run the control map can be shown on the canvas`, ov.enabled && ov.shown);
+    await page.evaluate(() => { document.querySelector(".rg-list .rg-row.ctrl .rg-btn.mini")?.click(); });
+
     // ---------------- wildcards (needs Impact Pack, and a wildcards/rgtest/color.txt file in it)
     const wcInstalled = await page.evaluate(async () => (await (await fetch("/region_genie/wildcards")).json()).installed);
     if (!wcInstalled) console.log("SKIP wildcards: Impact Pack is not installed");
