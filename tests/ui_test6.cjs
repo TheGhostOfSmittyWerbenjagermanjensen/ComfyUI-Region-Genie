@@ -73,10 +73,10 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("magic wand button", await wand.count() === 1);
     await wand.click({ button: "right" });
     let items = await page.evaluate(() => window.__lastMenu.items.map((i) => i.content));
-    check("wand right-click: 2 versions", items.length === 2 && items[0].startsWith("✓"));
+    check("wand right-click: 2 versions and Select object", items.length === 3 && items[0].startsWith("✓") && /Select object/.test(items[2]));
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[1]));
     check("wand: global version picked", /^Magic wand \(all similar colors\)/.test(await wand.getAttribute("title")));
-    const tolIn = page.locator('.rg-bar input[title^="Magic wand tolerance"]');
+    const tolIn = page.locator('.rg-toolopts input[title^="Magic wand tolerance"]');
     check("tolerance field shown with the wand", await tolIn.isVisible());
     await page.evaluate(() => window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.WandTolerance").onChange(50));
     await page.waitForTimeout(50);
@@ -88,7 +88,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const fill = page.locator('.rg-bar .rg-btn.icon[title^="Fill"]');
     await fill.click({ button: "right" });
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[1]));
-    const gapIn = page.locator('.rg-bar input[title^="Fill, closing small gaps"]');
+    const gapIn = page.locator('.rg-toolopts input[title^="Fill, closing small gaps"]');
     check("fill gaps: version picked, gap field shown", /^Fill \(closing small gaps\)/.test(await fill.getAttribute("title")) && await gapIn.isVisible());
     check("tolerance hidden with another tool", await tolIn.isHidden());
 
@@ -186,8 +186,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
 
     // ---- rounded rectangle, from the centre with Alt
     await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = []; });
-    await page.locator(".rg-bar select[title='Shape to draw']").selectOption("roundrect");
-    const radIn = page.locator('.rg-bar input[title^="Corner radius"]');
+    await page.locator('.rg-bar .rg-btn[data-group="shape"]').click({ button: "right" });
+    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items.find((i) => /Rounded rectangle/.test(i.content))));
+    const radIn = page.locator('.rg-toolopts input[title^="Corner radius"]');
     check("rounded rectangle: radius field shown", await radIn.isVisible());
     await radIn.fill("30"); await radIn.press("Tab");
     await dragImg([[128, 128], [178, 158]], ["Alt"]);

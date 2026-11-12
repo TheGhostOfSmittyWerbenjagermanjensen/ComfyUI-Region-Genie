@@ -1,7 +1,7 @@
 import { app } from "../../scripts/app.js";
 import { getLoras, knownLoras, pickLora, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName, appendWord,
          autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, autocompleteToggle, getSetting, SET,
-         wildcardSeedControl, WC_CSS } from "./rg_shared.js";
+         wildcardSeedControl, WC_CSS, addExpandButton, openFloatPopup, FPOP_CSS } from "./rg_shared.js";
 
 // Editor of the "Regional LoRAs" node: one row per LoRA (on, mask index, LoRA, strength, words for
 // that region's caption with the LoRA's trigger words as chips), stored as JSON in the hidden "loras_data" widget.
@@ -36,10 +36,12 @@ const CSS = `
 .rg-rl-sw { width:12px; height:12px; border-radius:2px; border:1px solid #000; flex:0 0 auto; }
 .rg-rl-region { flex:1 1 0 !important; width:0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.85; }
 .rg-rl-region.bad { color:#e88; opacity:1; }
+.rg-rl-line .rg-pwrap { position:relative; display:flex; flex:1 1 0; min-width:0; }
 .rg-rl-prompt { flex:1 1 0 !important; width:0; min-width:0; box-sizing:border-box; resize:none; background:var(--comfy-input-bg,#222);
-  color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; font:inherit; padding:1px 4px; height:20px;
-  line-height:16px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-.rg-rl-prompt:focus { height:64px; white-space:pre-wrap; overflow-y:auto; scrollbar-width:thin; outline:none; border-color:#5b8fd0; }
+  color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; font-family:inherit; font-size:var(--rg-rl-fs,12px);
+  padding:1px 18px 1px 4px; height:calc(var(--rg-rl-lh,16px) + 4px); line-height:var(--rg-rl-lh,16px); overflow:hidden; white-space:nowrap;
+  text-overflow:ellipsis; }
+.rg-rl-prompt:focus { height:calc(var(--rg-rl-lh,16px) * 4); white-space:pre-wrap; overflow-y:auto; scrollbar-width:thin; outline:none; border-color:#5b8fd0; }
 .rg-rl-trig { display:flex; flex-wrap:wrap; gap:3px; align-items:center; font-size:10px; min-height:0; }
 .rg-rl-trig:empty { display:none; }
 `;
@@ -56,7 +58,7 @@ app.registerExtension({
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (!NODE_NAMES.includes(nodeData.name)) return;
         if (!document.getElementById("rg-rl-style")) {
-            const s = document.createElement("style"); s.id = "rg-rl-style"; s.textContent = CSS + CHIP_CSS + WC_CSS; document.head.appendChild(s);
+            const s = document.createElement("style"); s.id = "rg-rl-style"; s.textContent = CSS + CHIP_CSS + WC_CSS + FPOP_CSS; document.head.appendChild(s);
         }
         const onCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
@@ -78,13 +80,13 @@ app.registerExtension({
 });
 
 function setup(node) {
-    keepWidgetValuesByName(node, ["prompt", "negative_prompt", "feather", "lora_masking", "region_separation", "separation_until",
+    keepWidgetValuesByName(node, ["positive_prompt", "negative_prompt", "feather", "lora_masking", "region_separation", "separation_until",
                                   "separate_all_regions", "share_background", "wildcard_seed"]);
     // wildcards (Impact Pack): what each field became in the last run (or a preview)
     let wcFilled = {};
     const filledFor = (key, raw) => { const f = wcFilled[key]; return f && f.raw === (raw ?? "") && f.filled !== f.raw ? f.filled : null; };
-    const widgetTA = {};                                      // prompt / negative_prompt -> textarea
-    const WKEY = { prompt: "prompt", negative_prompt: "negative" };
+    const widgetTA = {};                                      // positive_prompt / negative_prompt -> textarea
+    const WKEY = { positive_prompt: "prompt", negative_prompt: "negative" };   // -> the wildcard field keys of the run
     const wcMark = (t, key, raw) => {
         if (!t) return;
         if (t.dataset.baseTitle == null) t.dataset.baseTitle = t.title || "";
@@ -93,12 +95,25 @@ function setup(node) {
         if (t.title !== title) t.title = title;
         t.style.boxShadow = f != null ? "inset 3px 0 0 -1px #c9a14a" : "";
     };
-    autocompleteWidgets(node, ["prompt", "negative_prompt"], (name, t) => {
+    // the text fields' expand button: the floating pop-up editor (bigger, A− / A+, drag, resize, wildcards)
+    const setW = (name, v) => {
+        const w = node.widgets?.find((x) => x.name === name);
+        if (!w) return;
+        w.value = v;
+        try { w.callback?.(v); } catch (e) { /* ignore */ }
+        if (widgetTA[name] && widgetTA[name].value !== v) widgetTA[name].value = v;
+        wcMark(widgetTA[name], WKEY[name], v);
+        node.setDirtyCanvas?.(true, true);
+    };
+    autocompleteWidgets(node, ["positive_prompt", "negative_prompt"], (name, t) => {
         if (!WKEY[name]) return;
         widgetTA[name] = t;
         t.addEventListener("input", () => wcMark(t, WKEY[name], t.value));
+        addExpandButton(t, "Open in the pop-up editor", () => openFloatPopup({
+            anchor: t, title: name, value: node.widgets?.find((x) => x.name === name)?.value ?? "", node,
+            fontKey: SET.fsPopScene, onInput: (v) => setW(name, v), filled: (raw) => filledFor(WKEY[name], raw) }));
     });
-    for (const n of ["prompt", "negative_prompt"]) {
+    for (const n of ["positive_prompt", "negative_prompt"]) {
         const w = node.widgets?.find((x) => x.name === n);
         if (w?.options) { w.options.getMinHeight = () => 48; w.options.getMaxHeight = () => 96; }
     }
@@ -140,7 +155,7 @@ function setup(node) {
     const linked = (n) => !!node.inputs?.some((i) => i.name === n && i.link != null);
     const wval = (n) => (linked(n) ? "" : String(node.widgets?.find((x) => x.name === n)?.value ?? ""));
     const wcFields = () => {
-        const f = { prompt: wval("prompt"), negative: wval("negative_prompt") };
+        const f = { prompt: wval("positive_prompt"), negative: wval("negative_prompt") };
         rows.forEach((r, k) => { if (r.prompt) f["row" + k] = r.prompt; });
         return f;
     };
@@ -288,12 +303,17 @@ function setup(node) {
                 if (e.key === "Enter" && !e.shiftKey && !autocompleteOpen(pr, e)) { e.preventDefault(); pr.blur(); }
             });
             autocompleteOnFocus(pr, node);
-            l3.append(pr);
+            const prWrap = el("span", "rg-pwrap"); prWrap.appendChild(pr);
+            l3.append(prWrap);
             const chips = el("div", "rg-rl-trig");
             row.append(l1, l2, l3, chips);
             list.append(row);
             rowEls[i] = { sw, text: regText, pr };
             fillChips(chips, r);
+            addExpandButton(pr, "Open this row's words in the pop-up editor", () => openFloatPopup({
+                anchor: pr, title: `Row ${i + 1}: words for ${r.index === -1 ? "the whole image" : "region " + r.index}`, value: r.prompt, node,
+                fontKey: SET.fsPopRegion, onInput: (v) => { r.prompt = v; pr.value = v; save(); wcMark(pr, "row" + i, v); },
+                filled: (raw) => filledFor("row" + i, raw), onClose: () => { fillChips(chips, r); updateHints(); } }));
             pr.addEventListener("input", () => wcMark(pr, "row" + i, r.prompt));
         });
         markAll();
@@ -322,12 +342,29 @@ function setup(node) {
 
     let configured = false;
     const onConfigure = node.onConfigure;
-    node.onConfigure = function () {
+    node.onConfigure = function (info) {
         configured = true;
         const r = onConfigure?.apply(this, arguments);
         fixMode(); load(); render(); acCtl.refresh();
+        migratePrompt(info);
         return r;
     };
+    // 'prompt' was renamed 'positive_prompt' (round 11): a workflow saved before keeps its text and its link
+    function migratePrompt(info) {
+        const old = info?.properties?.rg_widget_values?.prompt;
+        const put = () => { const w = node.widgets?.find((x) => x.name === "positive_prompt"); if (w && typeof old === "string" && !w.value) setW("positive_prompt", old); };
+        if (typeof old === "string" && info.properties.rg_widget_values.positive_prompt == null) { put(); setTimeout(put, 0); }
+        const i = (node.inputs || []).findIndex((x) => x.name === "prompt");
+        if (i < 0) return;
+        const id = node.inputs[i].link;
+        let j = node.inputs.findIndex((x) => x.name === "positive_prompt");
+        if (id != null && j < 0) { node.addInput("positive_prompt", "STRING", { widget: { name: "positive_prompt" } }); j = node.inputs.length - 1; }
+        if (id != null && node.inputs[j].link == null) {
+            const l = node.graph?.links?.get?.(id) ?? node.graph?.links?.[id];
+            if (l) { l.target_slot = j; node.inputs[j].link = id; node.inputs[i].link = null; }
+        }
+        node.removeInput(node.inputs.findIndex((x) => x.name === "prompt"));
+    }
     load(); render();
     getLoras();
     // Settings > Region Genie: defaults for a node that was just added (not loaded or pasted)
@@ -348,7 +385,19 @@ function setup(node) {
         set("share_background", !!getSetting(SET.hlShareBg, false));
         node.setDirtyCanvas?.(true, true);
     }, 0);
-    const poll = setInterval(() => { if (!node.graph) return; fixMode(); updateHints(); wcCtl.refresh(); }, 1000);
+    // Settings > Region Genie > Text size: positive / negative as 'scene prompts', the rows' words as 'region prompts'
+    function applyFonts() {
+        const fs = (id) => Math.max(0, Math.min(40, Math.round(+getSetting(id, 0)) || 0));
+        const a = fs(SET.fsNodeScene), b = fs(SET.fsNodeRegion);
+        for (const t of Object.values(widgetTA)) {
+            const want = a ? a + "px" : "";
+            if (t.style.fontSize !== want) { t.style.fontSize = want; t.style.lineHeight = a ? Math.round(a * 1.3) + "px" : ""; }
+        }
+        if (b) { wrap.style.setProperty("--rg-rl-fs", b + "px"); wrap.style.setProperty("--rg-rl-lh", Math.round(b * 1.3) + "px"); }
+        else { wrap.style.removeProperty("--rg-rl-fs"); wrap.style.removeProperty("--rg-rl-lh"); }
+    }
+    applyFonts();
+    const poll = setInterval(() => { if (!node.graph) return; fixMode(); updateHints(); wcCtl.refresh(); applyFonts(); }, 1000);
     const onRemoved = node.onRemoved;
     node.onRemoved = function () { clearInterval(poll); return onRemoved?.apply(this, arguments); };
 }

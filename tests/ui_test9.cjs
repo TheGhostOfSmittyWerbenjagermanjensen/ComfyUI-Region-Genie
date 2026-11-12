@@ -294,6 +294,46 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("back to Generate: the edit LoRA leaves", !((await st()).sceneLoras || []).some((x) => x.edit));
     await msel.selectOption(""); await page.waitForTimeout(100);
 
+    // ---------------- toolbar: one row whatever the tool; grouped buttons with ▾; options strip; opacity slider (round 11)
+    const key = async (k) => { await page.evaluate(() => document.querySelector(".rg-keysink").focus()); await page.keyboard.press(k); await page.waitForTimeout(60); };
+    const barRows = () => page.evaluate(() => { const b = document.querySelector(".rg-bar"); return [b.offsetHeight, [...b.children].filter((e) => e.offsetParent).reduce((a, e) => a + e.offsetWidth + 3, -3), b.clientWidth]; });
+    let oneRow = true;
+    for (const k of ["v", "r", "b", "l", "f", "w", "q", "e", "Shift+L"]) { await key(k); const [h, need, w] = await barRows(); if (h > 30 || need > w) oneRow = false; }
+    check("toolbar: one row for every tool (no image)", oneRow);
+    const grp = (g) => page.locator(`.rg-bar .rg-btn[data-group="${g}"]`);
+    const icon = (g) => grp(g).locator(".rg-grp-ic").innerHTML();
+    await key("o");
+    check("shape button shows the active shape (O: ellipse)", (await icon("shape")).includes("ellipse") && /^Shape \(Ellipse\)/.test(await grp("shape").getAttribute("title")));
+    await grp("shape").locator(".rg-grp-dd").click();
+    check("▾ opens the shape list (8 shapes, the current one ticked)", await page.evaluate(() => window.__lastMenu.items.length === 8 && window.__lastMenu.items[2].content.startsWith("✓")));
+    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items.find((i) => /Star/.test(i.content))));
+    await page.waitForTimeout(60);
+    check("star picked: star icon, star points in the canvas strip", (await icon("shape")).includes("M8 1.8l1.8 4") && await page.locator('.rg-toolopts input[title^="Number of star points"]').isVisible());
+    await key("Shift+L");
+    check("Shift+L: the eraser button shows lasso erase", /^Lasso erase/.test(await grp("erase").getAttribute("title")) && await grp("erase").evaluate((b) => b.classList.contains("on")));
+    await key("e");
+    check("E: back to the eraser on the same button", /^Eraser/.test(await grp("erase").getAttribute("title")));
+    await grp("erase").click({ button: "right" });
+    check("eraser list: the eraser and the three lasso erase versions", await page.evaluate(() => window.__lastMenu.items.map((i) => i.content).join("|")).then((t) => /Eraser.*Lasso erase.*spline.*magnetic/.test(t)));
+    await key("w");
+    check("W: the wand button shows the wand, tolerance in the strip", /^Magic wand/.test(await grp("wand").getAttribute("title")) && await page.locator('.rg-toolopts input[title^="Magic wand tolerance"]').isVisible());
+    await key("b");
+    check("the strip hides with a tool without options", await page.locator(".rg-toolopts").isHidden());
+    // with an image: still one row, opacity on the canvas's right edge
+    await page.evaluate(async () => { const c = document.createElement("canvas"); c.width = c.height = 64; const i = new Image(); i.src = c.toDataURL(); await i.decode();
+        window.__node.inputs = [...window.__node.inputs.filter((x) => x.name !== "image"), { name: "image", link: 7 }]; window.__node.__rgSetBackdrop(i, { filename: "p.png", subfolder: "", type: "input" }); });
+    await page.waitForTimeout(700);
+    oneRow = true;
+    for (const k of ["v", "r", "w", "q"]) { await key(k); const [h, need, w] = await barRows(); if (h > 30 || need > w) oneRow = false; }
+    check("toolbar: one row for every tool (image connected)", oneRow);
+    const osl = page.locator(".rg-cv .rg-oslider");
+    check("image opacity: a slider on the canvas's right edge, with a tooltip", await osl.isVisible() && /^Image opacity: 50%/.test(await osl.getAttribute("title"))
+        && await page.evaluate(() => { const r = document.querySelector(".rg-oslider").getBoundingClientRect(), c = document.querySelector(".rg-cv").getBoundingClientRect(); return c.right - r.right < 20; }));
+    const ob = await osl.boundingBox();
+    await page.mouse.click(ob.x + ob.width / 2, ob.y + ob.height * 0.15);
+    await page.waitForTimeout(60);
+    check("clicking near the top: about 90-100%", /^Image opacity: (90|95|100)%/.test(await osl.getAttribute("title")));
+
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");
     process.exit(fails.length ? 1 : 0);

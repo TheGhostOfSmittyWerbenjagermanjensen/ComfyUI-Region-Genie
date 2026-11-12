@@ -46,14 +46,19 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         };
     });
 
-    const objBtn = page.locator('.rg-bar .rg-btn.icon[title^="Select object"]');
-    check("Select object button", await objBtn.count() === 1);
+    // Select object shares a button with the magic wand (the wand first): its ▾ list picks it, then the button stays on it
+    const objBtn = page.locator('.rg-bar .rg-btn[data-group="wand"]');
+    check("Magic wand / Select object button", await objBtn.count() === 1 && /^Magic wand/.test(await objBtn.getAttribute("title")));
+    await objBtn.locator(".rg-grp-dd").click();
+    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items.find((i) => /Select object/.test(i.content))));
+    await page.waitForTimeout(80);
+    check("▾ list: Select object picked, the button shows it", /^Select object/.test(await objBtn.getAttribute("title")));
     check("Select object button has its icon", await objBtn.evaluate((b) => b.querySelector("svg")?.childElementCount > 0 && !/undefined/.test(b.innerHTML)));
     const blank = await page.evaluate(() => [...document.querySelectorAll(".rg-btn.icon")].filter((b) => /undefined/.test(b.innerHTML) || (b.querySelector("svg") && !b.querySelector("svg").childElementCount)).map((b) => b.title.slice(0, 30)));
     check("no icon button is blank" + (blank.length ? ": " + blank.join(", ") : ""), blank.length === 0);
     await page.keyboard.press("q").catch(() => {});
     await objBtn.click();
-    const findIn = page.locator(".rg-bar .rg-find");
+    const findIn = page.locator(".rg-toolopts .rg-find");
     check("find field shown with the tool", await findIn.isVisible());
     // no image yet
     await clickImg(64, 64);
@@ -138,7 +143,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("Shift+Enter: one new region each, named by what was found", s.regions.length === nReg + 2 && s.regions.slice(0, 2).map((r) => r.prompt).sort().join() === "cat,dog");
     check("find field cleared after adding", await findIn.inputValue() === "");
     // switching tools adds what is selected (it isn't thrown away)
-    const okBtn = page.locator('.rg-bar .rg-btn.icon[title^="Add the selection"]');
+    const okBtn = page.locator('.rg-toolopts .rg-btn.icon[title^="Add the selection"]');
     await findIn.fill("cat"); await findIn.press("Enter"); await page.waitForTimeout(150);
     check("✓ shown with a pending selection", await okBtn.isVisible() && await okBtn.isEnabled());
     const nOps = async () => (await st()).layers.reduce((n, l) => n + l.ops.filter((o) => o.t === "bitmap").length, 0);

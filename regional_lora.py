@@ -1383,7 +1383,8 @@ class RegionalLoRAs:
                                              "region's caption (and trigger words) too."}),
                 "masks": ("MASK", {"tooltip": "Region masks, e.g. the 'masks' output of the Region Genie node. Each row "
                                               "picks one by index (the region numbers shown in the Region Genie node)."}),
-                "prompt": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
+                # was 'prompt' before round 11 (the editor moves old values and links over)
+                "positive_prompt": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
                                       "tooltip": "The positive prompt: connect 'prompt' of the Region Genie node "
                                                  "(MOSS JSON, Ideogram JSON or text, in the model's format), or type a "
                                                  "prompt. Each row's words are added to "
@@ -1437,7 +1438,7 @@ class RegionalLoRAs:
             "optional": {
                 # hidden; set with the seed control in the rows editor (shown when Impact Pack is installed)
                 "wildcard_seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF,
-                                          "tooltip": "Seed for the wildcards in prompt, negative_prompt and the rows' words "
+                                          "tooltip": "Seed for the wildcards in positive_prompt, negative_prompt and the rows' words "
                                                      "(ComfyUI Impact Pack's __name__ and {a|b} syntax). A prompt that "
                                                      "comes as MOSS / Ideogram JSON is left as it is."}),
             },
@@ -1467,7 +1468,7 @@ class RegionalLoRAs:
     def VALIDATE_INPUTS(cls, input_types=None, lora_masking=None):
         return True
 
-    def run(self, model, clip, masks, prompt, negative_prompt, feather, loras_data, lora_masking=MASKING_MODES[0],
+    def run(self, model, clip, masks, positive_prompt, negative_prompt, feather, loras_data, lora_masking=MASKING_MODES[0],
             region_separation=0.85, separation_until=0.25, separate_all_regions=False, share_background=False,
             wildcard_seed=0):
         from .bbox_masks import box_blur
@@ -1476,7 +1477,7 @@ class RegionalLoRAs:
         m = masks if masks.dim() == 3 else masks.unsqueeze(0)
         n = int(m.shape[0])
         lines, warn = [], []
-        prompt = str(prompt or "")
+        prompt = str(positive_prompt or "")
         # wildcards (Impact Pack) in the typed text: prompt (unless it's a JSON layout), negative_prompt, rows' words
         try:
             per_field = json.loads(loras_data).get("wcPerField") is True

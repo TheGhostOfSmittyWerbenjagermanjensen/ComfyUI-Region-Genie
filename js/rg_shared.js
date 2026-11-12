@@ -53,6 +53,17 @@ export const ICONS = {
     // Control (ControlNet): contour lines of a depth map
     control: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6"/><path d="M1.8 11.2c2.4-2.6 4.6-3.4 6.8-2.4s3.8.6 5.6-1.4"/><path d="M1.8 7.4c2-2 4-2.6 6-1.8s3.6.4 6.4-2" stroke-dasharray="1.6 1.4"/>',
     controlOff: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6" stroke-dasharray="2 1.6"/><path d="M1.8 11.2c2.4-2.6 4.6-3.4 6.8-2.4s3.8.6 5.6-1.4" opacity=".5"/><path d="M2.4 13.6L13.6 2.4"/>',
+    // the shape tool shows the shape it draws
+    shapeRect: '<rect x="2.2" y="3.4" width="11.6" height="9.2" rx=".4"/>',
+    shapeRoundrect: '<rect x="2.2" y="3.4" width="11.6" height="9.2" rx="2.8"/>',
+    shapeEllipse: '<ellipse cx="8" cy="8" rx="6" ry="4.8"/>',
+    shapeTriangle: '<path d="M8 2.4l6 11.2H2z"/>',
+    shapePentagon: '<path d="M8 2l6 4.4-2.3 7.2H4.3L2 6.4z"/>',
+    shapeHexagon: '<path d="M4.6 2.4h6.8L14.8 8l-3.4 5.6H4.6L1.2 8z"/>',
+    shapeStar: '<path d="M8 1.8l1.8 4 4.4.4-3.3 2.9 1 4.3L8 11.1l-3.9 2.3 1-4.3-3.3-2.9 4.4-.4z"/>',
+    shapeHeart: '<path d="M8 13.6S2 9.9 2 5.9A3.1 3.1 0 0 1 8 4.6a3.1 3.1 0 0 1 6 1.3c0 4-6 7.7-6 7.7z"/>',
+    // image opacity (the slider on the canvas's right edge)
+    opacity: '<circle cx="8" cy="8" r="5.8"/><path d="M8 2.2v11.6A5.8 5.8 0 0 0 8 2.2z" fill="currentColor" stroke="none"/>',
     // open a text field in the pop-up editor
     expand: '<path d="M9.4 2.4h4.2v4.2M13.6 2.4L9.2 6.8M6.6 13.6H2.4V9.4M2.4 13.6l4.4-4.4"/>',
     // Select object: add the pending selection / discard it
@@ -564,6 +575,153 @@ export const WC_CSS = `
 .rg-wc .rg-btn { cursor:pointer; padding:2px 4px; line-height:0; }
 .rg-wc .rg-btn svg { width:16px; height:16px; display:block; }
 .rg-wc .rg-num { padding:1px 3px; }
+`;
+
+// ---------------------------------------------------------------- expand button + floating pop-up editor
+// (the Region Genie node keeps its own pop-ups inside the node; nodes with little room, like Regional LoRAs, use this one,
+// which floats over the page at the field and may extend past the node)
+const RECENT = new Map();               // values just written to Settings (the store saves asynchronously)
+const recentGet = (id, d) => (RECENT.has(id) ? RECENT.get(id) : getSetting(id, d));
+const recentSet = (id, v) => { RECENT.set(id, v); setSetting(id, v); setTimeout(() => { if (RECENT.get(id) === v) RECENT.delete(id); }, 3000); };
+// a small ⤢ in the field's bottom-right corner (inside the field's parent element, left of a scrollbar)
+export function addExpandButton(t, title, onOpen) {
+    const host = t?.parentElement;
+    if (!host) return null;
+    const old = host.querySelector(":scope > .rg-expand");
+    if (old && old.__rgFor === t) return old;
+    old?.remove();
+    if (getComputedStyle(host).position === "static") host.style.position = "relative";
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "rg-expand"; b.innerHTML = svgIcon("expand"); b.title = title; b.tabIndex = -1; b.__rgFor = t;
+    for (const ev of ["pointerdown", "mousedown", "dblclick"]) b.addEventListener(ev, (e) => { e.stopPropagation(); if (ev !== "pointerdown") e.preventDefault(); });
+    b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); onOpen(); });
+    const place = () => {
+        if (!t.isConnected) return;
+        const sb = Math.max(0, t.offsetWidth - t.clientWidth - (t.clientLeft || 0) * 2);
+        b.style.right = Math.round(host.clientWidth - (t.offsetLeft + t.offsetWidth) + (t.clientLeft || 0) + sb + 2) + "px";
+        b.style.bottom = Math.round(host.clientHeight - (t.offsetTop + t.offsetHeight) + (t.clientTop || 0) + 2) + "px";
+    };
+    for (const ev of ["mouseenter", "focus", "input", "blur"]) t.addEventListener(ev, () => requestAnimationFrame(place));
+    try { new ResizeObserver(place).observe(t); } catch (e) { /* old browser */ }
+    host.addEventListener("mouseenter", place);
+    host.appendChild(b);
+    place();
+    return b;
+}
+let fpop = null;
+export const floatPopupOpen = () => !!fpop;
+export function closeFloatPopup(commit = true) { fpop?.close(commit); }
+// o: { anchor, title, value, onInput(v), fontKey (a SET text-size id), node (autocomplete), filled?() -> text | null, hint? }
+export function openFloatPopup(o) {
+    closeFloatPopup(true);
+    const box = document.createElement("div"); box.className = "rg-fpop";
+    const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    const head = mk("div", "rg-fpop-head"), title = mk("span", "rg-fpop-title", o.title);
+    const btn = (cls, html, tip, fn) => { const b = mk("button", "rg-btn " + cls); b.type = "button"; b.innerHTML = html; b.title = tip;
+        b.addEventListener("click", (e) => { e.preventDefault(); fn(e); }); return b; };
+    const ta = mk("textarea"); ta.rows = 10; ta.spellcheck = false; ta.value = String(o.value ?? "");
+    const orig = ta.value;
+    const fs = () => Math.max(8, Math.min(40, Math.round(+recentGet(o.fontKey, 14)) || 14));
+    const applyFont = () => { const f = fs(); ta.style.fontSize = f + "px"; ta.style.lineHeight = Math.round(f * 1.3) + "px"; };
+    const font = (d) => { recentSet(o.fontKey, Math.max(8, Math.min(40, fs() + d))); applyFont(); };
+    const fm = btn("rg-fpop-font", "A−", "Smaller text (Settings > Region Genie > Text size)", () => font(-1));
+    const fp = btn("rg-fpop-font", "A+", "Larger text (Settings > Region Genie > Text size)", () => font(1));
+    const wc = btn("icon", svgIcon("wildcard"), "Insert a wildcard (ComfyUI Impact Pack) at the cursor", (e) => pickWildcard(e, (n) => insertAtCursor(ta, n)));
+    wc.style.display = wildcardsInstalled() ? "" : "none";
+    const use = btn("icon", svgIcon("useFilled"), "", () => { const f = o.filled?.(ta.value); if (f != null) { ta.value = f; o.onInput(f); syncUse(); } });
+    const syncUse = () => { const f = o.filled?.(ta.value); use.style.display = f != null ? "" : "none";
+        use.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : ""; };
+    const x = btn("rg-x", "✕", "Close (Enter / Esc)", () => close(true));
+    head.append(title, fm, fp, use, wc, x);
+    head.title = "Drag to move. Double-click: back next to the field";
+    const foot = mk("div", "rg-fpop-foot", o.hint || "Enter: done · Shift+Enter: new line · Esc: close, putting the text back");
+    const grip = mk("div", "rg-fpop-grip"); grip.title = "Drag to resize (remembered). Double-click: the default size";
+    box.append(head, ta, foot, grip);
+    for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "contextmenu", "keyup", "keypress"]) box.addEventListener(ev, (e) => e.stopPropagation());
+    box.dataset.captureWheel = "true";
+    ta.addEventListener("input", () => { o.onInput(ta.value); syncUse(); });
+    box.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+        if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); close(false); }
+        else if (e.key === "Enter" && !e.shiftKey && e.target === ta && !autocompleteOpen(ta, e)) { e.preventDefault(); close(true); }
+    });
+    if (o.node) attachAutocomplete(ta, o.node);
+    document.body.appendChild(box);
+    // size (remembered for every node), then the place: just below the field, else above it, kept on screen
+    const sizes = () => { try { return JSON.parse(recentGet(SET.popSizes, "{}") || "{}") || {}; } catch (e) { return {}; } };
+    const W = () => window.innerWidth, H = () => window.innerHeight;
+    function layout(atField) {
+        const sz = sizes().float || {};
+        box.style.width = Math.max(260, Math.min(W() - 12, sz.w || 560)) + "px";
+        box.style.height = sz.h ? Math.max(160, Math.min(H() - 12, sz.h)) + "px" : "";
+        box.classList.toggle("sized", !!sz.h);
+        if (!atField) return;
+        const r = o.anchor?.getBoundingClientRect?.() || { left: 40, top: 40, bottom: 60 }, w = box.offsetWidth, h = box.offsetHeight;
+        box.style.left = Math.max(6, Math.min(W() - w - 6, r.left)) + "px";
+        box.style.top = (r.bottom + 4 + h <= H() - 6 ? r.bottom + 4 : r.top - 4 - h >= 6 ? r.top - 4 - h : Math.max(6, H() - 6 - h)) + "px";
+    }
+    applyFont(); syncUse(); layout(true);
+    const drag = (e, onMove, onEnd) => {
+        e.preventDefault(); e.stopPropagation();
+        const t = e.currentTarget, x0 = e.clientX, y0 = e.clientY;
+        t.setPointerCapture?.(e.pointerId);
+        const move = (ev) => onMove(ev.clientX - x0, ev.clientY - y0);
+        const up = () => { t.removeEventListener("pointermove", move); t.removeEventListener("pointerup", up); t.removeEventListener("pointercancel", up); onEnd?.(); };
+        t.addEventListener("pointermove", move); t.addEventListener("pointerup", up); t.addEventListener("pointercancel", up);
+    };
+    head.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0 || e.target.closest("button")) return;
+        const l0 = box.offsetLeft, t0 = box.offsetTop;
+        drag(e, (dx, dy) => { box.style.left = Math.max(0, Math.min(W() - 40, l0 + dx)) + "px"; box.style.top = Math.max(0, Math.min(H() - 30, t0 + dy)) + "px"; });
+    });
+    head.addEventListener("dblclick", (e) => { if (!e.target.closest("button")) layout(true); });
+    grip.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        const w0 = box.offsetWidth, h0 = box.offsetHeight;
+        drag(e, (dx, dy) => { box.style.width = Math.max(260, w0 + dx) + "px"; box.style.height = Math.max(160, h0 + dy) + "px"; box.classList.add("sized"); },
+             () => { const all = sizes(); all.float = { w: box.offsetWidth, h: box.offsetHeight }; recentSet(SET.popSizes, JSON.stringify(all)); });
+    });
+    grip.addEventListener("dblclick", () => { const all = sizes(); delete all.float; recentSet(SET.popSizes, JSON.stringify(all)); layout(false); });
+    const outside = (e) => {
+        const t = e.target;
+        if (box.contains(t) || inAutocompleteList(t) || t?.closest?.(".litecontextmenu, .litemenu-entry, .comfy-context-menu, .p-contextmenu")) return;
+        close(true);
+    };
+    setTimeout(() => window.addEventListener("pointerdown", outside, true), 0);
+    function close(commit) {
+        if (fpop !== api_) return;
+        fpop = null;
+        window.removeEventListener("pointerdown", outside, true);
+        if (!commit && ta.value !== orig) o.onInput(orig);
+        box.remove();
+        o.onClose?.();
+    }
+    const api_ = { close, box, ta };
+    fpop = api_;
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    return api_;
+}
+export const FPOP_CSS = `
+.rg-fpop { position:fixed; z-index:10000; box-sizing:border-box; display:flex; flex-direction:column; gap:5px; padding:6px 8px 5px;
+  background:#1a1a1a; color:#eee; border:2px solid #5b8fd0; border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,.65); font:12px sans-serif; }
+.rg-fpop-head { display:flex; align-items:center; gap:6px; font-weight:600; cursor:move; user-select:none; touch-action:none; }
+.rg-fpop-title { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rg-fpop .rg-btn { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px;
+  padding:0 5px; font:11px sans-serif; line-height:16px; cursor:pointer; }
+.rg-fpop .rg-btn.icon { line-height:0; padding:1px 3px; }
+.rg-fpop .rg-btn.icon svg { width:14px; height:14px; display:block; }
+.rg-fpop textarea { width:100%; box-sizing:border-box; resize:none; background:var(--comfy-input-bg,#222); color:inherit;
+  border:1px solid var(--border-color,#555); border-radius:4px; padding:3px 5px; font-family:inherit; scrollbar-width:thin; }
+.rg-fpop textarea:focus { border-color:#5b8fd0; outline:none; }
+.rg-fpop.sized textarea { flex:1 1 auto; min-height:40px; }
+.rg-fpop-foot { font-size:10px; opacity:.5; }
+.rg-fpop-grip { position:absolute; right:1px; bottom:1px; width:14px; height:14px; cursor:nwse-resize; touch-action:none; opacity:.7;
+  background:linear-gradient(135deg, transparent 52%, #5b8fd0 52% 60%, transparent 60% 70%, #5b8fd0 70% 78%, transparent 78%); }
+.rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:transparent;
+  color:var(--input-text,#ddd); opacity:.3; cursor:pointer; line-height:0; }
+.rg-expand svg { width:12px; height:12px; display:block; margin:2px; }
+.rg-expand:hover { opacity:1; background:rgba(91,143,208,.35); }
+*:hover > .rg-expand { opacity:.75; }
 `;
 
 // ---------------------------------------------------------------- tag autocomplete
