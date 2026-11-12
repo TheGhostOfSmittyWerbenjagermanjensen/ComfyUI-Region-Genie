@@ -4,6 +4,8 @@ const fails = [];
 const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (!ok) fails.push(name); };
 
 (async () => {
+    // the canvas tool options fold to an icon until hovered (round 12): hover them, then look
+    const inStrip = async (loc) => { await page.locator(".rg-toolopts").hover().catch(() => {}); await page.waitForTimeout(40); return loc.isVisible(); };
     const browser = await chromium.launch();
     const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 900, height: 1100 } });
     page.on("pageerror", (e) => { fails.push("page error: " + e.message); console.log("PAGE ERROR", e.message); });
@@ -93,10 +95,13 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // presets
     await modeBtn("Image size from the presets").click(); await page.waitForTimeout(60);
     const pre = row.locator("select.rg-size-pre");
-    check("presets: the 9 starting sizes + Edit list…", await pre.locator("option:not([disabled])").count() === 10
+    check("presets mode keeps the size (960 x 2240, shown as not in the list)", JSON.stringify(await wv()) === "[960,2240]"
+        && /960 × 2240\s+\(not in the list\)/.test(await pre.locator("option[data-extra]").textContent())
+        && /isn't in the list/.test(await pre.getAttribute("title")));
+    check("presets: the 9 starting sizes + Edit list…", await pre.locator("option:not([disabled]):not([data-extra])").count() === 10
         && (await pre.locator("option").last().textContent()) === "Edit list…");
     await pre.selectOption("1216x832"); await page.waitForTimeout(60);
-    check("preset 1216 x 832", JSON.stringify(await wv()) === "[1216,832]");
+    check("preset 1216 x 832 (the 'not in the list' entry goes)", JSON.stringify(await wv()) === "[1216,832]" && await pre.locator("option[data-extra]").count() === 0);
     check("presets show their ratio", /1216 × 832\s+\(3:2\)/.test(await pre.locator("option[value='1216x832']").textContent()));
     await pre.selectOption("__edit__"); await page.waitForTimeout(100);
     const pop = page.locator(".rg-presets");
@@ -120,13 +125,20 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("keep ratio: 500 x 300", JSON.stringify(await wv()) === "[500,300]");
     await man.locator('.rg-btn.icon[title^="Swap"]').click(); await page.waitForTimeout(60);
     check("swap: 300 x 500", JSON.stringify(await wv()) === "[300,500]");
-    // each mode keeps its own settings
+    // presets mode takes the size the other mode made; '＋ Current size' in the editor adds it to the list
     await modeBtn("Image size from the presets").click(); await page.waitForTimeout(60);
     const backToPreset = JSON.stringify(await wv());
+    check("presets mode keeps the manual size (300 x 500)", backToPreset === "[300,500]");
+    await pre.selectOption("__edit__"); await page.waitForTimeout(100);
+    await page.locator(".rg-presets button", { hasText: "Current size" }).click(); await page.waitForTimeout(60);
+    check("＋ Current size adds 300 x 500 to the list", /300x500/.test(await setTxt() || "") && await pre.locator("option[data-extra]").count() === 0
+        && await pre.inputValue() === "300x500");
+    await page.locator(".rg-presets button", { hasText: "✕" }).last().click().catch(() => {});
+    await page.mouse.click(5, 5); await page.waitForTimeout(60);
     await modeBtn("Image size from an aspect ratio").click(); await page.waitForTimeout(60);
-    check("modes keep their own settings", backToPreset === "[1216,832]" && JSON.stringify(await wv()) === "[960,2240]");
+    check("the other modes keep their own settings", JSON.stringify(await wv()) === "[960,2240]");
     const props = await page.evaluate(() => window.__node.properties.rg_size);
-    check("kept in the node's properties (saved with the workflow)", props.mode === "aspect ratio" && props.manual.w === 300 && props.preset.w === 1216);
+    check("kept in the node's properties (saved with the workflow)", props.mode === "aspect ratio" && props.manual.w === 300 && props.preset.w === 300);
 
     // ---------------- pop-up editor: bigger, A− / A+, drag, resize (round 10)
     await page.evaluate(() => { const s = window.__node.__rgState(); s.regions[0].prompt = "a red boat on calm water"; window.__node.__rgRefresh(); });
@@ -149,8 +161,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.waitForTimeout(80);
     const pb2 = await ppop.boundingBox();
     check("drag the title bar: the pop-up moves", Math.abs(pb2.y - pb.y - 70) < 3 && Math.abs(pb2.x - pb.x + 40) < 3 || Math.abs(pb2.y - pb.y - 70) < 3);
-    const saved = await page.evaluate(() => window.__node.properties.rg_pop?.region);
-    check("its place is kept for this node", !!saved && Number.isFinite(saved.x) && Number.isFinite(saved.y));
+    check("the pop-up is on top of the page (can go anywhere on the screen)", await page.evaluate(() => document.querySelector(".rg-pop").parentElement === document.body));
     // resize from the corner
     const gb = await ppop.locator(".rg-pop-grip").boundingBox();
     await page.mouse.move(gb.x + 6, gb.y + 6); await page.mouse.down();
@@ -164,7 +175,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.keyboard.press("Escape"); await page.waitForTimeout(80);
     await expBtn.click(); await page.waitForTimeout(150);
     const pb4 = await ppop.boundingBox();
-    check("reopened: same size and place", Math.abs(pb4.width - pb3.width) < 2 && Math.abs(pb4.height - pb3.height) < 2 && Math.abs(pb4.x - pb3.x) < 2 && Math.abs(pb4.y - pb3.y) < 2);
+    check("reopened: same size, next to the field again", Math.abs(pb4.width - pb3.width) < 2 && Math.abs(pb4.height - pb3.height) < 2 && Math.abs(pb4.x - pb.x) < 3);
     await ppop.locator(".rg-pop-head span").first().dblclick(); await page.waitForTimeout(80);
     await ppop.locator(".rg-pop-grip").dblclick(); await page.waitForTimeout(80);
     const pb5 = await ppop.boundingBox();
@@ -308,7 +319,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("▾ opens the shape list (8 shapes, the current one ticked)", await page.evaluate(() => window.__lastMenu.items.length === 8 && window.__lastMenu.items[2].content.startsWith("✓")));
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items.find((i) => /Star/.test(i.content))));
     await page.waitForTimeout(60);
-    check("star picked: star icon, star points in the canvas strip", (await icon("shape")).includes("M8 1.8l1.8 4") && await page.locator('.rg-toolopts input[title^="Number of star points"]').isVisible());
+    check("star picked: star icon, star points in the canvas strip", (await icon("shape")).includes("M8 1.8l1.8 4") && await inStrip(page.locator('.rg-toolopts input[title^="Number of star points"]')));
     await key("Shift+L");
     check("Shift+L: the eraser button shows lasso erase", /^Lasso erase/.test(await grp("erase").getAttribute("title")) && await grp("erase").evaluate((b) => b.classList.contains("on")));
     await key("e");
@@ -316,7 +327,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await grp("erase").click({ button: "right" });
     check("eraser list: the eraser and the three lasso erase versions", await page.evaluate(() => window.__lastMenu.items.map((i) => i.content).join("|")).then((t) => /Eraser.*Lasso erase.*spline.*magnetic/.test(t)));
     await key("w");
-    check("W: the wand button shows the wand, tolerance in the strip", /^Magic wand/.test(await grp("wand").getAttribute("title")) && await page.locator('.rg-toolopts input[title^="Magic wand tolerance"]').isVisible());
+    check("W: the wand button shows the wand, tolerance in the strip", /^Magic wand/.test(await grp("wand").getAttribute("title")) && await inStrip(page.locator('.rg-toolopts input[title^="Magic wand tolerance"]')));
     await key("b");
     check("the strip hides with a tool without options", await page.locator(".rg-toolopts").isHidden());
     // with an image: still one row, opacity on the canvas's right edge

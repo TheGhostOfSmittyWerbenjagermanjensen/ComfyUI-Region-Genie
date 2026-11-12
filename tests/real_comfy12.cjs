@@ -1,0 +1,299 @@
+// Round 12 checks in the real ComfyUI frontend + server (CPU; no model files needed).
+// Usage: node real_comfy12.cjs [vue]   ("vue" = Nodes 2.0). Needs ComfyUI on 127.0.0.1:8188 with this pack
+// (bash tests/setup_real_comfy.sh --start).
+const { chromium } = (() => { try { return require("playwright"); } catch (e) { return require("/opt/node-tools/node_modules/playwright"); } })();
+const vue = process.argv[2] === "vue";
+const fails = [];
+const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (!ok) fails.push(name); };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+(async () => {
+    const browser = await chromium.launch();
+    const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 1600, height: 1100 } });
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    page.on("console", (m) => { if (m.type() === "error" && /region|rg_|genie/i.test(m.text())) errors.push(m.text()); });
+    await page.goto("http://127.0.0.1:8188/");
+    await page.waitForFunction(() => window.app?.graph && window.app?.extensionManager?.setting, null, { timeout: 90000 });
+    await sleep(2000);
+    for (let i = 0; i < 3; i++) { await page.keyboard.press("Escape"); await sleep(300); }
+    await page.evaluate(async (vue) => {
+        const s = window.app.extensionManager.setting;
+        try { await s.set("Comfy.TutorialCompleted", true); } catch (e) {}
+        await s.set("Comfy.VueNodes.Enabled", vue);
+        await s.set("RegionGenie.Popup.EscKeeps", "put the text back");
+    }, vue);
+    await sleep(1000);
+    const M = vue ? "Nodes 2.0" : "legacy";
+    // a Region Genie node with two regions (one with a LoRA and a palette), zoomed out so the node fits
+    await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 0.72; app.canvas.setDirty(true, true);
+        await new Promise((r) => setTimeout(r, 1500));
+        const st = rg.__rgState();
+        st.regions.push({ id: 1, color: "#E6194B", prompt: "a red cat", type: "object", text: "",
+                          loras: [{ lora: "style.safetensors", strength: 0.8, on: true }], palette: ["#ff0000", "#00ff00"], paletteOn: true },
+                        { id: 2, color: "#3CB44B", prompt: "a green dog", type: "object", text: "" });
+        const L = (id, region, ox) => ({ id, name: "Rect " + id, region, visible: true, shape: "rect", sides: 5, bw: .5, bh: 1, sx: 1, sy: 1, rot: 0, ox, oy: 0, ops: [] });
+        st.layers.push(L(1, 1, -.25), L(2, 2, .25));
+        rg.__rgRefresh();
+        await new Promise((r) => setTimeout(r, 500));
+    });
+
+    // ---------------- number fields fit their value (every own number field shown)
+    const numFit = () => page.evaluate(async () => {
+        const bad = [], cv = document.createElement("canvas").getContext("2d");
+        let n = 0;
+        for (const i of document.querySelectorAll("input[type=number]")) {
+            if (!i.closest('[class^="rg-"], [class*=" rg-"]') || !i.offsetParent) continue;
+            n++;
+            const keep = i.value;
+            for (const v of [keep, "0.95", "1.25", "-0.75", "12", "128", "1024", "16384"]) {
+                i.value = v;
+                const cs = getComputedStyle(i); cv.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+                const room = i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 16;   // the spin arrows
+                if (cv.measureText(v).width > room) bad.push(`${(i.title || i.className).slice(0, 30)}: '${v}'`);
+            }
+            i.value = keep;
+            const w2 = i.offsetWidth; i.value = "1"; const w1 = i.offsetWidth; i.value = keep;
+            if (w1 > 80) bad.push(`${(i.title || i.className).slice(0, 30)}: not narrow with 1 digit (${w1}px)`);
+            void w2;
+        }
+        return { n, bad };
+    });
+    // ---------------- every control shown has a tooltip, and stays the same element (a redraw under the mouse hides it)
+    const tipAudit = () => page.evaluate(async () => {
+        const roots = [...document.querySelectorAll(".rg-wrap, .rg-size, .rg-pop, .rg-presets, .rg-rl-wrap, .rg-fpop")];
+        const els = [];
+        for (const r of roots) for (const e of r.querySelectorAll("button, select, input, [role=slider], .rg-optlab, .rg-split, .rg-pop-grip"))
+            if (e.offsetParent && !els.includes(e) && e.type !== "hidden" && !e.classList.contains("rg-keysink")) els.push(e);
+        const tipOf = (e) => { for (let x = e; x && x !== document.body; x = x.parentElement) { if (x.title) return x.title; if (x.matches(".rg-wrap, .rg-pop, .rg-fpop, .rg-rl-wrap")) break; } return ""; };
+        const before = els.map((e) => ({ e, first: e.firstChild }));
+        await new Promise((r) => setTimeout(r, 1300));
+        const bad = [];
+        for (const { e, first } of before) {
+            const t = tipOf(e);
+            const textField = e.tagName === "INPUT" && e.type === "text" && e.placeholder;
+            if (!t && !textField) bad.push(`no tooltip: ${e.tagName}.${e.className} '${(e.textContent || e.value || "").slice(0, 20)}'`);
+            if (first && e.firstChild !== first) bad.push(`redrawn: ${e.tagName}.${e.className} '${t.slice(0, 30)}'`);
+        }
+        return { n: els.length, bad };
+    });
+
+    // expand everything in the list
+    await page.evaluate(() => [...document.querySelectorAll(".rg-wrap button")].find((b) => b.textContent.trim() === "▼ All")?.click());
+    await sleep(300);
+    let f = await numFit();
+    check(`${M}: number fields fit 1 to 5 digits, decimals and minus (${f.n} fields)` + (f.bad.length ? ": " + f.bad.slice(0, 4).join("; ") : ""), f.n >= 5 && !f.bad.length);
+    let a = await tipAudit();
+    check(`${M}: every control has a tooltip and isn't redrawn (${a.n} controls)` + (a.bad.length ? ": " + a.bad.slice(0, 5).join("; ") : ""), a.n > 30 && !a.bad.length);
+    const linkTip = await page.evaluate(async () => {
+        const seg = [...document.querySelectorAll(".rg-size button")].find((b) => /typed in/.test(b.title)); seg.click();
+        await new Promise((r) => setTimeout(r, 700));
+        const l = [...document.querySelectorAll(".rg-size button")].find((b) => /ratio/.test(b.title) && b.offsetParent && /Keep the ratio|Ratio kept/.test(b.title));
+        const first = l?.firstChild;
+        await new Promise((r) => setTimeout(r, 1200));
+        return { tip: l?.title || "", same: !!first && l.firstChild === first };
+    });
+    check(`${M}: the chain button has a tooltip and keeps it (not redrawn every half second)`, /Keep the ratio/.test(linkTip.tip) && linkTip.same);
+
+    // ---------------- presets mode keeps the size; ＋ Current size adds it
+    const sz = await page.evaluate(async () => {
+        const row = document.querySelector(".rg-size"), W = () => ["width", "height"].map((n) => window.__rg.widgets.find((w) => w.name === n).value);
+        const man = row.querySelectorAll(".rg-size-part")[2].querySelectorAll("input");
+        man[0].value = "1000"; man[0].dispatchEvent(new Event("change")); man[1].value = "760"; man[1].dispatchEvent(new Event("change"));
+        await new Promise((r) => setTimeout(r, 100));
+        [...row.querySelectorAll("button")].find((b) => /presets list/.test(b.title)).click();
+        await new Promise((r) => setTimeout(r, 200));
+        const pre = row.querySelector("select.rg-size-pre");
+        return { wv: W(), extra: pre.querySelector("option[data-extra]")?.textContent || "", val: pre.value };
+    });
+    check(`${M}: presets mode keeps the manual size (1000 x 760, 'not in the list')`, JSON.stringify(sz.wv) === "[1000,760]" && /not in the list/.test(sz.extra) && sz.val === "1000x760");
+    await page.locator("select.rg-size-pre").first().selectOption("__edit__");
+    await sleep(200);
+    await page.locator(".rg-presets button", { hasText: "Current size" }).click();
+    await sleep(200);
+    const added = await page.evaluate(() => ({ set: window.app.extensionManager.setting.get("RegionGenie.Size.Presets"),
+        extra: !!document.querySelector("select.rg-size-pre option[data-extra]") }));
+    check(`${M}: ＋ Current size adds it to the list`, /1000x760/.test(added.set) && !added.extra);
+    await page.evaluate(() => [...document.querySelectorAll(".rg-presets button")].find((b) => b.textContent === "✕" && /Close/.test(b.title))?.click());
+    await page.evaluate(() => window.app.extensionManager.setting.set("RegionGenie.Size.Presets", "1024x1024; 1152x896; 896x1152; 1216x832; 832x1216; 1344x768; 768x1344; 1536x640; 640x1536"));
+
+    // ---------------- the model dropdown sets the format; MOSS layout switch; background only for Ideogram 4
+    const ms = () => page.evaluate(() => {
+        const bg = window.__rg.widgets.find((w) => w.name === "scene_prompt_background");
+        const tas = [...document.querySelectorAll(`[data-node-id="${window.__rg.id}"] textarea, .rg-scene-ta`)].filter((t) => t.offsetParent && !t.closest(".rg-wrap"));
+        const lb = document.querySelector(".rg-layout");
+        const pd = JSON.parse(window.__rg.widgets.find((w) => w.name === "paint_data").serializeValue());
+        return { fmt: document.querySelectorAll(".rg-fmt").length, layout: !!lb && lb.style.display !== "none", layoutOn: lb?.classList.contains("on"),
+                 bgHidden: !!bg.hidden, sceneBoxes: tas.length, pick: pd.modelPick || "", mossLayout: pd.mossLayout };
+    });
+    let s0 = await ms();
+    check(`${M}: no format select; no layout switch and no background while the model isn't known`, s0.fmt === 0 && !s0.layout && s0.bgHidden && s0.sceneBoxes === 2);
+    await page.locator("select.rg-model").first().selectOption("MOSS Image"); await sleep(700);
+    let s1 = await ms();
+    check(`${M}: MOSS Image: layout switch shown (layout), background hidden, sent with the run`, s1.layout && s1.layoutOn && s1.bgHidden && s1.pick === "MOSS Image" && s1.mossLayout === undefined);
+    await page.evaluate(() => document.querySelector(".rg-layout").click()); await sleep(200);
+    s1 = await ms();
+    check(`${M}: the switch: standard mode, sent with the run`, !s1.layoutOn && s1.mossLayout === false);
+    await page.locator("select.rg-model").first().selectOption("Ideogram 4"); await sleep(700);
+    const s2 = await ms();
+    check(`${M}: Ideogram 4: the background field shows, no layout switch`, !s2.bgHidden && s2.sceneBoxes === 3 && !s2.layout);
+    await page.locator("select.rg-model").first().selectOption("Krea 2"); await sleep(700);
+    const s3 = await ms();
+    check(`${M}: Krea 2: background hidden again`, s3.bgHidden && s3.sceneBoxes === 2);
+    const tip = await page.evaluate(() => document.querySelector("select.rg-model").title);
+    check(`${M}: the model dropdown's tooltip says it sets the prompt format`, /format of the 'prompt' and 'positive'/.test(tip));
+    // an old workflow with the format select set
+    const mig = await page.evaluate(async () => {
+        const app = window.app;
+        const out = {};
+        for (const [fmt, key] of [["Ideogram JSON", "ideo"], ["text", "text"]]) {
+            const g = app.graph.serialize();
+            const n = g.nodes.find((x) => x.type === "Region-Genie_Main");
+            delete n.properties.rg_model_pick; delete n.properties.rg_moss_layout;
+            n.properties.rg_widget_values = { ...(n.properties.rg_widget_values || {}), prompt_format: fmt };
+            const fw = window.__rg.widgets.findIndex((w) => w.name === "prompt_format");
+            if (Array.isArray(n.widgets_values) && fw >= 0) { const i = n.widgets_values.indexOf("auto"); if (i >= 0) n.widgets_values[i] = fmt; }
+            await app.loadGraphData(g);
+            await new Promise((r) => setTimeout(r, 1500));
+            const rg = app.graph.nodes.find((x) => x.type === "Region-Genie_Main"); window.__rg = rg;
+            out[key] = { pick: rg.properties.rg_model_pick || "", layout: rg.properties.rg_moss_layout, fmt: rg.widgets.find((w) => w.name === "prompt_format").value };
+        }
+        return out;
+    });
+    check(`${M}: old workflow, format 'Ideogram JSON': Ideogram 4 picked`, mig.ideo.pick === "Ideogram 4" && mig.ideo.fmt === "auto");
+    check(`${M}: old workflow, format 'text': MOSS standard mode`, mig.text.layout === false && mig.text.fmt === "auto");
+    await page.evaluate(async () => { window.__rg.properties.rg_model_pick = undefined; delete window.__rg.properties.rg_model_pick; delete window.__rg.properties.rg_moss_layout;
+        window.app.canvas.ds.offset = [0, 0]; window.app.canvas.ds.scale = 0.72; window.app.canvas.setDirty(true, true); await new Promise((r) => setTimeout(r, 800)); });
+
+    // ---------------- pop-up editors
+    const geo = () => page.evaluate(() => { const b = document.querySelector(".rg-pop"); if (!b) return null; const r = b.getBoundingClientRect();
+        return { body: b.parentElement === document.body, x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height),
+                 title: b.querySelector(".rg-pop-head span")?.textContent || "", ta: b.querySelector("textarea")?.value ?? "" }; });
+    await page.evaluate(() => document.querySelector(".rg-scene-ta")?.parentElement?.querySelector(".rg-expand")?.click());
+    await sleep(300);
+    const g0 = await geo();
+    check(`${M}: scene pop-up opens on top of the page`, !!g0 && g0.body && /scene_prompt_positive/.test(g0.title));
+    await page.mouse.click(1450, 1000, { button: "left" }); await page.mouse.click(1450, 1000, { button: "right" }); await sleep(200);
+    await page.keyboard.press("Escape").catch(() => {});
+    await page.mouse.click(1450, 1000, { button: "middle" }); await sleep(200);
+    const g1 = await geo();
+    check(`${M}: clicks elsewhere (left, right, middle) don't close it`, !!g1);
+    if (!g1) await page.evaluate(() => document.querySelector(".rg-scene-ta")?.parentElement?.querySelector(".rg-expand")?.click());
+    await sleep(200);
+    const hb = await page.locator(".rg-pop .rg-pop-head span").first().boundingBox();
+    await page.mouse.move(hb.x + 5, hb.y + 5); await page.mouse.down(); await page.mouse.move(hb.x + 805, hb.y - 200, { steps: 6 }); await page.mouse.up();
+    const g2 = await geo();
+    check(`${M}: dragged outside the node (to the right; ${g1?.x} -> ${g2.x})`, g2.x > g1.x + 700 && g2.x > 800);
+    for (let i = 0; i < 3; i++) await page.evaluate(() => [...document.querySelectorAll(".rg-pop .rg-pop-font")].find((b) => b.textContent === "A+").click());
+    await sleep(100);
+    const g3 = await geo();
+    check(`${M}: A+ doesn't change the pop-up's size`, g3.w === g2.w && g3.h === g2.h);
+    for (let i = 0; i < 3; i++) await page.evaluate(() => [...document.querySelectorAll(".rg-pop .rg-pop-font")].find((b) => b.textContent === "A−").click());
+    const seen = [];
+    const step = async (sym) => { await page.evaluate((s) => [...document.querySelectorAll(".rg-pop .rg-nav")].find((b) => b.textContent === s).click(), sym); await sleep(250); return geo(); };
+    for (let i = 0; i < 4; i++) seen.push(await step("▶"));
+    check(`${M}: ▶ steps scene positive → negative → region 1 → region 2 → back to the first`,
+        /negative/.test(seen[0].title) && seen[1].ta === "a red cat" && seen[2].ta === "a green dog" && /scene_prompt_positive/.test(seen[3].title));
+    check(`${M}: ... in the same place and size`, seen.every((g) => g.x === g2.x && g.y === g2.y && g.w === g2.w && g.h === g2.h));
+    const back = await step("◀");
+    check(`${M}: ◀ from the first goes to the last`, back.ta === "a green dog");
+    await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("End"); await page.keyboard.type(" XYZ");
+    await page.keyboard.press("Escape"); await sleep(200);
+    const rv = await page.evaluate(() => window.__rg.__rgState().regions[1].prompt);
+    check(`${M}: Esc closes it and puts the text back (default)`, !(await geo()) && rv === "a green dog");
+    await page.evaluate(() => window.app.extensionManager.setting.set("RegionGenie.Popup.EscKeeps", "keep the edits"));
+    await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-pwrap .rg-expand")][1]?.click()); await sleep(250);
+    const foot = await page.evaluate(() => document.querySelector(".rg-pop .rg-pop-foot")?.textContent || "");
+    await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("End"); await page.keyboard.type(" XYZ");
+    await page.keyboard.press("Escape"); await sleep(200);
+    const kv = await page.evaluate(() => window.__rg.__rgState().regions[1].prompt);
+    check(`${M}: Setting 'keep the edits': Esc keeps the text (and the footer says so)`, kv === "a green dog XYZ" && /keeping the edits/.test(foot));
+    await page.evaluate(() => window.app.extensionManager.setting.set("RegionGenie.Popup.EscKeeps", "put the text back"));
+    // with a pop-up open
+    await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-pwrap .rg-expand")][0]?.click()); await sleep(300);
+    a = await tipAudit();
+    check(`${M}: pop-up open: every control has a tooltip (${a.n} controls)` + (a.bad.length ? ": " + a.bad.slice(0, 5).join("; ") : ""), !a.bad.length);
+    f = await numFit();
+    check(`${M}: pop-up open: number fields fit` + (f.bad.length ? ": " + f.bad.slice(0, 4).join("; ") : ""), !f.bad.length);
+    // another graph (a workflow tab) closes it
+    await page.evaluate(async () => { const s = window.app.graph.serialize(); window.__saved = s; await window.app.loadGraphData({ ...s, nodes: [], links: [] }); });
+    await sleep(800);
+    check(`${M}: loading another graph closes the pop-up`, !(await geo()));
+    await page.evaluate(async () => { await window.app.loadGraphData(window.__saved); await new Promise((r) => setTimeout(r, 1500));
+        window.__rg = window.app.graph.nodes.find((x) => x.type === "Region-Genie_Main");
+        window.app.canvas.ds.offset = [0, 0]; window.app.canvas.ds.scale = 0.72; window.app.canvas.setDirty(true, true); await new Promise((r) => setTimeout(r, 800)); });
+
+    // ---------------- the divider between the canvas and the Regions list
+    const sp = () => page.evaluate(() => ({ tree: document.querySelector(".rg-tree").offsetHeight, cv: document.querySelector(".rg-cv").offsetHeight,
+                                             node: Math.round(window.__rg.size[1]), prop: window.__rg.properties.rg_list_h }));
+    const d0 = await sp();
+    const sb = await page.locator(".rg-split").first().boundingBox();
+    await page.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2); await page.mouse.down();
+    await page.mouse.move(sb.x + sb.width / 2, sb.y - 100, { steps: 6 }); await page.mouse.up(); await sleep(200);
+    const d1 = await sp();
+    check(`${M}: dragging the divider up: a taller list, a shorter canvas, the node keeps its size`, d1.tree > d0.tree + 100 && d1.cv < d0.cv && d1.node === d0.node && d1.prop === d1.tree);
+    await page.locator(".rg-split").first().dblclick(); await sleep(200);
+    const d2 = await sp();
+    check(`${M}: double-click: the usual list height`, d2.tree === 220 && d2.prop === undefined);
+
+    // ---------------- the tool options fold to an icon
+    await page.evaluate(() => window.__rg.__rgSetTool("object")); await sleep(300);
+    const strip = () => page.evaluate(() => { const s = document.querySelector(".rg-toolopts"), r = s.getBoundingClientRect();
+        return { w: Math.round(r.width), find: !!s.querySelector(".rg-find")?.offsetParent, tip: s.querySelector(".lead")?.title || "" }; });
+    const t0 = await strip();
+    const stb = await page.locator(".rg-toolopts").first().boundingBox();
+    await page.mouse.move(stb.x + 8, stb.y + 8); await sleep(200);
+    const t1 = await strip();
+    await page.mouse.move(1500, 1050); await sleep(200);
+    const t2 = await strip();
+    await page.mouse.click(stb.x + 8, stb.y + 8); await page.mouse.move(1500, 1050); await sleep(200);
+    const t3 = await strip();
+    check(`${M}: Select object: the options are a small icon (${t0.w}px) with a tooltip`, !t0.find && t0.w < 30 && /Find all/.test(t0.tip) && /Hover/.test(t0.tip));
+    check(`${M}: hover opens 'find all…', leaving folds it`, t1.find && t1.w > 60 && !t2.find);
+    check(`${M}: a click keeps it open`, t3.find);
+    await page.mouse.click(stb.x + 8, stb.y + 8); await sleep(100);
+    await page.evaluate(() => window.__rg.__rgSetTool("select"));
+
+    // ---------------- the Regional LoRAs node: ◀ / ▶ through its fields, no outside-click close
+    const rl = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        const n = LG.createNode("Region-Genie_RegionalLoRAs"); n.pos = [900, 40]; app.graph.add(n); window.__rl = n;
+        n.widgets.find((w) => w.name === "positive_prompt").value = "pos text";
+        n.widgets.find((w) => w.name === "negative_prompt").value = "neg text";
+        const dw = n.widgets.find((w) => w.name === "loras_data");
+        dw.value = JSON.stringify({ rows: [{ on: true, index: 0, lora: "a.safetensors", strength: 1, prompt: "row one" },
+                                           { on: true, index: 1, lora: "b.safetensors", strength: 0.5, prompt: "row two" }] });
+        n.onConfigure?.({});
+        app.canvas.ds.offset = [-500, 0]; app.canvas.setDirty(true, true);
+        await new Promise((r) => setTimeout(r, 1500));
+        return !!document.querySelector(".rg-rl-wrap");
+    });
+    if (rl) {
+        await page.evaluate(() => { const t = [...document.querySelectorAll("textarea")].find((x) => x.value === "pos text"); t?.parentElement?.querySelector(".rg-expand")?.click(); });
+        await sleep(300);
+        const fp = () => page.evaluate(() => { const b = document.querySelector(".rg-fpop"); if (!b) return null; const r = b.getBoundingClientRect();
+            return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), v: b.querySelector("textarea").value }; });
+        const p0 = await fp();
+        await page.mouse.click(1550, 1050); await sleep(200);
+        check(`Regional LoRAs (${M}): pop-up stays open on a click elsewhere`, !!p0 && !!(await fp()));
+        const vals = [];
+        for (let i = 0; i < 4; i++) { await page.evaluate(() => [...document.querySelectorAll(".rg-fpop .rg-nav")].find((b) => b.textContent === "▶").click()); await sleep(200); vals.push(await fp()); }
+        check(`Regional LoRAs (${M}): ▶ steps positive → negative → row 1 → row 2 → positive, same place and size`,
+            vals.map((x) => x?.v).join("|") === "neg text|row one|row two|pos text" && vals.every((x) => x.x === p0.x && x.y === p0.y && x.w === p0.w && x.h === p0.h));
+        a = await tipAudit();
+        check(`Regional LoRAs (${M}): every control has a tooltip` + (a.bad.length ? ": " + a.bad.slice(0, 5).join("; ") : ""), !a.bad.length);
+        f = await numFit();
+        check(`Regional LoRAs (${M}): number fields fit` + (f.bad.length ? ": " + f.bad.slice(0, 4).join("; ") : ""), !f.bad.length);
+        await page.keyboard.press("Escape");
+    } else check(`Regional LoRAs (${M}): the node's editor is there`, false);
+
+    await page.screenshot({ path: require("path").join(__dirname, "out", `real12_${vue ? "vue" : "legacy"}.png`) });
+    check(`${M}: no page errors` + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""), !errors.length);
+    await browser.close();
+    console.log(fails.length ? `${fails.length} failed` : "all passed");
+    process.exit(fails.length ? 1 : 0);
+})().catch((e) => { console.error(e); process.exit(1); });

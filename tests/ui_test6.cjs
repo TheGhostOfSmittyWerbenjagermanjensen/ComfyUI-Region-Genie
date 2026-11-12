@@ -4,6 +4,8 @@ const fails = [];
 const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (!ok) fails.push(name); };
 
 (async () => {
+    // the canvas tool options fold to an icon until hovered (round 12): hover them, then look
+    const inStrip = async (loc) => { await page.locator(".rg-toolopts").hover().catch(() => {}); await page.waitForTimeout(40); return loc.isVisible(); };
     const browser = await chromium.launch();
     const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 900, height: 1100 } });
     page.on("pageerror", (e) => { fails.push("page error: " + e.message); console.log("PAGE ERROR", e.message); });
@@ -40,8 +42,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("footer: tag autocomplete button exists", await page.locator(".rg-settings .rg-ac-btn").count() === 1);
     check("footer: change select hidden in generate", await page.locator(".rg-settings label", { hasText: "change" }).isHidden());
     await page.evaluate(() => window.__node.onExecuted?.({ prompt_format: ["MOSS JSON"] }));
-    const autoTxt = await page.evaluate(() => [...document.querySelectorAll(".rg-settings select option")].find((o) => o.value === "auto")?.textContent);
-    check("format: auto shows the last run's format", autoTxt === "auto · MOSS");
+    const modelTip = await page.evaluate(() => document.querySelector(".rg-settings select.rg-model")?.title || "");
+    check("format: no format select; the model dropdown's tooltip names the last run's format",
+        await page.locator(".rg-settings .rg-fmt").count() === 0 && /last run's prompt format: MOSS JSON/.test(modelTip));
 
     // ---- run data: min px / import mode come from Settings
     const sent = () => page.evaluate(() => JSON.parse(window.__node.widgets.find((w) => w.name === "paint_data").serializeValue()));
@@ -77,7 +80,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[1]));
     check("wand: global version picked", /^Magic wand \(all similar colors\)/.test(await wand.getAttribute("title")));
     const tolIn = page.locator('.rg-toolopts input[title^="Magic wand tolerance"]');
-    check("tolerance field shown with the wand", await tolIn.isVisible());
+    check("tolerance field shown with the wand (folded strip, hovered)", await inStrip(tolIn));
     await page.evaluate(() => window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.WandTolerance").onChange(50));
     await page.waitForTimeout(50);
     check("Settings tolerance change shows in the field", await tolIn.inputValue() === "50");
@@ -89,7 +92,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await fill.click({ button: "right" });
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[1]));
     const gapIn = page.locator('.rg-toolopts input[title^="Fill, closing small gaps"]');
-    check("fill gaps: version picked, gap field shown", /^Fill \(closing small gaps\)/.test(await fill.getAttribute("title")) && await gapIn.isVisible());
+    check("fill gaps: version picked, gap field shown", /^Fill \(closing small gaps\)/.test(await fill.getAttribute("title")) && await inStrip(gapIn));
     check("tolerance hidden with another tool", await tolIn.isHidden());
 
     // ---- fill, closing small gaps: two holes joined by a 2 px channel
@@ -189,7 +192,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator('.rg-bar .rg-btn[data-group="shape"]').click({ button: "right" });
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items.find((i) => /Rounded rectangle/.test(i.content))));
     const radIn = page.locator('.rg-toolopts input[title^="Corner radius"]');
-    check("rounded rectangle: radius field shown", await radIn.isVisible());
+    check("rounded rectangle: radius field shown", await inStrip(radIn));
     await radIn.fill("30"); await radIn.press("Tab");
     await dragImg([[128, 128], [178, 158]], ["Alt"]);
     s = await st();

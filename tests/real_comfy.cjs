@@ -42,6 +42,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("Select object button present", await btn.count() === 1);
     await btn.click();
     await page.waitForTimeout(300);
+    await page.locator(".rg-toolopts").first().hover().catch(() => {});      // folded to an icon until hovered (round 12)
     const findVis = await page.locator(".rg-toolopts .rg-find").first().isVisible();
     check("find field visible", findVis);
     const respP = page.waitForResponse((r) => r.url().includes("/region_genie/sam_select"), { timeout: 240000 });

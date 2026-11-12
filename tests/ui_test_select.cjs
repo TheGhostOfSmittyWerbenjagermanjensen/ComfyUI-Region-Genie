@@ -4,6 +4,8 @@ const fails = [];
 const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (!ok) fails.push(name); };
 
 (async () => {
+    // the canvas tool options fold to an icon until hovered (round 12): hover them, then look
+    const inStrip = async (loc) => { await page.locator(".rg-toolopts").hover().catch(() => {}); await page.waitForTimeout(40); return loc.isVisible(); };
     const browser = await chromium.launch();
     const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 900, height: 1100 } });
     page.on("pageerror", (e) => { fails.push("page error: " + e.message); console.log("PAGE ERROR", e.message); });
@@ -59,7 +61,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.keyboard.press("q").catch(() => {});
     await objBtn.click();
     const findIn = page.locator(".rg-toolopts .rg-find");
-    check("find field shown with the tool", await findIn.isVisible());
+    check("find field shown with the tool (folded strip, hovered)", await inStrip(findIn));
     // no image yet
     await clickImg(64, 64);
     check("without an image: hint, no request", /needs an image/.test(await status()) && (await sent()).length === 0);
@@ -126,7 +128,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.keyboard.press("Escape");
 
     // find all
-    await findIn.fill("cat, dog");
+    await page.locator(".rg-toolopts").hover(); await findIn.fill("cat, dog");
     await findIn.press("Enter");
     await page.waitForTimeout(200);
     s = await sent();
@@ -144,7 +146,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("find field cleared after adding", await findIn.inputValue() === "");
     // switching tools adds what is selected (it isn't thrown away)
     const okBtn = page.locator('.rg-toolopts .rg-btn.icon[title^="Add the selection"]');
-    await findIn.fill("cat"); await findIn.press("Enter"); await page.waitForTimeout(150);
+    await page.locator(".rg-toolopts").hover(); await findIn.fill("cat"); await findIn.press("Enter"); await page.waitForTimeout(150);
     check("✓ shown with a pending selection", await okBtn.isVisible() && await okBtn.isEnabled());
     const nOps = async () => (await st()).layers.reduce((n, l) => n + l.ops.filter((o) => o.t === "bitmap").length, 0);
     const nObj = await nOps();

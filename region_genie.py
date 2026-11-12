@@ -584,27 +584,45 @@ FAMILY_LABEL = {"moss": "MOSS JSON", "ideogram": "Ideogram JSON", "plain": "text
 PLAIN_ENCODERS = ("Krea2", "Flux", "Flux2", "Flux3", "Anima", "SDXL", "SD1ClipModel", "SD2ClipModel")
 
 
-def prompt_family(model, clip, choice="auto", hint=None, edit=False):
+MODEL_FAMILY = {"MOSS Image": "moss", "Ideogram 4": "ideogram"}      # a model picked on the node -> its format (else text)
+MODEL_PICKS = ("MOSS Image", "Krea 2", "Ideogram 4", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5")
+
+
+def prompt_family(model, clip, choice="auto", hint=None, edit=False, pick=None, layout=True, regions=True):
     """Which format the 'prompt' output (and 'positive') uses: "moss" (MOSS-Image layout JSON), "ideogram"
     (Ideogram 4 caption JSON) or "plain" (text). Returns (family, where it came from).
 
-    choice: the node's format control ("auto" or one of PROMPT_FORMATS). In auto: the connected model, else the
-    connected clip's text encoder, else `hint` (the front end follows the 'prompt' output to the text encoder it
-    feeds, and that encoder's loader), else MOSS."""
+    pick: the model picked in the node's model dropdown (one of MODEL_PICKS), else None (auto). choice: the old
+    hidden format value ("auto" or one of PROMPT_FORMATS; kept for API prompts). In auto: the connected model, else
+    the connected clip's text encoder, else `hint` (the front end follows the 'prompt' output to the text encoder it
+    feeds, and that encoder's loader), else MOSS.
+    MOSS Image takes plain text instead of its layout JSON in Edit Mode (the edit LoRA takes an instruction), in its
+    standard mode (layout=False, the node's layout / standard switch) and when no region is drawn or shown
+    (regions=False: no boxes to lay out)."""
+    family, where = _prompt_family(model, clip, choice, hint, pick)
+    if family == "moss":
+        if edit:
+            return "plain", "MOSS Image edit: the edit LoRA takes an instruction"
+        if not layout:
+            return "plain", "MOSS Image standard mode (set on the node)"
+        if not regions:
+            return "plain", "MOSS Image without regions: standard mode"
+    return family, where
+
+
+def _prompt_family(model, clip, choice, hint, pick):
+    if pick in MODEL_PICKS:
+        return MODEL_FAMILY.get(pick, "plain"), pick + " (picked on the node)"
     if choice in FAMILY_OF_FORMAT:
         return FAMILY_OF_FORMAT[choice], "set on the node"
     from . import regional_lora as hl
     arch = hl.model_arch(model) if model is not None else None
     if arch is not None:
-        if edit and arch.name == "MOSS Image":
-            return "plain", "MOSS Image edit: the edit LoRA takes an instruction"
-        return {"MOSS Image": "moss", "Ideogram 4": "ideogram"}.get(arch.name, "plain"), arch.name + " model"
+        return MODEL_FAMILY.get(arch.name, "plain"), arch.name + " model"
     te = getattr(clip, "cond_stage_model", None) if clip is not None else None
     if te is not None:
         names = [c.__name__ for c in type(te).__mro__]
         if any(n.startswith("MOSSImage") for n in names):
-            if edit:
-                return "plain", "MOSS Image edit: the edit LoRA takes an instruction"
             return "moss", "MOSS Image text encoder"
         if any(n.startswith("Ideogram4") for n in names):
             return "ideogram", "Ideogram 4 text encoder"
@@ -932,15 +950,15 @@ class RegionGenie:
                                                           "sends it with each run); this hidden value is only a "
                                                           "fallback."}),
                 "scene_prompt_background": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
-                                                       "tooltip": "The background / setting behind the regions (ground, "
-                                                                  "floor, sky, room ...). The 'background' of "
-                                                                  "Ideogram JSON (Ideogram 4 requires one) and the sentence "
-                                                                  "after the scene in the text prompt. Not in MOSS JSON."}),
+                                                       "tooltip": "Ideogram 4 only: the background / setting behind the "
+                                                                  "regions (ground, floor, sky, room ...), the 'background' "
+                                                                  "its caption JSON requires. Shown only while the model is "
+                                                                  "Ideogram 4; other models don't use it."}),
                 "prompt_format": (PROMPT_FORMATS, {"default": "auto",
-                                                   "tooltip": "Format of the 'prompt' output (and 'positive'): auto "
-                                                              "follows the connected model, else the clip, else the "
-                                                              "text encoder 'prompt' is connected to (MOSS JSON when "
-                                                              "none is found)."}),
+                                                   "tooltip": "Hidden (kept for API prompts and old workflows): the "
+                                                              "node's model dropdown sets the format of 'prompt' and "
+                                                              "'positive'. auto follows the connected model, else the "
+                                                              "clip, else the text encoder 'prompt' is connected to."}),
                 "mode": (MODES, {"default": MODES[0],
                                  "tooltip": "generate: a new image. edit: the image on the 'image' input is the source "
                                             "to change (image-to-image): 'latent' is that image (connect vae), models "
@@ -1256,11 +1274,16 @@ class RegionGenie:
 
         moss_text = json.dumps(moss, ensure_ascii=False, separators=(",", ":"))
         ideogram_text = json.dumps(ideogram, ensure_ascii=False)
-        text_prompt, text_spans = plain_prompt(plain_prompt(scene, [background])[0], [it["caption"] for it in items])
-        # the prompt 'positive' encodes (and the regional LoRAs find their captions in): the connected model's format
-        hint = pdata.get("promptFormatHint") if isinstance(pdata, dict) else None
+        # the background is Ideogram 4's alone (its caption JSON requires one): the text prompt leaves it out
+        text_prompt, text_spans = plain_prompt(scene, [it["caption"] for it in items])
+        # the prompt 'positive' encodes (and the regional LoRAs find their captions in): the model's format (picked
+        # in the node's model dropdown, else the connected model ...)
+        pd = pdata if isinstance(pdata, dict) else {}
+        hint = pd.get("promptFormatHint")
+        pick = pd.get("modelPick") if pd.get("modelPick") in MODEL_PICKS else None
         family, family_from = prompt_family(model, clip, prompt_format if prompt_format in PROMPT_FORMATS else "auto",
-                                            hint, edit)
+                                            hint, edit, pick=pick, layout=pd.get("mossLayout") is not False,
+                                            regions=bool(items))
         if family == "ideogram":
             prompt_text, spans = ideogram_text, ideogram_desc_spans(ideogram_text, elements)
             notes += ideogram_notes(scene, background, elements)

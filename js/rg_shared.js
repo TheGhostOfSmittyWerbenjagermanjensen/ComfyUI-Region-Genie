@@ -92,10 +92,14 @@ export const ICONS = {
     layerShrink: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.5" stroke-dasharray="2 1.7"/><rect x="6" y="6" width="4" height="4" rx=".8"/><path d="M8 2.6v2.2M8 13.4v-2.2M2.6 8h2.2M13.4 8h-2.2"/>',
     // the edit mask grows (or shrinks) by this many px
     maskGrow: '<rect x="5.2" y="5.2" width="5.6" height="5.6" rx="1" fill="currentColor" stroke="none" opacity=".55"/><rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.5" stroke-dasharray="2 1.7"/><path d="M8 4.6V2.9M8 11.4v1.7M4.6 8H2.9M11.4 8h1.7"/>',
+    mossLayout: '<rect x="1.5" y="2" width="13" height="12" rx="1.5"/><rect x="3.5" y="4" width="4.5" height="4" rx=".6"/><rect x="9" y="7.5" width="3.5" height="4.5" rx=".6"/>',
+    mossStandard: '<rect x="1.5" y="2" width="13" height="12" rx="1.5"/><path d="M4 5.5h8M4 8h8M4 10.5h5"/>',
     palette: '<path d="M8 1.8C4.4 1.8 1.8 4.4 1.8 7.7c0 3.4 2.7 6.3 6 6.3 1 0 1.6-.6 1.6-1.4 0-.8-.6-1.1-.6-1.8 0-.8.6-1.4 1.5-1.4h1.6c1.6 0 2.4-1.2 2.4-2.6 0-2.8-2.9-5-6.3-5z"/><circle cx="5" cy="7" r=".9" fill="currentColor"/><circle cx="7.4" cy="4.6" r=".9" fill="currentColor"/><circle cx="10.5" cy="5.1" r=".9" fill="currentColor"/><circle cx="4.9" cy="10.1" r=".9" fill="currentColor"/>',
 };
 export const svgIcon = (name) =>
     `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
+// set an element's content only when it changes: replacing what is under the mouse restarts (and so hides) its tooltip
+export const setHTML = (e, html) => { if (e && e.__rgHtml !== html) { e.__rgHtml = html; e.innerHTML = html; } };
 
 // ---------------------------------------------------------------- saved node properties
 // Property keys renamed with Region Genie (workflows saved before still have the old ones). An old key always
@@ -569,7 +573,7 @@ export const WC_CSS = `
 .rg-wc.idle .rg-wc-lbl, .rg-wc.idle .rg-wc-seed { opacity:.5; }
 .rg-wc-lbl { line-height:0; opacity:.85; }
 .rg-wc-lbl svg { width:15px; height:15px; display:block; }
-.rg-wc-seed { width:122px !important; }
+.rg-wc-seed { max-width:none; }
 .rg-wc .rg-btn, .rg-wc .rg-num { background:var(--comfy-input-bg,#222); color:var(--input-text,#ddd); border:1px solid var(--border-color,#555);
   border-radius:4px; font:12px sans-serif; }
 .rg-wc .rg-btn { cursor:pointer; padding:2px 4px; line-height:0; }
@@ -608,10 +612,28 @@ export function addExpandButton(t, title, onOpen) {
     place();
     return b;
 }
+// Esc in a pop-up editor: true = put the text back (the default), false = keep the edits (Settings)
+export const escReverts = () => getSetting(SET.popEscKeeps, "put the text back") !== "keep the edits";
+export const popFootText = () => "Enter: done · Shift+Enter: new line · Esc: close, "
+    + (escReverts() ? "putting the text back" : "keeping the edits");
+// the owner node is gone, or not on the canvas any more (another workflow tab, or into / out of a subgraph)
+export const nodeOffCanvas = (node) => !node?.graph || (app.canvas?.graph != null && app.canvas.graph !== node.graph);
+// the natural height of a pop-up laid out with 14 px text, so its text size (A− / A+) doesn't change its size
+export function naturalHeight(box, tas) {
+    const keep = tas.map((t) => [t.style.fontSize, t.style.lineHeight]);
+    for (const t of tas) { t.style.fontSize = "14px"; t.style.lineHeight = "18px"; }
+    box.style.height = "";
+    const h = box.offsetHeight;
+    tas.forEach((t, i) => { t.style.fontSize = keep[i][0]; t.style.lineHeight = keep[i][1]; });
+    return h;
+}
 let fpop = null;
 export const floatPopupOpen = () => !!fpop;
 export function closeFloatPopup(commit = true) { fpop?.close(commit); }
-// o: { anchor, title, value, onInput(v), fontKey (a SET text-size id), node (autocomplete), filled?() -> text | null, hint? }
+// o: { anchor, title, value, onInput(v), fontKey (a SET text-size id), node (autocomplete; the pop-up closes when the
+//      node leaves the canvas), filled?() -> text | null, hint?, onClose?, nav?(dir, geom) (◀ / ▶: open the previous / next
+//      field there), at? { left, top, width, height } (a place and size to open at: stepping with ◀ / ▶) }
+// It stays open until Enter, Esc, ✕, another pop-up, or the node leaving the canvas (a click elsewhere doesn't close it).
 export function openFloatPopup(o) {
     closeFloatPopup(true);
     const box = document.createElement("div"); box.className = "rg-fpop";
@@ -632,9 +654,13 @@ export function openFloatPopup(o) {
     const syncUse = () => { const f = o.filled?.(ta.value); use.style.display = f != null ? "" : "none";
         use.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : ""; };
     const x = btn("rg-x", "✕", "Close (Enter / Esc)", () => close(true));
-    head.append(title, fm, fp, use, wc, x);
-    head.title = "Drag to move. Double-click: back next to the field";
-    const foot = mk("div", "rg-fpop-foot", o.hint || "Enter: done · Shift+Enter: new line · Esc: close, putting the text back");
+    const geom = () => ({ left: box.offsetLeft, top: box.offsetTop, width: box.offsetWidth, height: box.offsetHeight });
+    const prev = btn("rg-nav", "◀", "The previous text field of this node, in this place and size (from the first: the last one)", () => o.nav(-1, geom()));
+    const next = btn("rg-nav", "▶", "The next text field of this node, in this place and size (from the last: the first one)", () => o.nav(1, geom()));
+    if (!o.nav) prev.style.display = next.style.display = "none";
+    head.append(title, prev, next, fm, fp, use, wc, x);
+    head.title = "Drag to move (anywhere on the screen). Double-click: back next to the field";
+    const foot = mk("div", "rg-fpop-foot", o.hint || popFootText());
     const grip = mk("div", "rg-fpop-grip"); grip.title = "Drag to resize (remembered). Double-click: the default size";
     box.append(head, ta, foot, grip);
     for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "contextmenu", "keyup", "keypress"]) box.addEventListener(ev, (e) => e.stopPropagation());
@@ -642,7 +668,7 @@ export function openFloatPopup(o) {
     ta.addEventListener("input", () => { o.onInput(ta.value); syncUse(); });
     box.addEventListener("keydown", (e) => {
         e.stopPropagation();
-        if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); close(false); }
+        if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); close(!escReverts()); }
         else if (e.key === "Enter" && !e.shiftKey && e.target === ta && !autocompleteOpen(ta, e)) { e.preventDefault(); close(true); }
     });
     if (o.node) attachAutocomplete(ta, o.node);
@@ -651,10 +677,19 @@ export function openFloatPopup(o) {
     const sizes = () => { try { return JSON.parse(recentGet(SET.popSizes, "{}") || "{}") || {}; } catch (e) { return {}; } };
     const W = () => window.innerWidth, H = () => window.innerHeight;
     function layout(atField) {
+        if (o.at && atField) {                     // stepped here with ◀ / ▶: the same place and size
+            box.style.width = Math.max(260, Math.min(W() - 12, o.at.width)) + "px";
+            box.style.height = Math.max(160, Math.min(H() - 12, o.at.height)) + "px";
+            box.classList.add("sized");
+            box.style.left = Math.max(0, Math.min(W() - 40, o.at.left)) + "px";
+            box.style.top = Math.max(0, Math.min(H() - 30, o.at.top)) + "px";
+            return;
+        }
         const sz = sizes().float || {};
         box.style.width = Math.max(260, Math.min(W() - 12, sz.w || 560)) + "px";
-        box.style.height = sz.h ? Math.max(160, Math.min(H() - 12, sz.h)) + "px" : "";
-        box.classList.toggle("sized", !!sz.h);
+        // not resized by hand: the height it has with 14 px text (so A− / A+ don't change it)
+        box.style.height = Math.max(160, Math.min(H() - 12, sz.h || naturalHeight(box, [ta]))) + "px";
+        box.classList.add("sized");
         if (!atField) return;
         const r = o.anchor?.getBoundingClientRect?.() || { left: 40, top: 40, bottom: 60 }, w = box.offsetWidth, h = box.offsetHeight;
         box.style.left = Math.max(6, Math.min(W() - w - 6, r.left)) + "px";
@@ -682,16 +717,12 @@ export function openFloatPopup(o) {
              () => { const all = sizes(); all.float = { w: box.offsetWidth, h: box.offsetHeight }; recentSet(SET.popSizes, JSON.stringify(all)); });
     });
     grip.addEventListener("dblclick", () => { const all = sizes(); delete all.float; recentSet(SET.popSizes, JSON.stringify(all)); layout(false); });
-    const outside = (e) => {
-        const t = e.target;
-        if (box.contains(t) || inAutocompleteList(t) || t?.closest?.(".litecontextmenu, .litemenu-entry, .comfy-context-menu, .p-contextmenu")) return;
-        close(true);
-    };
-    setTimeout(() => window.addEventListener("pointerdown", outside, true), 0);
+    // closes when its node leaves the canvas (another workflow tab, a subgraph, the node removed)
+    const watch = setInterval(() => { if (o.node && nodeOffCanvas(o.node)) close(true); else if (!box.isConnected) close(true); }, 300);
     function close(commit) {
         if (fpop !== api_) return;
         fpop = null;
-        window.removeEventListener("pointerdown", outside, true);
+        clearInterval(watch);
         if (!commit && ta.value !== orig) o.onInput(orig);
         box.remove();
         o.onClose?.();
@@ -715,6 +746,7 @@ export const FPOP_CSS = `
 .rg-fpop textarea:focus { border-color:#5b8fd0; outline:none; }
 .rg-fpop.sized textarea { flex:1 1 auto; min-height:40px; }
 .rg-fpop-foot { font-size:10px; opacity:.5; }
+.rg-fpop-head .rg-nav { padding:0 4px; }
 .rg-fpop-grip { position:absolute; right:1px; bottom:1px; width:14px; height:14px; cursor:nwse-resize; touch-action:none; opacity:.7;
   background:linear-gradient(135deg, transparent 52%, #5b8fd0 52% 60%, transparent 60% 70%, #5b8fd0 70% 78%, transparent 78%); }
 .rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:transparent;
@@ -890,7 +922,7 @@ export function autocompleteToggle(node, mk) {
         const sig = `${on}|${title}`;
         if (sig === shown) return;                     // don't touch it while a tooltip may be showing
         shown = sig;
-        b.innerHTML = svgIcon(on ? "tag" : "tagOff");
+        setHTML(b, svgIcon(on ? "tag" : "tagOff"));
         b.classList.toggle("on", on);
         b.title = title;
         b.setAttribute("aria-pressed", String(on));
@@ -965,7 +997,7 @@ export const SET = {
     // text size per kind of field, in the node and in the pop-up editors (0 in the node = as before)
     fsNodeScene: "RegionGenie.Text.NodeScene", fsNodeRegion: "RegionGenie.Text.NodeRegion", fsNodeText: "RegionGenie.Text.NodeText",
     fsPopScene: "RegionGenie.Text.PopupScene", fsPopRegion: "RegionGenie.Text.PopupRegion", fsPopText: "RegionGenie.Text.PopupText",
-    popSizes: "RegionGenie.Popup.Sizes",
+    popSizes: "RegionGenie.Popup.Sizes", popEscKeeps: "RegionGenie.Popup.EscKeeps",
     sizeMode: "RegionGenie.Size.Mode",
     sizeAspect: "RegionGenie.Size.Aspect",
     sizeMegapixels: "RegionGenie.Size.Megapixels",
@@ -1212,6 +1244,11 @@ const SETTINGS = [
             .map(([k, name, ord, dflt, what]) => ({ id: SET[k], name, type: "number", defaultValue: dflt, attrs: { min: k.startsWith("fsNode") ? 0 : 8, max: 40, step: 1 },
                 tooltip: `Text size in px for ${what}. Applies to every Region Genie node.`, category: CAT("Text size", `${ord} ${k}`) })),
         { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
+        { id: SET.popEscKeeps, name: "Esc in a pop-up editor", type: "combo", defaultValue: "put the text back",
+          options: ["put the text back", "keep the edits"],
+          tooltip: "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node). Put the text back: "
+              + "Esc closes it and the text is as it was when it opened (Enter and ✕ keep the edits). Keep the edits: Esc, "
+              + "Enter and ✕ all close it and keep the text.", category: CAT("Text size", "7 esc") },
         { id: SET.wcPerField, name: "A seed per field", type: "boolean", defaultValue: false,
           tooltip: "Off: every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing "
               + "one seed), so the same wildcard in two fields usually picks the same value. On: each field gets its own seed, "
@@ -1483,3 +1520,51 @@ function watchWidgets(node, names, ac, onTextarea) {
 export const autocompleteWidgets = (node, names, onTextarea) => watchWidgets(node, names, true, onTextarea);
 // only the overlay-scrollbar room (read-only info boxes)
 export const padWidgets = (node, names) => watchWidgets(node, names, false);
+
+// ---------------------------------------------------------------- number fields that fit their value
+// Every number field of this pack (inside an element with an "rg-" class) is as wide as its value plus the spin
+// arrows: 2 digits at least, wider as more are typed, so the arrows never cover a digit. Applied to fields as they
+// are added to the page (a MutationObserver), and again whenever the value changes (typed, spun or set by code).
+const NUM_VALUE = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+const NUM_SPIN_PX = 22;                         // the spin arrows (about 15 px in Chrome, 16 in Firefox) and a little room
+const numChars = (s) => {
+    let n = 0;
+    for (const c of String(s)) n += c === "." || c === "," ? 0.45 : c === "-" ? 0.7 : 1;
+    return n;
+};
+export function fitNumber(inp, minChars = 2) {
+    if (!inp || inp.type !== "number") return inp;
+    const text = NUM_VALUE.get.call(inp) || inp.placeholder || "";
+    const ch = Math.ceil(Math.max(minChars, numChars(text)) * 10) / 10;
+    const w = `calc(${ch}ch + ${NUM_SPIN_PX}px)`;
+    if (inp.style.width !== w) inp.style.width = w;
+    return inp;
+}
+export function autoNumber(inp) {
+    if (!inp || inp.__rgFit || inp.tagName !== "INPUT" || inp.type !== "number") return inp;
+    inp.__rgFit = true;
+    inp.style.flexShrink = "0"; inp.style.minWidth = "0"; inp.style.maxWidth = "none"; inp.style.boxSizing = "content-box";
+    Object.defineProperty(inp, "value", {
+        configurable: true,
+        get() { return NUM_VALUE.get.call(this); },
+        set(v) { NUM_VALUE.set.call(this, v); fitNumber(this); },
+    });
+    for (const ev of ["input", "change", "blur"]) inp.addEventListener(ev, () => fitNumber(inp));
+    new MutationObserver(() => fitNumber(inp)).observe(inp, { attributes: true, attributeFilter: ["placeholder", "type"] });
+    fitNumber(inp);
+    return inp;
+}
+const ownNumber = (n) => n.type === "number" && !!n.closest?.('[class^="rg-"], [class*=" rg-"]');
+function scanNumbers(root) {
+    if (root.nodeType !== 1) return;
+    if (root.tagName === "INPUT") { if (ownNumber(root)) autoNumber(root); return; }
+    const list = root.getElementsByTagName?.("input");
+    if (list?.length) for (const i of [...list]) if (!i.__rgFit && ownNumber(i)) autoNumber(i);
+}
+function watchNumbers() {
+    if (!document.body) { document.addEventListener("DOMContentLoaded", watchNumbers, { once: true }); return; }
+    scanNumbers(document.body);
+    new MutationObserver((recs) => { for (const r of recs) for (const n of r.addedNodes) scanNumbers(n); })
+        .observe(document.body, { childList: true, subtree: true });
+}
+if (typeof document !== "undefined" && !window.__rgNumbers) { window.__rgNumbers = true; watchNumbers(); }
