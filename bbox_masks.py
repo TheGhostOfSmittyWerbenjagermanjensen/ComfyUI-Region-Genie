@@ -231,7 +231,8 @@ def _common_inputs():
                            "tooltip": "Canvas height. Ignored when size_from_image or size_from_latent is connected."}),
         "feather": ("INT", {"default": 0, "min": 0, "max": 1024, "step": 1,
                             "tooltip": "Soften mask edges by this many pixels (a linear ramp of 2x this width, centred on the box edge). Edges on the canvas border stay solid."}),
-        "invert": ("BOOLEAN", {"default": False}),
+        "invert": ("BOOLEAN", {"default": False,
+                               "tooltip": "On: the masks are inverted (everything except the box / region is white)."}),
         "latent_scale": (LATENT_SCALES, {"default": "auto",
                                          "tooltip": "Pixels per latent cell for size_from_latent. "
                                                     "auto: 16 for MOSS Image / Flux 2 latents, 8 for SD/SDXL/Flux 1."}),
@@ -241,7 +242,8 @@ def _common_inputs():
 def _optional_inputs():
     return {
         "size_from_image": ("IMAGE", {"tooltip": "Takes priority over size_from_latent."}),
-        "size_from_latent": ("LATENT",),
+        "size_from_latent": ("LATENT", {"tooltip": "Take width / height from this latent (its size times latent_scale). "
+                                                   "size_from_image comes first."}),
     }
 
 

@@ -37,11 +37,12 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const bd = await page.evaluate(() => !!window.__rg.__rgView && document.querySelectorAll(".rg-bar .rg-seg").length > 0);
     check("image-mode buttons show with Load Image connected", bd);
     // the tool row in the real frontend
-    const btn = page.locator('.rg-bar .rg-btn.icon[title^="Select object"]').first();
+    const btn = page.locator('.rg-bar .rg-btn[data-group="wand"]').first();
+    await page.keyboard.press("q").catch(() => {});
     check("Select object button present", await btn.count() === 1);
     await btn.click();
     await page.waitForTimeout(300);
-    const findVis = await page.locator(".rg-bar .rg-find").first().isVisible();
+    const findVis = await page.locator(".rg-toolopts .rg-find").first().isVisible();
     check("find field visible", findVis);
     const respP = page.waitForResponse((r) => r.url().includes("/region_genie/sam_select"), { timeout: 240000 });
     const [cx, cy] = await page.evaluate(() => window.__rg.__rgToClient(120, 300));

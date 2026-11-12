@@ -232,6 +232,16 @@ const STYLE = `
 .rg-btn.icon svg { width:16px; height:16px; display:block; }
 .rg-btn.mixed { display:inline-flex; align-items:center; gap:2px; }
 .rg-btn.mixed svg { width:15px; height:15px; display:block; }
+.rg-btn.icon.grp { display:inline-flex; align-items:center; padding:2px 0 2px 4px; }
+.rg-btn.icon .rg-grp-ic { line-height:0; }
+.rg-btn.icon .rg-grp-dd { line-height:0; margin-left:1px; padding:0 1px; opacity:.6; border-radius:2px; }
+.rg-btn.icon .rg-grp-dd:hover { opacity:1; background:rgba(255,255,255,.12); }
+.rg-btn.icon .rg-grp-dd svg { width:8px; height:16px; }
+.rg-toolopts { position:absolute; left:6px; top:6px; z-index:4; display:flex; align-items:center; gap:3px; padding:3px 4px;
+  background:rgba(20,20,20,.85); border:1px solid var(--border-color,#555); border-radius:5px; box-shadow:0 2px 8px rgba(0,0,0,.5); }
+.rg-toolopts .rg-optlab { line-height:0; opacity:.75; margin-left:2px; }
+.rg-toolopts .rg-optlab svg { width:14px; height:14px; display:block; }
+.rg-toolopts .rg-num { width:46px; }
 .rg-btn.variants { position:relative; }
 .rg-btn.variants::after { content:""; position:absolute; right:1px; bottom:1px; width:0; height:0;
   border-style:solid; border-width:0 0 5px 5px; border-color:transparent transparent currentColor transparent; opacity:.7; }
@@ -304,6 +314,13 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-bslider { position:absolute; left:8px; top:50%; transform:translateY(-50%); width:30px; height:190px; opacity:.45;
   transition:opacity .12s; z-index:3; touch-action:none; cursor:ns-resize; }
 .rg-bslider:hover, .rg-bslider.drag { opacity:1; }
+.rg-oslider { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:26px; height:160px; opacity:.45;
+  transition:opacity .12s; z-index:3; touch-action:none; cursor:ns-resize; }
+.rg-oslider:hover, .rg-oslider.drag { opacity:1; }
+.rg-oslider svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.rg-oslider-ic { position:absolute; left:5px; top:-18px; line-height:0; color:#f2f2f2; filter:drop-shadow(0 0 2px #000); pointer-events:none; }
+.rg-oslider-ic svg { position:static; width:16px; height:16px; }
+.rg-ohandle { left:0; width:24px; }
 .rg-bslider svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 .rg-bhandle { position:absolute; left:1px; width:28px; height:5px; margin-top:-2.5px; background:#f2f2f2; border:1px solid #111;
   border-radius:2px; box-shadow:0 0 3px rgba(0,0,0,.7); pointer-events:none; }
@@ -924,23 +941,92 @@ app.registerExtension({
                 toolBtns[key] = b; bar1.appendChild(b); return b;
             };
             addTool("select", "Select: move, resize and rotate layers (V). Shift keeps proportions / snaps angles to 15°.");
-            const shapeBtn = iconBtn("shape", "Shape: draw the shape chosen on the right; drag a box, Shift for equal sides, "
-                + "Alt to draw from the centre (R, O, T)", () => setTool("shape"));
-            toolBtns.shape = shapeBtn;
-            const shapeSel = el("select", "rg-sel");
-            shapeSel.title = "Shape to draw";
-            for (const [k, label] of SHAPES) shapeSel.appendChild(opt(k, label));
+            // ---- tools with versions: one button each, showing the active version's icon, with ▾ on its right (and
+            // right-click) for the list. Shape: the shapes; Lasso / Fill: their versions; Magic wand: the wand's two versions
+            // and Select object; Eraser: the eraser and the three lasso erase versions. Keyboard shortcuts pick an entry too.
             const numIn = (min, max, value, title) => {
                 const i = el("input", "rg-num"); i.type = "number"; i.min = String(min); i.max = String(max); i.step = "1";
                 i.value = String(value); i.title = title; i.style.display = "none";
                 i.addEventListener("keydown", (e) => e.stopPropagation());
                 return i;
             };
-            const syncShapeOpts = () => {
-                sidesIn.style.display = shapeKind === "star" ? "" : "none";
-                radiusIn.style.display = shapeKind === "roundrect" ? "" : "none";
+            const grpCur = { wand: "wand", erase: "erase" };          // the tool each mixed group shows (session)
+            const LASSO_TIP = "Drag freehand, or click points and close the loop (click the first point, double-click or Enter). ";
+            const SHAPE_KEYS = { rect: "R", ellipse: "O", triangle: "T" };
+            const OBJECT_TIP = "Select object (Q): SAM 3.1 finds the object you click in the image under the canvas. Click to add "
+                + "a point on the object, Ctrl+click a point that isn't part of it, drag a box around it; Backspace undoes the "
+                + "last point, Enter adds the selection to the active region, Esc cancels. Or type what to find in the field "
+                + "on the canvas. Needs the SAM 3.1 model (Settings > Region Genie > Select object).";
+            // entries: [id, icon, title, pick()]; cur(): the id shown
+            const GROUPS = {
+                shape: { name: "Shape", tools: ["shape"], cur: () => shapeKind,
+                    entries: () => SHAPES.map(([k, label]) => [k, "shape" + k[0].toUpperCase() + k.slice(1),
+                        `Shape (${label}): draw it — drag a box, Shift for equal sides, Alt to draw from the centre`
+                            + (SHAPE_KEYS[k] ? ` (${SHAPE_KEYS[k]})` : "") + ".",
+                        () => { shapeKind = k; setTool("shape"); }]) },
+                lasso: { name: "Lasso", tools: ["lasso"], cur: () => LASSO_MODES.lasso,
+                    entries: () => [["plain", "lasso", "Lasso: straight lines between the points."], ["spline", "lassoSpline", "Lasso (spline): a smooth curve through the points."],
+                        ["magnetic", "lassoMagnetic", "Lasso (magnetic): the outline follows edges in the image under the canvas."]]
+                        .map(([m, icon, t]) => [m, icon, `${t} ${LASSO_TIP}Filled with the active region (L).`, () => { setLassoMode("lasso", m); setTool("lasso"); }]) },
+                fill: { name: "Fill", tools: ["fill"], cur: () => LASSO_MODES.fill,
+                    entries: () => [["normal", "fill", "Fill: fills the clicked area (blank space, or one color) with the active region (F)."],
+                        ["gaps", "fillGaps", "Fill (closing small gaps): fills the clicked area, but doesn't leak through small openings (gap size: the field on the canvas) (F)."]]
+                        .map(([m, icon, t]) => [m, icon, t, () => { LASSO_MODES.fill = m; setTool("fill"); }]) },
+                wand: { name: "Magic wand / Select object", tools: ["wand", "object"], cur: () => (grpCur.wand === "object" ? "object" : LASSO_MODES.wand),
+                    entries: () => [
+                        ["contiguous", "wand", "Magic wand: selects the connected area of similar color around the click, in the image under the canvas; each click adds it to the active region (W). Tolerance: the field on the canvas.",
+                            () => { LASSO_MODES.wand = "contiguous"; setTool("wand"); }],
+                        ["global", "wandGlobal", "Magic wand (all similar colors): selects every pixel of similar color in the image under the canvas (W). Tolerance: the field on the canvas.",
+                            () => { LASSO_MODES.wand = "global"; setTool("wand"); }],
+                        ["object", "samSelect", OBJECT_TIP, () => setTool("object")]] },
+                erase: { name: "Eraser / Lasso erase", tools: ["erase", "lassoErase"], cur: () => (grpCur.erase === "erase" ? "erase" : "lasso:" + LASSO_MODES.lassoErase),
+                    entries: () => [
+                        ["erase", "erase", "Eraser: erase from the selected layer (E). Shift+click draws a straight line from where the last stroke ended.", () => setTool("erase")],
+                        ...[["plain", "lassoErase", "Lasso erase: straight lines between the points."], ["spline", "lassoEraseSpline", "Lasso erase (spline): a smooth curve through the points."],
+                            ["magnetic", "lassoEraseMagnetic", "Lasso erase (magnetic): the outline follows edges in the image under the canvas."]]
+                            .map(([m, icon, t]) => ["lasso:" + m, icon, `${t} ${LASSO_TIP}Erases from the selected layer (Shift+L).`, () => { setLassoMode("lassoErase", m); setTool("lassoErase"); }])] },
             };
-            shapeSel.addEventListener("change", () => { shapeKind = shapeSel.value; syncShapeOpts(); setTool("shape"); });
+            function setLassoMode(key, m) {
+                LASSO_MODES[key] = m;
+                if (clickPoly && tool === key) { clickPoly.spline = m === "spline"; clickPoly.magnetic = m === "magnetic"; }
+            }
+            const grpBtns = {};
+            function groupMenu(key, e) {
+                const g = GROUPS[key], cur = g.cur();
+                const items = g.entries().map(([id, , title, pickIt]) => ({ content: (id === cur ? "✓ " : "   ") + title.split(":")[0], pickIt }));
+                contextMenu(e, items, g.name, (v) => { v?.pickIt?.(); focusSink(); });
+            }
+            for (const key of Object.keys(GROUPS)) {
+                const b = el("button", "rg-btn icon grp"); b.type = "button"; b.dataset.group = key;
+                const ic = el("span", "rg-grp-ic"), dd = el("span", "rg-grp-dd");
+                dd.innerHTML = '<svg viewBox="0 0 8 16"><path d="M1.5 6.5L4 9.5l2.5-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                dd.title = "Other versions (also right-click)";
+                b.append(ic, dd);
+                b.addEventListener("pointerdown", (e) => { if (e.button === 2 || e.target.closest(".rg-grp-dd")) e.stopPropagation(); });
+                b.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    if (e.target.closest(".rg-grp-dd")) { groupMenu(key, e); return; }
+                    const g = GROUPS[key], cur = g.cur();
+                    (g.entries().find((x) => x[0] === cur) || g.entries()[0])[3]();
+                });
+                b.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); groupMenu(key, e); });
+                grpBtns[key] = b;
+                for (const t of GROUPS[key].tools) toolBtns[t] = b;
+            }
+            function refreshVariantButtons() {
+                for (const [key, b] of Object.entries(grpBtns)) {
+                    const g = GROUPS[key], cur = g.cur(), en = g.entries().find((x) => x[0] === cur) || g.entries()[0];
+                    if (b.dataset.cur !== en[0]) { b.querySelector(".rg-grp-ic").innerHTML = svgIcon(en[1]); b.dataset.cur = en[0]; }
+                    b.title = `${en[2]} ▾ or right-click: ${g.name === "Shape" ? "other shapes" : "the other tools and versions"}.`;
+                }
+                if (document.activeElement !== tolIn) tolIn.value = String(TOOL_NUMS.wandTol);
+                if (document.activeElement !== gapIn) gapIn.value = String(TOOL_NUMS.fillGap);
+                syncToolOpts();
+            }
+            // ---- tool options: a strip in the canvas's top-left corner, shown while the active tool has some
+            const optStrip = el("div", "rg-toolopts"); optStrip.style.display = "none";
+            for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "contextmenu"]) optStrip.addEventListener(ev, (e) => e.stopPropagation());
+            const optLab = (icon, forEl) => { const l = el("span", "rg-optlab"); l.innerHTML = svgIcon(icon); l.title = forEl.title; l.__for = forEl; return l; };
             const sidesIn = numIn(3, 64, sides, "Number of star points");
             sidesIn.addEventListener("change", () => {
                 sides = Math.max(3, Math.min(64, parseInt(sidesIn.value) || 5));
@@ -955,26 +1041,20 @@ app.registerExtension({
                 const L = selLayer();
                 if (L && L.shape === "roundrect") change(() => { L.radius = cornerPct; });
             });
-            bar1.append(shapeBtn, shapeSel, sidesIn, radiusIn);
-            addTool("brush", "Brush: paint into the selected layer, or a new layer for the active region (B). Shift+click draws a "
-                + "straight line from where the last stroke ended. Size: slider on the canvas, [ ], Alt+wheel");
-            addTool("lasso", "");
-            addTool("fill", "");
+            // the shape fields: drawing that shape, or with the selection tool on a layer of that shape
+            const syncShapeOpts = () => {
+                const L = tool === "select" ? state.layers.find((l) => l.id === selId) || null : null;
+                sidesIn.style.display = (tool === "shape" && shapeKind === "star") || L?.shape === "star" ? "" : "none";
+                radiusIn.style.display = (tool === "shape" && shapeKind === "roundrect") || L?.shape === "roundrect" ? "" : "none";
+            };
             initLassoModes();
             // fill, closing small gaps: the gap size (px)
             const gapIn = numIn(1, 64, TOOL_NUMS.fillGap, "Fill, closing small gaps: openings narrower than about twice this many "
                 + "pixels are closed, so the fill doesn't leak through them (default in Settings > Region Genie > Canvas tools)");
             gapIn.addEventListener("change", () => { TOOL_NUMS.fillGap = Math.max(1, Math.min(64, parseInt(gapIn.value) || 4)); gapIn.value = String(TOOL_NUMS.fillGap); });
-            bar1.appendChild(gapIn);
-            addTool("wand", "");
             const tolIn = numIn(0, 255, TOOL_NUMS.wandTol, "Magic wand tolerance: how different a color may be from the clicked one "
                 + "(0-255 per channel) and still be selected (default in Settings > Region Genie > Canvas tools)");
             tolIn.addEventListener("change", () => { TOOL_NUMS.wandTol = Math.max(0, Math.min(255, parseInt(tolIn.value) || 0)); tolIn.value = String(TOOL_NUMS.wandTol); });
-            bar1.appendChild(tolIn);
-            addTool("object", "Select object (Q): SAM 3.1 finds the object you click in the image under the canvas. Click to add "
-                + "a point on the object, Ctrl+click a point that isn't part of it, drag a box around it; Backspace undoes the "
-                + "last point, Enter adds the selection to the active region, Esc cancels. Or type what to find in the field "
-                + "next to it. Needs the SAM 3.1 model (Settings > Region Genie > Select object).", "samSelect");
             const findIn = el("input", "rg-find");
             findIn.type = "text"; findIn.placeholder = "find all…"; findIn.style.display = "none";
             findIn.title = "Find all: type what to select and press Enter, e.g. 'person' or 'red car, dog' (commas: several "
@@ -986,77 +1066,35 @@ app.registerExtension({
                 if (e.key === "Enter") { e.preventDefault(); if (findIn.value.trim()) pickFind(findIn.value.trim()); else if (pick?.masks?.length) pickAccept(e.shiftKey); }
                 else if (e.key === "Escape") { e.preventDefault(); if (pick) pickCancel(); focusSink(); }
             });
-            findIn.addEventListener("pointerdown", (e) => e.stopPropagation());
-            bar1.appendChild(findIn);
             // the pending selection: add it (Enter) / discard it (Esc); shown while there is one
             const pickOkBtn = iconBtn("check", "Add the selection to the active region (Enter). Switching to another tool adds it too.", () => { if (pick) pickAccept(false); focusSink(); });
             const pickNoBtn = iconBtn("close", "Discard the selection (Esc)", () => { if (pick) pickCancel(); focusSink(); });
             pickOkBtn.style.display = pickNoBtn.style.display = "none";
-            bar1.append(pickOkBtn, pickNoBtn);
+            const optLabels = [optLab("shapeStar", sidesIn), optLab("shapeRoundrect", radiusIn), optLab("fillGaps", gapIn), optLab("wand", tolIn), optLab("samSelect", findIn)];
+            optStrip.append(optLabels[0], sidesIn, optLabels[1], radiusIn, optLabels[2], gapIn, optLabels[3], tolIn, optLabels[4], findIn, pickOkBtn, pickNoBtn);
+            function syncStrip() {
+                for (const l of optLabels) { const d = l.__for.style.display; if (l.style.display !== d) l.style.display = d; }
+                const any = [sidesIn, radiusIn, gapIn, tolIn, findIn, pickOkBtn].some((x) => x.style.display !== "none") ? "" : "none";
+                if (optStrip.style.display !== any) optStrip.style.display = any;
+            }
             function syncPickBtns() {
                 const show = tool === "object" && !!pick ? "" : "none";
-                if (pickOkBtn.style.display !== show) pickOkBtn.style.display = pickNoBtn.style.display = show;
+                if (pickOkBtn.style.display !== show) { pickOkBtn.style.display = pickNoBtn.style.display = show; syncStrip(); }
                 const ok = !!pick && !pickBusy && pick.masks.some((m) => !m.off);
                 if (pickOkBtn.disabled === ok) pickOkBtn.disabled = !ok;
-            }
-            addTool("erase", "Eraser: erase from the selected layer (E). Shift+click draws a straight line from where the last stroke ended.");
-            addTool("lassoErase", "");
-            // tools with variants: right-click chooses (small triangle in the corner); Settings > Canvas tools sets the start
-            const LASSO_TIP = "Drag freehand, or click points and close the loop (click the first point, double-click or Enter). ";
-            const VARIANTS = {
-                lasso: { name: "Lasso", key: "L", modes: {
-                    plain: ["lasso", "Lasso", "straight lines between the points"],
-                    spline: ["lassoSpline", "Lasso (spline)", "a smooth curve through the points"],
-                    magnetic: ["lassoMagnetic", "Lasso (magnetic)", "the outline follows edges in the image under the canvas"] },
-                    tip: () => LASSO_TIP + "Filled with the active region (L)." },
-                lassoErase: { name: "Lasso erase", key: "Shift+L", modes: {
-                    plain: ["lassoErase", "Lasso erase", "straight lines between the points"],
-                    spline: ["lassoEraseSpline", "Lasso erase (spline)", "a smooth curve through the points"],
-                    magnetic: ["lassoEraseMagnetic", "Lasso erase (magnetic)", "the outline follows edges in the image under the canvas"] },
-                    tip: () => LASSO_TIP + "Erases from the selected layer (Shift+L)." },
-                wand: { name: "Magic wand", modes: {
-                    contiguous: ["wand", "Magic wand", "selects the connected area of similar color around the click"],
-                    global: ["wandGlobal", "Magic wand (all similar colors)", "selects every pixel of similar color"] },
-                    tip: () => "Works on the image under the canvas (the 'image' input): each click adds what it selects to the "
-                        + "active region (W). Tolerance: the field next to it." },
-                fill: { name: "Fill", modes: {
-                    normal: ["fill", "Fill", "fills the clicked area (blank space, or one color)"],
-                    gaps: ["fillGaps", "Fill (closing small gaps)", "fills the clicked area, but doesn't leak through small openings (gap size: the field next to it)"] },
-                    tip: () => "With the active region (F)." },
-            };
-            function refreshVariantButtons() {
-                for (const [key, info] of Object.entries(VARIANTS)) {
-                    const b = toolBtns[key], m = LASSO_MODES[key], [icon, label, what] = info.modes[m];
-                    b.innerHTML = svgIcon(icon);
-                    b.classList.add("variants");
-                    b.title = `${label}: ${what}. ${info.tip()} Right-click: other versions.`;
-                }
-                if (document.activeElement !== tolIn) tolIn.value = String(TOOL_NUMS.wandTol);
-                if (document.activeElement !== gapIn) gapIn.value = String(TOOL_NUMS.fillGap);
-                syncToolOpts();
             }
             function syncToolOpts() {
                 tolIn.style.display = tool === "wand" ? "" : "none";
                 findIn.style.display = tool === "object" ? "" : "none";
                 gapIn.style.display = tool === "fill" && LASSO_MODES.fill === "gaps" ? "" : "none";
+                syncShapeOpts();
+                syncStrip();
             }
             lassoRefreshers.add(refreshVariantButtons);
-            for (const [key, info] of Object.entries(VARIANTS)) {
-                toolBtns[key].addEventListener("contextmenu", (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    const items = Object.entries(info.modes).map(([mode, [, label]]) =>
-                        ({ content: (LASSO_MODES[key] === mode ? "✓ " : " ") + label, mode }));
-                    contextMenu(e, items, info.name, (v) => {
-                        if (v?.mode) {
-                            LASSO_MODES[key] = v.mode;
-                            if (clickPoly && (key === "lasso" || key === "lassoErase")) { clickPoly.spline = v.mode === "spline"; clickPoly.magnetic = v.mode === "magnetic"; }
-                            refreshVariantButtons(); setTool(key);
-                        }
-                        focusSink();
-                    });
-                });
-                toolBtns[key].addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
-            }
+            bar1.append(grpBtns.shape);
+            addTool("brush", "Brush: paint into the selected layer, or a new layer for the active region (B). Shift+click draws a "
+                + "straight line from where the last stroke ended. Size: slider on the canvas, [ ], Alt+wheel");
+            bar1.append(grpBtns.lasso, grpBtns.fill, grpBtns.wand, grpBtns.erase);
             refreshVariantButtons();
             // arrange the selected layer: flip, align to the image, grow / shrink
             const arrangeBtn = iconBtn("arrange", "Arrange the selected layer: flip, align to the image, grow or shrink", () => toggleArrange());
@@ -1126,14 +1164,43 @@ app.registerExtension({
             const clearBtn = iconBtn("clear", "Clear all: remove every layer and region (undoable)", () => {
                 if (state.layers.length || state.regions.length || state.importSig) change(() => { state.layers = []; state.regions = []; delete state.importSig; selId = null; curRegion = null; filter = ALL; });
             });
-            const bdBox = el("span", "rg-bar"); bdBox.style.display = "none";
-            const bdLbl = el("span"); bdLbl.textContent = "Image opacity";
-            bdLbl.title = "Opacity of the image connected to the 'image' input, shown under the regions";
-            const bdIn = el("input");
-            bdIn.type = "range"; bdIn.min = "0"; bdIn.max = "1"; bdIn.step = "0.05"; bdIn.value = String(backdropOpacity);
-            bdIn.style.width = "56px"; bdIn.title = bdLbl.title;
-            bdIn.addEventListener("input", () => { backdropOpacity = parseFloat(bdIn.value); requestDraw(); });
-            bdBox.append(bdLbl, bdIn);
+            // image opacity: a vertical slider over the canvas's right edge while an image is shown under the regions
+            const bdBox = el("div", "rg-oslider"); bdBox.style.display = "none";
+            bdBox.innerHTML = '<svg viewBox="0 0 26 160" preserveAspectRatio="none"><rect x="11" y="14" width="4" height="132" rx="2" '
+                + 'fill="rgba(240,240,240,.45)" stroke="#111" stroke-width="1"/></svg>';
+            const bdIcon = el("span", "rg-oslider-ic"); bdIcon.innerHTML = svgIcon("opacity");
+            const bdHandle = el("div", "rg-bhandle rg-ohandle");
+            bdBox.append(bdIcon, bdHandle);
+            const O_TOP = 14 / 160, O_BOT = 146 / 160;
+            function syncOpacity() {
+                bdHandle.style.top = `${(O_BOT - backdropOpacity * (O_BOT - O_TOP)) * 100}%`;
+                bdBox.title = `Image opacity: ${Math.round(backdropOpacity * 100)}% — how strongly the image on the 'image' input shows `
+                    + "under the regions (drag, or the mouse wheel)";
+            }
+            const opacityFromY = (y) => {
+                const r = bdBox.getBoundingClientRect(), f = (y - r.top) / Math.max(1, r.height);
+                backdropOpacity = Math.round(Math.min(1, Math.max(0, (O_BOT - f) / (O_BOT - O_TOP))) * 20) / 20;
+                syncOpacity(); requestDraw();
+            };
+            let oDrag = false;
+            bdBox.addEventListener("pointerdown", (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault(); e.stopPropagation();
+                oDrag = true; bdBox.classList.add("drag");
+                try { bdBox.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+                opacityFromY(e.clientY);
+            });
+            bdBox.addEventListener("pointermove", (e) => { e.stopPropagation(); if (oDrag) opacityFromY(e.clientY); });
+            const endODrag = (e) => { if (!oDrag) return; oDrag = false; bdBox.classList.remove("drag"); try { bdBox.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ } };
+            bdBox.addEventListener("pointerup", endODrag);
+            bdBox.addEventListener("pointercancel", endODrag);
+            for (const ev of ["mousedown", "mouseup", "click", "dblclick", "contextmenu"]) bdBox.addEventListener(ev, (e) => e.stopPropagation());
+            bdBox.addEventListener("wheel", (e) => {
+                e.preventDefault(); e.stopPropagation();
+                backdropOpacity = Math.round(Math.min(1, Math.max(0, backdropOpacity + (e.deltaY < 0 ? 0.05 : -0.05))) * 20) / 20;
+                syncOpacity(); requestDraw();
+            }, { passive: false });
+            syncOpacity();
             node.properties = node.properties || {};
             if (node.properties.rg_labels === undefined) node.properties.rg_labels = true;
             const labBtn = iconBtn("eye", "", () => {
@@ -1149,7 +1216,7 @@ app.registerExtension({
             }
             setLabIcon();
             const dimsLbl = el("span", "rg-hint"); dimsLbl.style.marginLeft = "auto";
-            bar1.append(sep(), undoBtn, redoBtn, clearBtn, sep(), snapBtn, gridIn, fitBtn, labBtn, bdBox, dimsLbl);
+            bar1.append(sep(), undoBtn, redoBtn, clearBtn, sep(), snapBtn, gridIn, fitBtn, labBtn, dimsLbl);
             // ---- layout files (bottom right of the node)
             const exportBtn = btn("Export", "Save this layout (regions, LoRAs, layers, scene prompt, size) as a .json file. "
                 + "Load it again with Import, or through the import_json input.", exportLayout);
@@ -1203,7 +1270,7 @@ app.registerExtension({
             });
             const imgBox = el("span", "rg-bar"); imgBox.style.display = "none";
             imgBox.append(imgSeg.box, minIn);
-            bar1.insertBefore(imgBox, bdBox);
+            bar1.insertBefore(imgBox, dimsLbl);
             const minPixelsNow = () => Math.max(1, Math.round(+getSetting(SET.cmMinPixels, 64)) || 64);
             const importModeNow = () => getSetting(SET.cmImportMode, "ask before replacing") === "always replace" ? "always replace" : "ask before replacing";
             // ---- mode: generate / edit
@@ -1645,7 +1712,7 @@ app.registerExtension({
             // and contains the focused element (the hidden keyboard field, focused on hover below).
             wrap.dataset.captureWheel = "true";        // only here: the nearest marked ancestor must contain the focus
             const cv = el("canvas");
-            cvBox.appendChild(cv);
+            cvBox.append(cv, optStrip, bdBox);            // the tool options (top left) and the image opacity (right edge)
             const ctx = cv.getContext("2d");
 
             // ---- brush size: vertical slider over the left edge of the canvas (brush and eraser tools)
@@ -1719,7 +1786,7 @@ app.registerExtension({
             const treeTitle = el("span"); treeTitle.textContent = "Regions";
             const addRegionBtn = btn("", "Add a region with a new color (it goes on top)", () => {
                 change(() => { const r = newRegion(); selId = null; activateRegion(r.id); });
-                shapeKind = "rect"; shapeSel.value = "rect"; syncShapeOpts();
+                shapeKind = "rect";
                 setTool("shape");                          // the next thing to do is usually drawing its box
                 setTimeout(() => regList.querySelector(`textarea[data-rid="${curRegion}"]`)?.focus(), 0);
             });
@@ -2698,8 +2765,10 @@ app.registerExtension({
                 else if (pick && t === "object") pick.acceptOnAnswer = false;
                 if (t !== "object") hideMsg();
                 tool = t;
-                for (const [k, b] of Object.entries(toolBtns)) b.classList.toggle("on", k === t);
-                syncToolOpts();
+                if (t === "wand" || t === "object") grpCur.wand = t;
+                if (t === "erase" || t === "lassoErase") grpCur.erase = t;
+                for (const b of new Set(Object.values(toolBtns))) b.classList.toggle("on", toolBtns[t] === b);
+                refreshVariantButtons();                       // the buttons show the tool in use; the strip its options
                 bSlider.style.display = t === "brush" || t === "erase" ? "" : "none";
                 hideBTip(); updateBrushSlider();
                 if (performance.now() > keepHintUntil) hint("");       // a note just shown (e.g. region shown again) stays
@@ -4304,7 +4373,7 @@ app.registerExtension({
                 else if (k === "q") setTool("object");
                 else if (k === "l") setTool(e.shiftKey ? "lassoErase" : "lasso");
                 else if (k === "r" || k === "o" || k === "t") {
-                    shapeKind = { r: "rect", o: "ellipse", t: "triangle" }[k]; shapeSel.value = shapeKind; syncShapeOpts(); setTool("shape");
+                    shapeKind = { r: "rect", o: "ellipse", t: "triangle" }[k]; setTool("shape");
                 } else if (k === "g") { snap = !snap; setSnapIcon(); requestDraw(); }
                 else if (k === "home") { userView = false; fitView(); requestDraw(); }
                 else if (k === "[" || k === "]") { brush = Math.min(0.3, Math.max(0.002, brush * (k === "]" ? 1.2 : 1 / 1.2))); updateBrushSlider(); requestDraw(); }
@@ -4327,6 +4396,7 @@ app.registerExtension({
             }
             function refreshUI() {
                 if (curRegion != null && curRegion !== UNSPEC && !regionById(curRegion)) curRegion = state.regions[0]?.id ?? null;
+                syncToolOpts();                              // the shape fields follow the selected layer
                 const L = selLayer();
                 if (L && L.shape === "star") sidesIn.value = String(L.sides);
                 if (L && L.shape === "roundrect" && document.activeElement !== radiusIn) radiusIn.value = String(L.radius ?? 20);

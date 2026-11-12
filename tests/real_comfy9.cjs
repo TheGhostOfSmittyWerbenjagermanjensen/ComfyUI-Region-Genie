@@ -231,6 +231,78 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
     await page.waitForTimeout(200);
 
+    // ---------------- round 11: the toolbar stays one row with every tool (default node width)
+    const rowsOk = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg);
+        app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
+        await new Promise((r) => setTimeout(r, 1200));
+        const bar = document.querySelector(".rg-bar"), sink = document.querySelector(".rg-keysink");
+        let ok = true;
+        for (const k of ["v", "r", "b", "l", "f", "w", "q", "e"]) {
+            sink.focus(); sink.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+            await new Promise((r) => setTimeout(r, 60));
+            if (bar.offsetHeight > 32) ok = false;                // one row is 22-26 px; a wrapped one about 50
+        }
+        return ok;
+    });
+    check(`${M}: the row of tools stays one row with every tool`, rowsOk);
+
+    // ---------------- round 11: Regional LoRAs — positive_prompt (renamed), old workflows, the floating pop-up editor
+    const rl = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg);
+        const n = LG.createNode("Region-Genie_RegionalLoRAs"); n.pos = [820, 40]; app.graph.add(n);
+        rg.connect(rg.outputs.findIndex((o) => o.name === "prompt"), n, n.inputs.findIndex((i) => i.name === "positive_prompt"));
+        n.widgets.find((w) => w.name === "negative_prompt").value = "blurry";
+        await new Promise((r) => setTimeout(r, 800));
+        const g = app.graph.serialize();
+        // the same workflow as saved before the rename: 'prompt' instead of 'positive_prompt'
+        const sn = g.nodes.find((x) => x.type === "Region-Genie_RegionalLoRAs");
+        for (const i of sn.inputs || []) if (i.name === "positive_prompt") { i.name = "prompt"; if (i.widget) i.widget.name = "prompt"; i.label = undefined; i.localized_name = undefined; }
+        const wv = sn.properties.rg_widget_values || {};
+        sn.properties.rg_widget_values = Object.fromEntries(Object.entries(wv).map(([k, v]) => [k === "positive_prompt" ? "prompt" : k, v]));
+        await app.loadGraphData(g);
+        await new Promise((r) => setTimeout(r, 1500));
+        const m = app.graph.nodes.find((x) => x.type === "Region-Genie_RegionalLoRAs"), r2 = app.graph.nodes.find((x) => x.type === "Region-Genie_Main");
+        window.__rl = m;
+        const pin = m.inputs.find((i) => i.name === "positive_prompt");
+        const l = pin?.link != null ? (app.graph.links.get?.(pin.link) ?? app.graph.links[pin.link]) : null;
+        return { has: !!m.widgets.find((w) => w.name === "positive_prompt"), old: m.inputs.some((i) => i.name === "prompt"),
+                 linked: !!l && String(l.origin_id) === String(r2.id), neg: m.widgets.find((w) => w.name === "negative_prompt").value };
+    });
+    check(`${M}: Regional LoRAs: 'positive_prompt' (renamed from 'prompt')`, rl.has);
+    check(`${M}: an old workflow's 'prompt' link moves to positive_prompt, values kept`, rl.linked && !rl.old && rl.neg === "blurry");
+    const rlPos = await page.evaluate(() => { const app = window.app; app.canvas.ds.offset = [-700, 0]; app.canvas.setDirty(true, true); return [...window.__rl.pos]; });
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const t = [...document.querySelectorAll("textarea")].find((x) => x.value === "blurry"); if (t) t.dataset.rgtest = "neg"; });
+    const negTa = page.locator('textarea[data-rgtest="neg"]').first();
+    const negExp = negTa.locator("xpath=..").locator(":scope > .rg-expand");
+    check(`${M}: Regional LoRAs: an expand button on negative_prompt`, await negExp.count() === 1);
+    await negTa.hover(); await negExp.click(); await page.waitForTimeout(300);
+    const fp = page.locator(".rg-fpop");
+    check(`${M}: it opens the floating pop-up editor with the text`, await fp.count() === 1 && await fp.locator("textarea").inputValue() === "blurry");
+    await fp.locator("textarea").press("End"); await fp.locator("textarea").type(", jpeg artifacts");
+    await fp.locator(".rg-fpop-font", { hasText: "A+" }).click();
+    const f1 = await fp.locator("textarea").evaluate((t) => parseFloat(getComputedStyle(t).fontSize));
+    const fhb = await fp.locator(".rg-fpop-head").boundingBox();
+    await page.mouse.move(fhb.x + 30, fhb.y + 8); await page.mouse.down(); await page.mouse.move(fhb.x + 90, fhb.y + 68, { steps: 5 }); await page.mouse.up();
+    const fb1 = await fp.boundingBox();
+    const fgb = await fp.locator(".rg-fpop-grip").boundingBox();
+    await page.mouse.move(fgb.x + 6, fgb.y + 6); await page.mouse.down(); await page.mouse.move(fgb.x + 86, fgb.y + 66, { steps: 5 }); await page.mouse.up();
+    const fb2 = await fp.boundingBox();
+    check(`${M}: pop-up: A+ (${f1} px), drag moves it, the grip resizes it, the node stays put`, f1 === 15 && Math.abs(fb1.x - fhb.x - 52) < 30
+        && fb2.width > fb1.width + 60 && JSON.stringify(await page.evaluate(() => [...window.__rl.pos])) === JSON.stringify(rlPos));
+    await fp.locator("textarea").press("Enter"); await page.waitForTimeout(200);
+    check(`${M}: Enter closes it and the field has the text`, await fp.count() === 0
+        && await page.evaluate(() => window.__rl.widgets.find((w) => w.name === "negative_prompt").value) === "blurry, jpeg artifacts");
+    await negExp.click(); await page.waitForTimeout(200);
+    await page.locator(".rg-fpop textarea").type(" EXTRA"); await page.keyboard.press("Escape"); await page.waitForTimeout(150);
+    check(`${M}: Esc puts the text back`, await page.evaluate(() => window.__rl.widgets.find((w) => w.name === "negative_prompt").value) === "blurry, jpeg artifacts");
+    await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Text.PopupScene", 14); await s.set("RegionGenie.Popup.Sizes", "{}"); });
+
     // ---------------- wildcards (needs Impact Pack, and a wildcards/rgtest/color.txt file in it)
     const wcInstalled = await page.evaluate(async () => (await (await fetch("/region_genie/wildcards")).json()).installed);
     if (!wcInstalled) console.log("SKIP wildcards: Impact Pack is not installed");
@@ -317,7 +389,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
             const app = window.app, LG = window.LiteGraph;
             const n = LG.createNode("Region-Genie_RegionalLoRAs"); n.pos = [60, 900]; app.graph.add(n);
             await new Promise((r) => setTimeout(r, 1200));
-            n.widgets.find((w) => w.name === "prompt").value = "a {red|blue} hat";
+            n.widgets.find((w) => w.name === "positive_prompt").value = "a {red|blue} hat";
             const p = (await app.graphToPrompt()).output[n.id]?.inputs || {};
             return { ctl: !!n.widgets.find((w) => w.name === "wildcard_seed")?.hidden && !n.inputs.some((i) => i.name === "wildcard_seed"),
                      shown: [...document.querySelectorAll(".rg-rl-head .rg-wc")].some((e) => getComputedStyle(e).display !== "none"),
