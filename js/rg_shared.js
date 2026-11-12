@@ -50,6 +50,11 @@ export const ICONS = {
     dice: '<rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.2"/><circle cx="5.4" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="5.4" cy="10.6" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="10.6" r="1" fill="currentColor" stroke="none"/>',
     plusOne: '<path d="M2.4 8h4.4M4.6 5.8v4.4"/><path d="M9.6 5.2l2-1.6v8.8"/>',
     useFilled: '<path d="M8 1.8v7.6M4.8 6.4L8 9.6l3.2-3.2"/><path d="M2.4 12.8h11.2"/>',
+    // Control (ControlNet): contour lines of a depth map
+    control: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6"/><path d="M1.8 11.2c2.4-2.6 4.6-3.4 6.8-2.4s3.8.6 5.6-1.4"/><path d="M1.8 7.4c2-2 4-2.6 6-1.8s3.6.4 6.4-2" stroke-dasharray="1.6 1.4"/>',
+    controlOff: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.6" stroke-dasharray="2 1.6"/><path d="M1.8 11.2c2.4-2.6 4.6-3.4 6.8-2.4s3.8.6 5.6-1.4" opacity=".5"/><path d="M2.4 13.6L13.6 2.4"/>',
+    // open a text field in the pop-up editor
+    expand: '<path d="M9.4 2.4h4.2v4.2M13.6 2.4L9.2 6.8M6.6 13.6H2.4V9.4M2.4 13.6l4.4-4.4"/>',
     // Select object: add the pending selection / discard it
     check: '<path d="M2.8 8.6l3.4 3.4 7-7.6"/>',
     close: '<path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8"/>',
@@ -136,6 +141,101 @@ export function keepWidgetValuesByName(node, names) {
 // ---------------------------------------------------------------- LoRA files
 let loraList = null, loraTime = 0, loraPromise = null;
 export const knownLoras = () => loraList;
+// other model folders' file lists (ControlNet, model patches, Depth Anything 3), read once and on request
+const modelLists = {};
+export function knownModels(folder, refresh = false) {
+    if (!modelLists[folder] || refresh) {
+        modelLists[folder] = modelLists[folder] || { list: [] };
+        api.fetchApi(`/models/${folder}`).then((r) => (r.ok ? r.json() : [])).then((l) => { if (Array.isArray(l)) modelLists[folder].list = l; }).catch(() => {});
+    }
+    return modelLists[folder].list;
+}
+
+// ---------------------------------------------------------------- Control (ControlNet / control LoRAs)
+// [Settings key, label, model folder, model (as ui.model_arch says), LoRA tag kind or null]. One file per model and kind;
+// the LoRA ones are added to 'Whole image' when control is on.
+export const CONTROL_FILES = [
+    ["MOSS", "MOSS Image: color / depth control LoRA", "loras", "MOSS Image", "moss"],
+    ["Flux1Depth", "Flux.1: depth LoRA (e.g. flux1-depth-dev-lora)", "loras", "Flux.1", "depth"],
+    ["Flux1Canny", "Flux.1: canny LoRA (e.g. flux1-canny-dev-lora)", "loras", "Flux.1", "canny"],
+    ...[["Flux1", "Flux.1"], ["SDXL", "SDXL"], ["SD15", "SD1.5"]].flatMap(([k, name]) => [
+        [`${k}.depth`, `${name}: depth ControlNet`, "controlnet", name, null],
+        [`${k}.canny`, `${name}: canny ControlNet`, "controlnet", name, null],
+        [`${k}.other`, `${name}: ControlNet for your control_image (pose, lineart, union …)`, "controlnet", name, null]]),
+    ["Anima.depth", "Anima: depth LLLite patch", "model_patches", "Anima", null],
+    ["Anima.canny", "Anima: canny LLLite patch", "model_patches", "Anima", null],
+    ["Anima.other", "Anima: LLLite patch for your control_image", "model_patches", "Anima", null],
+    ["DA3", "Depth Anything 3 model (makes depth maps from 'image')", "geometry_estimation", null, null],
+];
+export const CONTROL_NONE = "(none)";
+// where to get each file (official / original uploads; checked Nov 2026) and the folder it goes in
+const HF = "https://huggingface.co/";
+export const CONTROL_DOWNLOADS = {
+    MOSS: { file: "moss_image_color_depth_control.safetensors", url: HF + "Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors" },
+    Flux1Depth: { file: "flux1-depth-dev-lora.safetensors", url: HF + "Comfy-Org/flux1-dev/resolve/main/split_files/loras/flux1-depth-dev-lora.safetensors" },
+    Flux1Canny: { file: "flux1-canny-dev-lora.safetensors", url: HF + "black-forest-labs/FLUX.1-Canny-dev-lora/resolve/main/flux1-canny-dev-lora.safetensors",
+                  note: "Black Forest Labs' page asks you to accept the FLUX.1 [dev] license first" },
+    "Flux1.depth": { file: "flux-depth-controlnet-v3.safetensors", url: HF + "XLabs-AI/flux-controlnet-collections/resolve/main/flux-depth-controlnet-v3.safetensors" },
+    "Flux1.canny": { file: "flux-canny-controlnet-v3.safetensors", url: HF + "XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors" },
+    "Flux1.other": { file: "diffusion_pytorch_model.safetensors", url: HF + "InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors",
+                     note: "InstantX's union ControlNet (pose, depth, canny, tile …); rename it, e.g. instantx-flux-union.safetensors" },
+    "SDXL.depth": { file: "control-lora-depth-rank128.safetensors", url: HF + "stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors" },
+    "SDXL.canny": { file: "control-lora-canny-rank128.safetensors", url: HF + "stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors" },
+    "SDXL.other": { file: "diffusion_pytorch_model_promax.safetensors", url: HF + "xinsir/controlnet-union-sdxl-1.0/resolve/main/diffusion_pytorch_model_promax.safetensors",
+                    note: "xinsir's union ControlNet (pose, depth, canny, lineart …); rename it, e.g. controlnet-union-sdxl-promax.safetensors" },
+    "SD15.depth": { file: "control_v11f1p_sd15_depth_fp16.safetensors", url: HF + "comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11f1p_sd15_depth_fp16.safetensors" },
+    "SD15.canny": { file: "control_v11p_sd15_canny_fp16.safetensors", url: HF + "comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_canny_fp16.safetensors" },
+    "SD15.other": { file: "control_v11p_sd15_openpose_fp16.safetensors", url: HF + "comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors",
+                    note: "the pose one; lineart, scribble, softedge … are in the same repository" },
+    "Anima.depth": { file: "anima-lllite-depth-1.safetensors", url: HF + "Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-depth-1.safetensors" },
+    "Anima.canny": { file: "anima-lllite-lineart-1.safetensors", url: HF + "Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-lineart-1.safetensors",
+                     note: "there is no canny LLLite; the lineart one reads edge lines like canny's (untested with canny maps)" },
+    "Anima.other": { file: "anima-lllite-pose-1.safetensors", url: HF + "Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors",
+                     note: "the pose one; lineart, scribble and a general 'any-test-like' patch are in the same repository" },
+    DA3: { file: "depth_anything_3_mono_large.safetensors", url: HF + "Comfy-Org/Depth-Anything-3/resolve/main/geometry_estimation/depth_anything_3_mono_large.safetensors" },
+};
+// a Setting's tooltip: what this kind of file does, how it is used, and where to get it
+export function controlFileHelp(key, folder, model, tag) {
+    const what = key === "MOSS" ? "MOSS Image's color / depth control adapter (a LoRA): it reads the regions' color map and / or a depth map, "
+            + "VAE-encoded next to the image (needs 'vae')."
+        : tag ? "Black Forest Labs' structural LoRA for Flux.1 [dev]: the map is VAE-encoded next to the image (needs 'vae'); the LoRA's "
+            + "strength in Whole image is the control's strength."
+        : folder === "controlnet" ? "A ControlNet: a separate network that reads the map and steers the model at each step, with the Control "
+            + "row's strength and start / end (also Control-LoRA and union files)."
+        : folder === "model_patches" ? "An Anima LLLite patch: a small control network on the model; it takes the region mask itself."
+        : "ComfyUI's Depth Anything 3: makes the depth map (near = white) from 'image' when no control_image is connected.";
+    const use = tag ? ` Turning on a node's Control row adds it to 'Whole image' (marked 'Control') for ${model} models; turning it off removes it.`
+        : model ? ` Used by the Control row when the model is ${model}.` : "";
+    const d = CONTROL_DOWNLOADS[key];
+    const get = d ? ` Get ${d.file}: ${d.url}${d.note ? ` (${d.note})` : ""}, into ComfyUI/models/${folder}.` : ` Files go in ComfyUI/models/${folder}.`;
+    return what + use + get;
+}
+export const controlFolder = (key) => (CONTROL_FILES.find((x) => x[0] === key) || [])[2] || "";
+export const controlLabel = (key) => (CONTROL_FILES.find((x) => x[0] === key) || [])[1] || key;
+// what each kind does (tooltips and the Control details)
+export const CONTROL_KIND_HELP = {
+    color: "Color map (MOSS Image): a shape map. Each flat color marks one region; the colors are only IDs, not the colors to paint "
+        + "(the region's prompt says what it is and what color). The model follows the painted outlines, also rough ones: a "
+        + "rectangle drawn for a person pushes towards a person filling that rectangle. End % below 100 (e.g. 30–50) keeps the "
+        + "layout and lets the shapes loosen at the end; strength below 1 pulls less.",
+    "color+depth": "Color map + depth (MOSS Image): the regions' outlines (see color map) and how far away things are (near = white).",
+    depth: "Depth: a grey map of distances (near = white). The model keeps the 3D layout (what is in front, the shape of the room or "
+        + "the land) but is free with textures, colors and details.",
+    canny: "Canny: the edge lines of a picture. The model keeps the outlines and composition closely, so it's good for redrawing a "
+        + "picture in another style; it follows the lines more strictly than depth.",
+    other: "Your control_image: any map made with other nodes (pose skeletons, lineart, scribble, segmentation …). The file set for "
+        + "'other' must read that kind of map (a union ControlNet reads several).",
+};
+setTimeout(() => { for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f); }, 0);
+// the files set in Settings: { key: file } (unset ones left out)
+export function controlFiles() {
+    const out = {};
+    for (const [key] of CONTROL_FILES) {
+        const v = getSetting(SET.control + "." + key, CONTROL_NONE);
+        if (typeof v === "string" && v && v !== CONTROL_NONE) out[key] = v;
+    }
+    return out;
+}
 export async function getLoras(force) {
     if (loraList && !force && performance.now() - loraTime < 5000) return loraList;
     if (!loraPromise) {
@@ -703,6 +803,11 @@ export const SET = {
     llmContext: "RegionGenie.LLM.Context",
     llmNewRegions: "RegionGenie.LLM.NewRegionsOn",
     wcPerField: "RegionGenie.Wildcards.PerField",
+    control: "RegionGenie.Control",
+    // text size per kind of field, in the node and in the pop-up editors (0 in the node = as before)
+    fsNodeScene: "RegionGenie.Text.NodeScene", fsNodeRegion: "RegionGenie.Text.NodeRegion", fsNodeText: "RegionGenie.Text.NodeText",
+    fsPopScene: "RegionGenie.Text.PopupScene", fsPopRegion: "RegionGenie.Text.PopupRegion", fsPopText: "RegionGenie.Text.PopupText",
+    popSizes: "RegionGenie.Popup.Sizes",
     sizeMode: "RegionGenie.Size.Mode",
     sizeAspect: "RegionGenie.Size.Aspect",
     sizeMegapixels: "RegionGenie.Size.Megapixels",
@@ -940,6 +1045,15 @@ const SETTINGS = [
                 + "(and more wrong things), higher finds fewer.",
             category: CAT("Select object", "3 threshold"),
         },
+        ...[["fsNodeScene", "In the node: scene prompts", "1", 0, "the three scene_prompt boxes (0 = ComfyUI's own size)"],
+            ["fsNodeRegion", "In the node: region prompts", "2", 0, "the prompt fields in the region list (0 = the usual 12 px)"],
+            ["fsNodeText", "In the node: text to render", "3", 0, "the text-to-render fields in the region list (0 = the usual 12 px)"],
+            ["fsPopScene", "Pop-up editor: scene prompts", "4", 14, "the text box of the scene prompts' pop-up editor (A− / A+ in its header change it too)"],
+            ["fsPopRegion", "Pop-up editor: region prompts", "5", 14, "the Prompt box of the region pop-up editor (A− / A+ in its header change it too)"],
+            ["fsPopText", "Pop-up editor: text to render", "6", 14, "the Text box of the region pop-up editor (A− / A+ in its header, with the Text box in use)"]]
+            .map(([k, name, ord, dflt, what]) => ({ id: SET[k], name, type: "number", defaultValue: dflt, attrs: { min: k.startsWith("fsNode") ? 0 : 8, max: 40, step: 1 },
+                tooltip: `Text size in px for ${what}. Applies to every Region Genie node.`, category: CAT("Text size", `${ord} ${k}`) })),
+        { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
         { id: SET.wcPerField, name: "A seed per field", type: "boolean", defaultValue: false,
           tooltip: "Off: every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing "
               + "one seed), so the same wildcard in two fields usually picks the same value. On: each field gets its own seed, "
@@ -1003,6 +1117,17 @@ const SETTINGS = [
         })),
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
         { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
+        ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
+            id: SET.control + "." + key, name, type: "combo", defaultValue: CONTROL_NONE,
+            // the file list is read when ComfyUI starts; the set value is always listed
+            options: (value) => {
+                const list = (folder === "loras" ? knownLoras() : knownModels(folder)) || [];
+                const cur = typeof value === "string" && value && value !== CONTROL_NONE && !list.includes(value) ? [value] : [];
+                return [CONTROL_NONE, ...cur, ...list];
+            },
+            tooltip: controlFileHelp(key, folder, model, tag) + " The same for every Region Genie node.",
+            category: CAT("Control", String(i).padStart(2, "0") + " " + key),
+        })),
         ...EDIT_MODELS.map(([name, key], i) => ({
             id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: "combo", defaultValue: NO_LORA,
             // the LoRA list is read when ComfyUI starts (and refreshed when a LoRA picker opens); the set value is always listed

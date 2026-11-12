@@ -128,6 +128,172 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const props = await page.evaluate(() => window.__node.properties.rg_size);
     check("kept in the node's properties (saved with the workflow)", props.mode === "aspect ratio" && props.manual.w === 300 && props.preset.w === 1216);
 
+    // ---------------- pop-up editor: bigger, A− / A+, drag, resize (round 10)
+    await page.evaluate(() => { const s = window.__node.__rgState(); s.regions[0].prompt = "a red boat on calm water"; window.__node.__rgRefresh(); });
+    await page.waitForTimeout(100);
+    const expBtn = page.locator(".rg-list .rg-pwrap .rg-expand").first();
+    await expBtn.click(); await page.waitForTimeout(150);
+    const ppop = page.locator(".rg-pop");
+    const wrapW = await page.evaluate(() => document.querySelector(".rg-wrap").clientWidth);
+    let pb = await ppop.boundingBox();
+    check("pop-up: wider by default (560 px or the node's width)", !!pb && Math.round(pb.width) === Math.min(560, wrapW - 12));
+    const fsOf = () => page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-pop textarea")).fontSize));
+    check("pop-up: region prompt text 14 px by default", await fsOf() === 14);
+    await ppop.locator(".rg-pop-font", { hasText: "A+" }).click(); await page.waitForTimeout(60);
+    await ppop.locator(".rg-pop-font", { hasText: "A+" }).click(); await page.waitForTimeout(60);
+    check("A+ twice: 16 px, saved in Settings", await fsOf() === 16 && await page.evaluate(() => window.__settings["RegionGenie.Text.PopupRegion"]) === 16);
+    // drag by the title bar
+    const hb = await ppop.locator(".rg-pop-head").boundingBox();
+    await page.mouse.move(hb.x + 60, hb.y + hb.height / 2); await page.mouse.down();
+    await page.mouse.move(hb.x + 60 - 40, hb.y + hb.height / 2 + 70, { steps: 5 }); await page.mouse.up();
+    await page.waitForTimeout(80);
+    const pb2 = await ppop.boundingBox();
+    check("drag the title bar: the pop-up moves", Math.abs(pb2.y - pb.y - 70) < 3 && Math.abs(pb2.x - pb.x + 40) < 3 || Math.abs(pb2.y - pb.y - 70) < 3);
+    const saved = await page.evaluate(() => window.__node.properties.rg_pop?.region);
+    check("its place is kept for this node", !!saved && Number.isFinite(saved.x) && Number.isFinite(saved.y));
+    // resize from the corner
+    const gb = await ppop.locator(".rg-pop-grip").boundingBox();
+    await page.mouse.move(gb.x + 6, gb.y + 6); await page.mouse.down();
+    await page.mouse.move(gb.x + 6 - 100, gb.y + 6 + 120, { steps: 5 }); await page.mouse.up();
+    await page.waitForTimeout(80);
+    const pb3 = await ppop.boundingBox();
+    const taH = await page.evaluate(() => document.querySelector(".rg-pop textarea").offsetHeight);
+    check("resize from the corner: narrower and taller, the prompt box grows", Math.abs(pb3.width - (pb2.width - 100)) < 3 && pb3.height > pb2.height + 20 && taH > 120);
+    const sizes = await page.evaluate(() => JSON.parse(window.__settings["RegionGenie.Popup.Sizes"] || "{}"));
+    check("the size is kept for every node (Settings)", sizes.region?.w === Math.round(pb3.width) || Math.abs(sizes.region?.w - pb3.width) < 2);
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
+    await expBtn.click(); await page.waitForTimeout(150);
+    const pb4 = await ppop.boundingBox();
+    check("reopened: same size and place", Math.abs(pb4.width - pb3.width) < 2 && Math.abs(pb4.height - pb3.height) < 2 && Math.abs(pb4.x - pb3.x) < 2 && Math.abs(pb4.y - pb3.y) < 2);
+    await ppop.locator(".rg-pop-head span").first().dblclick(); await page.waitForTimeout(80);
+    await ppop.locator(".rg-pop-grip").dblclick(); await page.waitForTimeout(80);
+    const pb5 = await ppop.boundingBox();
+    check("double-click title / grip: back to the automatic place and default size", !(await page.evaluate(() => window.__node.properties.rg_pop?.region))
+        && Math.round(pb5.width) === Math.min(560, wrapW - 12));
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
+    // the node's own fields: text size from Settings
+    await page.evaluate(() => { window.__settings["RegionGenie.Text.NodeRegion"] = 16; });
+    await page.waitForTimeout(700);
+    const nodeFs = await page.evaluate(() => { const t = document.querySelector(".rg-list textarea.rg-prompt"); return [parseFloat(getComputedStyle(t).fontSize), t.offsetHeight]; });
+    check("node's region prompts: 16 px from Settings, the field grows to fit", nodeFs[0] === 16 && nodeFs[1] >= 22);
+    await page.evaluate(() => { window.__settings["RegionGenie.Text.NodeRegion"] = 0; });
+    await page.waitForTimeout(700);
+    check("0: back to 12 px", await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-list textarea.rg-prompt")).fontSize)) === 12);
+
+    // ---------------- Control row (round 10)
+    const crow = page.locator(".rg-list .rg-row.ctrl");
+    check("Control row under Whole image, off by default", await crow.count() === 1 && !(await st()).control?.on && await crow.locator("select").count() === 0);
+    await page.evaluate(() => { window.__settings["RegionGenie.Control.MOSS"] = "moss_ctrl.safetensors"; window.__settings["RegionGenie.Control.SDXL.canny"] = "cn_canny.safetensors"; });
+    await crow.locator(".rg-btn.mini").first().click(); await page.waitForTimeout(80);
+    s = await st();
+    check("toggle: control on (depth), MOSS control LoRA added to Whole image (no run yet: every model)", s.control?.on === true && s.control.kind === "depth"
+        && (s.sceneLoras || []).some((x) => x.lora === "moss_ctrl.safetensors" && x.control === "MOSS Image" && x.ckind === "moss"));
+    check("the LoRA row is marked 'Control'", await page.locator(".rg-list .rg-row.lora .rg-hint", { hasText: "Control" }).count() >= 1);
+    await crow.locator("select").selectOption("canny"); await page.waitForTimeout(80);
+    check("canny: the MOSS LoRA goes (it reads color / depth only)", !((await st()).sceneLoras || []).some((x) => x.control));
+    await crow.locator("select").selectOption("color"); await page.waitForTimeout(80);
+    const [cs, ca, cb] = [crow.locator("input.rg-num").nth(0), crow.locator("input.rg-num").nth(1), crow.locator("input.rg-num").nth(2)];
+    await cs.fill("0.8"); await cs.press("Enter"); await ca.fill("10"); await ca.press("Enter"); await cb.fill("70"); await cb.press("Enter");
+    await page.waitForTimeout(80);
+    s = await st();
+    check("strength / start / end", s.control.kind === "color" && s.control.strength === 0.8 && Math.abs(s.control.start - 0.1) < 1e-9 && Math.abs(s.control.end - 0.7) < 1e-9);
+    // details: which file each model uses
+    if (!await page.locator(".rg-subbody.ctrl").count()) await crow.locator(".rg-pseudo").click();
+    await page.waitForTimeout(80);
+    check("details list the files and the map's source", /MOSS Image: LoRA moss_ctrl/.test(await page.locator(".rg-subbody.ctrl").textContent())
+        && /regions' colors/.test(await page.locator(".rg-subbody.ctrl").textContent()));
+    // per-region switch
+    const rtog = page.locator('.rg-row.region .rg-btn.mini[title^="Control acts on this region"]');
+    check("a control switch on each region row while control is on", await rtog.count() === (await st()).regions.length);
+    await rtog.first().click(); await page.waitForTimeout(80);
+    check("switching a region off: noControl on the region", (await st()).regions[0].noControl === true);
+    // what the run gets: the control settings and the files from Settings
+    const sent = await page.evaluate(() => JSON.parse(window.__node.widgets.find((w) => w.name === "paint_data").serializeValue()));
+    check("paint_data: control and the Settings' files", sent.control?.on && sent.control.kind === "color" && sent.control.files?.MOSS === "moss_ctrl.safetensors"
+        && sent.control.files["SDXL.canny"] === "cn_canny.safetensors" && sent.regions[0].noControl === true);
+    // the model of the last run decides which LoRAs are added
+    await page.evaluate(() => { window.__node.properties.rg_model_arch = "Flux.1"; window.__settings["RegionGenie.Control.Flux1Depth"] = "flux-depth-lora.safetensors"; });
+    await crow.locator("select").selectOption("depth"); await page.waitForTimeout(80);
+    s = await st();
+    check("last run was Flux.1: only the Flux.1 depth LoRA", (s.sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "flux-depth-lora.safetensors");
+    // reloading the workflow keeps control, the region switches, the region eye and the LLM switches (loader fix)
+    await page.evaluate(() => { const st = window.__node.__rgState(); st.regions[1].hidden = true; st.regions[1].llm = true; st.sceneLlm = true; window.__node.__rgRefresh(); });
+    await page.evaluate(() => window.__node.onConfigure?.({ properties: window.__node.properties }));
+    await page.waitForTimeout(100);
+    s = await st();
+    check("reload keeps control, noControl, hidden, llm, sceneLlm, control LoRA tags", s.control?.on && s.control.kind === "depth" && s.regions[0].noControl
+        && s.regions[1].hidden && s.regions[1].llm && s.sceneLlm && (s.sceneLoras || []).some((x) => x.control === "Flux.1" && x.ckind === "depth"));
+    await page.evaluate(() => { const st = window.__node.__rgState(); delete st.regions[1].hidden; window.__node.__rgRefresh(); });
+    // off: the control LoRAs go; undo brings them back
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(80);
+    check("off: the control LoRAs leave Whole image", !(await st()).control.on && !((await st()).sceneLoras || []).some((x) => x.control));
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(80);
+    check("undo: on again with its LoRA", (await st()).control.on && ((await st()).sceneLoras || []).some((x) => x.control));
+
+    // ---------------- the model: guessed from the graph, picked in the footer; Control / Edit LoRAs follow (round 10)
+    await page.evaluate(() => {
+        const n = window.__node, st = n.__rgState();
+        st.control = { on: false, kind: "depth", strength: 1, start: 0, end: 1 };
+        st.sceneLoras = (st.sceneLoras || []).filter((x) => !x.control && !x.edit);
+        delete n.properties.rg_model_arch; delete n.properties.rg_model_src; delete n.properties.rg_model_pick;
+        // Load Diffusion Model (moss…) -> LoRA loader -> Region Genie.model
+        const loader = { id: 50, type: "UNETLoader", inputs: [], outputs: [{ name: "MODEL" }], widgets: [{ name: "unet_name", value: "moss_image_sft_int8_convrot.safetensors" }] };
+        const lora = { id: 51, type: "LoraLoaderModelOnly", inputs: [{ name: "model", link: 12 }], outputs: [{ name: "MODEL" }], widgets: [{ name: "lora_name", value: "style.safetensors" }] };
+        const nodes = { 50: loader, 51: lora };
+        n.graph.links = { 11: { id: 11, origin_id: 51, origin_slot: 0 }, 12: { id: 12, origin_id: 50, origin_slot: 0 } };
+        n.graph.getNodeById = (id) => nodes[id] || null;
+        lora.graph = n.graph; loader.graph = n.graph;
+        n.inputs = [...(n.inputs || []).filter((i) => i.name !== "model"), { name: "model", link: 11 }];
+        window.__loader = loader;
+        Object.assign(window.__settings, { "RegionGenie.Control.MOSS": "moss_ctrl.safetensors", "RegionGenie.Control.Flux1Depth": "flux-depth-lora.safetensors",
+            "RegionGenie.Edit.LoRA.MOSS": "a.safetensors", "RegionGenie.Edit.LoRA.Flux1": "edit.safetensors" });
+        n.__rgRefresh();
+    });
+    await page.waitForTimeout(700);
+    const msel = page.locator(".rg-settings select.rg-model");
+    check("footer model select: auto · MOSS Image, guessed through the LoRA loader", (await msel.locator("option").first().textContent()) === "auto · MOSS Image");
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(150);
+    s = await st();
+    check("control on before any run: only the guessed model's LoRA (MOSS)", (s.sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "moss_ctrl.safetensors");
+    const msg = page.locator(".rg-msg");
+    check("the MOSS LoRA isn't among ComfyUI's LoRAs: message with the download link and folder", await msg.isVisible()
+        && /moss_ctrl\.safetensors' isn't in ComfyUI\/models\/loras/.test(await msg.textContent())
+        && (await msg.locator("a").first().getAttribute("href")) === "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors");
+    check("…and the depth map needs Depth Anything 3 (not set): its link too", /Depth Anything 3 model .*no file is set/.test(await msg.textContent())
+        && (await msg.locator("a").count()) === 2);
+    await msel.selectOption("Flux.1"); await page.waitForTimeout(150);
+    s = await st();
+    check("picking Flux.1 corrects it: the Flux.1 depth LoRA replaces MOSS's", (s.sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "flux-depth-lora.safetensors");
+    check("the pick is saved on the node and marked", await page.evaluate(() => window.__node.properties.rg_model_pick) === "Flux.1"
+        && await msel.evaluate((e) => e.classList.contains("picked")));
+    await msel.selectOption("Krea 2"); await page.waitForTimeout(150);
+    check("Krea 2: says ComfyUI has no ControlNet for it", /no ControlNet support for Krea 2/.test(await msg.textContent()));
+    await msel.selectOption(""); await page.waitForTimeout(150);
+    check("back to auto: the guess again", ((await st()).sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "moss_ctrl.safetensors");
+    // rewiring: the loader's file changes -> the guess follows (a run's answer wins while the loader is the same)
+    await page.evaluate(() => { window.__loader.widgets[0].value = "flux1-dev-fp8.safetensors"; });
+    await page.waitForTimeout(700);
+    check("another loader file: the guess follows (auto · Flux.1) and so do the LoRAs", (await msel.locator("option").first().textContent()) === "auto · Flux.1"
+        && ((await st()).sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "flux-depth-lora.safetensors");
+    await page.evaluate(() => window.__node.onExecuted({ model_arch: ["SDXL"] }));
+    await page.waitForTimeout(700);
+    check("a run's answer wins over the guess for the same loader", (await msel.locator("option").first().textContent()) === "auto · SDXL"
+        && !((await st()).sceneLoras || []).some((x) => x.control));
+    await page.evaluate(() => { window.__loader.widgets[0].value = "moss_image_base.safetensors"; });
+    await page.waitForTimeout(700);
+    check("after rewiring, the new guess beats the old run", (await msel.locator("option").first().textContent()) === "auto · MOSS Image");
+    // Edit Mode: its edit LoRA follows the same model
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(100);
+    await page.locator(".rg-settings .rg-seg button", { hasText: "Edit" }).click(); await page.waitForTimeout(150);
+    s = await st();
+    check("Edit Mode adds only the guessed model's edit LoRA", (s.sceneLoras || []).filter((x) => x.edit).map((x) => x.edit + ":" + x.lora).join() === "MOSS Image:a.safetensors");
+    await msel.selectOption("Flux.1"); await page.waitForTimeout(150);
+    s = await st();
+    check("picking Flux.1: the edit LoRA follows", (s.sceneLoras || []).filter((x) => x.edit).map((x) => x.edit + ":" + x.lora).join() === "Flux.1:edit.safetensors");
+    await page.locator(".rg-settings .rg-seg button", { hasText: "Generate" }).click(); await page.waitForTimeout(150);
+    check("back to Generate: the edit LoRA leaves", !((await st()).sceneLoras || []).some((x) => x.edit));
+    await msel.selectOption(""); await page.waitForTimeout(100);
+
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");
     process.exit(fails.length ? 1 : 0);

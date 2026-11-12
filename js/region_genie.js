@@ -5,10 +5,16 @@ import { svgIcon, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChip
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
          ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
-         wildcardsInstalled, onWildcardInfo } from "./rg_shared.js";
+         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
+         controlLabel, knownModels, NO_LORA } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
 import { openColorPicker, inColorPicker } from "./rg_colorpicker.js";
+
+// values this pack just wrote to Settings, read back before the Settings store has them (it saves asynchronously)
+const RG_RECENT = new Map();
+const recentSetting = (id, dflt) => (RG_RECENT.has(id) ? RG_RECENT.get(id) : getSetting(id, dflt));
+const rememberSetting = (id, v) => { RG_RECENT.set(id, v); setSetting(id, v); setTimeout(() => { if (RG_RECENT.get(id) === v) RG_RECENT.delete(id); }, 3000); };
 
 // Layered region editor of the "Region Genie" node (formerly "Color Map to Layout").
 // paint_data v2 (JSON, hidden widget):
@@ -266,19 +272,28 @@ const STYLE = `
 .rg-paladd { background:transparent; padding:0; }
 button.rg-sw.pick { padding:0; cursor:pointer; font:inherit; }
 button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
-.rg-row textarea.rg-text { flex:0 1 72px; }
-.rg-row textarea.rg-text:focus { flex:1.2 1 140px; }
+.rg-row .rg-pwrap.rg-twrap { flex:0 1 72px; }
+.rg-row .rg-pwrap.rg-twrap:has(textarea:focus) { flex:1.2 1 140px; }
 .rg-pop { position:absolute; z-index:6; box-sizing:border-box; display:flex; flex-direction:column; gap:5px; padding:6px 8px 5px;
   background:#1a1a1a; color:#eee; border:2px solid #5b8fd0; border-radius:6px; box-shadow:0 4px 18px rgba(0,0,0,.65);
   overflow-y:auto; scrollbar-width:thin; font:12px sans-serif; }
-.rg-pop-head { display:flex; align-items:center; gap:6px; font-weight:600; }
+.rg-pop-head { display:flex; align-items:center; gap:6px; font-weight:600; cursor:move; user-select:none; touch-action:none; }
+.rg-pop-head .rg-btn { cursor:pointer; }
+.rg-pop-head .rg-pop-font { margin-left:auto; padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
+.rg-pop-head .rg-pop-font + .rg-pop-font { margin-left:0; }
+.rg-pop-head .rg-pop-font ~ .rg-x { margin-left:0; }
+.rg-pop.sized .rg-pop-field.grow { flex:1 1 auto; display:flex; flex-direction:column; min-height:60px; }
+.rg-pop.sized .rg-pop-field.grow textarea { flex:1 1 auto; min-height:40px; resize:none; }
+.rg-pop-grip { position:absolute; right:1px; bottom:1px; width:14px; height:14px; cursor:nwse-resize; touch-action:none; opacity:.7;
+  background:linear-gradient(135deg, transparent 52%, #5b8fd0 52% 60%, transparent 60% 70%, #5b8fd0 70% 78%, transparent 78%); }
+.rg-pop-grip:hover { opacity:1; }
 .rg-pop-head .rg-idx { flex:0 0 auto; text-align:left; }
 .rg-pop-head .rg-sw { cursor:default; }
 .rg-pop-head .rg-x { margin-left:auto; padding:0 5px; line-height:16px; }
 .rg-pop-types { display:flex; gap:4px; }
 .rg-pop-types .rg-btn { flex:1 1 0; padding:3px 6px; }
 .rg-pop-lbl { font-size:11px; opacity:.75; margin:0 0 2px 1px; }
-.rg-pop textarea { width:100%; box-sizing:border-box; resize:vertical; background:var(--comfy-input-bg,#222); color:inherit;
+.rg-pop textarea { width:100%; box-sizing:border-box; resize:none; background:var(--comfy-input-bg,#222); color:inherit;
   border:1px solid var(--border-color,#555); border-radius:4px; padding:3px 5px; font:inherit; line-height:15px; scrollbar-width:thin; }
 .rg-pop textarea:focus { border-color:#5b8fd0; outline:none; }
 .rg-pop .rg-row { padding:1px 0; }
@@ -304,9 +319,9 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-row.lora { margin-left:24px; font-size:11px; padding-top:0; padding-bottom:0; }
 .rg-row.lora .rg-num { width:calc(3.6ch + 26px); }    /* "0.95" next to the spin arrows, in any font */
 .rg-row.region { background:rgba(255,255,255,.035); }
-.rg-row.scene .rg-pseudo { font-style:normal; font-weight:600; user-select:none; }
-.rg-row.scene { cursor:pointer; }
-.rg-row.scene:hover { background:rgba(255,255,255,.06); }
+.rg-row.scene .rg-pseudo, .rg-row.ctrl .rg-pseudo { font-style:normal; font-weight:600; user-select:none; }
+.rg-row.scene, .rg-row.ctrl { cursor:pointer; }
+.rg-row.scene:hover, .rg-row.ctrl:hover { background:rgba(255,255,255,.06); }
 .rg-editmask { display:inline-flex; align-items:center; gap:2px; margin-right:6px; }
 .rg-loraopts .rg-editmask .rg-num { width:44px; }
 .rg-editmask .rg-num::placeholder { color:inherit; opacity:.45; }
@@ -338,10 +353,20 @@ input.rg-sw[type=color] { padding:0; background:none; -webkit-appearance:none; a
 input.rg-sw[type=color]::-webkit-color-swatch-wrapper { padding:0; }
 input.rg-sw[type=color]::-webkit-color-swatch { border:none; border-radius:2px; }
 input.rg-sw[type=color]::-moz-color-swatch { border:none; border-radius:2px; }
+.rg-pwrap { position:relative; display:flex; flex:1 1 auto; min-width:0; }
+.rg-pwrap > textarea.rg-prompt { padding-right:18px !important; }
+.rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:transparent;
+  color:var(--input-text,#ddd); opacity:.3; cursor:pointer; line-height:0; }
+.rg-expand svg { width:12px; height:12px; display:block; margin:2px; }
+.rg-expand:hover { opacity:1; background:rgba(91,143,208,.35); }
+*:hover > .rg-expand { opacity:.75; }
+textarea.rg-scene-ta { padding-right:20px !important; }
 .rg-row textarea.rg-prompt { flex:1 1 auto; min-width:0; background:var(--comfy-input-bg,#222); color:inherit; resize:none;
-  border:1px solid var(--border-color,#555); border-radius:3px; padding:1px 4px; font:inherit; height:18px; line-height:15px;
-  overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-.rg-row textarea.rg-prompt:focus { height:64px; white-space:pre-wrap; overflow-x:hidden; overflow-y:auto; position:relative; z-index:2;
+  border:1px solid var(--border-color,#555); border-radius:3px; padding:1px 4px; font-family:inherit; font-size:var(--rg-fs-r,12px);
+  line-height:var(--rg-lh-r,15px); height:calc(var(--rg-lh-r,15px) + 3px); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.rg-row textarea.rg-prompt.rg-text { font-size:var(--rg-fs-t,12px); line-height:var(--rg-lh-t,15px); height:calc(var(--rg-lh-t,15px) + 3px); }
+.rg-row textarea.rg-prompt.rg-text:focus { height:calc(var(--rg-lh-t,15px) * 4 + 4px); }
+.rg-row textarea.rg-prompt:focus { height:calc(var(--rg-lh-r,15px) * 4 + 4px); white-space:pre-wrap; overflow-x:hidden; overflow-y:auto; position:relative; z-index:2;
   scrollbar-gutter:stable; scrollbar-width:thin; padding-right:2px; }
 .rg-row textarea.rg-prompt:focus::-webkit-scrollbar { width:8px; }
 .rg-row textarea.rg-prompt:focus::-webkit-scrollbar-thumb { background:#666; border-radius:4px; }
@@ -387,6 +412,13 @@ input.rg-sw[type=color]::-moz-color-swatch { border:none; border-radius:2px; }
 .rg-pop-lbl .rg-wc-use { margin-left:6px; padding:0 3px; line-height:0; vertical-align:middle; }
 .rg-pop .rg-wc-use svg, .rg-pop .rg-wc-pick svg { width:14px; height:14px; display:block; }
 .rg-pop .rg-wc-pick { line-height:0; padding:1px 3px; }
+.rg-row.ctrl.off .rg-pseudo { opacity:.6; }
+.rg-row.ctrl .rg-num { width:44px; }
+.rg-row.ctrl .rg-sel { min-width:150px; max-width:190px; }
+.rg-settings .rg-sel.rg-model { max-width:150px; }
+.rg-settings .rg-sel.rg-model.picked { border-color:#c9a14a; }
+.rg-subbody.ctrl .rg-ctrl-help { white-space:normal; line-height:14px; opacity:.8; }
+.rg-subbody.ctrl .rg-row.lora { padding-left:30px; }
 .rg-msg { display:flex; gap:6px; align-items:flex-start; flex:0 0 auto; font-size:12px; padding:4px 6px; margin:2px 0;
   background:#3a2424; border:1px solid #b05656; border-radius:4px; color:#f6dddd; user-select:text; -webkit-user-select:text; cursor:auto; }
 .rg-msg-icon { flex:0 0 auto; line-height:20px; }
@@ -614,7 +646,9 @@ function emptyState() { return { v: 2, regions: [], layers: [] }; }
 function normLoras(a) {
     return (Array.isArray(a) ? a : []).filter((x) => x && typeof x.lora === "string")
         .map((x) => ({ lora: x.lora, strength: Number.isFinite(+x.strength) ? +x.strength : 1, on: x.on !== false,
-                       ...(typeof x.edit === "string" && x.edit ? { edit: x.edit } : {}) }));      // edit: added by Edit Mode, for that model
+                       ...(typeof x.edit === "string" && x.edit ? { edit: x.edit } : {}),        // edit: added by Edit Mode, for that model
+                       // control: added by the Control row, for that model (ckind: moss / depth / canny)
+                       ...(typeof x.control === "string" && x.control ? { control: x.control, ckind: String(x.ckind || "") } : {}) }));
 }
 function normLoraOpts(o) {
     o = o && typeof o === "object" ? o : {};
@@ -631,7 +665,11 @@ function normRegion(r) {
              ...(r.featherEdges ? { featherEdges: true } : {}),
              ...(normPalette(r.palette).length ? { palette: normPalette(r.palette) } : {}),
              ...(r.paletteOn ? { paletteOn: true } : {}),
-             ...(r.keep ? { keep: true } : {}) };                  // Edit Mode: keep this region as it is in the source
+             ...(r.keep ? { keep: true } : {}),                    // Edit Mode: keep this region as it is in the source
+             ...(r.hidden ? { hidden: true } : {}),                // the region's eye: not drawn, not output
+             ...(r.llm ? { llm: true } : {}),                      // LLM Prompt Enhancer on for this region
+             ...(Number.isFinite(+r.llmSalt) && +r.llmSalt ? { llmSalt: Math.round(+r.llmSalt) } : {}),
+             ...(r.noControl ? { noControl: true } : {}) };        // Control: switched off for this region
 }
 // Edit Mode: the edit mask's own grow / feather (px); null = follow Settings > Region Genie > Edit Mode
 function normEditMask(m) {
@@ -691,7 +729,20 @@ function parseState(text, W, H) {
         ...(d.loraOpts ? { loraOpts: normLoraOpts(d.loraOpts) } : {}),
         ...(+d.feather > 0 ? { feather: Math.round(+d.feather) } : {}),
         ...(normEditMask(d.editMask) ? { editMask: normEditMask(d.editMask) } : {}),
+        // LLM Prompt Enhancer: the scene prompt's switch / salt and the node's preset assignments
+        ...(d.sceneLlm ? { sceneLlm: true } : {}),
+        ...(Number.isFinite(+d.sceneLlmSalt) && +d.sceneLlmSalt ? { sceneLlmSalt: Math.round(+d.sceneLlmSalt) } : {}),
+        ...(d.llm && typeof d.llm === "object" ? { llm: d.llm } : {}),
+        ...(normControl(d.control) ? { control: normControl(d.control) } : {}),
     };
+}
+// the Control row: on / off, what the map is, strength and the part of the steps (fractions 0..1)
+const CONTROL_KINDS = ["color", "color+depth", "depth", "canny", "other"];
+function normControl(c) {
+    if (!c || typeof c !== "object") return null;
+    const n = (v, d, lo, hi) => (Number.isFinite(+v) ? Math.min(hi, Math.max(lo, +v)) : d);
+    return { on: !!c.on, kind: CONTROL_KINDS.includes(c.kind) ? c.kind : "depth", strength: n(c.strength, 1, 0, 10),
+             start: n(c.start, 0, 0, 1), end: n(c.end, 1, 0, 1) };
 }
 
 const LAYOUT_FORMAT = "region_genie_layout";
@@ -745,6 +796,7 @@ app.registerExtension({
                         d.llmCache = llmCacheSettings();
                         d.minPixels = minPixelsNow();
                         d.wcPerField = !!getSetting(SET.wcPerField, false);
+                        if (d.control?.on) d.control = { ...d.control, files: controlFiles() };
                         d.importMode = importModeNow();
                         return JSON.stringify(d);
                     } catch (e) { return v; }
@@ -778,16 +830,41 @@ app.registerExtension({
                 if (t.title !== title) t.title = title;
                 t.classList.toggle("rg-wc-filled", f != null);
             }
+            // the expand button: opens a text field in its pop-up editor (double-click stays the browser's word selection).
+            // It sits in the field's bottom-right corner, left of a scrollbar, inside the field's parent element.
+            function addExpandButton(t, title, onOpen) {
+                const host = t.parentElement;
+                if (!host) return null;
+                const old = host.querySelector(":scope > .rg-expand");
+                if (old && old.__rgFor === t) return old;
+                old?.remove();
+                if (getComputedStyle(host).position === "static") host.style.position = "relative";
+                const b = document.createElement("button");
+                b.type = "button"; b.className = "rg-expand"; b.innerHTML = svgIcon("expand"); b.title = title; b.tabIndex = -1;
+                b.__rgFor = t;
+                for (const ev of ["pointerdown", "mousedown", "dblclick"]) b.addEventListener(ev, (e) => { e.stopPropagation(); if (ev !== "pointerdown") e.preventDefault(); });
+                b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); onOpen(); });
+                const place = () => {
+                    if (!t.isConnected) return;
+                    const sb = Math.max(0, t.offsetWidth - t.clientWidth - (t.clientLeft || 0) * 2);   // a scrollbar, if any
+                    const right = host.clientWidth - (t.offsetLeft + t.offsetWidth) + (t.clientLeft || 0) + sb + 2;
+                    const bottom = host.clientHeight - (t.offsetTop + t.offsetHeight) + (t.clientTop || 0) + 2;
+                    b.style.right = Math.round(right) + "px"; b.style.bottom = Math.round(bottom) + "px";
+                };
+                for (const ev of ["mouseenter", "focus", "input", "blur"]) t.addEventListener(ev, () => requestAnimationFrame(place));
+                try { new ResizeObserver(place).observe(t); } catch (e) { /* old browser */ }
+                host.addEventListener("mouseenter", place);
+                host.appendChild(b);
+                place();
+                return b;
+            }
             const SCENE_FIELDS = { scene_prompt_positive: "positive", scene_prompt_negative: "negative",
                                    scene_prompt_background: "background" };
             autocompleteWidgets(node, Object.keys(SCENE_FIELDS), (name, t) => {
                 if (!SCENE_FIELDS[name]) return;
                 sceneTA[SCENE_FIELDS[name]] = t;
-                t.addEventListener("dblclick", (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    editScene(SCENE_FIELDS[name]);
-                });
-                if (!/double-click/i.test(t.title || "")) t.title = (t.title ? t.title + "\n" : "") + "Double-click: open in the pop-up editor";
+                t.classList.add("rg-scene-ta");
+                addExpandButton(t, "Open in the pop-up editor", () => editScene(SCENE_FIELDS[name]));
                 t.dataset.baseTitle = t.title;
                 t.addEventListener("input", () => wcMark(t, SCENE_KEYS[SCENE_FIELDS[name]], t.value));
             });
@@ -1215,6 +1292,275 @@ app.registerExtension({
                 return { grow: m.grow ?? d.grow, feather: m.feather ?? d.feather };
             }
             // Edit Mode: keep this region as it is in the source (lock) or let it change (pencil)
+            // ---- the connected model: picked in the footer, else the last run's (while 'model' still comes from the same
+            // loader), else a guess from the graph (the loader's file name / type, or the text encoder loader's type)
+            const MODEL_NAMES = ["MOSS Image", "Krea 2", "Ideogram 4", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5"];
+            function archFromText(t) {
+                t = String(t || "");
+                if (/moss/i.test(t)) return "MOSS Image";
+                if (/krea/i.test(t)) return "Krea 2";
+                if (/ideogram/i.test(t)) return "Ideogram 4";
+                if (/flux[\s._-]*3(?!\d)/i.test(t)) return "Flux 3";
+                if (/flux[\s._-]*2(?!\d)|klein/i.test(t)) return "Flux.2";
+                if (/flux|kontext/i.test(t)) return "Flux.1";
+                if (/anima/i.test(t)) return "Anima";
+                if (/sd[\s._-]*1[\s._-]*5|v1-5|sd15/i.test(t)) return "SD1.5";
+                if (/sdxl|sd[\s._-]*xl|illustrious|pony|noob/i.test(t)) return "SDXL";
+                return null;
+            }
+            const loaderFile = (n) => {
+                const ws = n?.widgets || [];
+                const w = ws.find((x) => typeof x.value === "string" && /\.(safetensors|gguf|ckpt|pt|pth|sft|bin)$/i.test(x.value))
+                    || ws.find((x) => /name/i.test(x.name) && typeof x.value === "string");
+                return w ? String(w.value) : "";
+            };
+            // follow 'model' up to its source (through LoRA loaders, model patches, reroutes ...)
+            function modelSource() {
+                let n = node;
+                for (let i = 0; i < 24; i++) {
+                    const f = feeder(n, "model");
+                    if (!f) return n === node ? null : { n, file: loaderFile(n) };
+                    n = f.src;
+                    if (!n.inputs?.some((x) => x.name === "model")) return { n, file: loaderFile(n) };
+                }
+                return null;
+            }
+            function clipType() {                      // the text encoder loader's 'type' (CLIPLoader, DualCLIPLoader ...)
+                let n = node;
+                for (let i = 0; i < 24; i++) {
+                    const f = feeder(n, "clip");
+                    if (!f) return "";
+                    n = f.src;
+                    const t = n.widgets?.find((w) => w.name === "type");
+                    if (t && !n.inputs?.some((x) => x.name === "clip" && x.link != null)) return String(t.value || "");
+                }
+                return "";
+            }
+            function guessArch() {
+                const src = modelSource();
+                const arch = (src && (archFromText(src.file) || archFromText(src.n.comfyClass || src.n.type) || archFromText(src.n.title)))
+                    || archFromText(clipType());
+                return { arch: arch || null, sig: src ? `${src.n.id}:${src.file}` : "" };
+            }
+            function modelInfo() {                     // { arch, how: "picked" | "last run" | "guess" | null, guess }
+                const pick = node.properties?.rg_model_pick;
+                const g = guessArch(), run = node.properties?.rg_model_arch || null, runSig = node.properties?.rg_model_src;
+                if (pick && MODEL_NAMES.includes(pick)) return { arch: pick, how: "picked", guess: g.arch };
+                if (run && (runSig == null || runSig === g.sig || !g.sig)) return { arch: run, how: "last run", guess: g.arch };
+                return { arch: g.arch, how: g.arch ? "guess" : null, guess: g.arch };
+            }
+            const modelArch = () => modelInfo().arch;
+            // the edit LoRAs Edit Mode wants in Whole image: the one for the model, or every one while the model isn't known
+            function syncEditLoras() {
+                const all = editLoras(), arch = modelArch();
+                const want = !isEdit() ? [] : arch ? all.filter(([m]) => m === arch) : all;
+                const cur = state.sceneLoras || [];
+                const kept = cur.filter((x) => !x.edit || want.some(([m, l]) => x.edit === m && x.lora === l));
+                const add = want.filter(([m, l]) => !kept.some((x) => x.edit === m && x.lora === l)).map(([m, lora]) => ({ lora, strength: 1, on: true, edit: m }));
+                if (kept.length === cur.length && !add.length) return false;
+                state.sceneLoras = [...kept, ...add];
+                if (!state.sceneLoras.length) delete state.sceneLoras;
+                if (add.length) expanded.add(SCENE);
+                return true;
+            }
+            let syncedArch;
+            // the model changed (picked, rewired, or a run said so): the Control and Edit Mode LoRAs follow it (no undo step)
+            function onModelChanged(force) {
+                const arch = modelArch();
+                if (!force && arch === syncedArch) return;
+                syncedArch = arch;
+                const a = syncControlLoras(), b = syncEditLoras();
+                if (a || b) { save(); renderRegions(); }
+                syncModelSel();
+                if (state.control?.on) checkControlFiles(false);
+            }
+            // the footer select: auto (with what it found) or a model picked to correct it
+            const modelSel = el("select", "rg-sel rg-model");
+            modelSel.addEventListener("pointerdown", (e) => e.stopPropagation());
+            fmtCtl.lab.after(modelSel);                   // in the bottom bar, after the format select
+            modelSel.addEventListener("change", () => {
+                node.properties = node.properties || {};
+                if (modelSel.value) node.properties.rg_model_pick = modelSel.value; else delete node.properties.rg_model_pick;
+                app.graph?.change?.();
+                onModelChanged(true);
+            });
+            function syncModelSel() {
+                const info = modelInfo(), pick = node.properties?.rg_model_pick || "";
+                const auto = !pick && info.arch ? `auto · ${info.arch}` : pick && info.guess ? `auto (${info.guess})` : "auto · model?";
+                const opts = [["", auto], ...MODEL_NAMES.map((m) => [m, m])];
+                const sig = JSON.stringify(opts);
+                if (modelSel.dataset.sig !== sig) { modelSel.replaceChildren(...opts.map(([v, t]) => opt(v, t))); modelSel.dataset.sig = sig; }
+                if (document.activeElement !== modelSel) modelSel.value = pick;
+                modelSel.title = "The model this node works with, for the LoRAs Control and Edit Mode add to Whole image (and the control files). "
+                    + (pick ? `Picked: ${pick}. ` : info.how === "last run" ? `Auto: ${info.arch}, from the last run. `
+                        : info.how === "guess" ? `Auto: ${info.arch}, a guess from the model loader's file / type (the first run checks it). `
+                        : "Auto: not known yet (no run, and nothing to guess from); pick it here if you like. ")
+                    + "Pick a model to correct a wrong guess; 'auto' follows the graph and the runs again.";
+                modelSel.classList.toggle("picked", !!pick);
+            }
+            // the files the Control row needs for the model and kind, and the ones ComfyUI doesn't have: the message bar
+            // shows where to get them (like Select object's missing-model message)
+            function neededControlFiles(c, arch) {
+                const files = controlFiles(), need = [];
+                const mapMade = !isLinked("control_image") && ["depth", "color+depth"].includes(c.kind);
+                if (arch === "MOSS Image") {
+                    if (["color", "color+depth", "depth"].includes(c.kind)) need.push("MOSS");
+                } else if (arch === "Flux.1") {
+                    if (c.kind === "depth") need.push(files.Flux1Depth || !files["Flux1.depth"] ? "Flux1Depth" : "Flux1.depth");
+                    else if (c.kind === "canny") need.push(files.Flux1Canny || !files["Flux1.canny"] ? "Flux1Canny" : "Flux1.canny");
+                    else if (c.kind === "other") need.push("Flux1.other");
+                } else if (arch === "SDXL" || arch === "SD1.5" || arch === "Anima") {
+                    const k = { SDXL: "SDXL", "SD1.5": "SD15", Anima: "Anima" }[arch];
+                    if (["depth", "canny", "other"].includes(c.kind)) need.push(`${k}.${c.kind}`);
+                }
+                if (mapMade && need.length) need.push("DA3");
+                return need;
+            }
+            function missingControlFiles(keys) {
+                const files = controlFiles(), out = [];
+                for (const key of keys) {
+                    const folder = controlFolder(key), list = folder === "loras" ? (knownLoras() || []) : knownModels(folder) || [];
+                    if (!files[key]) out.push([key, "unset"]);
+                    else if (list.length && !list.includes(files[key])) out.push([key, "missing", files[key]]);
+                }
+                return out;
+            }
+            function showControlMissing(items) {
+                if (!items.length) return false;
+                const lines = items.map(([key, why, name]) => {
+                    const d = CONTROL_DOWNLOADS[key], folder = controlFolder(key);
+                    const state = why === "missing" ? `'${name}' isn't in ComfyUI/models/${folder} (ComfyUI doesn't see it)` : "no file is set";
+                    return `${controlLabel(key)}: ${state}. Download ${d?.file || "one"}${d ? ` (${d.url})` : ""}${d?.note ? ` — ${d.note}` : ""} `
+                        + `into ComfyUI/models/${folder}, refresh ComfyUI (R), then pick it in Settings > Region Genie > Control.`;
+                });
+                showMsg(lines.join("\n"));
+                return true;
+            }
+            function checkControlFiles(refreshLists) {
+                const c = ctl(), arch = modelArch();
+                if (!c.on) return;
+                if (refreshLists) for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f, true);
+                if (arch && !["MOSS Image", "Flux.1", "SDXL", "SD1.5", "Anima"].includes(arch)) {
+                    showMsg(`Control: ComfyUI has no ControlNet support for ${arch} yet, so this node can't apply control with it. `
+                        + "If the model was guessed wrong, pick the right one in the bottom bar.");
+                    return;
+                }
+                if (!showControlMissing(missingControlFiles(neededControlFiles(c, arch)))) hideMsg();
+            }
+            // ---- Control (ControlNet / control LoRAs): the row under Whole image, the per-region switch, the LoRAs it adds
+            const CONTROL = "control";
+            const CONTROL_KIND_LABELS = [["color", "color map (MOSS)"], ["color+depth", "color map + depth (MOSS)"], ["depth", "depth"],
+                                         ["canny", "canny"], ["other", "your control_image"]];
+            const ctl = () => state.control || { on: false, kind: "depth", strength: 1, start: 0, end: 1 };
+            let controlMap = null, controlMapKey = "", controlShow = false;          // the map of the last run, shown on the canvas
+            // the control LoRAs the current settings want in Whole image: [{lora, control: model, ckind}]
+            function wantedControlLoras(c) {
+                if (!c.on) return [];
+                const files = controlFiles(), arch = modelArch(), out = [];
+                const add = (key, model, ckind) => { if (files[key] && (!arch || arch === model)) out.push({ lora: files[key], control: model, ckind }); };
+                if (["color", "color+depth", "depth"].includes(c.kind)) add("MOSS", "MOSS Image", "moss");
+                if (c.kind === "depth") add("Flux1Depth", "Flux.1", "depth");
+                if (c.kind === "canny") add("Flux1Canny", "Flux.1", "canny");
+                return out;
+            }
+            // keep the Whole image LoRAs in step (inside a change(): one undo step with the switch that caused it)
+            function syncControlLoras() {
+                const want = wantedControlLoras(ctl()), cur = state.sceneLoras || [];
+                const same = (a, b) => a.lora === b.lora && a.control === b.control && a.ckind === b.ckind;
+                const kept = cur.filter((x) => !x.control || want.some((w) => same(w, x)));
+                const add = want.filter((w) => !kept.some((x) => x.control && same(w, x))).map((w) => ({ ...w, strength: 1, on: true }));
+                if (kept.length === cur.length && !add.length) return false;
+                state.sceneLoras = [...kept, ...add];
+                if (!state.sceneLoras.length) delete state.sceneLoras;
+                if (add.length) expanded.add(SCENE);
+                return true;
+            }
+            function setControl(patch) {
+                change(() => { state.control = { ...ctl(), ...patch }; syncControlLoras(); });
+                if (state.control.on) checkControlFiles(true); else hideMsg();
+            }
+            function controlRow() {
+                const c = ctl();
+                const row = el("div", "rg-row ctrl" + (c.on ? "" : " off"));
+                const onBtn = el("button", "rg-btn mini" + (c.on ? " toggle on" : ""));
+                onBtn.innerHTML = svgIcon(c.on ? "control" : "controlOff");
+                onBtn.title = c.on ? "Control on: the model follows the control map (ControlNet / control LoRA for the connected model). Click to turn it off."
+                    : "Control off. Click to turn it on: the model follows a color map, depth, canny or your own control_image "
+                      + "(the files are set in Settings > Region Genie > Control).";
+                onBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+                onBtn.addEventListener("click", (e) => { e.preventDefault(); setControl({ on: !c.on }); if (!c.on) expanded.add(CONTROL); });
+                const lbl = el("span", "rg-pseudo"); lbl.textContent = "Control";
+                row.append(chevron(CONTROL, c.on, "the control files for each model"), onBtn, lbl);
+                if (c.on) {
+                    const kind = el("select", "rg-sel");
+                    kind.title = (CONTROL_KIND_HELP[c.kind] || "") + "\n\nWhat the model follows: the regions' color map and / or depth (MOSS Image's "
+                        + "control LoRA), depth, canny, or the map on 'control_image'. Depth and canny are made from 'image' when control_image isn't connected.";
+                    for (const [v, t] of CONTROL_KIND_LABELS) kind.appendChild(opt(v, t));
+                    kind.value = c.kind;
+                    kind.addEventListener("change", () => setControl({ kind: kind.value }));
+                    const num = (v, title, lo, hi, step, set) => {
+                        const i = el("input", "rg-num"); i.type = "number"; i.min = String(lo); i.max = String(hi); i.step = String(step);
+                        i.value = String(v); i.title = title;
+                        i.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") i.blur(); });
+                        i.addEventListener("change", () => set(Math.min(hi, Math.max(lo, +i.value || 0))));
+                        return i;
+                    };
+                    const str = num(c.strength, "Strength (1 = as trained)", 0, 10, 0.05, (v) => setControl({ strength: v }));
+                    const a = num(Math.round(c.start * 100), "Start, in % of the steps", 0, 100, 1, (v) => setControl({ start: v / 100 }));
+                    const b = num(Math.round(c.end * 100), "End, in % of the steps (ending early keeps the layout, then lets the shapes loosen)", 0, 100, 1, (v) => setControl({ end: v / 100 }));
+                    const pct = el("span", "rg-hint"); pct.textContent = "%";
+                    const dash = el("span", "rg-hint"); dash.textContent = "–";
+                    const eye = iconBtn(controlShow ? "eye" : "eyeOff", controlMap ? (controlShow ? "Hide the control map on the canvas" : "Show the control map of the last run on the canvas")
+                        : "The control map shows here after a run", () => { controlShow = !controlShow; renderRegions(); requestDraw(); });
+                    eye.disabled = !controlMap;
+                    eye.addEventListener("pointerdown", (e) => e.stopPropagation());
+                    for (const x of [kind, str, a, b]) x.addEventListener("pointerdown", (e) => e.stopPropagation());
+                    const gap = el("span"); gap.style.flex = "1 1 auto";
+                    row.append(kind, str, a, dash, b, pct, gap, eye);
+                }
+                row.addEventListener("pointerdown", (e) => {
+                    if (e.button !== 0 || e.target.closest?.("button, input, select, textarea") || !c.on) return;
+                    e.stopPropagation();
+                    if (expanded.has(CONTROL)) expanded.delete(CONTROL); else expanded.add(CONTROL);
+                    renderRegions();
+                });
+                return row;
+            }
+            // the details: which file each model uses for this kind, and where the map comes from
+            function controlDetails() {
+                const c = ctl(), files = controlFiles(), box = el("div", "rg-subbody ctrl");
+                const line = (text, title) => { const d = el("div", "rg-row lora"); const t = el("span", "rg-hint"); t.textContent = text; if (title) t.title = title; d.appendChild(t); box.appendChild(d); };
+                const info = modelInfo(), arch = info.arch;
+                const pick = (key) => files[key] || "—";
+                const per = c.kind === "color" || c.kind === "color+depth"
+                    ? [["MOSS Image", `LoRA ${pick("MOSS")}`]]
+                    : [["MOSS Image", c.kind === "depth" ? `LoRA ${pick("MOSS")}` : "— (color map / depth only)"],
+                       ["Flux.1", (c.kind === "depth" && files.Flux1Depth) ? `LoRA ${files.Flux1Depth}` : (c.kind === "canny" && files.Flux1Canny) ? `LoRA ${files.Flux1Canny}` : `ControlNet ${pick(`Flux1.${c.kind}`)}`],
+                       ["SDXL", `ControlNet ${pick(`SDXL.${c.kind}`)}`], ["SD1.5", `ControlNet ${pick(`SD15.${c.kind}`)}`],
+                       ["Anima", `LLLite ${pick(`Anima.${c.kind}`)}`]];
+                for (const [m, f] of per) line(`${m === arch ? "▸ " : ""}${m}: ${f}`, m === arch ? `The model this node works with (${info.how}; the bottom bar's model select)` : "");
+                line("Krea 2, Flux.2, Flux 3, Ideogram 4: no ControlNet in ComfyUI yet");
+                const src = c.kind === "color" ? "the regions' colors (the color_map output)"
+                    : c.kind === "other" ? "the control_image input"
+                    : `control_image if connected, else made from 'image' (${c.kind === "canny" ? "ComfyUI's Canny" : `Depth Anything 3: ${files.DA3 || "set its model in Settings"}`})`
+                        + (c.kind === "color+depth" ? "; the color map from the regions" : "");
+                line("Map: " + src);
+                const off = state.regions.filter((r) => r.noControl).length;
+                line(off ? `${off} region(s) switched off: the control acts only inside the regions still on` : "Every region is on (the region rows' control button switches one off)");
+                line("Files: Settings > Region Genie > Control (each one's tooltip says where to get it)");
+                const help = el("div", "rg-row lora"); const ht = el("span", "rg-hint rg-ctrl-help"); ht.textContent = CONTROL_KIND_HELP[c.kind] || ""; help.appendChild(ht); box.appendChild(help);
+                return box;
+            }
+            function controlToggle(r) {
+                const on = !r.noControl;
+                const b = el("button", "rg-btn mini" + (on ? " toggle on" : ""));
+                b.innerHTML = svgIcon(on ? "control" : "controlOff");
+                b.title = on ? "Control acts on this region. Click to leave it out (while any region is left out, the control acts only inside the regions still on)."
+                    : "Control leaves this region out. Click to include it again.";
+                b.addEventListener("pointerdown", (e) => e.stopPropagation());
+                b.addEventListener("click", (e) => { e.preventDefault(); change(() => { if (r.noControl) delete r.noControl; else r.noControl = true; }); });
+                return b;
+            }
             function keepToggle(r) {
                 const b = el("button", "rg-btn mini" + (r.keep ? " toggle on" : ""));
                 b.innerHTML = svgIcon(r.keep ? "lock" : "pencil");
@@ -2457,6 +2803,9 @@ app.registerExtension({
                 ctx.globalAlpha = 0.35;
                 ctx.drawImage(comp, 0, 0);
                 ctx.restore();
+                if (controlShow && controlMap && state.control?.on) {         // the control map of the last run
+                    ctx.save(); ctx.globalAlpha = 0.65; ctx.drawImage(controlMap, ix, iy, iw, ih); ctx.restore();
+                }
                 if (isEdit() && state.regions.some((r) => r.keep)) {        // Edit Mode: kept regions are hatched
                     ctx.save();
                     ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
@@ -3510,6 +3859,111 @@ app.registerExtension({
             // Text edits show live; each edited field is one undo step. Enter or clicking elsewhere closes it,
             // Shift+Enter = new line, Esc closes it and undoes the text edit in progress.
             let editor = null;
+            // ---- pop-up editors: the size (every node; a hidden Setting), the place (this node, saved with the workflow) and the
+            // text size (Settings > Region Genie > Text size, per kind of field). They live inside the node and stay inside it.
+            const POP_W = { scene: 640, region: 560 };
+            const FS_POP = { scene: SET.fsPopScene, prompt: SET.fsPopRegion, text: SET.fsPopText };
+            const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+            const popSizes = () => { try { const v = JSON.parse(recentSetting(SET.popSizes, "{}") || "{}"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } };
+            const fsPop = (cat) => clampN(Math.round(+recentSetting(FS_POP[cat], 14)) || 14, 8, 40);
+            function applyPopFont(ta, cat) { const f = fsPop(cat); ta.style.fontSize = f + "px"; ta.style.lineHeight = Math.round(f * 1.3) + "px"; }
+            // size, then place: the saved size and place (kept inside the node), else the default width and autoPlace(w, h, W, H)
+            function popLayout(ed, kind, autoPlace) {
+                const box = ed.box, W = wrap.clientWidth, H = wrap.clientHeight;
+                const sz = popSizes()[kind] || {};
+                const w = clampN(Math.round(sz.w || POP_W[kind]), 240, Math.max(240, W - 12));
+                box.style.width = w + "px";
+                if (sz.h) { box.style.height = clampN(Math.round(sz.h), 160, Math.max(160, H - 12)) + "px"; box.style.maxHeight = ""; box.classList.add("sized"); }
+                else { box.style.height = ""; box.style.maxHeight = Math.max(120, H - 12) + "px"; box.classList.remove("sized"); }
+                const keepInside = () => {
+                    box.style.left = clampN(parseFloat(box.style.left) || 6, 6, Math.max(6, W - box.offsetWidth - 6)) + "px";
+                    box.style.top = clampN(parseFloat(box.style.top) || 6, 6, Math.max(6, H - box.offsetHeight - 6)) + "px";
+                };
+                if (ed.placed) { keepInside(); return; }
+                ed.placed = true;
+                const at = node.properties?.rg_pop?.[kind];
+                if (at && Number.isFinite(at.x) && Number.isFinite(at.y)) { box.style.left = at.x + "px"; box.style.top = at.y + "px"; keepInside(); return; }
+                autoPlace(w, box.offsetHeight, W, H);
+            }
+            // A− / A+ (the field in use: curCat()), dragging by the title bar, the resize grip
+            function popFrame(ed, kind, head, curCat, applyFonts) {
+                const box = ed.box;
+                const zoom = () => wrap.offsetWidth / Math.max(1, wrap.getBoundingClientRect().width);   // screen px -> CSS px
+                const font = (d) => {
+                    const cat = curCat();
+                    rememberSetting(FS_POP[cat], clampN(fsPop(cat) + d, 8, 40));
+                    applyFonts();
+                };
+                const fm = el("button", "rg-btn rg-pop-font"); fm.type = "button"; fm.textContent = "A−";
+                const fp = el("button", "rg-btn rg-pop-font"); fp.type = "button"; fp.textContent = "A+";
+                fm.title = "Smaller text in the box you're typing in (Settings > Region Genie > Text size)";
+                fp.title = "Larger text in the box you're typing in (Settings > Region Genie > Text size)";
+                fm.addEventListener("click", (e) => { e.preventDefault(); font(-1); });
+                fp.addEventListener("click", (e) => { e.preventDefault(); font(1); });
+                const x = head.querySelector(".rg-x");
+                head.insertBefore(fp, x?.previousElementSibling?.classList.contains("rg-wc-pick") ? x.previousElementSibling : x);
+                head.insertBefore(fm, fp);
+                head.title = "Drag to move (inside the node; remembered for this node). Double-click: back to the automatic place";
+                const drag = (e, onMove, onEnd) => {
+                    e.preventDefault(); e.stopPropagation();
+                    const t = e.currentTarget, k = zoom(), x0 = e.clientX, y0 = e.clientY;
+                    t.setPointerCapture?.(e.pointerId);
+                    const move = (ev) => onMove((ev.clientX - x0) * k, (ev.clientY - y0) * k);
+                    const up = () => { t.removeEventListener("pointermove", move); t.removeEventListener("pointerup", up); t.removeEventListener("pointercancel", up); onEnd(); };
+                    t.addEventListener("pointermove", move); t.addEventListener("pointerup", up); t.addEventListener("pointercancel", up);
+                };
+                head.addEventListener("pointerdown", (e) => {
+                    if (e.button !== 0 || e.target.closest("button, input, select, textarea")) return;
+                    const l0 = box.offsetLeft, t0 = box.offsetTop, W = wrap.clientWidth, H = wrap.clientHeight;
+                    drag(e, (dx, dy) => {
+                        box.style.left = clampN(l0 + dx, 6, Math.max(6, W - box.offsetWidth - 6)) + "px";
+                        box.style.top = clampN(t0 + dy, 6, Math.max(6, H - box.offsetHeight - 6)) + "px";
+                    }, () => {
+                        node.properties = node.properties || {};
+                        node.properties.rg_pop = { ...(node.properties.rg_pop || {}), [kind]: { x: Math.round(box.offsetLeft), y: Math.round(box.offsetTop) } };
+                    });
+                });
+                head.addEventListener("dblclick", (e) => {
+                    if (e.target.closest("button, input, select, textarea")) return;
+                    if (node.properties?.rg_pop) delete node.properties.rg_pop[kind];
+                    ed.placed = false; ed.place();
+                });
+                const grip = el("div", "rg-pop-grip");
+                grip.title = "Drag to resize (remembered for every Region Genie node). Double-click: back to the default size";
+                grip.addEventListener("pointerdown", (e) => {
+                    if (e.button !== 0) return;
+                    const w0 = box.offsetWidth, h0 = box.offsetHeight, W = wrap.clientWidth, H = wrap.clientHeight;
+                    drag(e, (dx, dy) => {
+                        box.style.width = clampN(w0 + dx, 240, Math.max(240, W - box.offsetLeft - 6)) + "px";
+                        box.style.height = clampN(h0 + dy, 160, Math.max(160, H - box.offsetTop - 6)) + "px";
+                        box.style.maxHeight = ""; box.classList.add("sized");
+                    }, () => {
+                        const all = popSizes(); all[kind] = { w: Math.round(box.offsetWidth), h: Math.round(box.offsetHeight) };
+                        rememberSetting(SET.popSizes, JSON.stringify(all));
+                    });
+                });
+                grip.addEventListener("dblclick", (e) => {
+                    e.stopPropagation();
+                    const all = popSizes(); delete all[kind];
+                    rememberSetting(SET.popSizes, JSON.stringify(all));
+                    ed.place();
+                });
+                box.appendChild(grip);
+                applyFonts();
+            }
+            // text size of the node's own fields (Settings > Region Genie > Text size; 0 = as before)
+            function applyFieldFonts() {
+                const fs = (id) => clampN(Math.round(+recentSetting(id, 0)) || 0, 0, 40);
+                const a = fs(SET.fsNodeScene), b = fs(SET.fsNodeRegion), c = fs(SET.fsNodeText);
+                for (const t of Object.values(sceneTA)) {
+                    const want = a ? a + "px" : "";
+                    if (t.style.fontSize !== want) { t.style.fontSize = want; t.style.lineHeight = a ? Math.round(a * 1.3) + "px" : ""; }
+                }
+                for (const [n, f] of [["r", b], ["t", c]]) {
+                    if (f) { wrap.style.setProperty(`--rg-fs-${n}`, f + "px"); wrap.style.setProperty(`--rg-lh-${n}`, Math.round(f * 1.25) + "px"); }
+                    else { wrap.style.removeProperty(`--rg-fs-${n}`); wrap.style.removeProperty(`--rg-lh-${n}`); }
+                }
+            }
             function closeEditor(commit = true) {
                 if (!editor) return;
                 const ed = editor;
@@ -3592,9 +4046,10 @@ app.registerExtension({
                     wrapF.append(lab, ta);
                     return { wrapF, ta };
                 };
-                const prompt = field("Prompt", "prompt", 4, "prompt: what is in this region");
+                const prompt = field("Prompt", "prompt", 8, "prompt: what is in this region");
+                prompt.wrapF.classList.add("grow");
                 autocompleteOnFocus(prompt.ta, node);
-                const text = field("Text", "text", 2, "text to render");
+                const text = field("Text", "text", 3, "text to render");
                 // feather, palette, LoRAs (rebuilt on every change)
                 const dyn = el("div", "rg-pop-dyn");
                 const foot = el("div", "rg-pop-foot");
@@ -3644,20 +4099,9 @@ app.registerExtension({
                         ed.place();
                     },
                     placed: false,
-                    place() {
-                        // near the label, inside the node; scrolls when the node is short
+                    place() { popLayout(ed, "region", (w, h, W, H) => {
+                        // near the label (or the list row), inside the node; scrolls when the node is short
                         const k = cvBox.clientWidth / Math.max(1, cv.width);           // canvas px -> CSS px
-                        const W = wrap.clientWidth, H = wrap.clientHeight;
-                        const w = Math.min(W - 12, 440);
-                        box.style.width = w + "px";
-                        box.style.maxHeight = Math.max(120, H - 12) + "px";
-                        const h = box.offsetHeight;
-                        if (ed.placed) {                           // later changes: stay put, only keep it inside
-                            const t = parseFloat(box.style.top) || 6;
-                            if (t + h > H - 6) box.style.top = Math.max(6, H - 6 - h) + "px";
-                            return;
-                        }
-                        ed.placed = true;
                         const row = !rect && regList.querySelector(`textarea.rg-prompt[data-rid="${rid}"]`)?.closest(".rg-row");
                         if (row) {                                 // from the list: just below the row, else just above it
                             const wr = wrap.getBoundingClientRect(), rr = row.getBoundingClientRect();
@@ -3674,7 +4118,7 @@ app.registerExtension({
                         const top = below + h <= H - 6 ? below : (above >= 6 ? above : Math.max(6, H - 6 - h));
                         box.style.left = Math.max(6, Math.min(W - w - 6, cx - w / 2)) + "px";
                         box.style.top = Math.max(6, top) + "px";
-                    },
+                    }); },
                     // a click outside closes it (not the LoRA list, the autocomplete list or a color picker)
                     outside(e) {
                         const t = e.target;
@@ -3683,6 +4127,8 @@ app.registerExtension({
                     },
                 };
                 editor = ed;
+                popFrame(ed, "region", head, () => (lastTa === text.ta ? "text" : "prompt"),
+                         () => { applyPopFont(prompt.ta, "prompt"); applyPopFont(text.ta, "text"); });
                 window.addEventListener("pointerdown", ed.outside, true);
                 ed.refresh();
                 const first = focus === "text" && r.type === "text" ? text : prompt;
@@ -3715,8 +4161,8 @@ app.registerExtension({
                 wcPickS.addEventListener("click", (e) => pickWildcard(e, (name) => insertAtCursor(ta, name)));
                 wcPickS.style.display = wildcardsInstalled() ? "" : "none";
                 head.append(title, wcPickS, x);
-                const wrapF = el("div", "rg-pop-field");
-                const ta = el("textarea"); ta.rows = 6; ta.spellcheck = false; ta.value = String(w.value ?? "");
+                const wrapF = el("div", "rg-pop-field grow");
+                const ta = el("textarea"); ta.rows = 12; ta.spellcheck = false; ta.value = String(w.value ?? "");
                 ta.placeholder = { positive: "the whole picture: setting, style, lighting ...", negative: "what to avoid in the whole picture",
                                    background: "behind the regions: ground, floor, sky, room ..." }[which];
                 const orig = ta.value;
@@ -3782,21 +4228,11 @@ app.registerExtension({
                         ed.place();
                     },
                     placed: false,
-                    place() {
+                    place() { popLayout(ed, "scene", (wd, h, W) => {
                         // at the top of the canvas area (right under the scene prompts), inside the node
-                        const W = wrap.clientWidth, H = wrap.clientHeight;
-                        const wd = Math.min(W - 12, 520);
-                        box.style.width = wd + "px";
-                        box.style.maxHeight = Math.max(120, H - 12) + "px";
-                        if (ed.placed) {
-                            const t = parseFloat(box.style.top) || 6, h = box.offsetHeight;
-                            if (t + h > H - 6) box.style.top = Math.max(6, H - 6 - h) + "px";
-                            return;
-                        }
-                        ed.placed = true;
                         box.style.left = Math.max(6, (W - wd) / 2) + "px";
                         box.style.top = "6px";
-                    },
+                    }); },
                     outside(e) {
                         const t = e.target;
                         if (box.contains(t) || inAutocompleteList(t) || inColorPicker(t) || inLlmSettings(t) || t?.closest?.(".litecontextmenu, .litemenu-entry, .comfy-context-menu, .p-contextmenu")) return;
@@ -3804,6 +4240,7 @@ app.registerExtension({
                     },
                 };
                 editor = ed;
+                popFrame(ed, "scene", head, () => "scene", () => applyPopFont(ta, "scene"));
                 window.addEventListener("pointerdown", ed.outside, true);
                 ed.refresh();
                 ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -3992,7 +4429,7 @@ app.registerExtension({
                 const frag = document.createDocumentFragment();
                 list.forEach((lo, i) => {
                     const row = el("div", "rg-row lora");
-                    const tag = el("span", "rg-hint"); tag.textContent = lo.edit ? "Edit" : "LoRA";
+                    const tag = el("span", "rg-hint"); tag.textContent = lo.control ? "Control" : lo.edit ? "Edit" : "LoRA";
                     if (lo.edit) {
                         tag.title = `Edit LoRA for ${lo.edit}, added by Edit Mode: used only in Edit Mode with a ${lo.edit} model, `
                             + "and removed when the node is switched back to generate (Settings > Region Genie > Edit Mode).";
@@ -4426,6 +4863,9 @@ app.registerExtension({
                     regList.appendChild(empty);
                 }
 
+                regList.appendChild(controlRow());
+                if (state.control?.on && expanded.has(CONTROL)) regList.appendChild(controlDetails());
+
                 state.regions.forEach((r, i) => {
                     const lays = layersOf(r.id);
                     const row = el("div", "rg-row region" + (curRegion === r.id ? " sel" : "") + (r.hidden ? " off" : ""));
@@ -4437,13 +4877,13 @@ app.registerExtension({
                     ty.value = r.type;
                     ty.addEventListener("change", () => change(() => { r.type = ty.value; }));
                     const pr = el("textarea", "rg-prompt"); pr.rows = 1; pr.placeholder = r.fromImage ? "prompt for this image color" : "prompt";
-                    const dblTip = (v) => (v ? v + "\n" : "") + "Double-click: open in the pop-up editor";
+                    const dblTip = (v) => v || "";
                     pr.value = r.prompt; pr.dataset.rid = String(r.id); pr.spellcheck = false;
                     wcMark(pr, "r" + r.id, r.prompt, dblTip(r.prompt));
                     pr.addEventListener("blur", () => { pr.scrollTop = 0; wcMark(pr, "r" + r.id, r.prompt, dblTip(r.prompt)); refreshChips(r.id); });
-                    // double-click: the region's pop-up editor, next to this row
-                    const openPop = (field) => (e) => { e.preventDefault(); e.stopPropagation(); e.target.blur(); editPrompt(r.id, null, field); };
-                    pr.addEventListener("dblclick", openPop("prompt"));
+                    // the expand button: the region's pop-up editor, next to this row
+                    const openPop = (field, t) => () => { t.blur(); editPrompt(r.id, null, field); };
+                    const prWrap = el("span", "rg-pwrap"); prWrap.appendChild(pr);
                     pr.addEventListener("focus", () => pick());
                     pr.addEventListener("input", () => { r.prompt = pr.value; save(); llmBtns.get(r.id)?.(); });
                     pr.addEventListener("keydown", (e) => {
@@ -4458,7 +4898,8 @@ app.registerExtension({
                         : "Show / hide this region: a hidden region is not drawn and is left out of every output; its layers keep their own show / hide",
                         () => change(() => { if (r.hidden) delete r.hidden; else r.hidden = true; }));
                     eye.classList.add("rg-reye");
-                    row.append(chevron(r.id, kinds.length > 0, "this region's " + (kinds.map((k) => ({ layers: "layers", loras: "LoRAs", palette: "palette" })[k]).join(", ") || "layers")), eye, ix, sw, ty, pr);
+                    row.append(chevron(r.id, kinds.length > 0, "this region's " + (kinds.map((k) => ({ layers: "layers", loras: "LoRAs", palette: "palette" })[k]).join(", ") || "layers")), eye, ix, sw, ty, prWrap);
+                    addExpandButton(pr, "Open this region in the pop-up editor", openPop("prompt", pr));
                     if (r.type === "text") {
                         // text to render: grows while edited, like the prompt (Shift+Enter = new line)
                         const tx = el("textarea", "rg-prompt rg-text"); tx.rows = 1; tx.placeholder = "text"; tx.value = r.text;
@@ -4466,13 +4907,15 @@ app.registerExtension({
                         wcMark(tx, `r${r.id}.text`, r.text, dblTip(r.text || "Text to render"));
                         tx.addEventListener("focus", () => pick());
                         tx.addEventListener("blur", () => { tx.scrollTop = 0; wcMark(tx, `r${r.id}.text`, r.text, dblTip(r.text || "Text to render")); });
-                        tx.addEventListener("dblclick", openPop("text"));
+
                         tx.addEventListener("input", () => { r.text = tx.value; save(); });
                         tx.addEventListener("keydown", (e) => {
                             e.stopPropagation();
                             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); tx.blur(); }
                         });
-                        row.appendChild(tx);
+                        const txWrap = el("span", "rg-pwrap rg-twrap"); txWrap.appendChild(tx);
+                        row.appendChild(txWrap);
+                        addExpandButton(tx, "Open this region in the pop-up editor (its text to render)", openPop("text", tx));
                     }
                     const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { r.loras = r.loras || []; addLoraTo(r.loras, e, () => openSub(r.id, "loras")); }, "txt");
                     const mergeAll = ico("⇊", "Merge all visible layers of this region into one layer", () => mergeRegion(r.id));
@@ -4489,7 +4932,7 @@ app.registerExtension({
                         if (curRegion === r.id) curRegion = state.regions[0]?.id ?? null;
                         if (!selLayer()) selId = null;
                     }));
-                    row.append(llmButton(r.id), ...(isEdit() ? [keepToggle(r)] : []), cnt, featherBox(r), paletteToggle(r), addL,
+                    row.append(llmButton(r.id), ...(isEdit() ? [keepToggle(r)] : []), ...(state.control?.on ? [controlToggle(r)] : []), cnt, featherBox(r), paletteToggle(r), addL,
                                mergeAll, up, down, del);
                     regList.appendChild(row);
                     if (kinds.length && expanded.has(r.id)) {
@@ -4565,28 +5008,15 @@ app.registerExtension({
                 ["width_in", "height_in", "size_from_image", "size_from_latent"].includes(i.name) && i.link != null);
             // Edit Mode on: add the edit LoRA set in Settings for the model of the last run (for every model with one
             // when no run has said which), to the 'Whole image' LoRAs; off: remove the rows it added
-            const lastArchOf = () => node.properties?.rg_model_arch || null;   // the model of the last run (kept in the workflow)
             function onEditModeChanged() {
                 hideMsg();
-                const lastArch = lastArchOf();
-                const cur = state.sceneLoras || [];
+                const arch = modelArch(), all = editLoras();
+                const probe = JSON.stringify(state.sceneLoras || []);
+                const before = snapshot();
+                if (syncEditLoras() && JSON.stringify(state.sceneLoras || []) !== probe) { pushUndo(before); save(); }
                 if (isEdit()) {
-                    const all = editLoras();
-                    const want = lastArch && all.some(([m]) => m === lastArch) ? all.filter(([m]) => m === lastArch) : lastArch ? [] : all;
-                    const add = want.filter(([m, lora]) => !cur.some((x) => x.edit === m && x.lora === lora));
-                    if (add.length) {
-                        change(() => {
-                            state.sceneLoras = [...(state.sceneLoras || []), ...add.map(([m, lora]) => ({ lora, strength: 1, on: true, edit: m }))];
-                            expanded.add(SCENE);
-                        });
-                    }
                     if (!all.length) hint("Edit Mode: no edit LoRA is set in Settings > Region Genie > Edit Mode");
-                    else if (!want.length) hint(`Edit Mode: no edit LoRA is set for ${lastArch} in Settings > Region Genie > Edit Mode`);
-                } else if (cur.some((x) => x.edit)) {
-                    change(() => {
-                        state.sceneLoras = cur.filter((x) => !x.edit);
-                        if (!state.sceneLoras.length) delete state.sceneLoras;
-                    });
+                    else if (arch && !all.some(([m]) => m === arch)) hint(`Edit Mode: no edit LoRA is set for ${arch} in Settings > Region Genie > Edit Mode`);
                 }
                 syncSettings(); onDimsChanged(); refreshUI();
             }
@@ -4664,6 +5094,8 @@ app.registerExtension({
                 if (Array.isArray(message?.model_arch) && message.model_arch[0]) {
                     node.properties = node.properties || {};
                     node.properties.rg_model_arch = String(message.model_arch[0]);
+                    node.properties.rg_model_src = guessArch().sig;
+                    onModelChanged(true);
                 }
                 if (Array.isArray(message?.auto_apart) && !!message.auto_apart[0] !== autoApart) {
                     autoApart = !!message.auto_apart[0];
@@ -4675,6 +5107,23 @@ app.registerExtension({
                 let llmMsg = null;
                 try { llmMsg = JSON.parse(message?.llm?.[0] || "null"); } catch (e) { /* ignore */ }
                 if (llmMsg) storeLlmResults(llmMsg);
+                let missing = null;
+                try { missing = JSON.parse(message?.control_missing?.[0] || "null"); } catch (e) { /* ignore */ }
+                if (Array.isArray(missing) && missing.length) showControlMissing(missing);
+                const cm = Array.isArray(message?.control_map) ? message.control_map[0] : null;
+                if (cm?.filename) {
+                    const key = cm.filename + cm.subfolder;
+                    if (key !== controlMapKey) {
+                        controlMapKey = key;
+                        const img = new Image();
+                        img.onload = () => { controlMap = img; renderRegions(); requestDraw(); };
+                        img.src = api.apiURL(`/view?filename=${encodeURIComponent(cm.filename)}&type=${cm.type}&subfolder=${encodeURIComponent(cm.subfolder || "")}&t=${Date.now()}`);
+                    }
+                }
+                if (state.control?.on && Array.isArray(message?.model_arch) && message.model_arch[0]) {
+                    const before = JSON.stringify(state.sceneLoras || []);
+                    if (syncControlLoras() && JSON.stringify(state.sceneLoras || []) !== before) { save(); renderRegions(); }
+                }
                 if (Array.isArray(message?.wildcards)) {
                     let f = {};
                     try { f = JSON.parse(message.wildcards[0] || "{}") || {}; } catch (e) { /* ignore */ }
@@ -4718,6 +5167,8 @@ app.registerExtension({
                 if (!node.graph) return;
                 fixImportMode();
                 syncSettings();
+                applyFieldFonts();
+                onModelChanged(false);
                 labelSizeInputs();
                 onDimsChanged();
                 liveBackdrop();

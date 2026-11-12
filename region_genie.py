@@ -957,6 +957,10 @@ class RegionGenie:
                                                       "file saved with Export (e.g. through a Load Text node), MOSS-Image "
                                                       "layout JSON, Ideogram caption JSON / elements, or bboxes. Each "
                                                       "new import_json is used once; edits made afterwards are kept."}),
+                # before width / height, which stay the last inputs (as asked)
+                "control_image": ("IMAGE", {"tooltip": "Optional control map for the 'Control' row (a depth, canny, pose, "
+                                                       "lineart ... map from any preprocessor). Without it, the node makes "
+                                                       "a depth or canny map from 'image'."}),
                 # shown as "width" / "height" (the size row at the top sets the hidden width / height widgets)
                 "width_in": ("INT", {"forceInput": True, "min": 16, "max": 16384,
                                      "tooltip": "Optional: the image width from another node. Overrides the size row at the "
@@ -1016,7 +1020,7 @@ class RegionGenie:
             image=None,
             size_from_image=None, size_from_latent=None, import_json=None, import_mode=IMPORT_MODES[0],
             model=None, clip=None, scene_prompt_background="", prompt_format="auto", vae=None, mode=MODES[0],
-            edit_area=EDIT_AREAS[0], width_in=None, height_in=None, wildcard_seed=0):
+            edit_area=EDIT_AREAS[0], width_in=None, height_in=None, wildcard_seed=0, control_image=None):
         from .bbox_masks import _resolve_size        # shared with BBoxes to Masks
         # the width / height sockets override the size row (whose result is in the hidden width / height widgets)
         if width_in is not None:
@@ -1358,6 +1362,23 @@ class RegionGenie:
                                           "region to change, or 'change' to whole image")
         else:
             latent = empty_latent(width, height, model, vae)
+        # Control (the list's 'Control' row): ControlNet / control LoRA for the connected model
+        from . import control as ctl
+        ccfg = ctl.config(pdata)
+        if ccfg is not None:
+            try:
+                rmask = ctl.region_mask(regions, id_to_index, idx)
+                missing = []
+                model_out, positive, negative, cmap = ctl.apply(ccfg, arch.name if arch is not None else None, model_out,
+                                                                positive, negative, vae, image, control_image, color_map,
+                                                                rmask, width, height, notes, missing)
+                if missing:
+                    ui["control_missing"] = [json.dumps(missing)]
+                if cmap is not None:
+                    ui["control_map"] = self._save_preview(cmap, "regiongenie.control")
+            except Exception as e:            # a broken control file must not stop the run
+                logging.exception(f"{LOG} control failed")
+                notes.append(f"NOTE: control could not be applied: {e}")
         lines += edit_notes
         lines += lora_lines
         info = "\n".join([f"{count} region(s) on {width}x{height} canvas"] + lines + notes)
@@ -1409,9 +1430,16 @@ class RegionGenie:
                     pass
             return out
         arch = hl.model_arch(model) if model is not None else None
-        # edit LoRAs added by Edit Mode (Settings > Region Genie > Edit Mode): only the one for the connected model
+        from . import control as ctl
+        ccfg = ctl.config(data)
+        # edit LoRAs added by Edit Mode (Settings > Region Genie > Edit Mode): only the one for the connected model;
+        # control LoRAs added by the Control row: only for the connected model while control is on
         scene_rows = []
         for x in data.get("sceneLoras") or []:
+            if isinstance(x, dict) and x.get("control"):
+                if ctl.lora_tag_ok(x, ccfg, arch.name if arch is not None else None):
+                    scene_rows.append(x)
+                continue
             tag = x.get("edit") if isinstance(x, dict) else None
             if tag:
                 if not edit or arch is None or tag != arch.name:
@@ -1479,10 +1507,10 @@ class RegionGenie:
                                       share_background=bool(opts.get("shareBg")))
 
     @staticmethod
-    def _save_preview(image):
+    def _save_preview(image, prefix="regiongenie.backdrop"):
         try:
             import nodes
-            saved = nodes.PreviewImage().save_images(image[:1], "regiongenie.backdrop")
+            saved = nodes.PreviewImage().save_images(image[:1], prefix)
             return saved["ui"]["images"]
         except Exception as e:  # preview is a convenience only
             logging.warning(f"{LOG} could not save the backdrop preview: {e}")

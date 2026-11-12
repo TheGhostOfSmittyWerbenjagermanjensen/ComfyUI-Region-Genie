@@ -118,6 +118,119 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`${M}: run ok, output 1368 x 768 from the Resolution Selector`, run.status === "success" && JSON.stringify(run.size) === "[1368,768]");
     check(`${M}: shown region in the color map, hidden region black`, run.left?.some((v) => v > 40) && run.right?.every((v) => v < 10));
 
+    // ---------------- round 10: expand buttons, the pop-up editor (drag, resize, A+), no node drag underneath
+    const r10 = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        app.canvas.ds.offset = [0, -200]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);    // the pop-up fully on screen
+        await new Promise((r) => setTimeout(r, 1500));
+        const tas = [...document.querySelectorAll("textarea.rg-scene-ta")];
+        return { n: tas.length, btns: tas.filter((t) => t.parentElement.querySelector(":scope > .rg-expand")).length, pos: [...rg.pos] };
+    });
+    check(`${M}: an expand button on each of the 3 scene prompts`, r10.n === 3 && r10.btns === 3);
+    const sceneTa = page.locator("textarea.rg-scene-ta").first();
+    await sceneTa.fill("a quiet harbour at dawn");
+    await sceneTa.dblclick(); await page.waitForTimeout(200);
+    check(`${M}: double-click in a scene prompt selects a word, no pop-up`, await page.locator(".rg-pop").count() === 0
+        && await page.evaluate(() => { const t = document.activeElement; return t?.tagName === "TEXTAREA" && t.selectionEnd > t.selectionStart; }));
+    await sceneTa.hover();
+    await page.locator("textarea.rg-scene-ta").first().locator("xpath=..").locator(":scope > .rg-expand").click();
+    await page.waitForTimeout(300);
+    const spop = page.locator(".rg-pop").first();
+    check(`${M}: the expand button opens the scene pop-up`, await spop.count() === 1);
+    const b1 = await spop.boundingBox();
+    const sh = await spop.locator(".rg-pop-head").boundingBox();
+    await page.mouse.move(sh.x + 40, sh.y + sh.height / 2); await page.mouse.down();
+    await page.mouse.move(sh.x + 40 + 30, sh.y + sh.height / 2 + 60, { steps: 6 }); await page.mouse.up();
+    await page.waitForTimeout(150);
+    const b2 = await spop.boundingBox();
+    const nodePos = await page.evaluate(() => [...window.__rg.pos]);
+    check(`${M}: dragging the title bar moves the pop-up, not the node`, b2.y - b1.y > 40 && JSON.stringify(nodePos) === JSON.stringify(r10.pos));
+    const g = await spop.locator(".rg-pop-grip").boundingBox();
+    await page.mouse.move(g.x + 6, g.y + 6); await page.mouse.down();
+    await page.mouse.move(g.x + 6 - 80, g.y + 6 + 100, { steps: 6 }); await page.mouse.up();
+    await page.waitForTimeout(150);
+    const b3 = await spop.boundingBox();
+    check(`${M}: the corner grip resizes it`, b3.width < b2.width - 40 && b3.height > b2.height + 40);
+    await spop.locator(".rg-pop-font", { hasText: "A+" }).click(); await page.waitForTimeout(100);
+    const fs = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-pop textarea")).fontSize));
+    check(`${M}: A+ makes the pop-up text larger (${fs} px)`, fs === 15);
+    await page.keyboard.press("Escape"); await page.waitForTimeout(100);
+    // put the shared Settings back for the next run of this test
+    await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Text.PopupScene", 14); await s.set("RegionGenie.Popup.Sizes", "{}"); });
+
+    // ---------------- round 10: Control (no model files here: the run notes it, the map overlay is fed a run's image)
+    const c10 = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        const pv = LG.createNode("PreviewImage"); pv.pos = [900, 40]; app.graph.add(pv);
+        rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), pv, 0);
+        app.canvas.ds.offset = [0, -560]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
+        await new Promise((r) => setTimeout(r, 1500));
+        const st = rg.__rgState();
+        st.regions.push({ id: 1, color: "#E6194B", prompt: "a boat", type: "object", text: "" });
+        st.layers.push({ id: 1, name: "Rect 1", region: 1, visible: true, shape: "rect", sides: 5, bw: 0.5, bh: 1, sx: 1, sy: 1, rot: 0, ox: -0.25, oy: 0, ops: [] });
+        rg.__rgRefresh();
+        await new Promise((r) => setTimeout(r, 300));
+        return { lastInputs: rg.inputs.filter((i) => !i.widget).map((i) => i.name).slice(-3), setting: app.extensionManager.setting.get("RegionGenie.Control.MOSS"),
+                 row: !!document.querySelector(".rg-list .rg-row.ctrl") };
+    });
+    check(`${M}: 'control_image' just before width / height; Control row and Settings exist`, JSON.stringify(c10.lastInputs) === '["control_image","width_in","height_in"]' && c10.row && c10.setting === "(none)");
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
+    await page.waitForTimeout(200);
+    const c11 = await page.evaluate(async () => {
+        const app = window.app, rg = window.__rg;
+        await fetch("/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clear: true }) });
+        await app.queuePrompt(0, 1);
+        let out = null;
+        for (let i = 0; i < 120 && !out; i++) {
+            await new Promise((r) => setTimeout(r, 500));
+            const e = Object.values(await (await fetch("/history")).json())[0];
+            if (e?.status?.status_str) out = e;
+        }
+        const o = out?.outputs?.[String(rg.id)], img = Object.values(out?.outputs || {}).find((x) => x.images)?.images?.[0];
+        return { status: out?.status?.status_str, info: o?.region_info?.[0] || "", img };
+    });
+    check(`${M}: a run with control on and no model: runs, and says why control isn't used`, c11.status === "success" && /control is on, but no model is connected/.test(c11.info));
+    // the map overlay: hand the editor a run's image as its control map
+    const ov = await page.evaluate(async (img) => {
+        const rg = window.__rg;
+        rg.onExecuted({ control_map: [img] });
+        await new Promise((r) => setTimeout(r, 800));
+        const eye = document.querySelector(".rg-list .rg-row.ctrl .rg-btn.icon");
+        const before = !!eye && !eye.disabled;
+        eye?.click();
+        await new Promise((r) => setTimeout(r, 300));
+        return { enabled: before, shown: eye ? /Hide the control map/.test(document.querySelector(".rg-list .rg-row.ctrl .rg-btn.icon").title) : false };
+    }, c11.img);
+    check(`${M}: after a run the control map can be shown on the canvas`, ov.enabled && ov.shown);
+    await page.evaluate(() => { document.querySelector(".rg-list .rg-row.ctrl .rg-btn.mini")?.click(); });
+
+    // ---------------- the model guess and the missing-file message (round 10)
+    const g10 = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const ld = LG.createNode("UNETLoader"); ld.pos = [-400, 40]; app.graph.add(ld);
+        ld.widgets.find((w) => w.name === "unet_name").value = "moss_image_sft_int8_convrot.safetensors";
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        ld.connect(0, rg, rg.inputs.findIndex((i) => i.name === "model"));
+        app.canvas.ds.offset = [0, -560]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
+        await new Promise((r) => setTimeout(r, 1800));
+        const sel = document.querySelector(".rg-settings select.rg-model");
+        return { first: sel?.options[0]?.textContent };
+    });
+    check(`${M}: the model is guessed from the loader before any run (${g10.first})`, g10.first === "auto · MOSS Image");
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
+    await page.waitForTimeout(400);
+    const mtxt = await page.locator(".rg-msg").first().textContent().catch(() => "");
+    check(`${M}: control on with no MOSS LoRA set: the message gives the official link and folder`,
+        /moss_image_color_depth_control\.safetensors/.test(mtxt) && /ComfyUI\/models\/loras/.test(mtxt)
+        && await page.locator(".rg-msg a").first().getAttribute("href") === "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors");
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
+    await page.waitForTimeout(200);
+
     // ---------------- wildcards (needs Impact Pack, and a wildcards/rgtest/color.txt file in it)
     const wcInstalled = await page.evaluate(async () => (await (await fetch("/region_genie/wildcards")).json()).installed);
     if (!wcInstalled) console.log("SKIP wildcards: Impact Pack is not installed");
@@ -182,7 +295,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const used = await page.evaluate(() => window.__rg.__rgState().regions[0].prompt);
         check(`${M}: 'use the filled text' puts it in the field`, used === expected);
         // the region pop-up: __ autocomplete and the picker
-        await page.locator(".rg-list textarea.rg-prompt").first().dblclick();
+        await page.locator(".rg-list .rg-pwrap .rg-expand").first().click();
         await page.waitForTimeout(400);
         const ta = page.locator(".rg-pop textarea").first();
         await ta.press("End"); await ta.type(" __rgt");
