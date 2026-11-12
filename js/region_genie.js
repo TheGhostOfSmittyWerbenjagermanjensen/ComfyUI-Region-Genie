@@ -5,7 +5,8 @@ import { svgIcon, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChip
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
          ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
-         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles } from "./rg_shared.js";
+         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
+         controlLabel, knownModels, NO_LORA } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
 import { openColorPicker, inColorPicker } from "./rg_colorpicker.js";
@@ -414,6 +415,9 @@ textarea.rg-scene-ta { padding-right:20px !important; }
 .rg-row.ctrl.off .rg-pseudo { opacity:.6; }
 .rg-row.ctrl .rg-num { width:44px; }
 .rg-row.ctrl .rg-sel { min-width:150px; max-width:190px; }
+.rg-settings .rg-sel.rg-model { max-width:150px; }
+.rg-settings .rg-sel.rg-model.picked { border-color:#c9a14a; }
+.rg-subbody.ctrl .rg-ctrl-help { white-space:normal; line-height:14px; opacity:.8; }
 .rg-subbody.ctrl .rg-row.lora { padding-left:30px; }
 .rg-msg { display:flex; gap:6px; align-items:flex-start; flex:0 0 auto; font-size:12px; padding:4px 6px; margin:2px 0;
   background:#3a2424; border:1px solid #b05656; border-radius:4px; color:#f6dddd; user-select:text; -webkit-user-select:text; cursor:auto; }
@@ -1288,6 +1292,161 @@ app.registerExtension({
                 return { grow: m.grow ?? d.grow, feather: m.feather ?? d.feather };
             }
             // Edit Mode: keep this region as it is in the source (lock) or let it change (pencil)
+            // ---- the connected model: picked in the footer, else the last run's (while 'model' still comes from the same
+            // loader), else a guess from the graph (the loader's file name / type, or the text encoder loader's type)
+            const MODEL_NAMES = ["MOSS Image", "Krea 2", "Ideogram 4", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5"];
+            function archFromText(t) {
+                t = String(t || "");
+                if (/moss/i.test(t)) return "MOSS Image";
+                if (/krea/i.test(t)) return "Krea 2";
+                if (/ideogram/i.test(t)) return "Ideogram 4";
+                if (/flux[\s._-]*3(?!\d)/i.test(t)) return "Flux 3";
+                if (/flux[\s._-]*2(?!\d)|klein/i.test(t)) return "Flux.2";
+                if (/flux|kontext/i.test(t)) return "Flux.1";
+                if (/anima/i.test(t)) return "Anima";
+                if (/sd[\s._-]*1[\s._-]*5|v1-5|sd15/i.test(t)) return "SD1.5";
+                if (/sdxl|sd[\s._-]*xl|illustrious|pony|noob/i.test(t)) return "SDXL";
+                return null;
+            }
+            const loaderFile = (n) => {
+                const ws = n?.widgets || [];
+                const w = ws.find((x) => typeof x.value === "string" && /\.(safetensors|gguf|ckpt|pt|pth|sft|bin)$/i.test(x.value))
+                    || ws.find((x) => /name/i.test(x.name) && typeof x.value === "string");
+                return w ? String(w.value) : "";
+            };
+            // follow 'model' up to its source (through LoRA loaders, model patches, reroutes ...)
+            function modelSource() {
+                let n = node;
+                for (let i = 0; i < 24; i++) {
+                    const f = feeder(n, "model");
+                    if (!f) return n === node ? null : { n, file: loaderFile(n) };
+                    n = f.src;
+                    if (!n.inputs?.some((x) => x.name === "model")) return { n, file: loaderFile(n) };
+                }
+                return null;
+            }
+            function clipType() {                      // the text encoder loader's 'type' (CLIPLoader, DualCLIPLoader ...)
+                let n = node;
+                for (let i = 0; i < 24; i++) {
+                    const f = feeder(n, "clip");
+                    if (!f) return "";
+                    n = f.src;
+                    const t = n.widgets?.find((w) => w.name === "type");
+                    if (t && !n.inputs?.some((x) => x.name === "clip" && x.link != null)) return String(t.value || "");
+                }
+                return "";
+            }
+            function guessArch() {
+                const src = modelSource();
+                const arch = (src && (archFromText(src.file) || archFromText(src.n.comfyClass || src.n.type) || archFromText(src.n.title)))
+                    || archFromText(clipType());
+                return { arch: arch || null, sig: src ? `${src.n.id}:${src.file}` : "" };
+            }
+            function modelInfo() {                     // { arch, how: "picked" | "last run" | "guess" | null, guess }
+                const pick = node.properties?.rg_model_pick;
+                const g = guessArch(), run = node.properties?.rg_model_arch || null, runSig = node.properties?.rg_model_src;
+                if (pick && MODEL_NAMES.includes(pick)) return { arch: pick, how: "picked", guess: g.arch };
+                if (run && (runSig == null || runSig === g.sig || !g.sig)) return { arch: run, how: "last run", guess: g.arch };
+                return { arch: g.arch, how: g.arch ? "guess" : null, guess: g.arch };
+            }
+            const modelArch = () => modelInfo().arch;
+            // the edit LoRAs Edit Mode wants in Whole image: the one for the model, or every one while the model isn't known
+            function syncEditLoras() {
+                const all = editLoras(), arch = modelArch();
+                const want = !isEdit() ? [] : arch ? all.filter(([m]) => m === arch) : all;
+                const cur = state.sceneLoras || [];
+                const kept = cur.filter((x) => !x.edit || want.some(([m, l]) => x.edit === m && x.lora === l));
+                const add = want.filter(([m, l]) => !kept.some((x) => x.edit === m && x.lora === l)).map(([m, lora]) => ({ lora, strength: 1, on: true, edit: m }));
+                if (kept.length === cur.length && !add.length) return false;
+                state.sceneLoras = [...kept, ...add];
+                if (!state.sceneLoras.length) delete state.sceneLoras;
+                if (add.length) expanded.add(SCENE);
+                return true;
+            }
+            let syncedArch;
+            // the model changed (picked, rewired, or a run said so): the Control and Edit Mode LoRAs follow it (no undo step)
+            function onModelChanged(force) {
+                const arch = modelArch();
+                if (!force && arch === syncedArch) return;
+                syncedArch = arch;
+                const a = syncControlLoras(), b = syncEditLoras();
+                if (a || b) { save(); renderRegions(); }
+                syncModelSel();
+                if (state.control?.on) checkControlFiles(false);
+            }
+            // the footer select: auto (with what it found) or a model picked to correct it
+            const modelSel = el("select", "rg-sel rg-model");
+            modelSel.addEventListener("pointerdown", (e) => e.stopPropagation());
+            fmtCtl.lab.after(modelSel);                   // in the bottom bar, after the format select
+            modelSel.addEventListener("change", () => {
+                node.properties = node.properties || {};
+                if (modelSel.value) node.properties.rg_model_pick = modelSel.value; else delete node.properties.rg_model_pick;
+                app.graph?.change?.();
+                onModelChanged(true);
+            });
+            function syncModelSel() {
+                const info = modelInfo(), pick = node.properties?.rg_model_pick || "";
+                const auto = !pick && info.arch ? `auto · ${info.arch}` : pick && info.guess ? `auto (${info.guess})` : "auto · model?";
+                const opts = [["", auto], ...MODEL_NAMES.map((m) => [m, m])];
+                const sig = JSON.stringify(opts);
+                if (modelSel.dataset.sig !== sig) { modelSel.replaceChildren(...opts.map(([v, t]) => opt(v, t))); modelSel.dataset.sig = sig; }
+                if (document.activeElement !== modelSel) modelSel.value = pick;
+                modelSel.title = "The model this node works with, for the LoRAs Control and Edit Mode add to Whole image (and the control files). "
+                    + (pick ? `Picked: ${pick}. ` : info.how === "last run" ? `Auto: ${info.arch}, from the last run. `
+                        : info.how === "guess" ? `Auto: ${info.arch}, a guess from the model loader's file / type (the first run checks it). `
+                        : "Auto: not known yet (no run, and nothing to guess from); pick it here if you like. ")
+                    + "Pick a model to correct a wrong guess; 'auto' follows the graph and the runs again.";
+                modelSel.classList.toggle("picked", !!pick);
+            }
+            // the files the Control row needs for the model and kind, and the ones ComfyUI doesn't have: the message bar
+            // shows where to get them (like Select object's missing-model message)
+            function neededControlFiles(c, arch) {
+                const files = controlFiles(), need = [];
+                const mapMade = !isLinked("control_image") && ["depth", "color+depth"].includes(c.kind);
+                if (arch === "MOSS Image") {
+                    if (["color", "color+depth", "depth"].includes(c.kind)) need.push("MOSS");
+                } else if (arch === "Flux.1") {
+                    if (c.kind === "depth") need.push(files.Flux1Depth || !files["Flux1.depth"] ? "Flux1Depth" : "Flux1.depth");
+                    else if (c.kind === "canny") need.push(files.Flux1Canny || !files["Flux1.canny"] ? "Flux1Canny" : "Flux1.canny");
+                    else if (c.kind === "other") need.push("Flux1.other");
+                } else if (arch === "SDXL" || arch === "SD1.5" || arch === "Anima") {
+                    const k = { SDXL: "SDXL", "SD1.5": "SD15", Anima: "Anima" }[arch];
+                    if (["depth", "canny", "other"].includes(c.kind)) need.push(`${k}.${c.kind}`);
+                }
+                if (mapMade && need.length) need.push("DA3");
+                return need;
+            }
+            function missingControlFiles(keys) {
+                const files = controlFiles(), out = [];
+                for (const key of keys) {
+                    const folder = controlFolder(key), list = folder === "loras" ? (knownLoras() || []) : knownModels(folder) || [];
+                    if (!files[key]) out.push([key, "unset"]);
+                    else if (list.length && !list.includes(files[key])) out.push([key, "missing", files[key]]);
+                }
+                return out;
+            }
+            function showControlMissing(items) {
+                if (!items.length) return false;
+                const lines = items.map(([key, why, name]) => {
+                    const d = CONTROL_DOWNLOADS[key], folder = controlFolder(key);
+                    const state = why === "missing" ? `'${name}' isn't in ComfyUI/models/${folder} (ComfyUI doesn't see it)` : "no file is set";
+                    return `${controlLabel(key)}: ${state}. Download ${d?.file || "one"}${d ? ` (${d.url})` : ""}${d?.note ? ` — ${d.note}` : ""} `
+                        + `into ComfyUI/models/${folder}, refresh ComfyUI (R), then pick it in Settings > Region Genie > Control.`;
+                });
+                showMsg(lines.join("\n"));
+                return true;
+            }
+            function checkControlFiles(refreshLists) {
+                const c = ctl(), arch = modelArch();
+                if (!c.on) return;
+                if (refreshLists) for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f, true);
+                if (arch && !["MOSS Image", "Flux.1", "SDXL", "SD1.5", "Anima"].includes(arch)) {
+                    showMsg(`Control: ComfyUI has no ControlNet support for ${arch} yet, so this node can't apply control with it. `
+                        + "If the model was guessed wrong, pick the right one in the bottom bar.");
+                    return;
+                }
+                if (!showControlMissing(missingControlFiles(neededControlFiles(c, arch)))) hideMsg();
+            }
             // ---- Control (ControlNet / control LoRAs): the row under Whole image, the per-region switch, the LoRAs it adds
             const CONTROL = "control";
             const CONTROL_KIND_LABELS = [["color", "color map (MOSS)"], ["color+depth", "color map + depth (MOSS)"], ["depth", "depth"],
@@ -1297,7 +1456,7 @@ app.registerExtension({
             // the control LoRAs the current settings want in Whole image: [{lora, control: model, ckind}]
             function wantedControlLoras(c) {
                 if (!c.on) return [];
-                const files = controlFiles(), arch = node.properties?.rg_model_arch || null, out = [];
+                const files = controlFiles(), arch = modelArch(), out = [];
                 const add = (key, model, ckind) => { if (files[key] && (!arch || arch === model)) out.push({ lora: files[key], control: model, ckind }); };
                 if (["color", "color+depth", "depth"].includes(c.kind)) add("MOSS", "MOSS Image", "moss");
                 if (c.kind === "depth") add("Flux1Depth", "Flux.1", "depth");
@@ -1318,6 +1477,7 @@ app.registerExtension({
             }
             function setControl(patch) {
                 change(() => { state.control = { ...ctl(), ...patch }; syncControlLoras(); });
+                if (state.control.on) checkControlFiles(true); else hideMsg();
             }
             function controlRow() {
                 const c = ctl();
@@ -1333,8 +1493,8 @@ app.registerExtension({
                 row.append(chevron(CONTROL, c.on, "the control files for each model"), onBtn, lbl);
                 if (c.on) {
                     const kind = el("select", "rg-sel");
-                    kind.title = "What the model follows: the regions' color map and / or depth (MOSS Image's control LoRA), depth, canny, "
-                        + "or the map on 'control_image' (pose, lineart …). Depth and canny are made from 'image' when control_image isn't connected.";
+                    kind.title = (CONTROL_KIND_HELP[c.kind] || "") + "\n\nWhat the model follows: the regions' color map and / or depth (MOSS Image's "
+                        + "control LoRA), depth, canny, or the map on 'control_image'. Depth and canny are made from 'image' when control_image isn't connected.";
                     for (const [v, t] of CONTROL_KIND_LABELS) kind.appendChild(opt(v, t));
                     kind.value = c.kind;
                     kind.addEventListener("change", () => setControl({ kind: kind.value }));
@@ -1370,7 +1530,7 @@ app.registerExtension({
             function controlDetails() {
                 const c = ctl(), files = controlFiles(), box = el("div", "rg-subbody ctrl");
                 const line = (text, title) => { const d = el("div", "rg-row lora"); const t = el("span", "rg-hint"); t.textContent = text; if (title) t.title = title; d.appendChild(t); box.appendChild(d); };
-                const arch = node.properties?.rg_model_arch || null;
+                const info = modelInfo(), arch = info.arch;
                 const pick = (key) => files[key] || "—";
                 const per = c.kind === "color" || c.kind === "color+depth"
                     ? [["MOSS Image", `LoRA ${pick("MOSS")}`]]
@@ -1378,7 +1538,7 @@ app.registerExtension({
                        ["Flux.1", (c.kind === "depth" && files.Flux1Depth) ? `LoRA ${files.Flux1Depth}` : (c.kind === "canny" && files.Flux1Canny) ? `LoRA ${files.Flux1Canny}` : `ControlNet ${pick(`Flux1.${c.kind}`)}`],
                        ["SDXL", `ControlNet ${pick(`SDXL.${c.kind}`)}`], ["SD1.5", `ControlNet ${pick(`SD15.${c.kind}`)}`],
                        ["Anima", `LLLite ${pick(`Anima.${c.kind}`)}`]];
-                for (const [m, f] of per) line(`${m === arch ? "▸ " : ""}${m}: ${f}`, m === arch ? "The model of the last run" : "");
+                for (const [m, f] of per) line(`${m === arch ? "▸ " : ""}${m}: ${f}`, m === arch ? `The model this node works with (${info.how}; the bottom bar's model select)` : "");
                 line("Krea 2, Flux.2, Flux 3, Ideogram 4: no ControlNet in ComfyUI yet");
                 const src = c.kind === "color" ? "the regions' colors (the color_map output)"
                     : c.kind === "other" ? "the control_image input"
@@ -1387,7 +1547,8 @@ app.registerExtension({
                 line("Map: " + src);
                 const off = state.regions.filter((r) => r.noControl).length;
                 line(off ? `${off} region(s) switched off: the control acts only inside the regions still on` : "Every region is on (the region rows' control button switches one off)");
-                line("Files: Settings > Region Genie > Control");
+                line("Files: Settings > Region Genie > Control (each one's tooltip says where to get it)");
+                const help = el("div", "rg-row lora"); const ht = el("span", "rg-hint rg-ctrl-help"); ht.textContent = CONTROL_KIND_HELP[c.kind] || ""; help.appendChild(ht); box.appendChild(help);
                 return box;
             }
             function controlToggle(r) {
@@ -4847,28 +5008,15 @@ app.registerExtension({
                 ["width_in", "height_in", "size_from_image", "size_from_latent"].includes(i.name) && i.link != null);
             // Edit Mode on: add the edit LoRA set in Settings for the model of the last run (for every model with one
             // when no run has said which), to the 'Whole image' LoRAs; off: remove the rows it added
-            const lastArchOf = () => node.properties?.rg_model_arch || null;   // the model of the last run (kept in the workflow)
             function onEditModeChanged() {
                 hideMsg();
-                const lastArch = lastArchOf();
-                const cur = state.sceneLoras || [];
+                const arch = modelArch(), all = editLoras();
+                const probe = JSON.stringify(state.sceneLoras || []);
+                const before = snapshot();
+                if (syncEditLoras() && JSON.stringify(state.sceneLoras || []) !== probe) { pushUndo(before); save(); }
                 if (isEdit()) {
-                    const all = editLoras();
-                    const want = lastArch && all.some(([m]) => m === lastArch) ? all.filter(([m]) => m === lastArch) : lastArch ? [] : all;
-                    const add = want.filter(([m, lora]) => !cur.some((x) => x.edit === m && x.lora === lora));
-                    if (add.length) {
-                        change(() => {
-                            state.sceneLoras = [...(state.sceneLoras || []), ...add.map(([m, lora]) => ({ lora, strength: 1, on: true, edit: m }))];
-                            expanded.add(SCENE);
-                        });
-                    }
                     if (!all.length) hint("Edit Mode: no edit LoRA is set in Settings > Region Genie > Edit Mode");
-                    else if (!want.length) hint(`Edit Mode: no edit LoRA is set for ${lastArch} in Settings > Region Genie > Edit Mode`);
-                } else if (cur.some((x) => x.edit)) {
-                    change(() => {
-                        state.sceneLoras = cur.filter((x) => !x.edit);
-                        if (!state.sceneLoras.length) delete state.sceneLoras;
-                    });
+                    else if (arch && !all.some(([m]) => m === arch)) hint(`Edit Mode: no edit LoRA is set for ${arch} in Settings > Region Genie > Edit Mode`);
                 }
                 syncSettings(); onDimsChanged(); refreshUI();
             }
@@ -4946,6 +5094,8 @@ app.registerExtension({
                 if (Array.isArray(message?.model_arch) && message.model_arch[0]) {
                     node.properties = node.properties || {};
                     node.properties.rg_model_arch = String(message.model_arch[0]);
+                    node.properties.rg_model_src = guessArch().sig;
+                    onModelChanged(true);
                 }
                 if (Array.isArray(message?.auto_apart) && !!message.auto_apart[0] !== autoApart) {
                     autoApart = !!message.auto_apart[0];
@@ -4957,6 +5107,9 @@ app.registerExtension({
                 let llmMsg = null;
                 try { llmMsg = JSON.parse(message?.llm?.[0] || "null"); } catch (e) { /* ignore */ }
                 if (llmMsg) storeLlmResults(llmMsg);
+                let missing = null;
+                try { missing = JSON.parse(message?.control_missing?.[0] || "null"); } catch (e) { /* ignore */ }
+                if (Array.isArray(missing) && missing.length) showControlMissing(missing);
                 const cm = Array.isArray(message?.control_map) ? message.control_map[0] : null;
                 if (cm?.filename) {
                     const key = cm.filename + cm.subfolder;
@@ -5015,6 +5168,7 @@ app.registerExtension({
                 fixImportMode();
                 syncSettings();
                 applyFieldFonts();
+                onModelChanged(false);
                 labelSizeInputs();
                 onDimsChanged();
                 liveBackdrop();

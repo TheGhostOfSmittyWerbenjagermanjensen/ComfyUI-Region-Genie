@@ -168,6 +168,64 @@ export const CONTROL_FILES = [
     ["DA3", "Depth Anything 3 model (makes depth maps from 'image')", "geometry_estimation", null, null],
 ];
 export const CONTROL_NONE = "(none)";
+// where to get each file (official / original uploads; checked Nov 2026) and the folder it goes in
+const HF = "https://huggingface.co/";
+export const CONTROL_DOWNLOADS = {
+    MOSS: { file: "moss_image_color_depth_control.safetensors", url: HF + "Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors" },
+    Flux1Depth: { file: "flux1-depth-dev-lora.safetensors", url: HF + "Comfy-Org/flux1-dev/resolve/main/split_files/loras/flux1-depth-dev-lora.safetensors" },
+    Flux1Canny: { file: "flux1-canny-dev-lora.safetensors", url: HF + "black-forest-labs/FLUX.1-Canny-dev-lora/resolve/main/flux1-canny-dev-lora.safetensors",
+                  note: "Black Forest Labs' page asks you to accept the FLUX.1 [dev] license first" },
+    "Flux1.depth": { file: "flux-depth-controlnet-v3.safetensors", url: HF + "XLabs-AI/flux-controlnet-collections/resolve/main/flux-depth-controlnet-v3.safetensors" },
+    "Flux1.canny": { file: "flux-canny-controlnet-v3.safetensors", url: HF + "XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors" },
+    "Flux1.other": { file: "diffusion_pytorch_model.safetensors", url: HF + "InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors",
+                     note: "InstantX's union ControlNet (pose, depth, canny, tile …); rename it, e.g. instantx-flux-union.safetensors" },
+    "SDXL.depth": { file: "control-lora-depth-rank128.safetensors", url: HF + "stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors" },
+    "SDXL.canny": { file: "control-lora-canny-rank128.safetensors", url: HF + "stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors" },
+    "SDXL.other": { file: "diffusion_pytorch_model_promax.safetensors", url: HF + "xinsir/controlnet-union-sdxl-1.0/resolve/main/diffusion_pytorch_model_promax.safetensors",
+                    note: "xinsir's union ControlNet (pose, depth, canny, lineart …); rename it, e.g. controlnet-union-sdxl-promax.safetensors" },
+    "SD15.depth": { file: "control_v11f1p_sd15_depth_fp16.safetensors", url: HF + "comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11f1p_sd15_depth_fp16.safetensors" },
+    "SD15.canny": { file: "control_v11p_sd15_canny_fp16.safetensors", url: HF + "comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_canny_fp16.safetensors" },
+    "SD15.other": { file: "control_v11p_sd15_openpose_fp16.safetensors", url: HF + "comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors",
+                    note: "the pose one; lineart, scribble, softedge … are in the same repository" },
+    "Anima.depth": { file: "anima-lllite-depth-1.safetensors", url: HF + "Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-depth-1.safetensors" },
+    "Anima.canny": { file: "anima-lllite-lineart-1.safetensors", url: HF + "Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-lineart-1.safetensors",
+                     note: "there is no canny LLLite; the lineart one reads edge lines like canny's (untested with canny maps)" },
+    "Anima.other": { file: "anima-lllite-pose-1.safetensors", url: HF + "Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors",
+                     note: "the pose one; lineart, scribble and a general 'any-test-like' patch are in the same repository" },
+    DA3: { file: "depth_anything_3_mono_large.safetensors", url: HF + "Comfy-Org/Depth-Anything-3/resolve/main/geometry_estimation/depth_anything_3_mono_large.safetensors" },
+};
+// a Setting's tooltip: what this kind of file does, how it is used, and where to get it
+export function controlFileHelp(key, folder, model, tag) {
+    const what = key === "MOSS" ? "MOSS Image's color / depth control adapter (a LoRA): it reads the regions' color map and / or a depth map, "
+            + "VAE-encoded next to the image (needs 'vae')."
+        : tag ? "Black Forest Labs' structural LoRA for Flux.1 [dev]: the map is VAE-encoded next to the image (needs 'vae'); the LoRA's "
+            + "strength in Whole image is the control's strength."
+        : folder === "controlnet" ? "A ControlNet: a separate network that reads the map and steers the model at each step, with the Control "
+            + "row's strength and start / end (also Control-LoRA and union files)."
+        : folder === "model_patches" ? "An Anima LLLite patch: a small control network on the model; it takes the region mask itself."
+        : "ComfyUI's Depth Anything 3: makes the depth map (near = white) from 'image' when no control_image is connected.";
+    const use = tag ? ` Turning on a node's Control row adds it to 'Whole image' (marked 'Control') for ${model} models; turning it off removes it.`
+        : model ? ` Used by the Control row when the model is ${model}.` : "";
+    const d = CONTROL_DOWNLOADS[key];
+    const get = d ? ` Get ${d.file}: ${d.url}${d.note ? ` (${d.note})` : ""}, into ComfyUI/models/${folder}.` : ` Files go in ComfyUI/models/${folder}.`;
+    return what + use + get;
+}
+export const controlFolder = (key) => (CONTROL_FILES.find((x) => x[0] === key) || [])[2] || "";
+export const controlLabel = (key) => (CONTROL_FILES.find((x) => x[0] === key) || [])[1] || key;
+// what each kind does (tooltips and the Control details)
+export const CONTROL_KIND_HELP = {
+    color: "Color map (MOSS Image): a shape map. Each flat color marks one region; the colors are only IDs, not the colors to paint "
+        + "(the region's prompt says what it is and what color). The model follows the painted outlines, also rough ones: a "
+        + "rectangle drawn for a person pushes towards a person filling that rectangle. End % below 100 (e.g. 30–50) keeps the "
+        + "layout and lets the shapes loosen at the end; strength below 1 pulls less.",
+    "color+depth": "Color map + depth (MOSS Image): the regions' outlines (see color map) and how far away things are (near = white).",
+    depth: "Depth: a grey map of distances (near = white). The model keeps the 3D layout (what is in front, the shape of the room or "
+        + "the land) but is free with textures, colors and details.",
+    canny: "Canny: the edge lines of a picture. The model keeps the outlines and composition closely, so it's good for redrawing a "
+        + "picture in another style; it follows the lines more strictly than depth.",
+    other: "Your control_image: any map made with other nodes (pose skeletons, lineart, scribble, segmentation …). The file set for "
+        + "'other' must read that kind of map (a union ControlNet reads several).",
+};
 setTimeout(() => { for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f); }, 0);
 // the files set in Settings: { key: file } (unset ones left out)
 export function controlFiles() {
@@ -1067,12 +1125,7 @@ const SETTINGS = [
                 const cur = typeof value === "string" && value && value !== CONTROL_NONE && !list.includes(value) ? [value] : [];
                 return [CONTROL_NONE, ...cur, ...list];
             },
-            tooltip: (tag ? `Turning on a Region Genie node's Control row adds this LoRA to its 'Whole image' LoRAs (marked 'Control') `
-                + `when the control uses it, and turning it off removes it again. It is applied only when the model on 'model' is ${model}.`
-                : model ? `The Region Genie node's Control row uses this file (models/${folder}) when the model on 'model' is ${model}.`
-                : "Makes the depth map from the node's 'image' input when no control_image is connected (models/geometry_estimation; "
-                    + "ComfyUI's Depth Anything 3).")
-                + " The same for every Region Genie node.",
+            tooltip: controlFileHelp(key, folder, model, tag) + " The same for every Region Genie node.",
             category: CAT("Control", String(i).padStart(2, "0") + " " + key),
         })),
         ...EDIT_MODELS.map(([name, key], i) => ({

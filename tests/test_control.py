@@ -18,6 +18,12 @@ PACK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _spec = importlib.util.spec_from_file_location("rg_control", os.path.join(PACK, "control.py"))
 ctl = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(ctl)
 
+# the files "installed" for these checks (ComfyUI looks them up in its model folders)
+import folder_paths  # noqa: E402
+INSTALLED = {"moss_ctrl.safetensors", "x", "cn-canny-sdxl.safetensors", "pose.pth", "flux1-depth-dev-lora.safetensors",
+             "flux-depth-cn.safetensors", "anima_canny.safetensors"}
+folder_paths.get_full_path = lambda folder, name: f"/models/{folder}/{name}" if name in INSTALLED else None
+
 fails = []
 def check(name, ok):
     print(("PASS " if ok else "FAIL ") + name)
@@ -140,6 +146,21 @@ notes = []
 m, p, _, _ = ctl.apply(cfg("canny", {"Anima.canny": "anima_canny.safetensors"}, strength=0.6), "Anima", "M", cond(), cond(), None, photo, None, cmap, half, W, H, notes)
 check("Anima: LLLite patch on the model, with the strength", m == "PATCHED" and seen["patch"] == "PATCH:anima_canny.safetensors" and seen["s"] == 0.6)
 check("Anima: the region mask goes to the patch", seen["mask"] is not None and float(seen["mask"][0, 0, 0]) == 1 and float(seen["mask"][0, 0, 40]) == 0)
+
+# ---------------------------------------------------------------- files that aren't set or that ComfyUI doesn't find
+missing = []
+ctl.apply(cfg("canny"), "SDXL", "M", cond(), cond(), None, photo, None, cmap, None, W, H, [], missing)
+check("missing: an unset ControlNet is reported by its Settings key", missing == [["SDXL.canny", "unset"]])
+missing, notes = [], []
+ctl.apply(cfg("canny", {"SDXL.canny": "gone.safetensors"}), "SDXL", "M", cond(), cond(), None, photo, None, cmap, None, W, H, notes, missing)
+check("missing: a set file ComfyUI doesn't find is reported, control not used", missing == [["SDXL.canny", "missing", "gone.safetensors"]]
+      and any("isn't in ComfyUI/models/controlnet" in x for x in notes))
+missing = []
+ctl.apply(cfg("depth", {"MOSS": "nope.safetensors"}), "MOSS Image", "M", cond(), cond(), VAE(), photo, None, cmap, None, W, H, [], missing)
+check("missing: MOSS LoRA not found and no Depth Anything 3 set", ["MOSS", "missing", "nope.safetensors"] in missing and ["DA3", "unset"] in missing)
+missing = []
+ctl.apply(cfg("depth", {"Anima.depth": "x"}), "Anima", "M", cond(), cond(), None, None, dmap, cmap, None, W, H, [], missing)
+check("missing: nothing when every file is there", missing == [])
 
 # ---------------------------------------------------------------- models without ControlNet in ComfyUI, missing inputs
 for arch in ("Krea 2", "Flux.2", "Flux 3", "Ideogram 4"):

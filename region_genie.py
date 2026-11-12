@@ -1368,9 +1368,12 @@ class RegionGenie:
         if ccfg is not None:
             try:
                 rmask = ctl.region_mask(regions, id_to_index, idx)
+                missing = []
                 model_out, positive, negative, cmap = ctl.apply(ccfg, arch.name if arch is not None else None, model_out,
                                                                 positive, negative, vae, image, control_image, color_map,
-                                                                rmask, width, height, notes)
+                                                                rmask, width, height, notes, missing)
+                if missing:
+                    ui["control_missing"] = [json.dumps(missing)]
                 if cmap is not None:
                     ui["control_map"] = self._save_preview(cmap, "regiongenie.control")
             except Exception as e:            # a broken control file must not stop the run

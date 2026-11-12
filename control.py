@@ -74,11 +74,13 @@ def _key(img, name):
     return (name, tuple(img.shape), hashlib.sha1(np.ascontiguousarray(a).tobytes()).hexdigest())
 
 
-def _depth(img, model_name, notes):
+def _depth(img, model_name, notes, missing=None):
     """A depth map (near = white) with ComfyUI's Depth Anything 3, or None (with a note)."""
-    if not model_name:
+    if not _have("DA3", model_name, missing):
         notes.append("NOTE: control: no depth map: connect 'control_image', or set the Depth Anything 3 model in Settings > "
-                      "Region Genie > Control to make one from 'image'")
+                      "Region Genie > Control to make one from 'image'" if not model_name else
+                      f"NOTE: control: the Depth Anything 3 model '{model_name}' isn't in ComfyUI/models/geometry_estimation; "
+                      "control not used")
         return None
     key = _key(img, model_name)
     if _cache.get("depth_key") == key:
@@ -97,6 +99,26 @@ def _depth(img, model_name, notes):
     return out
 
 
+FOLDER = {"MOSS": "loras", "Flux1Depth": "loras", "Flux1Canny": "loras", "DA3": "geometry_estimation"}
+
+
+def _have(key, name, missing):
+    """True when the file is set and ComfyUI finds it; else notes it in missing ([key, 'unset'] / [key, 'missing', name])."""
+    folder = FOLDER.get(key) or ("model_patches" if key.startswith("Anima.") else "controlnet")
+    if not name:
+        if missing is not None:
+            missing.append([key, "unset"])
+        return False
+    try:
+        import folder_paths
+        found = folder_paths.get_full_path(folder, name) is not None
+    except Exception:
+        found = True                                  # can't tell: let the loader say
+    if not found and missing is not None:
+        missing.append([key, "missing", name])
+    return found
+
+
 def _load_controlnet(name):
     import comfy.controlnet
     import folder_paths
@@ -112,7 +134,8 @@ def _load_patch(name):
     return _cache[("mp", name)]
 
 
-def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, color_map, region_mask, width, height, notes):
+def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, color_map, region_mask, width, height, notes,
+          missing=None):
     """Apply the control. region_mask: (H, W) bool where the control acts, or None for everywhere.
     Returns (model, positive, negative, the map used for the preview or None)."""
     import node_helpers
@@ -145,7 +168,7 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         if k == "canny":
             return _canny(src)
         if k == "depth":
-            return _depth(src, files.get("DA3"), notes)
+            return _depth(src, files.get("DA3"), notes, missing)
         notes.append("NOTE: control 'your control_image' needs the 'control_image' input; control not used")
         return None
 
@@ -158,9 +181,9 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         if vae is None:
             notes.append("NOTE: control: MOSS Image needs 'vae' connected to encode the maps; control not used")
             return model, positive, negative, None
-        if not files.get("MOSS"):
-            notes.append("NOTE: control: no MOSS Image color / depth LoRA is set in Settings > Region Genie > Control, so "
-                         "the maps have nothing to read them")
+        if not _have("MOSS", files.get("MOSS"), missing):
+            notes.append("NOTE: control: no MOSS Image color / depth LoRA is set in Settings > Region Genie > Control (or ComfyUI "
+                         "doesn't find it in models/loras), so the maps have nothing to read them")
         cm = _fit(color_map, width, height) if kind in ("color", "color+depth") else None
         dm = made("depth") if kind in ("color+depth", "depth") else None
         if cm is None and dm is None:
@@ -192,6 +215,7 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
     img = blank(img)
 
     if arch_name == "Flux.1" and kind in ("depth", "canny") and files.get(f"Flux1{kind.capitalize()}"):
+        _have(f"Flux1{kind.capitalize()}", files.get(f"Flux1{kind.capitalize()}"), missing)
         if vae is None:
             notes.append(f"NOTE: control: the Flux.1 {kind} LoRA needs 'vae' connected; control not used")
             return model, positive, negative, img
@@ -205,7 +229,10 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
 
     if arch_name in CN_KEY:
         name = files.get(f"{CN_KEY[arch_name]}.{kind}")
-        if not name:
+        if not _have(f"{CN_KEY[arch_name]}.{kind}", name, missing):
+            if name:
+                notes.append(f"NOTE: control: the {arch_name} ControlNet '{name}' isn't in ComfyUI/models/controlnet; control not used")
+                return model, positive, negative, img
             notes.append(f"NOTE: control: no {arch_name} ControlNet for {label} is set in Settings > Region Genie > Control; "
                          "control not used")
             return model, positive, negative, img
@@ -221,7 +248,10 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
 
     # Anima: an LLLite patch on the model (it takes the region mask itself)
     name = files.get(f"Anima.{kind}")
-    if not name:
+    if not _have(f"Anima.{kind}", name, missing):
+        if name:
+            notes.append(f"NOTE: control: the Anima LLLite patch '{name}' isn't in ComfyUI/models/model_patches; control not used")
+            return model, positive, negative, img
         notes.append(f"NOTE: control: no Anima LLLite patch for {label} is set in Settings > Region Genie > Control; control not used")
         return model, positive, negative, img
     try:

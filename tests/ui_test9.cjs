@@ -230,6 +230,70 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.keyboard.press("Control+z"); await page.waitForTimeout(80);
     check("undo: on again with its LoRA", (await st()).control.on && ((await st()).sceneLoras || []).some((x) => x.control));
 
+    // ---------------- the model: guessed from the graph, picked in the footer; Control / Edit LoRAs follow (round 10)
+    await page.evaluate(() => {
+        const n = window.__node, st = n.__rgState();
+        st.control = { on: false, kind: "depth", strength: 1, start: 0, end: 1 };
+        st.sceneLoras = (st.sceneLoras || []).filter((x) => !x.control && !x.edit);
+        delete n.properties.rg_model_arch; delete n.properties.rg_model_src; delete n.properties.rg_model_pick;
+        // Load Diffusion Model (moss…) -> LoRA loader -> Region Genie.model
+        const loader = { id: 50, type: "UNETLoader", inputs: [], outputs: [{ name: "MODEL" }], widgets: [{ name: "unet_name", value: "moss_image_sft_int8_convrot.safetensors" }] };
+        const lora = { id: 51, type: "LoraLoaderModelOnly", inputs: [{ name: "model", link: 12 }], outputs: [{ name: "MODEL" }], widgets: [{ name: "lora_name", value: "style.safetensors" }] };
+        const nodes = { 50: loader, 51: lora };
+        n.graph.links = { 11: { id: 11, origin_id: 51, origin_slot: 0 }, 12: { id: 12, origin_id: 50, origin_slot: 0 } };
+        n.graph.getNodeById = (id) => nodes[id] || null;
+        lora.graph = n.graph; loader.graph = n.graph;
+        n.inputs = [...(n.inputs || []).filter((i) => i.name !== "model"), { name: "model", link: 11 }];
+        window.__loader = loader;
+        Object.assign(window.__settings, { "RegionGenie.Control.MOSS": "moss_ctrl.safetensors", "RegionGenie.Control.Flux1Depth": "flux-depth-lora.safetensors",
+            "RegionGenie.Edit.LoRA.MOSS": "a.safetensors", "RegionGenie.Edit.LoRA.Flux1": "edit.safetensors" });
+        n.__rgRefresh();
+    });
+    await page.waitForTimeout(700);
+    const msel = page.locator(".rg-settings select.rg-model");
+    check("footer model select: auto · MOSS Image, guessed through the LoRA loader", (await msel.locator("option").first().textContent()) === "auto · MOSS Image");
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(150);
+    s = await st();
+    check("control on before any run: only the guessed model's LoRA (MOSS)", (s.sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "moss_ctrl.safetensors");
+    const msg = page.locator(".rg-msg");
+    check("the MOSS LoRA isn't among ComfyUI's LoRAs: message with the download link and folder", await msg.isVisible()
+        && /moss_ctrl\.safetensors' isn't in ComfyUI\/models\/loras/.test(await msg.textContent())
+        && (await msg.locator("a").first().getAttribute("href")) === "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors");
+    check("…and the depth map needs Depth Anything 3 (not set): its link too", /Depth Anything 3 model .*no file is set/.test(await msg.textContent())
+        && (await msg.locator("a").count()) === 2);
+    await msel.selectOption("Flux.1"); await page.waitForTimeout(150);
+    s = await st();
+    check("picking Flux.1 corrects it: the Flux.1 depth LoRA replaces MOSS's", (s.sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "flux-depth-lora.safetensors");
+    check("the pick is saved on the node and marked", await page.evaluate(() => window.__node.properties.rg_model_pick) === "Flux.1"
+        && await msel.evaluate((e) => e.classList.contains("picked")));
+    await msel.selectOption("Krea 2"); await page.waitForTimeout(150);
+    check("Krea 2: says ComfyUI has no ControlNet for it", /no ControlNet support for Krea 2/.test(await msg.textContent()));
+    await msel.selectOption(""); await page.waitForTimeout(150);
+    check("back to auto: the guess again", ((await st()).sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "moss_ctrl.safetensors");
+    // rewiring: the loader's file changes -> the guess follows (a run's answer wins while the loader is the same)
+    await page.evaluate(() => { window.__loader.widgets[0].value = "flux1-dev-fp8.safetensors"; });
+    await page.waitForTimeout(700);
+    check("another loader file: the guess follows (auto · Flux.1) and so do the LoRAs", (await msel.locator("option").first().textContent()) === "auto · Flux.1"
+        && ((await st()).sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "flux-depth-lora.safetensors");
+    await page.evaluate(() => window.__node.onExecuted({ model_arch: ["SDXL"] }));
+    await page.waitForTimeout(700);
+    check("a run's answer wins over the guess for the same loader", (await msel.locator("option").first().textContent()) === "auto · SDXL"
+        && !((await st()).sceneLoras || []).some((x) => x.control));
+    await page.evaluate(() => { window.__loader.widgets[0].value = "moss_image_base.safetensors"; });
+    await page.waitForTimeout(700);
+    check("after rewiring, the new guess beats the old run", (await msel.locator("option").first().textContent()) === "auto · MOSS Image");
+    // Edit Mode: its edit LoRA follows the same model
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(100);
+    await page.locator(".rg-settings .rg-seg button", { hasText: "Edit" }).click(); await page.waitForTimeout(150);
+    s = await st();
+    check("Edit Mode adds only the guessed model's edit LoRA", (s.sceneLoras || []).filter((x) => x.edit).map((x) => x.edit + ":" + x.lora).join() === "MOSS Image:a.safetensors");
+    await msel.selectOption("Flux.1"); await page.waitForTimeout(150);
+    s = await st();
+    check("picking Flux.1: the edit LoRA follows", (s.sceneLoras || []).filter((x) => x.edit).map((x) => x.edit + ":" + x.lora).join() === "Flux.1:edit.safetensors");
+    await page.locator(".rg-settings .rg-seg button", { hasText: "Generate" }).click(); await page.waitForTimeout(150);
+    check("back to Generate: the edit LoRA leaves", !((await st()).sceneLoras || []).some((x) => x.edit));
+    await msel.selectOption(""); await page.waitForTimeout(100);
+
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");
     process.exit(fails.length ? 1 : 0);

@@ -208,6 +208,29 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`${M}: after a run the control map can be shown on the canvas`, ov.enabled && ov.shown);
     await page.evaluate(() => { document.querySelector(".rg-list .rg-row.ctrl .rg-btn.mini")?.click(); });
 
+    // ---------------- the model guess and the missing-file message (round 10)
+    const g10 = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const ld = LG.createNode("UNETLoader"); ld.pos = [-400, 40]; app.graph.add(ld);
+        ld.widgets.find((w) => w.name === "unet_name").value = "moss_image_sft_int8_convrot.safetensors";
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        ld.connect(0, rg, rg.inputs.findIndex((i) => i.name === "model"));
+        app.canvas.ds.offset = [0, -560]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
+        await new Promise((r) => setTimeout(r, 1800));
+        const sel = document.querySelector(".rg-settings select.rg-model");
+        return { first: sel?.options[0]?.textContent };
+    });
+    check(`${M}: the model is guessed from the loader before any run (${g10.first})`, g10.first === "auto · MOSS Image");
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
+    await page.waitForTimeout(400);
+    const mtxt = await page.locator(".rg-msg").first().textContent().catch(() => "");
+    check(`${M}: control on with no MOSS LoRA set: the message gives the official link and folder`,
+        /moss_image_color_depth_control\.safetensors/.test(mtxt) && /ComfyUI\/models\/loras/.test(mtxt)
+        && await page.locator(".rg-msg a").first().getAttribute("href") === "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors");
+    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
+    await page.waitForTimeout(200);
+
     // ---------------- wildcards (needs Impact Pack, and a wildcards/rgtest/color.txt file in it)
     const wcInstalled = await page.evaluate(async () => (await (await fetch("/region_genie/wildcards")).json()).installed);
     if (!wcInstalled) console.log("SKIP wildcards: Impact Pack is not installed");
