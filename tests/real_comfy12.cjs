@@ -135,6 +135,25 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.locator("select.rg-model").first().selectOption("MOSS Image"); await sleep(700);
     let s1 = await ms();
     check(`${M}: MOSS Image: layout switch shown (layout), background hidden, sent with the run`, s1.layout && s1.layoutOn && s1.bgHidden && s1.pick === "MOSS Image" && s1.mossLayout === undefined);
+    // round 14: Edit Mode's LoRAs never stay in Generate (also after Ctrl+Z), nor a control LoRA with Control off
+    const managed = await page.evaluate(async () => {
+        const s = window.app.extensionManager.setting, rg = window.__rg, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        await s.set("RegionGenie.Edit.LoRA.MOSS", "edit_test.safetensors");
+        const seg = (t) => [...document.querySelectorAll(".rg-settings button")].find((b) => b.textContent.trim() === t)?.click();
+        const tags = () => (rg.__rgState().sceneLoras || []).map((l) => (l.edit ? "edit" : l.control ? "control" : "own")).join(",");
+        seg("Edit"); await wait(700); const inEdit = tags();
+        seg("Generate"); await wait(700); const inGen = tags();
+        document.querySelector(".rg-keysink")?.focus();
+        document.querySelector(".rg-keysink")?.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true }));
+        await wait(1200); const afterUndo = tags();
+        // a control LoRA left in the list with Control off (e.g. an old workflow)
+        const st = rg.__rgState(); st.sceneLoras = [...(st.sceneLoras || []), { lora: "ctl.safetensors", strength: 1, on: true, control: "MOSS Image", ckind: "moss" }];
+        st.control = { ...(st.control || {}), on: false }; rg.__rgRefresh(); await wait(1200); const ctlOff = tags();
+        await s.set("RegionGenie.Edit.LoRA.MOSS", "(none)");
+        return { inEdit, inGen, afterUndo, ctlOff };
+    });
+    check(`${M}: Edit Mode's LoRA goes when switching to Generate, also after Ctrl+Z; a control LoRA goes with Control off (${JSON.stringify(managed)})`,
+        managed.inEdit.includes("edit") && !managed.inGen.includes("edit") && !managed.afterUndo.includes("edit") && !managed.ctlOff.includes("control"));
     await page.evaluate(() => document.querySelector(".rg-layout").click()); await sleep(200);
     s1 = await ms();
     check(`${M}: the switch: standard mode, sent with the run`, !s1.layoutOn && s1.mossLayout === false);

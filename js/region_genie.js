@@ -1620,6 +1620,16 @@ app.registerExtension({
                 if (add.length) expanded.add(SCENE);
                 return true;
             }
+            // Edit Mode's LoRAs never stay in Generate, nor a control LoRA while Control is off: whatever put them there (Ctrl+Z
+            // after switching back, an old workflow, a Setting changed meanwhile). Only removes; adding is syncEditLoras' /
+            // syncControlLoras' job (on a mode, model or Control change)
+            function pruneManagedLoras() {
+                const cur = state.sceneLoras || [], ctlOn = !!ctl().on, edit = isEdit();
+                const kept = cur.filter((x) => !(x.edit && !edit) && !(x.control && !ctlOn));
+                if (kept.length === cur.length) return false;
+                if (kept.length) state.sceneLoras = kept; else delete state.sceneLoras;
+                return true;
+            }
             function setControl(patch) {
                 change(() => { state.control = { ...ctl(), ...patch }; syncControlLoras(); });
                 if (state.control.on) checkControlFiles(true); else hideMsg();
@@ -2709,8 +2719,10 @@ app.registerExtension({
                 if (filter !== ALL && filter !== UNSPEC && !regionById(filter)) filter = ALL;
                 save(); refreshUI();
             }
-            function undo() { if (undoStack.length) { redoStack.push(snapshot()); restore(undoStack.pop()); } }
-            function redo() { if (redoStack.length) { undoStack.push(snapshot()); restore(redoStack.pop()); } }
+            function undo() { if (undoStack.length) { redoStack.push(snapshot()); restore(undoStack.pop()); afterRestore(); } }
+            function redo() { if (redoStack.length) { undoStack.push(snapshot()); restore(redoStack.pop()); afterRestore(); } }
+            // the Generate / Edit switch isn't part of an undo step: an undone list must still fit the mode it's in now
+            function afterRestore() { if (pruneManagedLoras()) { save(); renderRegions(); } }
             function save() {
                 version++;
                 if (dataW) dataW.value = JSON.stringify(state);
@@ -5378,6 +5390,7 @@ app.registerExtension({
             const poll = setInterval(() => {
                 if (editor && nodeOffCanvas(node)) closeEditor(true);     // another workflow tab, a subgraph, removed
                 if (!node.graph) return;
+                if (pruneManagedLoras()) { save(); renderRegions(); }
                 fixImportMode();
                 syncSettings();
                 applyFieldFonts();
