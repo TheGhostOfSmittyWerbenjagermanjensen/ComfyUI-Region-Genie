@@ -314,6 +314,23 @@ check("a connected mask wins over the image's own alpha", np.asarray(Image.open(
 o = save(images=RGBA4[:1], filename_prefix="a/j", format="jpeg")
 check("an RGBA image saved as JPEG: the transparency note", si.NOTE_JPEG_MASK in o["ui"]["rg_saved"][0]["notes"])
 
+# ---------------------------------------------------------------- the small issues from the review
+BIGPROMPT = {"1": {"class_type": "CLIPTextEncode", "inputs": {"text": "x" * 70000}}}
+o = save(images=IMGS[:1], filename_prefix="k/a", format="jpeg", jpeg_workflow="inside the JPEG (EXIF)", prompt=BIGPROMPT, extra_pnginfo=None)
+check("API run, prompt too big for the EXIF: says it wasn't saved, no .json", files("k") == ["a_00001.jpg"]
+      and si.NOTE_EXIF_NOT_SAVED in o["ui"]["rg_saved"][0]["notes"] and si.NOTE_EXIF not in o["ui"]["rg_saved"][0]["notes"])
+for fn, args, limit, label in ((si.encode_webp, (None, False, 90, None), 16383, "WebP"), (si.encode_jpeg, (90, None), 65535, "JPEG")):
+    wide = np.zeros((1, limit + 1, 3), np.float32)
+    try:
+        fn(wide, *args)
+        msg = ""
+    except si.ImageTooLarge as e:
+        msg = str(e)
+    except Exception as e:
+        msg = "other: " + type(e).__name__ + " " + str(e)
+    check(f"{label} over {limit} px: a clear message ({msg[:70]})", f"{limit}" in msg and label in msg and "png" in msg.lower())
+check(f"WebP at {16383} px still saves", len(si.encode_webp(np.zeros((1, 16383, 3), np.float32), None, False, 90, None)) > 0)
+
 if __name__ == "__main__":
     print("\nall passed" if not fails else f"\n{len(fails)} failed")
     sys.exit(1 if fails else 0)

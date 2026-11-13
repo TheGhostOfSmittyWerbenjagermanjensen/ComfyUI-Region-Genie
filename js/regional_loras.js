@@ -356,10 +356,8 @@ function setup(node) {
         });
     }
 
-    let configured = false;
     const onConfigure = node.onConfigure;
     node.onConfigure = function (info) {
-        configured = true;
         const r = onConfigure?.apply(this, arguments);
         fixMode(); load(); render(); acCtl.refresh();
         migratePrompt(info);
@@ -383,9 +381,9 @@ function setup(node) {
     }
     load(); render();
     getLoras();
-    // Settings > Region Genie: defaults for a node that was just added (not loaded or pasted)
-    setTimeout(() => {
-        if (configured) return;
+    // Settings > Region Genie: how a new node starts. Set right away, while the node is being made: a saved, pasted or
+    // API-format workflow (loadApiJson doesn't call configure) sets its own values afterwards and so keeps them
+    {
         const set = (name, v) => {
             const w = node.widgets?.find((x) => x.name === name);
             if (!w || v === undefined || v === null || w.value === v) return;
@@ -400,7 +398,7 @@ function setup(node) {
         set("separate_all_regions", !!getSetting(SET.hlAllRegions, false));
         set("share_background", !!getSetting(SET.hlShareBg, false));
         node.setDirtyCanvas?.(true, true);
-    }, 0);
+    }
     // Settings > Region Genie > Text size: positive / negative as 'scene prompts', the rows' words as 'region prompts'
     function applyFonts() {
         const fs = (id) => Math.max(0, Math.min(40, Math.round(+getSetting(id, 0)) || 0));

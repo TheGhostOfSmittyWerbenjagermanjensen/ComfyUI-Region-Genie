@@ -128,8 +128,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: webp run`, ls("webp").length === 2 && /WebP q90/.test(r.text));
     r = await queue("jpeg");
     check(`${M}: jpeg run: 2 JPEGs + 2 sidecars, the mask note`, ls("jpeg").join() === "jpeg_00001.jpg,jpeg_00001.json,jpeg_00002.jpg,jpeg_00002.json" && /transparency/.test(r.text + r.tip));
+    {   // the total is the images'; the .json files show apart
+        const sz = (f) => fs.statSync(path.join(OUT, run, f)).size;
+        const kb = (n) => (n < 1024 ? `${n} B` : (n / 1024 < 100 ? (n / 1024).toFixed(1) : String(Math.round(n / 1024))) + " KB");   // as the node
+        const imgs = sz("jpeg_00001.jpg") + sz("jpeg_00002.jpg"), js = sz("jpeg_00001.json") + sz("jpeg_00002.json");
+        check(`${M}: jpeg readout: the images' total, the .json files apart (${r.text})`, r.text.includes(`2 × JPEG q90 · ${kb(imgs)} total`)
+            && r.text.includes(`+ 2 .json · ${kb(js)}`));
+    }
     r = await queue("avif");
     check(`${M}: avif run`, ls("avif").length === 2 && /AVIF q80/.test(r.text));
+    const stale = await page.evaluate(async () => {
+        const out = document.querySelector(".rg-save-out"), fresh = !out.classList.contains("stale");
+        const w = window.__sv.widgets.find((x) => x.name === "avif_quality"); w.value = 50; w.callback?.(50);
+        await new Promise((r) => setTimeout(r, 100));
+        return { fresh, stale: out.classList.contains("stale"), tip: out.title, op: getComputedStyle(out).opacity };
+    });
+    check(`${M}: after a setting change the readout is dimmed and says it's from the last run (${stale.op})`,
+        stale.fresh && stale.stale && /^From the last run/.test(stale.tip) && +stale.op < 0.6);
     // the filename token
     const tok = await page.evaluate(async (run) => {
         const sv = window.__sv; const w = sv.widgets.find((x) => x.name === "filename_prefix");

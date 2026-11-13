@@ -16,6 +16,7 @@ const CSS = `
 .rg-save-out { display:flex; align-items:center; gap:6px; height:20px; padding:0 4px; box-sizing:border-box; overflow:hidden;
   white-space:nowrap; text-overflow:ellipsis; font:12px sans-serif; color:var(--input-text,#ddd); opacity:.85; }
 .rg-save-out .rg-save-note { color:#d9a441; overflow:hidden; text-overflow:ellipsis; }
+.rg-save-out.stale { opacity:.45; }
 `;
 
 // 1024-based sizes: B, KB, MB (2 decimals from 1 MB)
@@ -94,11 +95,18 @@ app.registerExtension({
                     node.setDirtyCanvas?.(true, true);
                 }
             }
-            for (const n of ["format", "webp_lossless"]) {
+            // a setting changed after a run: the readout is from the last run (dimmed) until the next one
+            let lastTip = "";
+            const markStale = () => {
+                if (!lastTip || out.classList.contains("stale")) return;
+                out.classList.add("stale");
+                out.title = "From the last run, before the settings changed:\n" + lastTip;
+            };
+            for (const n of ALL) {
                 const w = W(n);
                 if (!w) continue;
                 const cb = w.callback;
-                w.callback = function () { const x = cb?.apply(this, arguments); sync(); return x; };
+                w.callback = function () { const x = cb?.apply(this, arguments); markStale(); if (n === "format" || n === "webp_lossless") sync(); return x; };
             }
             const onConn = node.onConnectionsChange;
             node.onConnectionsChange = function () { const x = onConn?.apply(this, arguments); setTimeout(sync, 0); return x; };
@@ -122,12 +130,17 @@ app.registerExtension({
                 const x = onExec?.apply(this, arguments);
                 const s = message?.rg_saved?.[0];
                 if (s) {
-                    const imgs = (s.files || []).filter((f) => !/\.json$/i.test(f.name));
-                    const main = imgs.length > 1 ? `${imgs.length} × ${s.label} · ${fmtSize(s.total)} total` : `${s.label} · ${fmtSize(s.total)}`;
+                    // the images' total; the JPEG .json files (the workflow) apart
+                    const isJson = (f) => /\.json$/i.test(f.name), sum = (a) => a.reduce((t, f) => t + (f.bytes || 0), 0);
+                    const imgs = (s.files || []).filter((f) => !isJson(f)), jsons = (s.files || []).filter(isJson);
+                    let main = imgs.length > 1 ? `${imgs.length} × ${s.label} · ${fmtSize(sum(imgs))} total` : `${s.label} · ${fmtSize(sum(imgs))}`;
+                    if (jsons.length) main += ` + ${jsons.length} .json · ${fmtSize(sum(jsons))}`;
                     out.textContent = "";
+                    out.classList.remove("stale");
                     const t = document.createElement("span"); t.textContent = main; out.appendChild(t);
                     if (s.notes?.length) { const n = document.createElement("span"); n.className = "rg-save-note"; n.textContent = "⚠ " + s.notes.join(" · "); out.appendChild(n); }
-                    out.title = [...(s.files || []).map((f) => `${f.name} — ${fmtSize(f.bytes)}`), ...(s.notes || []).map((n) => "⚠ " + n)].join("\n");
+                    lastTip = [...(s.files || []).map((f) => `${f.name} — ${fmtSize(f.bytes)}`), ...(s.notes || []).map((n) => "⚠ " + n)].join("\n");
+                    out.title = lastTip;
                 }
                 return x;
             };

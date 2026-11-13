@@ -13,6 +13,17 @@ import numpy as np
 from PIL import Image, features
 
 
+class ImageTooLarge(ValueError):
+    """Wider or taller than the format allows (WebP 16383 px, JPEG 65535 px)."""
+
+
+def _check_size(rgb, limit, label):
+    h, w = np.asarray(rgb).shape[:2]
+    if w > limit or h > limit:
+        raise ImageTooLarge(f"{label} can't be wider or taller than {limit} px (this image is {w} x {h}): "
+                            f"save it as png (or avif) instead")
+
+
 class ExifTooLong(ValueError):
     """The workflow doesn't fit in a JPEG's EXIF (about 64 KB)."""
 
@@ -101,6 +112,7 @@ def encode_png(rgb, alpha, level, bits, text):
 
 
 def encode_webp(rgb, alpha, lossless, quality, exif):
+    _check_size(rgb, 16383, "WebP")
     buf = io.BytesIO()
     kw = {"lossless": True, "quality": 100, "method": 6} if lossless else {"quality": int(quality), "method": 6}
     if lossless and alpha is not None:
@@ -112,6 +124,7 @@ def encode_webp(rgb, alpha, lossless, quality, exif):
 
 
 def encode_jpeg(rgb, quality, exif):
+    _check_size(rgb, 65535, "JPEG")
     buf = io.BytesIO()
     kw = {"quality": int(quality), "optimize": True, "subsampling": 0 if int(quality) >= 90 else 2}
     if exif:
@@ -233,6 +246,7 @@ FORMATS = ("png", "webp", "jpeg", "avif")
 JPEG_WORKFLOW = ("sidecar .json", "none", "inside the JPEG (EXIF)")
 NOTE_JPEG_MASK = "JPEG has no transparency: the mask was ignored"
 NOTE_EXIF = "The workflow was too big for the JPEG's EXIF (about 64 KB): saved as a .json next to it"
+NOTE_EXIF_NOT_SAVED = "The prompt was too big for the JPEG's EXIF (about 64 KB) and there is no workflow for a .json: not saved"
 NOTE_AVIF_ALPHA = "This AVIF encoder has no transparency (update Pillow to 11.3+): saved without the mask"
 
 
@@ -375,9 +389,9 @@ class SaveImageRG:
                 try:
                     data = encode_jpeg(rgb, int(jpeg_quality), exif)
                 except ExifTooLong:
-                    note(NOTE_EXIF)
                     data = encode_jpeg(rgb, int(jpeg_quality), None)
                     sidecar = workflow_json(extra_pnginfo)
+                    note(NOTE_EXIF if sidecar is not None else NOTE_EXIF_NOT_SAVED)
             while True:
                 stem = f"{base.replace('%batch_num%', str(i))}_{counter + i + bump:05}"
                 name = stem + ext
