@@ -289,6 +289,25 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         f = await numFit();
         check(`Regional LoRAs (${M}): number fields fit` + (f.bad.length ? ": " + f.bad.slice(0, 4).join("; ") : ""), !f.bad.length);
         await page.keyboard.press("Escape");
+        // an API-format workflow keeps the node's values (not the Settings defaults)
+        const rapi = await page.evaluate(async () => {
+            const s = window.app.extensionManager.setting;
+            await s.set("RegionGenie.RegionalLoRAs.Feather", 9);
+            window.app.graph.clear();
+            await window.app.loadApiJson({ "1": { class_type: "Region-Genie_RegionalLoRAs", inputs: { feather: 3, region_separation: 0.4,
+                separation_until: 0.6, separate_all_regions: true, share_background: true, positive_prompt: "p", negative_prompt: "n" } } }, "api.json");
+            await new Promise((r) => setTimeout(r, 1200));
+            const n = window.app.graph.nodes.find((x) => x.type === "Region-Genie_RegionalLoRAs");
+            const fresh = window.LiteGraph.createNode("Region-Genie_RegionalLoRAs"); window.app.graph.add(fresh);
+            await new Promise((r) => setTimeout(r, 300));
+            const freshFeather = fresh.widgets.find((w) => w.name === "feather").value;
+            await s.set("RegionGenie.RegionalLoRAs.Feather", 0);
+            return { ...Object.fromEntries((n?.widgets || []).map((w) => [w.name, w.value])), freshFeather };
+        });
+        check(`Regional LoRAs (${M}): a newly added node still takes the Settings default (feather ${rapi.freshFeather})`, rapi.freshFeather === 9);
+        check(`Regional LoRAs (${M}): an API-format workflow keeps its values (feather ${rapi.feather}, separation ${rapi.region_separation})`,
+            rapi.feather === 3 && rapi.region_separation === 0.4 && rapi.separation_until === 0.6 && rapi.separate_all_regions === true && rapi.share_background === true);
+        await page.keyboard.press("Escape");
     } else check(`Regional LoRAs (${M}): the node's editor is there`, false);
 
     await page.screenshot({ path: require("path").join(__dirname, "out", `real12_${vue ? "vue" : "legacy"}.png`) });

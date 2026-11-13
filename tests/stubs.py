@@ -72,6 +72,9 @@ for sub in ("hooks", "lora", "lora_convert", "patcher_extension", "utils", "mode
     m = types.ModuleType("comfy." + sub)
     setattr(comfy, sub, m)
     sys.modules["comfy." + sub] = m
+comfy.cli_args = types.ModuleType("comfy.cli_args")
+comfy.cli_args.args = types.SimpleNamespace(disable_metadata=False)
+sys.modules["comfy.cli_args"] = comfy.cli_args
 comfy.utils.common_upscale = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("no upscale in tests"))
 comfy.model_management.throw_exception_if_processing_interrupted = lambda: None
 sys.modules["comfy"] = comfy
