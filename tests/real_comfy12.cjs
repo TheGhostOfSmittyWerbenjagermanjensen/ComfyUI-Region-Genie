@@ -146,6 +146,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: Krea 2: background hidden again`, s3.bgHidden && s3.sceneBoxes === 2);
     const tip = await page.evaluate(() => document.querySelector("select.rg-model").title);
     check(`${M}: the model dropdown's tooltip says it sets the prompt format`, /format of the 'prompt' and 'positive'/.test(tip));
+    // round 13: MOSS Image's standard mode is plain text too, so it has its own 'keep all regions apart automatically'
+    const mossApart = await page.evaluate(async () => {
+        const s = window.app.extensionManager.setting, id = "RegionGenie.Main.AutoApart.MOSS";
+        const def = window.app.ui.settings.settingsParamLookup?.[id] || s.settingsById?.[id];
+        await s.set(id, "off");
+        const pd = JSON.parse(window.__rg.widgets.find((w) => w.name === "paint_data").serializeValue());
+        await s.set(id, "default");
+        return { name: def?.name || "", sent: pd.autoApart?.["MOSS Image"], keys: Object.keys(pd.autoApart || {}).join(",") };
+    });
+    check(`${M}: Settings has 'MOSS Image: keep all regions apart automatically', sent with the run (${mossApart.name}; ${mossApart.keys}; ${mossApart.sent})`,
+        /^MOSS Image/.test(mossApart.name) && mossApart.sent === "off");
     // an old workflow with the format select set
     const mig = await page.evaluate(async () => {
         const app = window.app;
@@ -172,7 +183,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // ---------------- pop-up editors
     const geo = () => page.evaluate(() => { const b = document.querySelector(".rg-pop"); if (!b) return null; const r = b.getBoundingClientRect();
         return { body: b.parentElement === document.body, x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height),
-                 title: b.querySelector(".rg-pop-head span")?.textContent || "", ta: b.querySelector("textarea")?.value ?? "" }; });
+                 title: b.querySelector(".rg-pop-head span")?.textContent || "", ta: b.querySelector("textarea")?.value ?? "",
+                 nav: Math.round([...b.querySelectorAll(".rg-nav")].find((x) => x.textContent === "◀").getBoundingClientRect().left - r.left) }; });
     await page.evaluate(() => document.querySelector(".rg-scene-ta")?.parentElement?.querySelector(".rg-expand")?.click());
     await sleep(300);
     const g0 = await geo();
@@ -199,8 +211,21 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: ▶ steps scene positive → negative → region 1 → region 2 → back to the first`,
         /negative/.test(seen[0].title) && seen[1].ta === "a red cat" && seen[2].ta === "a green dog" && /scene_prompt_positive/.test(seen[3].title));
     check(`${M}: ... in the same place and size`, seen.every((g) => g.x === g2.x && g.y === g2.y && g.w === g2.w && g.h === g2.h));
+    check(`${M}: ◀ / ▶ stay in one place in the header while stepping (${seen.map((g) => g.nav).join(", ")})`, seen.every((g) => g.nav === seen[0].nav));
     const back = await step("◀");
     check(`${M}: ◀ from the first goes to the last`, back.ta === "a green dog");
+    // hotkeys: Page Down / Page Up (Settings > Region Genie > Text size), typing in the field
+    const keyStep = async (key) => { await page.locator(".rg-pop textarea").first().focus(); await page.keyboard.press(key); await sleep(250); return geo(); };
+    const k1 = await keyStep("PageDown"), k2 = await keyStep("PageDown"), k3 = await keyStep("PageUp");
+    check(`${M}: Page Down / Page Up step to the next / previous field (${[k1, k2, k3].map((g) => g?.ta || g?.title.slice(0, 12)).join(" | ")})`,
+        /scene_prompt_positive/.test(k1?.title) && /negative/.test(k2?.title) && /scene_prompt_positive/.test(k3?.title) && k1.x === back.x && k1.w === back.w);
+    const navTip = await page.evaluate(() => [...document.querySelectorAll(".rg-pop .rg-nav")].map((b) => b.title).join(" / ") + " || " + document.querySelector(".rg-pop .rg-pop-foot")?.textContent);
+    check(`${M}: the arrows' tooltips and the footer name the keys (${navTip.split(" || ")[1]})`, /Page Up/.test(navTip.split(" || ")[0]) && /Page Down/.test(navTip.split(" || ")[0])
+        && /Page Up \/ Page Down: previous \/ next field/.test(navTip.split(" || ")[1]));
+    await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Popup.PrevKey", "Alt+ArrowLeft"); await s.set("RegionGenie.Popup.NextKey", "alt+right"); });
+    const k4 = await keyStep("PageDown"), k5 = await keyStep("Alt+ArrowRight"), k6 = await keyStep("Alt+ArrowLeft");
+    await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Popup.PrevKey", "PageUp"); await s.set("RegionGenie.Popup.NextKey", "PageDown"); });
+    check(`${M}: keys set in Settings (Alt+← / Alt+→) replace them`, /scene_prompt_positive/.test(k4?.title) && /negative/.test(k5?.title) && /scene_prompt_positive/.test(k6?.title));
     await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("End"); await page.keyboard.type(" XYZ");
     await page.keyboard.press("Escape"); await sleep(200);
     const rv = await page.evaluate(() => window.__rg.__rgState().regions[1].prompt);
@@ -276,7 +301,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         await page.evaluate(() => { const t = [...document.querySelectorAll("textarea")].find((x) => x.value === "pos text"); t?.parentElement?.querySelector(".rg-expand")?.click(); });
         await sleep(300);
         const fp = () => page.evaluate(() => { const b = document.querySelector(".rg-fpop"); if (!b) return null; const r = b.getBoundingClientRect();
-            return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), v: b.querySelector("textarea").value }; });
+            return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), v: b.querySelector("textarea").value,
+                     nav: Math.round([...b.querySelectorAll(".rg-nav")].find((x) => x.textContent === "◀").getBoundingClientRect().left - r.left) }; });
         const p0 = await fp();
         await page.mouse.click(1550, 1050); await sleep(200);
         check(`Regional LoRAs (${M}): pop-up stays open on a click elsewhere`, !!p0 && !!(await fp()));
@@ -284,6 +310,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         for (let i = 0; i < 4; i++) { await page.evaluate(() => [...document.querySelectorAll(".rg-fpop .rg-nav")].find((b) => b.textContent === "▶").click()); await sleep(200); vals.push(await fp()); }
         check(`Regional LoRAs (${M}): ▶ steps positive → negative → row 1 → row 2 → positive, same place and size`,
             vals.map((x) => x?.v).join("|") === "neg text|row one|row two|pos text" && vals.every((x) => x.x === p0.x && x.y === p0.y && x.w === p0.w && x.h === p0.h));
+        check(`Regional LoRAs (${M}): ◀ / ▶ stay in one place in the header (${vals.map((x) => x.nav).join(", ")})`, vals.every((x) => x.nav === vals[0].nav));
+        await page.locator(".rg-fpop textarea").first().focus(); await page.keyboard.press("PageDown"); await sleep(200);
+        const kd = await fp();
+        await page.locator(".rg-fpop textarea").first().focus(); await page.keyboard.press("PageUp"); await sleep(200);
+        const ku = await fp();
+        check(`Regional LoRAs (${M}): Page Down / Page Up step through the fields (${kd?.v} | ${ku?.v})`, kd?.v === "neg text" && ku?.v === "pos text");
         a = await tipAudit();
         check(`Regional LoRAs (${M}): every control has a tooltip` + (a.bad.length ? ": " + a.bad.slice(0, 5).join("; ") : ""), !a.bad.length);
         f = await numFit();

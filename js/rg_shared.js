@@ -614,8 +614,51 @@ export function addExpandButton(t, title, onOpen) {
 }
 // Esc in a pop-up editor: true = put the text back (the default), false = keep the edits (Settings)
 export const escReverts = () => getSetting(SET.popEscKeeps, "put the text back") !== "keep the edits";
-export const popFootText = () => "Enter: done · Shift+Enter: new line · Esc: close, "
-    + (escReverts() ? "putting the text back" : "keeping the edits");
+export const popFootText = (nav = true) => {
+    const keys = [keyLabel(popKeyText(-1)), keyLabel(popKeyText(1))];
+    return "Enter: done · Shift+Enter: new line · Esc: close, " + (escReverts() ? "putting the text back" : "keeping the edits")
+        + (nav && (keys[0] || keys[1]) ? ` · ${keys.filter(Boolean).join(" / ")}: ${keys[0] && keys[1] ? "previous / next" : keys[0] ? "previous" : "next"} field` : "");
+};
+// ---- the keys that step to the previous / next text field in a pop-up editor (Settings > Region Genie > Text size):
+// a key name as the browser gives it, with modifiers, e.g. "PageUp", "Alt+ArrowLeft", "Ctrl+PageDown", "F2"; empty = off
+const KEY_ALIASES = { pgup: "pageup", "page up": "pageup", pgdn: "pagedown", pgdown: "pagedown", "page down": "pagedown",
+    left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown", "←": "arrowleft", "→": "arrowright", "↑": "arrowup",
+    "↓": "arrowdown", esc: "escape", del: "delete", ins: "insert", space: " ", spacebar: " " };
+const MOD = { ctrl: "ctrl", control: "ctrl", alt: "alt", option: "alt", opt: "alt", shift: "shift", meta: "meta", cmd: "meta", command: "meta", win: "meta" };
+export function parseKey(text) {
+    // "Alt + Arrow Left" → { alt, key: "arrowleft" }: the last part is the key, the parts before it modifiers
+    const parts = String(text || "").split("+").map((x) => x.trim().toLowerCase()).filter(Boolean);
+    if (!parts.length) return null;
+    const mods = { ctrl: false, alt: false, shift: false, meta: false };
+    for (const p of parts.slice(0, -1)) { if (!MOD[p]) return null; mods[MOD[p]] = true; }
+    const last = parts[parts.length - 1].replace(/\s+/g, " ");
+    const key = KEY_ALIASES[last] || KEY_ALIASES[last.replace(/ /g, "")] || last.replace(/ /g, "");
+    return { ...mods, key };
+}
+const keyMatches = (e, k) => !!k && (e.key || "").toLowerCase() === k.key && e.ctrlKey === k.ctrl && e.altKey === k.alt && e.metaKey === k.meta
+    && (e.shiftKey === k.shift || (k.key.length === 1 && !k.shift && /[^a-z0-9]/.test(k.key)));
+export const popKeyText = (dir) => String(getSetting(dir < 0 ? SET.popPrevKey : SET.popNextKey, dir < 0 ? "PageUp" : "PageDown") ?? "");
+// -1 / 1 when the key event is the 'previous' / 'next' field key, else 0
+export function popNavDir(e) {
+    if (keyMatches(e, parseKey(popKeyText(-1)))) return -1;
+    if (keyMatches(e, parseKey(popKeyText(1)))) return 1;
+    return 0;
+}
+// a key as people write it: "Page Up", "Alt+←"
+export function keyLabel(text) {
+    const k = parseKey(text);
+    if (!k) return "";
+    const names = { pageup: "Page Up", pagedown: "Page Down", arrowleft: "←", arrowright: "→", arrowup: "↑", arrowdown: "↓", " ": "Space", escape: "Esc" };
+    const key = names[k.key] || (k.key.length === 1 ? k.key.toUpperCase() : k.key[0].toUpperCase() + k.key.slice(1));
+    return [k.ctrl && "Ctrl", k.alt && "Alt", k.shift && "Shift", k.meta && "Meta", key].filter(Boolean).join("+");
+}
+// the tooltip of a pop-up's ◀ / ▶: what it does, and its key
+export function popNavTip(dir, what) {
+    const k = keyLabel(popKeyText(dir));
+    return (dir < 0 ? `The previous text field of this node (${what}), in this place and size. From the first: the last one.`
+                    : `The next text field of this node (${what}), in this place and size. From the last: the first one.`)
+        + (k ? `\nKey: ${k} (Settings > Region Genie > Text size).` : "");
+}
 // the owner node is gone, or not on the canvas any more (another workflow tab, or into / out of a subgraph)
 export const nodeOffCanvas = (node) => !node?.graph || (app.canvas?.graph != null && app.canvas.graph !== node.graph);
 // the natural height of a pop-up laid out with 14 px text, so its text size (A− / A+) doesn't change its size
@@ -655,12 +698,12 @@ export function openFloatPopup(o) {
         use.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : ""; };
     const x = btn("rg-x", "✕", "Close (Enter / Esc)", () => close(true));
     const geom = () => ({ left: box.offsetLeft, top: box.offsetTop, width: box.offsetWidth, height: box.offsetHeight });
-    const prev = btn("rg-nav", "◀", "The previous text field of this node, in this place and size (from the first: the last one)", () => o.nav(-1, geom()));
-    const next = btn("rg-nav", "▶", "The next text field of this node, in this place and size (from the last: the first one)", () => o.nav(1, geom()));
+    const prev = btn("rg-nav", "◀", popNavTip(-1, o.navWhat || "in order"), () => o.nav(-1, geom()));
+    const next = btn("rg-nav", "▶", popNavTip(1, o.navWhat || "in order"), () => o.nav(1, geom()));
     if (!o.nav) prev.style.display = next.style.display = "none";
     head.append(title, prev, next, fm, fp, use, wc, x);
     head.title = "Drag to move (anywhere on the screen). Double-click: back next to the field";
-    const foot = mk("div", "rg-fpop-foot", o.hint || popFootText());
+    const foot = mk("div", "rg-fpop-foot", o.hint || popFootText(!!o.nav));
     const grip = mk("div", "rg-fpop-grip"); grip.title = "Drag to resize (remembered). Double-click: the default size";
     box.append(head, ta, foot, grip);
     for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "contextmenu", "keyup", "keypress"]) box.addEventListener(ev, (e) => e.stopPropagation());
@@ -668,6 +711,8 @@ export function openFloatPopup(o) {
     ta.addEventListener("input", () => { o.onInput(ta.value); syncUse(); });
     box.addEventListener("keydown", (e) => {
         e.stopPropagation();
+        const dir = o.nav ? popNavDir(e) : 0;
+        if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); o.nav(dir, geom()); return; }
         if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); close(!escReverts()); }
         else if (e.key === "Enter" && !e.shiftKey && e.target === ta && !autocompleteOpen(ta, e)) { e.preventDefault(); close(true); }
     });
@@ -998,6 +1043,7 @@ export const SET = {
     fsNodeScene: "RegionGenie.Text.NodeScene", fsNodeRegion: "RegionGenie.Text.NodeRegion", fsNodeText: "RegionGenie.Text.NodeText",
     fsPopScene: "RegionGenie.Text.PopupScene", fsPopRegion: "RegionGenie.Text.PopupRegion", fsPopText: "RegionGenie.Text.PopupText",
     popSizes: "RegionGenie.Popup.Sizes", popEscKeeps: "RegionGenie.Popup.EscKeeps",
+    popPrevKey: "RegionGenie.Popup.PrevKey", popNextKey: "RegionGenie.Popup.NextKey",
     sizeMode: "RegionGenie.Size.Mode",
     sizeAspect: "RegionGenie.Size.Aspect",
     sizeMegapixels: "RegionGenie.Size.Megapixels",
@@ -1046,7 +1092,9 @@ export const SET = {
     hlUntil: "RegionGenie.RegionalLoRAs.SeparationUntil",
 };
 // models without a layout format of their own: [family name used by the Python side, settings ID suffix]
-export const AUTO_APART_MODELS = [["Krea 2", "Krea2"], ["Flux", "Flux"], ["Flux 3", "Flux3"], ["Anima", "Anima"], ["SDXL / SD1.5", "SDXL"]];
+// [the model family the run reports, Settings key, label]. MOSS Image gets plain text in its standard mode and in Edit Mode
+export const AUTO_APART_MODELS = [["MOSS Image", "MOSS", "MOSS Image (standard mode, Edit Mode)"], ["Krea 2", "Krea2"], ["Flux", "Flux"],
+    ["Flux 3", "Flux3"], ["Anima", "Anima"], ["SDXL / SD1.5", "SDXL"]];
 // the 'keep all regions apart automatically' settings, as sent to Python in paint_data
 export function autoApartSettings() {
     const out = { all: getSetting(SET.cmAutoApart, true) !== false };
@@ -1247,6 +1295,15 @@ const SETTINGS = [
             .map(([k, name, ord, dflt, what]) => ({ id: SET[k], name, type: "number", defaultValue: dflt, attrs: { min: k.startsWith("fsNode") ? 0 : 8, max: 40, step: 1 },
                 tooltip: `Text size in px for ${what}. Applies to every Region Genie node.`, category: CAT("Text size", `${ord} ${k}`) })),
         { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
+        ...[[SET.popPrevKey, "Pop-up editor: key for the previous text field", "PageUp", "8 prev key"],
+            [SET.popNextKey, "Pop-up editor: key for the next text field", "PageDown", "9 next key"]].map(([id, name, dflt, ord]) => ({
+            id, name, type: "text", defaultValue: dflt,
+            tooltip: "Steps to the previous / next text field of the node while you type in a pop-up editor, like its ◀ / ▶ buttons. "
+                + `Default: ${dflt === "PageUp" ? "Page Up" : "Page Down"}.\n`
+                + "Write a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, "
+                + "Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\n"
+                + "Empty: no key. Applies to every Region Genie and Regional LoRAs node.",
+            category: CAT("Text size", ord) })),
         { id: SET.popEscKeeps, name: "Esc in a pop-up editor", type: "combo", defaultValue: "put the text back",
           options: ["put the text back", "keep the edits"],
           tooltip: "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node). Put the text back: "
@@ -1299,18 +1356,20 @@ const SETTINGS = [
             category: CAT("Region Genie node", "0855 share background"),
         },
         {
-            id: SET.cmAutoApart, name: "Models without a layout format: keep all regions apart automatically", type: "boolean", defaultValue: true,
-            tooltip: "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 get the regions as plain sentences: the Region Genie node "
-                + "places each region by tying its sentence to its region in attention ('keep all regions apart'). On: "
-                + "with such a model on 'model', clip connected and at least one region prompt, that switch is on for the "
-                + "run even when the node's own switch is off. Off: only the node's switch counts. The settings below "
-                + "change it for one model. Applies to every Region Genie node at its next run.",
+            id: SET.cmAutoApart, name: "Plain-text prompts: keep all regions apart automatically", type: "boolean", defaultValue: true,
+            tooltip: "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS Image in its standard mode and in Edit Mode) get "
+                + "the regions as plain sentences. The Region Genie node places each region by tying its sentence to its "
+                + "region in attention ('keep all regions apart').\n"
+                + "On: With such a model on 'model', clip connected and at least one region prompt, that switch is on for "
+                + "the run even when the node's own switch is off.\n"
+                + "Off: Only the node's switch counts.\n"
+                + "The settings below change it for one model. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "086 auto apart"),
         },
-        ...AUTO_APART_MODELS.map(([fam, key], i) => ({
-            id: SET.cmAutoApart + "." + key, name: `${fam}: keep all regions apart automatically`, type: "combo", defaultValue: "default",
+        ...AUTO_APART_MODELS.map(([fam, key, label], i) => ({
+            id: SET.cmAutoApart + "." + key, name: `${label || fam}: keep all regions apart automatically`, type: "combo", defaultValue: "default",
             options: [{ text: "As set for all models (above)", value: "default" }, { text: "On", value: "on" }, { text: "Off", value: "off" }],
-            tooltip: `For ${fam} models only; 'As set for all models' follows the setting above.`,
+            tooltip: `For ${fam} models only. 'As set for all models' follows the setting above.`,
             category: CAT("Region Genie node", "087 auto apart " + i),
         })),
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },

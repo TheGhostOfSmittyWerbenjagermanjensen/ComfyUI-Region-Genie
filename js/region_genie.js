@@ -1,6 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { svgIcon, setHTML, escReverts, popFootText, naturalHeight, nodeOffCanvas, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName,
+import { svgIcon, setHTML, escReverts, popFootText, naturalHeight, nodeOffCanvas, popNavDir, popNavTip, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName,
          autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, inAutocompleteList, autocompleteToggle,
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
@@ -295,8 +295,7 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
   overflow-y:auto; scrollbar-width:thin; font:12px sans-serif; }
 .rg-pop-head { display:flex; align-items:center; gap:6px; font-weight:600; cursor:move; user-select:none; touch-action:none; }
 .rg-pop-head .rg-btn { cursor:pointer; }
-.rg-pop-head .rg-pop-font { margin-left:auto; padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
-.rg-pop-head .rg-pop-font + .rg-pop-font { margin-left:0; }
+.rg-pop-head .rg-pop-font { padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
 .rg-pop-head .rg-pop-font ~ .rg-x { margin-left:0; }
 .rg-pop.sized .rg-pop-field.grow { flex:1 1 auto; display:flex; flex-direction:column; min-height:60px; }
 .rg-pop.sized .rg-pop-field.grow textarea { flex:1 1 auto; min-height:40px; resize:none; }
@@ -307,6 +306,8 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-pop-head .rg-sw { cursor:default; }
 .rg-pop-head .rg-x { margin-left:auto; padding:0 5px; line-height:16px; }
 .rg-pop-head .rg-nav { padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
+/* ◀ ▶ A− A+ … ✕ stay at the right end, whatever the title's length (they don't move while stepping) */
+.rg-pop-head .rg-nav.prev { margin-left:auto; }
 .rg-pop-types { display:flex; gap:4px; }
 .rg-pop-types .rg-btn { flex:1 1 0; padding:3px 6px; }
 .rg-pop-lbl { font-size:11px; opacity:.75; margin:0 0 2px 1px; }
@@ -4129,8 +4130,8 @@ app.registerExtension({
                 };
                 const fm = mkB("A−", "Smaller text in the box you're typing in (Settings > Region Genie > Text size). The pop-up keeps its size", () => font(-1), "rg-pop-font");
                 const fp = mkB("A+", "Larger text in the box you're typing in (Settings > Region Genie > Text size). The pop-up keeps its size", () => font(1), "rg-pop-font");
-                const prev = mkB("◀", "The previous text field of this node (scene prompts, then each region's prompt), in this place and size. From the first: the last one", () => popStep(-1), "rg-nav");
-                const next = mkB("▶", "The next text field of this node (scene prompts, then each region's prompt), in this place and size. From the last: the first one", () => popStep(1), "rg-nav");
+                const prev = mkB("◀", popNavTip(-1, "scene prompts, then each region's prompt"), () => popStep(-1), "rg-nav prev");
+                const next = mkB("▶", popNavTip(1, "scene prompts, then each region's prompt"), () => popStep(1), "rg-nav");
                 const x = head.querySelector(".rg-x");
                 head.insertBefore(fp, x?.previousElementSibling?.classList.contains("rg-wc-pick") ? x.previousElementSibling : x);
                 head.insertBefore(fm, fp);
@@ -4215,6 +4216,8 @@ app.registerExtension({
                 box.dataset.captureWheel = "true";
                 box.addEventListener("keydown", (e) => {
                     e.stopPropagation();                           // editor shortcuts (Delete, V, B, ...) stay off
+                    const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
+                    if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
                     if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); popEsc(); }
                 });
                 // header: number, color, close
@@ -4359,6 +4362,8 @@ app.registerExtension({
                 box.dataset.captureWheel = "true";
                 box.addEventListener("keydown", (e) => {
                     e.stopPropagation();
+                    const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
+                    if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
                     if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); popEsc(); }
                 });
                 const head = el("div", "rg-pop-head");
