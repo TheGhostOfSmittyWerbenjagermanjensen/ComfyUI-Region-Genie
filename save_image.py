@@ -200,3 +200,160 @@ def avif_metadata(prompt, extra):
     out = {} if prompt is None else {"prompt": prompt}
     out.update(extra or {})
     return out
+
+
+# --------------------------------------------------------------------------- #
+# the node
+# --------------------------------------------------------------------------- #
+FORMATS = ("png", "webp", "jpeg", "avif")
+JPEG_WORKFLOW = ("sidecar .json", "none", "inside the JPEG (EXIF)")
+NOTE_JPEG_MASK = "JPEG has no transparency: the mask was ignored"
+NOTE_EXIF = "The workflow was too big for the JPEG's EXIF (about 64 KB): saved as a .json next to it"
+NOTE_AVIF_ALPHA = "This AVIF encoder has no transparency (update Pillow to 11.3+): saved without the mask"
+
+
+def next_counter(folder, prefix):
+    """The node's own file number: the highest existing '<prefix>_NNNNN.<any ext>' + 1 (%batch_num% matches any
+    number). Older ComfyUI versions only count core's '<prefix>_NNNNN_.png' names."""
+    import re
+    pat = re.compile("^" + re.escape(prefix).replace(re.escape("%batch_num%"), r"\d+") + r"_(\d{5,})\.[^.]+$")
+    best = 0
+    try:
+        for f in os.listdir(folder):
+            m = pat.match(f)
+            if m:
+                best = max(best, int(m.group(1)))
+    except FileNotFoundError:
+        pass
+    return best + 1
+
+
+def _label(fmt, a):
+    if fmt == "png":
+        return f"PNG {a['png_compression']}" + (" 16-bit" if a["png_bit_depth"] == "16-bit" else "")
+    if fmt == "webp":
+        return "WebP lossless" if a["webp_lossless"] else f"WebP q{a['webp_quality']}"
+    if fmt == "jpeg":
+        return f"JPEG q{a['jpeg_quality']}"
+    return f"AVIF q{a['avif_quality']}"
+
+
+class SaveImageRG:
+    """Save Image (Region Genie)."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        q = lambda d, tip: ("INT", {"default": d, "min": 1, "max": 100, "step": 1, "tooltip": tip})  # noqa: E731
+        return {
+            "required": {
+                "images": ("IMAGE", {"tooltip": "The images to save (one file per image)."}),
+                "filename_prefix": ("STRING", {"default": "ComfyUI", "tooltip": (
+                    "The file name before the number, e.g. ComfyUI → ComfyUI_00001.png. Can include a subfolder "
+                    "(portraits/ComfyUI) and tokens such as %date:yyyy-MM-dd% or %Empty Latent Image.width%.")}),
+                "format": (list(FORMATS), {"default": "png", "tooltip": (
+                    "png: lossless, keeps the workflow. webp: lossless or a quality, much smaller, keeps the workflow. "
+                    "jpeg: a quality, small; the workflow goes in a .json next to it (see jpeg_workflow). "
+                    "avif: a quality, smallest, keeps the workflow.")}),
+                "png_compression": ("INT", {"default": 9, "min": 0, "max": 9, "step": 1, "tooltip": (
+                    "0-9. Lossless: every level gives the same pixels; higher = smaller file, slower save. "
+                    "9 = smallest (ComfyUI's own Save Image uses 4).")}),
+                "png_bit_depth": (["8-bit", "16-bit"], {"default": "8-bit", "tooltip": (
+                    "8-bit: the usual. 16-bit: finer gradients for editing later, about twice the size.")}),
+                "webp_lossless": ("BOOLEAN", {"default": False, "tooltip": (
+                    "On: the exact pixels, usually 25-35% smaller than PNG. Off: webp_quality decides "
+                    "(much smaller files, a little detail lost).")}),
+                "webp_quality": q(90, "1-100. Lower = smaller file, more detail lost. 80-90 looks the same as the "
+                                      "original for most images."),
+                "jpeg_quality": q(90, "1-100. Lower = smaller file, more detail lost. 90 and up keeps the full color "
+                                      "detail; below 90 colors are stored at half resolution (smaller)."),
+                "jpeg_extension": ([".jpg", ".jpeg"], {"default": ".jpg", "tooltip": "The file extension; the same format either way."}),
+                "jpeg_workflow": (list(JPEG_WORKFLOW), {"default": "sidecar .json", "tooltip": (
+                    "ComfyUI can't load a workflow from a JPEG. sidecar .json: the workflow in a small .json file "
+                    "next to each JPEG (drag that file into ComfyUI to load it). none: no workflow. inside the JPEG "
+                    "(EXIF): readable by other tools, not by ComfyUI; a workflow too big for it (about 64 KB) goes "
+                    "into the .json instead.")}),
+                "avif_quality": q(80, "1-100. Lower = smaller file, more detail lost. AVIF needs Pillow 11.3+ or a "
+                                      "ComfyUI with AVIF support."),
+            },
+            "optional": {
+                "mask": ("MASK", {"tooltip": (
+                    "Transparency (PNG, WebP, AVIF; JPEG has none). As ComfyUI's Load Image mask: 1 = transparent. "
+                    "A mask of another size is resized; one mask applies to every image.")}),
+                "invert_mask": ("BOOLEAN", {"default": False, "tooltip": (
+                    "On: mask 1 = opaque instead (e.g. a region mask from Region Genie or Mask Picker: keep the "
+                    "region, clear the rest).")}),
+            },
+            "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("images",)
+    OUTPUT_TOOLTIPS = ("The same images, passed through.",)
+    FUNCTION = "run"
+    OUTPUT_NODE = True
+    CATEGORY = "Region Genie"
+    DESCRIPTION = ("Saves images as PNG (compression 0-9, 8 / 16-bit), WebP (lossless or a quality), JPEG (a quality) "
+                   "or AVIF (a quality), with optional transparency from a mask, and shows the saved file sizes.")
+
+    def run(self, images, filename_prefix, format, png_compression, png_bit_depth, webp_lossless, webp_quality,
+            jpeg_quality, jpeg_extension, jpeg_workflow, avif_quality, mask=None, invert_mask=False, prompt=None,
+            extra_pnginfo=None):
+        import folder_paths
+        fmt = format if format in FORMATS else "png"
+        arr = images.cpu().numpy() if hasattr(images, "cpu") else np.asarray(images)
+        arr = np.asarray(arr, np.float32)
+        b, h, w = arr.shape[0], arr.shape[1], arr.shape[2]
+        out_dir = folder_paths.get_output_directory()
+        folder, base, _, subfolder, _ = folder_paths.get_save_image_path(filename_prefix, out_dir, w, h)
+        os.makedirs(folder, exist_ok=True)
+        counter = next_counter(folder, base)
+        ext = {"png": ".png", "webp": ".webp", "avif": ".avif"}.get(fmt, jpeg_extension if jpeg_extension in (".jpg", ".jpeg") else ".jpg")
+        a = dict(png_compression=png_compression, png_bit_depth=png_bit_depth, webp_lossless=webp_lossless,
+                 webp_quality=webp_quality, jpeg_quality=jpeg_quality, avif_quality=avif_quality)
+        notes, results, saved = [], [], []
+
+        def note(n):
+            if n not in notes:
+                notes.append(n)
+
+        def write(name, data):
+            with open(os.path.join(folder, name), "wb") as f:
+                f.write(data)
+            saved.append({"name": name, "bytes": len(data)})
+
+        for i in range(b):
+            rgb = arr[i, :, :, :3]
+            if rgb.shape[-1] < 3:
+                rgb = np.repeat(rgb[..., :1], 3, -1)
+            alpha = mask_alpha(mask, i, h, w, bool(invert_mask))
+            stem = f"{base.replace('%batch_num%', str(i))}_{counter + i:05}"
+            name = stem + ext
+            sidecar = None
+            if fmt == "png":
+                data = encode_png(rgb, alpha, int(png_compression), 16 if png_bit_depth == "16-bit" else 8,
+                                  png_text(prompt, extra_pnginfo))
+            elif fmt == "webp":
+                data = encode_webp(rgb, alpha, bool(webp_lossless), int(webp_quality), comfy_exif(prompt, extra_pnginfo))
+            elif fmt == "avif":
+                if alpha is not None and not features.check("avif"):
+                    note(NOTE_AVIF_ALPHA)
+                data = encode_avif(rgb, alpha, int(avif_quality), comfy_exif(prompt, extra_pnginfo),
+                                   avif_metadata(prompt, extra_pnginfo))
+            else:
+                if alpha is not None:
+                    note(NOTE_JPEG_MASK)
+                exif = comfy_exif(prompt, extra_pnginfo) if jpeg_workflow == JPEG_WORKFLOW[2] else None
+                if jpeg_workflow == JPEG_WORKFLOW[0]:
+                    sidecar = workflow_json(extra_pnginfo)
+                try:
+                    data = encode_jpeg(rgb, int(jpeg_quality), exif)
+                except ExifTooLong:
+                    note(NOTE_EXIF)
+                    data = encode_jpeg(rgb, int(jpeg_quality), None)
+                    sidecar = workflow_json(extra_pnginfo)
+            write(name, data)
+            if sidecar is not None:
+                write(stem + ".json", sidecar.encode("utf-8"))
+            results.append({"filename": name, "subfolder": subfolder, "type": "output"})
+        summary = {"label": _label(fmt, a), "files": saved, "total": sum(f["bytes"] for f in saved), "notes": notes}
+        return {"ui": {"images": results, "rg_saved": [summary]}, "result": (images,)}

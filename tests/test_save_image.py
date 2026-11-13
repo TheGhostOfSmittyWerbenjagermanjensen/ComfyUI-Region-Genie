@@ -133,6 +133,115 @@ check("disable-metadata: nothing", si.metadata_disabled() and si.png_text(PROMPT
       and si.comfy_exif(PROMPT, EXTRA) is None and si.workflow_json(EXTRA) is None)
 stubs.comfy.cli_args.args.disable_metadata = False
 
+# ---------------------------------------------------------------- the node
+import tempfile  # noqa: E402
+from stubs import T  # noqa: E402
+OUT = tempfile.mkdtemp(prefix="rg_out_")
+
+
+def _gsip(prefix, out, w=0, h=0):                     # as core: (folder, base name, counter, subfolder, prefix)
+    sub, base = os.path.dirname(os.path.normpath(prefix)), os.path.basename(os.path.normpath(prefix))
+    full = os.path.join(out, sub)
+    os.makedirs(full, exist_ok=True)
+    return full, base, 1, sub, prefix
+
+
+stubs.fp.get_output_directory = lambda: OUT
+stubs.fp.get_save_image_path = _gsip
+node = si.SaveImageRG()
+IMGS = np.stack([RGB, RGB[::-1].copy(), RGB[:, ::-1].copy()]).view(T)
+DEF = dict(filename_prefix="ComfyUI", format="png", png_compression=9, png_bit_depth="8-bit", webp_lossless=False,
+           webp_quality=90, jpeg_quality=90, jpeg_extension=".jpg", jpeg_workflow="sidecar .json", avif_quality=80)
+
+
+def save(images=IMGS, **kw):
+    a = dict(DEF)
+    a.update(kw)
+    return node.run(images, **a)
+
+
+def files(sub=""):
+    return sorted(f for f in os.listdir(os.path.join(OUT, sub)) if os.path.isfile(os.path.join(OUT, sub, f)))
+
+
+out = save(prompt=PROMPT, extra_pnginfo=EXTRA)
+check("one PNG per image", files() == ["ComfyUI_00001.png", "ComfyUI_00002.png", "ComfyUI_00003.png"])
+check("ui lists them as output files", [x["filename"] for x in out["ui"]["images"]] == files()
+      and all(x["type"] == "output" and x["subfolder"] == "" for x in out["ui"]["images"]))
+check("the images pass through", out["result"][0] is IMGS)
+check("PNG carries the workflow", json.loads(Image.open(os.path.join(OUT, "ComfyUI_00001.png")).text["workflow"]) == WF)
+save(images=IMGS[:1], format="jpeg", jpeg_workflow="none")
+check("counter across formats", "ComfyUI_00004.jpg" in files())
+open(os.path.join(OUT, "ComfyUI_00010.webp"), "wb").close()
+save(images=IMGS[:1], format="png")
+check("counter: the highest existing number + 1, any extension", "ComfyUI_00011.png" in files())
+o = save(images=IMGS[:1], filename_prefix="portraits/ComfyUI")
+check("subfolder prefix", files("portraits") == ["ComfyUI_00001.png"] and o["ui"]["images"][0]["subfolder"] == "portraits")
+save(images=IMGS[:2], filename_prefix="b/img_%batch_num%")
+check("%batch_num% per image", files("b") == ["img_0_00001.png", "img_1_00002.png"])
+
+save(images=IMGS[:1], filename_prefix="j/a", format="jpeg", jpeg_extension=".jpeg", prompt=PROMPT, extra_pnginfo=EXTRA)
+check("jpeg extension .jpeg, sidecar by default", files("j") == ["a_00001.jpeg", "a_00001.json"]
+      and json.load(open(os.path.join(OUT, "j", "a_00001.json"))) == WF)
+check("jpeg sidecar: no workflow in the JPEG", 0x010F not in Image.open(os.path.join(OUT, "j", "a_00001.jpeg")).getexif())
+save(images=IMGS[:1], filename_prefix="j/b", format="jpeg", jpeg_workflow="none", prompt=PROMPT, extra_pnginfo=EXTRA)
+check("jpeg none: no .json, no EXIF workflow", files("j")[-1] == "b_00001.jpg"
+      and 0x010F not in Image.open(os.path.join(OUT, "j", "b_00001.jpg")).getexif())
+save(images=IMGS[:1], filename_prefix="j/c", format="jpeg", jpeg_workflow="inside the JPEG (EXIF)", prompt=PROMPT, extra_pnginfo=EXTRA)
+check("jpeg EXIF option: the workflow inside, no .json", not os.path.exists(os.path.join(OUT, "j", "c_00001.json"))
+      and Image.open(os.path.join(OUT, "j", "c_00001.jpg")).getexif()[0x010F] == "workflow:" + json.dumps(WF))
+BIGWF = {"workflow": {"nodes": [{"id": i, "widgets_values": ["x" * 100]} for i in range(1000)]}}
+o = save(images=IMGS[:1], filename_prefix="j/d", format="jpeg", jpeg_workflow="inside the JPEG (EXIF)", prompt=PROMPT, extra_pnginfo=BIGWF)
+check("jpeg EXIF fallback: too big -> sidecar and a note", os.path.exists(os.path.join(OUT, "j", "d_00001.json"))
+      and si.NOTE_EXIF in o["ui"]["rg_saved"][0]["notes"] and 0x010F not in Image.open(os.path.join(OUT, "j", "d_00001.jpg")).getexif())
+o = save(images=IMGS[:1], filename_prefix="j/e", format="jpeg")
+check("no workflow (API run): no sidecar, no error", files("j")[-1] == "e_00001.jpg" and not os.path.exists(os.path.join(OUT, "j", "e_00001.json")))
+
+masks = np.stack([np.zeros((12, 16), np.float32), np.ones((12, 16), np.float32)]).view(T)
+save(filename_prefix="m/a", mask=masks)
+ims = [Image.open(os.path.join(OUT, "m", f)) for f in files("m")]
+check("mask batch shorter than images: 3 RGBA PNGs, the last mask repeats", len(ims) == 3 and all(i.mode == "RGBA" for i in ims)
+      and np.asarray(ims[0])[..., 3].min() == 255 and np.asarray(ims[2])[..., 3].max() == 0)
+save(images=IMGS[:1], filename_prefix="m/b", mask=masks, invert_mask=True)
+check("invert_mask: mask 1 = opaque", np.asarray(Image.open(os.path.join(OUT, "m", "b_00001.png")))[..., 3].max() == 0)
+o = save(images=IMGS[:1], filename_prefix="m/c", format="jpeg", mask=masks)
+check("jpeg ignores the mask (note)", Image.open(os.path.join(OUT, "m", "c_00001.jpg")).mode == "RGB"
+      and si.NOTE_JPEG_MASK in o["ui"]["rg_saved"][0]["notes"])
+o = save(images=IMGS[:1], filename_prefix="m/d", format="webp", webp_lossless=True, mask=(1 - ALPHA).view(T))
+wa = Image.open(os.path.join(OUT, "m", "d_00001.webp"))
+check("webp lossless with a mask: RGBA, exact alpha", wa.mode == "RGBA" and (np.asarray(wa)[..., 3] == np.round(ALPHA * 255)).all())
+_chk, _pyav = si.features.check, si._avif_pyav
+si.features.check, si._avif_pyav = (lambda name: False), (lambda rgb, a, q, m: b"avif")
+o = save(images=IMGS[:1], filename_prefix="m/e", format="avif", mask=masks)
+check("AVIF through PyAV with a mask: a note (no transparency there)", si.NOTE_AVIF_ALPHA in o["ui"]["rg_saved"][0]["notes"])
+si.features.check, si._avif_pyav = _chk, _pyav
+
+o = save(filename_prefix="s/a", format="webp", webp_quality=90)
+sm = o["ui"]["rg_saved"][0]
+check("rg_saved summary: label, files, total", sm["label"] == "WebP q90" and [f["name"] for f in sm["files"]] == files("s")
+      and sm["total"] == sum(os.path.getsize(os.path.join(OUT, "s", f)) for f in files("s")) and sm["notes"] == [])
+labels = [save(images=IMGS[:1], filename_prefix="s/l", **k)["ui"]["rg_saved"][0]["label"] for k in
+          [dict(format="png", png_compression=9), dict(format="png", png_compression=4, png_bit_depth="16-bit"),
+           dict(format="webp", webp_lossless=True), dict(format="jpeg", jpeg_quality=85), dict(format="avif", avif_quality=80)]]
+check("labels: PNG 9 / PNG 4 16-bit / WebP lossless / JPEG q85 / AVIF q80",
+      labels == ["PNG 9", "PNG 4 16-bit", "WebP lossless", "JPEG q85", "AVIF q80"])
+o = save(images=IMGS[:1], filename_prefix="s/j", format="jpeg", prompt=PROMPT, extra_pnginfo=EXTRA)
+check("sidecar counted in the summary", [f["name"] for f in o["ui"]["rg_saved"][0]["files"]] == ["j_00001.jpg", "j_00001.json"])
+
+it = si.SaveImageRG.INPUT_TYPES()
+order = ["images", "filename_prefix", "format", "png_compression", "png_bit_depth", "webp_lossless", "webp_quality",
+         "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality"]
+check("INPUT_TYPES order", list(it["required"]) == order and list(it["optional"]) == ["mask", "invert_mask"]
+      and it["hidden"] == {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"})
+tips = [k for g in ("required", "optional") for k, v in it[g].items() if not (len(v) > 1 and v[1].get("tooltip"))]
+check("every input has a tooltip" + (": missing " + ", ".join(tips) if tips else ""), not tips)
+dflt = {k: it["required"][k][1].get("default") for k in order[1:]}
+check("defaults as the design", dflt == {"filename_prefix": "ComfyUI", "format": "png", "png_compression": 9, "png_bit_depth": "8-bit",
+      "webp_lossless": False, "webp_quality": 90, "jpeg_quality": 90, "jpeg_extension": ".jpg",
+      "jpeg_workflow": "sidecar .json", "avif_quality": 80})
+check("node: output node, IMAGE passthrough, Region Genie category", si.SaveImageRG.OUTPUT_NODE is True
+      and si.SaveImageRG.RETURN_TYPES == ("IMAGE",) and si.SaveImageRG.CATEGORY == "Region Genie")
+
 if __name__ == "__main__":
     print("\nall passed" if not fails else f"\n{len(fails)} failed")
     sys.exit(1 if fails else 0)

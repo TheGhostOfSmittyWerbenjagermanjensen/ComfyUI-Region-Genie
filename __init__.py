@@ -27,6 +27,7 @@ for _rel in _OBSOLETE:
 from .bbox_masks import BBoxesToMasks, MaskPicker
 from .region_genie import RegionGenie
 from .regional_lora import CreateHookLoRAQuantized, RegionalLoRAs
+from .save_image import SaveImageRG
 from . import lora_triggers  # noqa: F401  (registers the trigger-word route)
 from . import llm_enhance  # noqa: F401  (LLM Prompt Enhancer routes)
 from . import region_select  # noqa: F401  (Select object: SAM 3.1 routes)
@@ -38,13 +39,14 @@ ICON = " ✨"
 
 # Node IDs: their lengths set the order in node search for "Region Genie" (ComfyUI ranks equal matches by the
 # shorter name): Region Genie (17), Mask Picker (23), BBoxes to Masks (24), Regional LoRAs (26),
-# Create Hook LoRA (27).
+# Create Hook LoRA (27); Save Image (22) comes second.
 NODES = [
     ("Region-Genie_Main", RegionGenie, "Region Genie"),
     ("Region-Genie_MaskPicker", MaskPicker, "Mask Picker"),
     ("Region-Genie_BBoxToMasks", BBoxesToMasks, "BBoxes to Masks"),
     ("Region-Genie_RegionalLoRAs", RegionalLoRAs, "Regional LoRAs"),
     ("Region-Genie_CreateHookLoRA", CreateHookLoRAQuantized, "Create Hook LoRA (Quantized)"),
+    ("Region-Genie_SaveImage", SaveImageRG, "Save Image (Region Genie)"),
 ]
 
 # IDs used before the pack was renamed: still registered so saved workflows load, but marked deprecated, so
@@ -75,6 +77,8 @@ _ALIASES = {
     RegionalLoRAs: ["regional LoRAs", "LoRA", "LoRAs", "multi LoRA", "LoRA mask", "masked LoRA",
                     "hook LoRA", "hook LoRAs", "Create Hook LoRAs", "runtime LoRA", "quantized LoRA",
                     "int8", "fp8", "trigger words"],
+    SaveImageRG: ["save", "save image", "export image", "output image", "png", "jpeg", "jpg", "webp", "avif",
+                  "compression", "compress", "quality", "file size", "transparency", "alpha"],
     CreateHookLoRAQuantized: ["hook LoRA", "LoRA", "regional LoRA", "LoRA mask", "masked LoRA", "runtime LoRA",
                               "quantized LoRA", "int8", "fp8", "LoRA hook", "Create Hook LoRA"],
 }
