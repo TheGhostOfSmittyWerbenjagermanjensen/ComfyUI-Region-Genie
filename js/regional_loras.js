@@ -109,10 +109,23 @@ function setup(node) {
         if (!WKEY[name]) return;
         widgetTA[name] = t;
         t.addEventListener("input", () => wcMark(t, WKEY[name], t.value));
-        addExpandButton(t, "Open in the pop-up editor", () => openFloatPopup({
-            anchor: t, title: name, value: node.widgets?.find((x) => x.name === name)?.value ?? "", node,
-            fontKey: SET.fsPopScene, onInput: (v) => setW(name, v), filled: (raw) => filledFor(WKEY[name], raw) }));
+        addExpandButton(t, "Open in the pop-up editor", () => openField("w:" + name));
     });
+    // the pop-up editor for a text field ("w:<widget name>" or "row:<i>"); ◀ / ▶ step through all of them in order
+    // (positive_prompt, negative_prompt, then each row's words), keeping the pop-up's place and size
+    const rowOpen = [];                      // row i -> (at) => opens its pop-up (made by render)
+    const popKeys = () => ["w:positive_prompt", "w:negative_prompt", ...rows.map((_, i) => "row:" + i)];
+    function openField(key, at) {
+        const nav = (dir, geom) => {
+            const keys = popKeys(), i = keys.indexOf(key);
+            openField(keys[((i < 0 ? 0 : i) + dir + keys.length) % keys.length], geom);
+        };
+        if (key.startsWith("row:")) { rowOpen[+key.slice(4)]?.(at, nav); return; }
+        const name = key.slice(2);
+        openFloatPopup({
+            anchor: widgetTA[name] || wrap, title: name, value: node.widgets?.find((x) => x.name === name)?.value ?? "", node, at, nav,
+            fontKey: SET.fsPopScene, onInput: (v) => setW(name, v), filled: (raw) => filledFor(WKEY[name], raw) });
+    }
     for (const n of ["positive_prompt", "negative_prompt"]) {
         const w = node.widgets?.find((x) => x.name === n);
         if (w?.options) { w.options.getMinHeight = () => 48; w.options.getMaxHeight = () => 96; }
@@ -256,7 +269,7 @@ function setup(node) {
 
     function render() {
         list.replaceChildren();
-        rowEls.length = 0;
+        rowEls.length = 0; rowOpen.length = 0;
         rows.forEach((r, i) => {
             const row = el("div", "rg-rl-row" + (r.on ? "" : " off"));
             const l1 = el("div", "rg-rl-line");
@@ -289,6 +302,8 @@ function setup(node) {
             });
             const strL = el("span", null, "strength");
             const str = el("input", "rg-rl-str"); str.type = "number"; str.step = "0.05"; str.min = "-20"; str.max = "20"; str.value = String(r.strength);
+            str.title = "LoRA strength for this row (1 = full; negative values push away from the LoRA)";
+            strL.title = str.title;
             str.addEventListener("input", () => { const v = +str.value; if (Number.isFinite(v)) { r.strength = v; save(); } });
             l2.append(sel, strL, str);
 
@@ -310,10 +325,11 @@ function setup(node) {
             list.append(row);
             rowEls[i] = { sw, text: regText, pr };
             fillChips(chips, r);
-            addExpandButton(pr, "Open this row's words in the pop-up editor", () => openFloatPopup({
-                anchor: pr, title: `Row ${i + 1}: words for ${r.index === -1 ? "the whole image" : "region " + r.index}`, value: r.prompt, node,
+            rowOpen[i] = (at, nav) => openFloatPopup({
+                anchor: pr, title: `Row ${i + 1}: words for ${r.index === -1 ? "the whole image" : "region " + r.index}`, value: r.prompt, node, at, nav,
                 fontKey: SET.fsPopRegion, onInput: (v) => { r.prompt = v; pr.value = v; save(); wcMark(pr, "row" + i, v); },
-                filled: (raw) => filledFor("row" + i, raw), onClose: () => { fillChips(chips, r); updateHints(); } }));
+                filled: (raw) => filledFor("row" + i, raw), onClose: () => { fillChips(chips, r); updateHints(); } });
+            addExpandButton(pr, "Open this row's words in the pop-up editor", () => openField("row:" + i));
             pr.addEventListener("input", () => wcMark(pr, "row" + i, r.prompt));
         });
         markAll();

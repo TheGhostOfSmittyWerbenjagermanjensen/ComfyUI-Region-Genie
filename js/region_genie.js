@@ -1,6 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { svgIcon, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName,
+import { svgIcon, setHTML, escReverts, popFootText, naturalHeight, nodeOffCanvas, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName,
          autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, inAutocompleteList, autocompleteToggle,
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
@@ -242,6 +242,12 @@ const STYLE = `
 .rg-toolopts .rg-optlab { line-height:0; opacity:.75; margin-left:2px; }
 .rg-toolopts .rg-optlab svg { width:14px; height:14px; display:block; }
 .rg-toolopts .rg-num { width:46px; }
+/* folded to its first icon (a rounded square) until hovered, typed in, clicked (pinned) or a selection waits for ✓ / ✕ */
+.rg-toolopts:not(:hover):not(:focus-within):not(.pinned):not(.busy) > :not(.lead) { display:none !important; }
+.rg-toolopts:not(:hover):not(:focus-within):not(.pinned):not(.busy) { padding:4px; }
+.rg-toolopts:not(:hover):not(:focus-within):not(.pinned):not(.busy) .rg-optlab.lead { margin:0; opacity:.9; }
+.rg-toolopts .rg-optlab.lead { cursor:pointer; }
+.rg-toolopts.pinned .rg-optlab.lead { color:#7fb0ea; opacity:1; }
 .rg-btn.variants { position:relative; }
 .rg-btn.variants::after { content:""; position:absolute; right:1px; bottom:1px; width:0; height:0;
   border-style:solid; border-width:0 0 5px 5px; border-color:transparent transparent currentColor transparent; opacity:.7; }
@@ -284,7 +290,7 @@ button.rg-sw.pick { padding:0; cursor:pointer; font:inherit; }
 button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-row .rg-pwrap.rg-twrap { flex:0 1 72px; }
 .rg-row .rg-pwrap.rg-twrap:has(textarea:focus) { flex:1.2 1 140px; }
-.rg-pop { position:absolute; z-index:6; box-sizing:border-box; display:flex; flex-direction:column; gap:5px; padding:6px 8px 5px;
+.rg-pop { position:fixed; z-index:10000; box-sizing:border-box; display:flex; flex-direction:column; gap:5px; padding:6px 8px 5px;
   background:#1a1a1a; color:#eee; border:2px solid #5b8fd0; border-radius:6px; box-shadow:0 4px 18px rgba(0,0,0,.65);
   overflow-y:auto; scrollbar-width:thin; font:12px sans-serif; }
 .rg-pop-head { display:flex; align-items:center; gap:6px; font-weight:600; cursor:move; user-select:none; touch-action:none; }
@@ -300,6 +306,7 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-pop-head .rg-idx { flex:0 0 auto; text-align:left; }
 .rg-pop-head .rg-sw { cursor:default; }
 .rg-pop-head .rg-x { margin-left:auto; padding:0 5px; line-height:16px; }
+.rg-pop-head .rg-nav { padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
 .rg-pop-types { display:flex; gap:4px; }
 .rg-pop-types .rg-btn { flex:1 1 0; padding:3px 6px; }
 .rg-pop-lbl { font-size:11px; opacity:.75; margin:0 0 2px 1px; }
@@ -326,6 +333,9 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
   border-radius:2px; box-shadow:0 0 3px rgba(0,0,0,.7); pointer-events:none; }
 .rg-btip { position:absolute; left:44px; z-index:4; background:rgba(20,20,20,.95); color:#eee; font:11px sans-serif;
   padding:3px 6px; border-radius:4px; border:1px solid #555; white-space:nowrap; pointer-events:none; display:none; }
+.rg-split { flex:0 0 7px; margin:-2px 0; position:relative; cursor:row-resize; touch-action:none; z-index:1; }
+.rg-split::after { content:""; position:absolute; left:42%; right:42%; top:2px; height:3px; border-radius:2px; background:var(--border-color,#555); opacity:.8; }
+.rg-split:hover::after, .rg-split.drag::after { background:#5b8fd0; opacity:1; left:30%; right:30%; }
 .rg-tree { flex:0 0 auto; height:220px; display:flex; flex-direction:column; gap:2px; min-height:0; }
 .rg-row.lvl1 { margin-left:24px; }
 .rg-row.sub { margin-left:20px; gap:4px; padding-top:0; padding-bottom:0; min-height:18px; font-size:11px; cursor:pointer; opacity:.9; }
@@ -809,6 +819,9 @@ app.registerExtension({
                         d.autoApart = autoApartSettings();
                         const hint = downstreamFormat();
                         if (hint) d.promptFormatHint = hint;
+                        const pick = node.properties?.rg_model_pick;
+                        if (pick) d.modelPick = pick;
+                        if (node.properties?.rg_moss_layout === false) d.mossLayout = false;
                         if (isEdit()) { d.edit = editSettings(); d.editMask = editMaskNow(); }
                         d.llmCache = llmCacheSettings();
                         d.minPixels = minPixelsNow();
@@ -1072,8 +1085,32 @@ app.registerExtension({
             pickOkBtn.style.display = pickNoBtn.style.display = "none";
             const optLabels = [optLab("shapeStar", sidesIn), optLab("shapeRoundrect", radiusIn), optLab("fillGaps", gapIn), optLab("wand", tolIn), optLab("samSelect", findIn)];
             optStrip.append(optLabels[0], sidesIn, optLabels[1], radiusIn, optLabels[2], gapIn, optLabels[3], tolIn, optLabels[4], findIn, pickOkBtn, pickNoBtn);
+            // folded to the first option's icon; hover opens it, a click on that icon keeps it open (click again: fold)
+            let optPinned = false;
+            for (const l of optLabels) {
+                l.addEventListener("click", (e) => {
+                    if (!l.classList.contains("lead")) return;
+                    e.preventDefault();
+                    optPinned = !optPinned;
+                    syncStrip();
+                    if (optPinned) l.__for.focus?.();
+                });
+            }
             function syncStrip() {
-                for (const l of optLabels) { const d = l.__for.style.display; if (l.style.display !== d) l.style.display = d; }
+                let lead = null;
+                for (const l of optLabels) {
+                    const d = l.__for.style.display;
+                    if (l.style.display !== d) l.style.display = d;
+                    if (!lead && d !== "none") lead = l;
+                }
+                for (const l of optLabels) {
+                    const on = l === lead;
+                    if (l.classList.contains("lead") !== on) l.classList.toggle("lead", on);
+                    const tip = on ? `${l.__for.title}\n(Hover: show the field. Click: ${optPinned ? "fold it again" : "keep it open"})` : l.__for.title;
+                    if (l.title !== tip) l.title = tip;
+                }
+                optStrip.classList.toggle("pinned", optPinned);
+                optStrip.classList.toggle("busy", pickOkBtn.style.display !== "none");
                 const any = [sidesIn, radiusIn, gapIn, tolIn, findIn, pickOkBtn].some((x) => x.style.display !== "none") ? "" : "none";
                 if (optStrip.style.display !== any) optStrip.style.display = any;
             }
@@ -1148,7 +1185,7 @@ app.registerExtension({
             // snap to grid: magnet (on, highlighted) / slashed magnet (off), like the labels eye
             const snapBtn = iconBtn("magnetOff", "", () => { snap = !snap; setSnapIcon(); requestDraw(); }, "toggle");
             function setSnapIcon() {
-                snapBtn.innerHTML = svgIcon(snap ? "magnet" : "magnetOff");
+                setHTML(snapBtn, svgIcon(snap ? "magnet" : "magnetOff"));
                 snapBtn.classList.toggle("on", snap);
                 snapBtn.title = snap ? "Snap to grid on: points, shapes and moves snap to the grid (click or G to turn off)"
                     : "Snap to grid off: click (or G) to snap points, shapes and moves to the grid";
@@ -1209,13 +1246,14 @@ app.registerExtension({
             }, "toggle");
             function setLabIcon() {
                 const on = node.properties.rg_labels !== false;
-                labBtn.innerHTML = svgIcon(on ? "eye" : "eyeOff");
+                setHTML(labBtn, svgIcon(on ? "eye" : "eyeOff"));
                 labBtn.classList.toggle("on", on);
                 labBtn.title = on ? "Labels on: each region's number and prompt are shown on the canvas (click to hide)"
                     : "Labels off: click to show each region's number and prompt on the canvas";
             }
             setLabIcon();
             const dimsLbl = el("span", "rg-hint"); dimsLbl.style.marginLeft = "auto";
+            dimsLbl.title = "The canvas size in pixels (the image size this node makes; set in the size row above)";
             bar1.append(sep(), undoBtn, redoBtn, clearBtn, sep(), snapBtn, gridIn, fitBtn, labBtn, dimsLbl);
             // ---- layout files (bottom right of the node)
             const exportBtn = btn("Export", "Save this layout (regions, LoRAs, layers, scene prompt, size) as a .json file. "
@@ -1286,20 +1324,38 @@ app.registerExtension({
                 "edit_area (Edit Mode): what the sampler may change. Only the regions: the 'latent' output carries a mask of "
                 + "all regions, so the rest of the image is kept (like inpainting). Whole image: no mask; the regions still "
                 + "steer where each prompt goes.");
-            const FMT_TIP = "Format of the 'prompt' output (and 'positive'). auto: from the model on 'model', else the clip, "
-                + "else the text encoder 'prompt' is connected to; MOSS JSON when none of them says. MOSS JSON: MOSS Image. "
-                + "Ideogram JSON: Ideogram 4. text: Krea 2, Flux, Anima, SDXL / SD1.5 and other models.";
-            const fmtCtl = setSel(fmtW, "", [["auto", "auto"], ["MOSS JSON", "MOSS JSON"], ["Ideogram JSON", "Ideogram JSON"],
-                ["text", "text"]], FMT_TIP);
-            fmtCtl.lab.classList.add("rg-fmt");
-            let lastFormat = null;                 // the format the last run used (shown next to 'auto')
-            const fmtSel = fmtCtl.sel;
-            const FMT_SHORT = { "MOSS JSON": "MOSS", "Ideogram JSON": "Ideogram", "text": "text" };
-            const showLastFormat = () => {
-                const o = fmtSel?.querySelector('option[value="auto"]');
-                if (o) o.textContent = lastFormat ? `auto · ${FMT_SHORT[lastFormat] || lastFormat}` : "auto";
-                fmtCtl.lab.title = fmtSel.title = FMT_TIP + (lastFormat ? ` The last run used: ${lastFormat}.` : "");
-            };
+            // the model dropdown (and MOSS Image's layout / standard switch) go here; they also set the prompt format
+            // (the old 'format' select is gone: the hidden prompt_format widget stays "auto", see migrateFormat)
+            const modelBox = el("span", "rg-modelbox");
+            let lastFormat = null;                 // the format the last run used (in the model dropdown's tooltip)
+            // scene_prompt_background is Ideogram 4's alone (its caption JSON requires one): shown only while the model is
+            // Ideogram 4 (picked or found); its text is kept while hidden
+            const bgSize = sceneBgW ? Object.getOwnPropertyDescriptor(sceneBgW, "computeSize") : null;
+            function syncBackground() {
+                if (!sceneBgW) return;
+                const show = modelArch() === "Ideogram 4";
+                if (sceneBgW.__rgShown === show) return;
+                sceneBgW.__rgShown = show;
+                sceneBgW.hidden = !show;
+                if (show) { if (bgSize) Object.defineProperty(sceneBgW, "computeSize", bgSize); else delete sceneBgW.computeSize; }
+                else sceneBgW.computeSize = () => [0, -4];
+                const elB = sceneBgW.element || sceneBgW.inputEl;
+                if (elB) elB.style.display = show ? "" : "none";
+                if (!show && editor?.which === "background") closeEditor(true);
+                node.setDirtyCanvas?.(true, true);
+            }
+            // a workflow saved with the old format select: its choice becomes a model pick (or MOSS's standard mode)
+            function migrateFormat() {
+                const v = fmtW?.value;
+                if (!fmtW || !v || v === "auto") return;
+                node.properties = node.properties || {};
+                if (!node.properties.rg_model_pick) {
+                    if (v === "MOSS JSON") node.properties.rg_model_pick = "MOSS Image";
+                    else if (v === "Ideogram JSON") node.properties.rg_model_pick = "Ideogram 4";
+                }
+                if (v === "text") node.properties.rg_moss_layout = false;
+                fmtW.value = "auto";
+            }
             const acCtl = autocompleteToggle(node, el);
             const llmSetBtn = iconBtn("shape", "LLM Prompt Enhancer settings: what the LLM sees, the preset for each prompt type, and the "
                 + "presets themselves (LLM, LLM-only LoRAs, system prompt, Generate Text settings)", () => {
@@ -1340,9 +1396,9 @@ app.registerExtension({
                 hint(n ? `The filled text is now in ${n} field${n > 1 ? "s" : ""} (Ctrl+Z undoes the regions)` : "No filled text yet: run the workflow or preview first");
             }
             const wcCtl = wildcardSeedControl(node, el, { fields: wcFields, onFilled: wcSetFilled, useAll: wcUseAll });
-            settings.append(editSeg.box, areaCtl.lab, fmtCtl.lab, llmSetBtn, acCtl.el, wcCtl.el);
+            settings.append(editSeg.box, areaCtl.lab, modelBox, llmSetBtn, acCtl.el, wcCtl.el);
             const syncSettings = () => {
-                fmtCtl.sync(); areaCtl.sync(); acCtl.refresh(); wcCtl.refresh();
+                migrateFormat(); areaCtl.sync(); acCtl.refresh(); wcCtl.refresh();
                 editSeg.set(isEdit() ? "edit" : "generate");
                 imgSeg.set(modeW?.value === "use as color map" ? "use as color map" : "backdrop (trace over)");
                 const ed = isEdit();
@@ -1444,7 +1500,15 @@ app.registerExtension({
             // the footer select: auto (with what it found) or a model picked to correct it
             const modelSel = el("select", "rg-sel rg-model");
             modelSel.addEventListener("pointerdown", (e) => e.stopPropagation());
-            fmtCtl.lab.after(modelSel);                   // in the bottom bar, after the format select
+            // MOSS Image: layout (its layout JSON, with the region boxes) or standard (a plain text prompt)
+            const layoutBtn = iconBtn("mossLayout", "", () => {
+                node.properties = node.properties || {};
+                if (node.properties.rg_moss_layout === false) delete node.properties.rg_moss_layout;
+                else node.properties.rg_moss_layout = false;
+                app.graph?.change?.();
+                syncModelSel();
+            }, "rg-layout");
+            modelBox.append(modelSel, layoutBtn);         // in the bottom bar, after Edit Mode
             modelSel.addEventListener("change", () => {
                 node.properties = node.properties || {};
                 if (modelSel.value) node.properties.rg_model_pick = modelSel.value; else delete node.properties.rg_model_pick;
@@ -1458,12 +1522,25 @@ app.registerExtension({
                 const sig = JSON.stringify(opts);
                 if (modelSel.dataset.sig !== sig) { modelSel.replaceChildren(...opts.map(([v, t]) => opt(v, t))); modelSel.dataset.sig = sig; }
                 if (document.activeElement !== modelSel) modelSel.value = pick;
-                modelSel.title = "The model this node works with, for the LoRAs Control and Edit Mode add to Whole image (and the control files). "
+                modelSel.title = "The model this node works with. It sets the format of the 'prompt' and 'positive' outputs "
+                    + "(MOSS Image: MOSS layout JSON, Ideogram 4: Ideogram caption JSON, the others: plain text), the LoRAs "
+                    + "Control and Edit Mode add to Whole image, and the control files.\n"
                     + (pick ? `Picked: ${pick}. ` : info.how === "last run" ? `Auto: ${info.arch}, from the last run. `
-                        : info.how === "guess" ? `Auto: ${info.arch}, a guess from the model loader's file / type (the first run checks it). `
-                        : "Auto: not known yet (no run, and nothing to guess from); pick it here if you like. ")
-                    + "Pick a model to correct a wrong guess; 'auto' follows the graph and the runs again.";
+                        : info.how === "guess" ? `Auto: ${info.arch}, a guess from the model loader's file / type (the run checks the model itself). `
+                        : "Auto: not known yet (no run, and nothing to guess from); the run checks the connected model. ")
+                    + "Pick a model to correct a wrong guess; 'auto' follows the graph and the runs again."
+                    + (lastFormat ? `\nThe last run's prompt format: ${lastFormat}.` : "");
                 modelSel.classList.toggle("picked", !!pick);
+                // MOSS Image's layout / standard switch
+                const moss = info.arch === "MOSS Image", layout = node.properties?.rg_moss_layout !== false;
+                layoutBtn.style.display = moss ? "" : "none";
+                setHTML(layoutBtn, svgIcon(layout ? "mossLayout" : "mossStandard"));
+                layoutBtn.classList.toggle("on", layout);
+                layoutBtn.title = (layout
+                    ? "MOSS Image layout mode: the prompt is MOSS layout JSON, with each region's box. Click for standard mode"
+                    : "MOSS Image standard mode: the prompt is plain text (the regions as sentences; masks still steer them). Click for layout mode")
+                    + ". With no region drawn or shown, the run uses standard mode by itself. Edit Mode always sends plain text (the edit LoRA takes an instruction).";
+                syncBackground();
             }
             // the files the Control row needs for the model and kind, and the ones ComfyUI doesn't have: the message bar
             // shows where to get them (like Select object's missing-model message)
@@ -1550,7 +1627,7 @@ app.registerExtension({
                 const c = ctl();
                 const row = el("div", "rg-row ctrl" + (c.on ? "" : " off"));
                 const onBtn = el("button", "rg-btn mini" + (c.on ? " toggle on" : ""));
-                onBtn.innerHTML = svgIcon(c.on ? "control" : "controlOff");
+                setHTML(onBtn, svgIcon(c.on ? "control" : "controlOff"));
                 onBtn.title = c.on ? "Control on: the model follows the control map (ControlNet / control LoRA for the connected model). Click to turn it off."
                     : "Control off. Click to turn it on: the model follows a color map, depth, canny or your own control_image "
                       + "(the files are set in Settings > Region Genie > Control).";
@@ -1621,7 +1698,7 @@ app.registerExtension({
             function controlToggle(r) {
                 const on = !r.noControl;
                 const b = el("button", "rg-btn mini" + (on ? " toggle on" : ""));
-                b.innerHTML = svgIcon(on ? "control" : "controlOff");
+                setHTML(b, svgIcon(on ? "control" : "controlOff"));
                 b.title = on ? "Control acts on this region. Click to leave it out (while any region is left out, the control acts only inside the regions still on)."
                     : "Control leaves this region out. Click to include it again.";
                 b.addEventListener("pointerdown", (e) => e.stopPropagation());
@@ -1630,7 +1707,7 @@ app.registerExtension({
             }
             function keepToggle(r) {
                 const b = el("button", "rg-btn mini" + (r.keep ? " toggle on" : ""));
-                b.innerHTML = svgIcon(r.keep ? "lock" : "pencil");
+                setHTML(b, svgIcon(r.keep ? "lock" : "pencil"));
                 b.title = r.keep
                     ? "Keep (Edit Mode): this region stays as it is in the source image, also with change = whole image, and "
                         + "the edit mask never grows into it. Its prompt is still part of the prompt. Click to let it change."
@@ -1849,7 +1926,7 @@ app.registerExtension({
                 const key = `${own}|${autoApart}|${shared}`;
                 if (allApartShown === key) return;
                 allApartShown = key;
-                allApartBtn.innerHTML = svgIcon(shared ? "allApartShared" : "allApart");
+                setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart"));
                 allApartBtn.classList.toggle("on", on);
                 allApartBtn.title = (own ? "Keep all regions apart: ON. "
                     : autoApart ? "Keep all regions apart: ON automatically in the last run (a model without a layout format, "
@@ -1928,8 +2005,47 @@ app.registerExtension({
             const subOpen = new Set();                   // `${rid}:layers` | `${rid}:loras` | `${rid}:palette`
             const openSub = (rid, kind) => { expanded.add(rid); subOpen.add(`${rid}:${kind}`); };
 
+            // the divider between the canvas and the Regions list: dragging moves room between them (the node keeps its
+            // size); the list's height is this node's (node.properties.rg_list_h); double-click: the usual 220 px
+            const LIST_H = 220, LIST_MIN = 90, CV_MIN = 120;
+            const split = el("div", "rg-split");
+            split.title = "Drag: more room for the canvas or for the Regions list (this node keeps its size). Double-click: the usual height";
+            const applyListH = () => {
+                const h = Math.round(+node.properties?.rg_list_h || LIST_H);
+                const want = Math.max(LIST_MIN, h) + "px";
+                if (tree.style.height !== want) tree.style.height = want;
+            };
+            split.addEventListener("pointerdown", (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault(); e.stopPropagation();
+                const k = wrap.offsetHeight / Math.max(1, wrap.getBoundingClientRect().height);   // screen px -> CSS px (graph zoom)
+                const y0 = e.clientY, h0 = tree.offsetHeight, room = h0 + cvBox.offsetHeight - CV_MIN;
+                cvBox.style.minHeight = CV_MIN + "px";
+                split.setPointerCapture?.(e.pointerId);
+                split.classList.add("drag");
+                const move = (ev) => {
+                    node.properties = node.properties || {};
+                    node.properties.rg_list_h = Math.round(Math.max(LIST_MIN, Math.min(room, h0 - (ev.clientY - y0) * k)));
+                    applyListH();
+                };
+                const up = () => {
+                    split.classList.remove("drag");
+                    split.removeEventListener("pointermove", move); split.removeEventListener("pointerup", up); split.removeEventListener("pointercancel", up);
+                    app.graph?.change?.();
+                };
+                split.addEventListener("pointermove", move); split.addEventListener("pointerup", up); split.addEventListener("pointercancel", up);
+            });
+            split.addEventListener("dblclick", (e) => {
+                e.preventDefault(); e.stopPropagation();
+                if (node.properties) delete node.properties.rg_list_h;
+                cvBox.style.minHeight = "";
+                applyListH(); app.graph?.change?.();
+            });
+            for (const ev of ["mousedown", "click"]) split.addEventListener(ev, (e) => e.stopPropagation());
+            if (node.properties?.rg_list_h) cvBox.style.minHeight = CV_MIN + "px";
+            applyListH();
             wrap.style.position = "relative";
-            wrap.append(keySink, bar1, banner, cvBox, msgBar, tree, foot);
+            wrap.append(keySink, bar1, banner, cvBox, msgBar, split, tree, foot);
             const domW = node.addDOMWidget("color_map_canvas", "ColorMapCanvas", wrap, {
                 serialize: false, hideOnZoom: false, getMinHeight: () => 620,
             });
@@ -1993,7 +2109,13 @@ app.registerExtension({
                 ["aspect ratio", svgIcon("sizeRatio"), "Image size from an aspect ratio and megapixels, like ComfyUI's Resolution Selector"],
                 ["presets", svgIcon("sizeList"), "Image size from the presets list (shared by every Region Genie node; 'Edit list…' at its end)"],
                 ["manual", svgIcon("sizeManual"), "Image size: width and height typed in"],
-            ], (v) => { sizeCfg().mode = v; applySize(); });
+            ], (v) => {
+                const c = sizeCfg();
+                // into presets mode: keep the size the other mode made (shown as "not in the list" until a preset is
+                // picked), so '＋ Current size' in 'Edit list…' can add it
+                if (v === "presets" && c.mode !== "presets") { const [w, h] = sizeOfCfg(c); c.preset = { ...c.preset, w, h, swap: false }; }
+                c.mode = v; applySize();
+            });
             const sizeNum = (min, max, step, title, width) => {
                 const i = el("input", "rg-num"); i.type = "number"; i.min = String(min); i.max = String(max); i.step = String(step);
                 i.title = title; if (width) i.style.width = width;
@@ -2020,7 +2142,8 @@ app.registerExtension({
             ratioBox.append(aspSel, swapR, tiny("MP", mpIn.title), mpIn, tiny("×", multIn.title), multIn);
             // presets
             const preSel = el("select", "rg-sel rg-size-pre");
-            preSel.title = "Image size presets (Settings > Region Genie > Image size; 'Edit list…' to change them)";
+            const PRESET_TIP = "Image size presets (Settings > Region Genie > Image size; 'Edit list…' to change them)";
+            preSel.title = PRESET_TIP;
             const EDIT_LIST = "__edit__";
             let presetsText = null;
             preSel.addEventListener("change", () => {
@@ -2073,16 +2196,19 @@ app.registerExtension({
                 presetOptions();
                 const key = `${c.preset.w}x${c.preset.h}`;
                 if (idle(preSel)) {
-                    if (![...preSel.options].some((o) => o.value === key)) {          // not in the list (any more): keep it shown
+                    const extra = preSel.querySelector("option[data-extra]");
+                    const listed = [...preSel.options].some((o) => o.value === key && !o.dataset.extra);
+                    if (!listed && extra?.value !== key) {         // not in the list (any more): keep it shown
                         const o = opt(key, `${c.preset.w} × ${c.preset.h}  (not in the list)`); o.dataset.extra = "1";
-                        preSel.querySelector("option[data-extra]")?.remove();
+                        extra?.remove();
                         preSel.insertBefore(o, preSel.firstChild);
-                    }
+                    } else if (listed) extra?.remove();
                     preSel.value = key;
+                    preSel.title = PRESET_TIP + (listed ? "" : `. ${c.preset.w} x ${c.preset.h} isn't in the list: 'Edit list…' > ＋ Current size adds it`);
                 }
                 if (idle(wIn)) wIn.value = String(c.manual.w);
                 if (idle(hIn)) hIn.value = String(c.manual.h);
-                linkBtn.innerHTML = svgIcon(c.manual.link ? "link" : "unlink");
+                setHTML(linkBtn, svgIcon(c.manual.link ? "link" : "unlink"));
                 linkBtn.classList.toggle("on", !!c.manual.link);
                 linkBtn.title = c.manual.link ? "Ratio kept: changing one side changes the other. Click to set them separately"
                     : "Keep the ratio: changing one side changes the other";
@@ -2138,7 +2264,8 @@ app.registerExtension({
                 const title = el("span"); title.textContent = "Image size presets (every Region Genie node)";
                 head.append(title, btn("✕", "Close", () => closePresetEditor()));
                 const foot = el("div", "rg-presets-foot");
-                const addCur = btn("＋ Current size", "Add the node's current image size to the list", () => {
+                const addCur = btn("＋ Current size", "Add the node's current image size to the list (a size made in aspect ratio or "
+                    + "manual mode stays when you switch to presets mode, shown as 'not in the list', so it can be added here)", () => {
                     const [cw, ch] = sizeOfCfg(sizeCfg());
                     if (!list.some((p) => p.w === cw && p.h === ch)) { list.push({ w: cw, h: ch, name: "" }); save(); render(); }
                 });
@@ -3928,80 +4055,112 @@ app.registerExtension({
             // Text edits show live; each edited field is one undo step. Enter or clicking elsewhere closes it,
             // Shift+Enter = new line, Esc closes it and undoes the text edit in progress.
             let editor = null;
-            // ---- pop-up editors: the size (every node; a hidden Setting), the place (this node, saved with the workflow) and the
-            // text size (Settings > Region Genie > Text size, per kind of field). They live inside the node and stay inside it.
+            // ---- pop-up editors: on top of the page (dragged anywhere on the screen), one at a time. The size: every node (a
+            // hidden Setting); the text size: Settings > Region Genie > Text size, per kind of field (A− / A+ don't change the
+            // pop-up's size). They stay open until Enter, Esc, ✕, another pop-up, or the node leaving the canvas (another
+            // workflow tab, a subgraph); a click elsewhere doesn't close them. ◀ / ▶ step through every text field of the node.
             const POP_W = { scene: 640, region: 560 };
             const FS_POP = { scene: SET.fsPopScene, prompt: SET.fsPopRegion, text: SET.fsPopText };
             const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
             const popSizes = () => { try { const v = JSON.parse(recentSetting(SET.popSizes, "{}") || "{}"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } };
             const fsPop = (cat) => clampN(Math.round(+recentSetting(FS_POP[cat], 14)) || 14, 8, 40);
             function applyPopFont(ta, cat) { const f = fsPop(cat); ta.style.fontSize = f + "px"; ta.style.lineHeight = Math.round(f * 1.3) + "px"; }
-            // size, then place: the saved size and place (kept inside the node), else the default width and autoPlace(w, h, W, H)
+            // size, then place (screen px): ed.at (stepped here with ◀ / ▶: the same place and size), else the saved size (or the
+            // height with 14 px text) and autoPlace(w, h, W, H) next to the field it opens from; kept on the screen
             function popLayout(ed, kind, autoPlace) {
-                const box = ed.box, W = wrap.clientWidth, H = wrap.clientHeight;
+                const box = ed.box, W = window.innerWidth, H = window.innerHeight;
+                const keepOn = () => {
+                    box.style.left = clampN(parseFloat(box.style.left) || 6, 0, Math.max(0, W - 60)) + "px";
+                    box.style.top = clampN(parseFloat(box.style.top) || 6, 0, Math.max(0, H - 40)) + "px";
+                };
+                if (ed.at) {
+                    box.style.width = clampN(Math.round(ed.at.width), 240, Math.max(240, W - 12)) + "px";
+                    box.style.height = clampN(Math.round(ed.at.height), 160, Math.max(160, H - 12)) + "px";
+                    box.classList.add("sized");
+                    if (!ed.placed) { ed.placed = true; box.style.left = ed.at.left + "px"; box.style.top = ed.at.top + "px"; }
+                    keepOn(); return;
+                }
                 const sz = popSizes()[kind] || {};
                 const w = clampN(Math.round(sz.w || POP_W[kind]), 240, Math.max(240, W - 12));
                 box.style.width = w + "px";
-                if (sz.h) { box.style.height = clampN(Math.round(sz.h), 160, Math.max(160, H - 12)) + "px"; box.style.maxHeight = ""; box.classList.add("sized"); }
-                else { box.style.height = ""; box.style.maxHeight = Math.max(120, H - 12) + "px"; box.classList.remove("sized"); }
-                const keepInside = () => {
-                    box.style.left = clampN(parseFloat(box.style.left) || 6, 6, Math.max(6, W - box.offsetWidth - 6)) + "px";
-                    box.style.top = clampN(parseFloat(box.style.top) || 6, 6, Math.max(6, H - box.offsetHeight - 6)) + "px";
-                };
-                if (ed.placed) { keepInside(); return; }
+                box.classList.remove("sized");
+                const h = sz.h || naturalHeight(box, [...box.querySelectorAll("textarea")]);
+                box.style.height = clampN(Math.round(h), 160, Math.max(160, H - 12)) + "px";
+                box.style.maxHeight = "";
+                box.classList.add("sized");
+                if (ed.placed) { keepOn(); return; }
                 ed.placed = true;
-                const at = node.properties?.rg_pop?.[kind];
-                if (at && Number.isFinite(at.x) && Number.isFinite(at.y)) { box.style.left = at.x + "px"; box.style.top = at.y + "px"; keepInside(); return; }
                 autoPlace(w, box.offsetHeight, W, H);
+                keepOn();
             }
-            // A− / A+ (the field in use: curCat()), dragging by the title bar, the resize grip
+            // just below the element's screen rect r, else above it, else as low as fits
+            const placeBy = (box, r, w, h, W, H, center = false) => {
+                const top = r.bottom + 4 + h <= H - 6 ? r.bottom + 4 : (r.top - 4 - h >= 6 ? r.top - 4 - h : Math.max(6, H - 6 - h));
+                const left = center ? (r.left + r.right) / 2 - w / 2 : r.left;
+                box.style.left = clampN(left, 6, Math.max(6, W - w - 6)) + "px";
+                box.style.top = top + "px";
+            };
+            // every text field of the node, in order: the scene prompts, then each region's prompt (list order)
+            const popTargets = () => [["scene", "positive"], ["scene", "negative"], ...(sceneBgW?.__rgShown ? [["scene", "background"]] : []),
+                                      ...state.regions.map((r) => ["region", r.id])];
+            function popStep(dir) {
+                const ed = editor;
+                if (!ed) return;
+                const list = popTargets(), b = ed.box;
+                const at = { left: b.offsetLeft, top: b.offsetTop, width: b.offsetWidth, height: b.offsetHeight };
+                let i = list.findIndex((t) => t[0] === ed.target[0] && t[1] === ed.target[1]);
+                const t = list[((i < 0 ? 0 : i) + dir + list.length) % list.length];
+                if (t[0] === "scene") editScene(t[1], at); else editPrompt(t[1], null, "prompt", at);
+            }
+            // Esc in a pop-up: close it, putting the text back (or keeping it: Settings > Region Genie > Text size)
+            const popEsc = () => closeEditor(!escReverts());
+            // ◀ / ▶, A− / A+ (the field in use: curCat()), dragging by the title bar, the resize grip
             function popFrame(ed, kind, head, curCat, applyFonts) {
                 const box = ed.box;
-                const zoom = () => wrap.offsetWidth / Math.max(1, wrap.getBoundingClientRect().width);   // screen px -> CSS px
                 const font = (d) => {
                     const cat = curCat();
                     rememberSetting(FS_POP[cat], clampN(fsPop(cat) + d, 8, 40));
                     applyFonts();
                 };
-                const fm = el("button", "rg-btn rg-pop-font"); fm.type = "button"; fm.textContent = "A−";
-                const fp = el("button", "rg-btn rg-pop-font"); fp.type = "button"; fp.textContent = "A+";
-                fm.title = "Smaller text in the box you're typing in (Settings > Region Genie > Text size)";
-                fp.title = "Larger text in the box you're typing in (Settings > Region Genie > Text size)";
-                fm.addEventListener("click", (e) => { e.preventDefault(); font(-1); });
-                fp.addEventListener("click", (e) => { e.preventDefault(); font(1); });
+                const mkB = (text, tip, fn, cls) => {
+                    const b = el("button", "rg-btn " + cls); b.type = "button"; b.textContent = text; b.title = tip;
+                    b.addEventListener("click", (e) => { e.preventDefault(); fn(); });
+                    return b;
+                };
+                const fm = mkB("A−", "Smaller text in the box you're typing in (Settings > Region Genie > Text size). The pop-up keeps its size", () => font(-1), "rg-pop-font");
+                const fp = mkB("A+", "Larger text in the box you're typing in (Settings > Region Genie > Text size). The pop-up keeps its size", () => font(1), "rg-pop-font");
+                const prev = mkB("◀", "The previous text field of this node (scene prompts, then each region's prompt), in this place and size. From the first: the last one", () => popStep(-1), "rg-nav");
+                const next = mkB("▶", "The next text field of this node (scene prompts, then each region's prompt), in this place and size. From the last: the first one", () => popStep(1), "rg-nav");
                 const x = head.querySelector(".rg-x");
                 head.insertBefore(fp, x?.previousElementSibling?.classList.contains("rg-wc-pick") ? x.previousElementSibling : x);
                 head.insertBefore(fm, fp);
-                head.title = "Drag to move (inside the node; remembered for this node). Double-click: back to the automatic place";
+                head.insertBefore(prev, fm); head.insertBefore(next, fm);
+                head.title = "Drag to move (anywhere on the screen). Double-click: back next to the field";
                 const drag = (e, onMove, onEnd) => {
                     e.preventDefault(); e.stopPropagation();
-                    const t = e.currentTarget, k = zoom(), x0 = e.clientX, y0 = e.clientY;
+                    const t = e.currentTarget, x0 = e.clientX, y0 = e.clientY;
                     t.setPointerCapture?.(e.pointerId);
-                    const move = (ev) => onMove((ev.clientX - x0) * k, (ev.clientY - y0) * k);
-                    const up = () => { t.removeEventListener("pointermove", move); t.removeEventListener("pointerup", up); t.removeEventListener("pointercancel", up); onEnd(); };
+                    const move = (ev) => onMove(ev.clientX - x0, ev.clientY - y0);
+                    const up = () => { t.removeEventListener("pointermove", move); t.removeEventListener("pointerup", up); t.removeEventListener("pointercancel", up); onEnd?.(); };
                     t.addEventListener("pointermove", move); t.addEventListener("pointerup", up); t.addEventListener("pointercancel", up);
                 };
                 head.addEventListener("pointerdown", (e) => {
                     if (e.button !== 0 || e.target.closest("button, input, select, textarea")) return;
-                    const l0 = box.offsetLeft, t0 = box.offsetTop, W = wrap.clientWidth, H = wrap.clientHeight;
+                    const l0 = box.offsetLeft, t0 = box.offsetTop, W = window.innerWidth, H = window.innerHeight;
                     drag(e, (dx, dy) => {
-                        box.style.left = clampN(l0 + dx, 6, Math.max(6, W - box.offsetWidth - 6)) + "px";
-                        box.style.top = clampN(t0 + dy, 6, Math.max(6, H - box.offsetHeight - 6)) + "px";
-                    }, () => {
-                        node.properties = node.properties || {};
-                        node.properties.rg_pop = { ...(node.properties.rg_pop || {}), [kind]: { x: Math.round(box.offsetLeft), y: Math.round(box.offsetTop) } };
+                        box.style.left = clampN(l0 + dx, 0, Math.max(0, W - 60)) + "px";
+                        box.style.top = clampN(t0 + dy, 0, Math.max(0, H - 40)) + "px";
                     });
                 });
                 head.addEventListener("dblclick", (e) => {
                     if (e.target.closest("button, input, select, textarea")) return;
-                    if (node.properties?.rg_pop) delete node.properties.rg_pop[kind];
-                    ed.placed = false; ed.place();
+                    ed.at = null; ed.placed = false; ed.place();
                 });
                 const grip = el("div", "rg-pop-grip");
                 grip.title = "Drag to resize (remembered for every Region Genie node). Double-click: back to the default size";
                 grip.addEventListener("pointerdown", (e) => {
                     if (e.button !== 0) return;
-                    const w0 = box.offsetWidth, h0 = box.offsetHeight, W = wrap.clientWidth, H = wrap.clientHeight;
+                    const w0 = box.offsetWidth, h0 = box.offsetHeight, W = window.innerWidth, H = window.innerHeight;
                     drag(e, (dx, dy) => {
                         box.style.width = clampN(w0 + dx, 240, Math.max(240, W - box.offsetLeft - 6)) + "px";
                         box.style.height = clampN(h0 + dy, 160, Math.max(160, H - box.offsetTop - 6)) + "px";
@@ -4009,13 +4168,14 @@ app.registerExtension({
                     }, () => {
                         const all = popSizes(); all[kind] = { w: Math.round(box.offsetWidth), h: Math.round(box.offsetHeight) };
                         rememberSetting(SET.popSizes, JSON.stringify(all));
+                        if (ed.at) ed.at = null;
                     });
                 });
                 grip.addEventListener("dblclick", (e) => {
                     e.stopPropagation();
                     const all = popSizes(); delete all[kind];
                     rememberSetting(SET.popSizes, JSON.stringify(all));
-                    ed.place();
+                    ed.at = null; ed.place();
                 });
                 box.appendChild(grip);
                 applyFonts();
@@ -4038,13 +4198,13 @@ app.registerExtension({
                 const ed = editor;
                 if (ed.field) ed.endField(!commit);
                 editor = null;
-                window.removeEventListener("pointerdown", ed.outside, true);
                 ed.box.remove();
                 refreshUI();
                 focusSink();
             }
             // rect: the label on the canvas it opens from; null = from the region's row in the list. focus: "prompt" | "text"
-            function editPrompt(rid, rect, focus = "prompt") {
+            // at: { left, top, width, height } to open at (stepping with ◀ / ▶)
+            function editPrompt(rid, rect, focus = "prompt", at = null) {
                 closeEditor(true);
                 const r = regionById(rid);
                 if (!r) return;
@@ -4055,7 +4215,7 @@ app.registerExtension({
                 box.dataset.captureWheel = "true";
                 box.addEventListener("keydown", (e) => {
                     e.stopPropagation();                           // editor shortcuts (Delete, V, B, ...) stay off
-                    if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); closeEditor(false); }
+                    if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); popEsc(); }
                 });
                 // header: number, color, close
                 const head = el("div", "rg-pop-head");
@@ -4122,12 +4282,12 @@ app.registerExtension({
                 // feather, palette, LoRAs (rebuilt on every change)
                 const dyn = el("div", "rg-pop-dyn");
                 const foot = el("div", "rg-pop-foot");
-                foot.textContent = "Enter: done · Shift+Enter: new line · Esc: close, undoing the text being edited";
+                foot.textContent = popFootText();
                 box.append(head, types, prompt.wrapF, text.wrapF, dyn, foot);
-                wrap.appendChild(box);
+                document.body.appendChild(box);
 
                 const ed = {
-                    rid, box, field: null,
+                    rid, box, field: null, at, target: ["region", rid],
                     // finish editing a text field: one undo step, or put the old text back (cancel)
                     endField(cancel) {
                         const f = ed.field;
@@ -4169,36 +4329,18 @@ app.registerExtension({
                     },
                     placed: false,
                     place() { popLayout(ed, "region", (w, h, W, H) => {
-                        // near the label (or the list row), inside the node; scrolls when the node is short
-                        const k = cvBox.clientWidth / Math.max(1, cv.width);           // canvas px -> CSS px
+                        // from the list: below (else above) the region's row; from the canvas: below (else above) its label
                         const row = !rect && regList.querySelector(`textarea.rg-prompt[data-rid="${rid}"]`)?.closest(".rg-row");
-                        if (row) {                                 // from the list: just below the row, else just above it
-                            const wr = wrap.getBoundingClientRect(), rr = row.getBoundingClientRect();
-                            const sc = wrap.offsetWidth / Math.max(1, wr.width);        // the graph's zoom: screen px -> CSS px
-                            const y0 = (rr.top - wr.top) * sc + wrap.scrollTop, y1 = (rr.bottom - wr.top) * sc + wrap.scrollTop;
-                            const top = y1 + 4 + h <= H - 6 ? y1 + 4 : (y0 - 4 - h >= 6 ? y0 - 4 - h : Math.max(6, H - 6 - h));
-                            box.style.left = Math.max(6, (W - w) / 2) + "px";
-                            box.style.top = top + "px";
-                            return;
-                        }
-                        if (!rect) { box.style.left = Math.max(6, (W - w) / 2) + "px"; box.style.top = "6px"; return; }
-                        const cx = cvBox.offsetLeft + (rect.x0 + rect.x1) / 2 * k;
-                        const below = cvBox.offsetTop + rect.y1 * k + 6, above = cvBox.offsetTop + rect.y0 * k - 6 - h;
-                        const top = below + h <= H - 6 ? below : (above >= 6 ? above : Math.max(6, H - 6 - h));
-                        box.style.left = Math.max(6, Math.min(W - w - 6, cx - w / 2)) + "px";
-                        box.style.top = Math.max(6, top) + "px";
+                        if (row && row.offsetParent) { placeBy(box, row.getBoundingClientRect(), w, h, W, H); return; }
+                        const cr = cv.getBoundingClientRect(), k = cr.width / Math.max(1, cv.width);   // canvas px -> screen px
+                        if (!rect) { placeBy(box, { left: cr.left, right: cr.right, top: cr.top - 4, bottom: cr.top - 4 }, w, h, W, H, true); return; }
+                        placeBy(box, { left: cr.left + rect.x0 * k, right: cr.left + rect.x1 * k, top: cr.top + rect.y0 * k - 2,
+                                       bottom: cr.top + rect.y1 * k + 2 }, w, h, W, H, true);
                     }); },
-                    // a click outside closes it (not the LoRA list, the autocomplete list or a color picker)
-                    outside(e) {
-                        const t = e.target;
-                        if (box.contains(t) || inAutocompleteList(t) || inColorPicker(t) || inLlmSettings(t) || t?.closest?.(".litecontextmenu, .litemenu-entry, .comfy-context-menu, .p-contextmenu")) return;
-                        closeEditor(true);
-                    },
                 };
                 editor = ed;
                 popFrame(ed, "region", head, () => (lastTa === text.ta ? "text" : "prompt"),
                          () => { applyPopFont(prompt.ta, "prompt"); applyPopFont(text.ta, "text"); });
-                window.addEventListener("pointerdown", ed.outside, true);
                 ed.refresh();
                 const first = focus === "text" && r.type === "text" ? text : prompt;
                 first.ta.focus(); first.ta.setSelectionRange(first.ta.value.length, first.ta.value.length);
@@ -4206,7 +4348,7 @@ app.registerExtension({
             // pop-up editor for scene_prompt_positive / _negative / _background (double-click the text box).
             // Positive: also the LLM Prompt Enhancer and the whole-image LoRAs. Enter or clicking elsewhere closes it,
             // Shift+Enter = new line, Esc closes it and puts the text back as it was.
-            function editScene(which) {
+            function editScene(which, at = null) {
                 closeEditor(true);
                 const pos = which === "positive";
                 const w = { positive: sceneW, negative: sceneNegW, background: sceneBgW }[which];
@@ -4217,7 +4359,7 @@ app.registerExtension({
                 box.dataset.captureWheel = "true";
                 box.addEventListener("keydown", (e) => {
                     e.stopPropagation();
-                    if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); closeEditor(false); }
+                    if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); popEsc(); }
                 });
                 const head = el("div", "rg-pop-head");
                 const title = el("span");
@@ -4257,12 +4399,12 @@ app.registerExtension({
                 wrapF.append(ta);
                 const dyn = el("div", "rg-pop-dyn");
                 const foot = el("div", "rg-pop-foot");
-                foot.textContent = "Enter: done · Shift+Enter: new line · Esc: close, putting the text back";
+                foot.textContent = popFootText();
                 const useRow = el("div", "rg-pop-lbl"); useRow.append(useS);
                 box.append(head, useRow, wrapF, dyn, foot);
-                wrap.appendChild(box);
+                document.body.appendChild(box);
                 const ed = {
-                    scene: which, box, field: { cancelable: true },
+                    scene: which, which, box, field: { cancelable: true }, at, target: ["scene", which],
                     endField(cancel) {
                         ed.field = null;
                         if (cancel && String(w.value ?? "") !== orig) { setWidget(w, orig); ta.value = orig; }
@@ -4297,20 +4439,17 @@ app.registerExtension({
                         ed.place();
                     },
                     placed: false,
-                    place() { popLayout(ed, "scene", (wd, h, W) => {
-                        // at the top of the canvas area (right under the scene prompts), inside the node
-                        box.style.left = Math.max(6, (W - wd) / 2) + "px";
-                        box.style.top = "6px";
+                    place() { popLayout(ed, "scene", (wd, h, W, H) => {
+                        // below (else above) the scene prompt's own text box; else at the top of the node's canvas
+                        const t = sceneTA[which];
+                        const r = t?.isConnected && t.offsetParent ? t.getBoundingClientRect() : null;
+                        if (r && r.width) { placeBy(box, r, wd, h, W, H); return; }
+                        const cr = cv.getBoundingClientRect();
+                        placeBy(box, { left: cr.left, right: cr.right, top: cr.top - 4, bottom: cr.top - 4 }, wd, h, W, H, true);
                     }); },
-                    outside(e) {
-                        const t = e.target;
-                        if (box.contains(t) || inAutocompleteList(t) || inColorPicker(t) || inLlmSettings(t) || t?.closest?.(".litecontextmenu, .litemenu-entry, .comfy-context-menu, .p-contextmenu")) return;
-                        closeEditor(true);
-                    },
                 };
                 editor = ed;
                 popFrame(ed, "scene", head, () => "scene", () => applyPopFont(ta, "scene"));
-                window.addEventListener("pointerdown", ed.outside, true);
                 ed.refresh();
                 ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
             }
@@ -4340,10 +4479,8 @@ app.registerExtension({
                 if (isField(e.target)) return;
                 const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
                 if (mod && k === "c" && msgSelected()) { e.stopPropagation(); return; }     // copy the message text, not a layer
-                if (editor && !(mod && (k === "z" || k === "y"))) {          // pop-up editor open: only close / undo
-                    if (k === "escape" || k === "enter") { e.preventDefault(); e.stopPropagation(); closeEditor(true); }
-                    return;
-                }
+                // a pop-up editor stays open while the node is used; Esc here (nothing else pending) closes it, keeping the text
+                if (editor && k === "escape" && !pick && !clickPoly) { e.preventDefault(); e.stopPropagation(); closeEditor(true); return; }
                 const L = selLayer();
                 // keys that act on the selected layer show its box again
                 if (L && hiddenSel === selId && (["delete", "backspace", "arrowleft", "arrowright", "arrowup", "arrowdown"].includes(k) || (mod && k === "d"))) {
@@ -4645,7 +4782,7 @@ app.registerExtension({
                     change(() => { if (r.featherLinked !== false) state.feather = v; else r.feather = v; });
                 });
                 const fLink = el("button", "rg-btn mini toggle" + (linked ? " on" : ""));
-                fLink.innerHTML = svgIcon(linked ? "link" : "unlink");
+                setHTML(fLink, svgIcon(linked ? "link" : "unlink"));
                 fLink.title = linked ? "Linked: every linked region uses the same feather. Click to give this region its own value."
                     : "Own feather value. Click to link it to the shared value again.";
                 fLink.addEventListener("pointerdown", (e) => e.stopPropagation());
@@ -4657,7 +4794,7 @@ app.registerExtension({
                     });
                 });
                 const fEdge = el("button", "rg-btn mini toggle" + (r.featherEdges ? " on" : ""));
-                fEdge.innerHTML = svgIcon("edges");
+                setHTML(fEdge, svgIcon("edges"));
                 fEdge.title = r.featherEdges ? "feather_canvas_edges on: edges on the image border fade too. Click to keep them solid."
                     : "feather_canvas_edges off: edges on the image border stay solid. Click to fade them too.";
                 fEdge.addEventListener("pointerdown", (e) => e.stopPropagation());
@@ -4812,7 +4949,7 @@ app.registerExtension({
                     const sig = [t.on, ready, failed, tip].join("|");
                     if (sig === shown) return;
                     shown = sig;
-                    b.innerHTML = sparkleSvg(t.on);
+                    setHTML(b, sparkleSvg(t.on));
                     b.classList.toggle("on", t.on);
                     b.classList.toggle("ready", t.on && ready);
                     b.classList.toggle("failed", t.on && failed);
@@ -5160,7 +5297,7 @@ app.registerExtension({
             }
             chain(node, "onExecuted", function (message) {
                 if (message?.dims) { execDims = message.dims; execGuess = guessInputDims(); onDimsChanged(); }
-                if (Array.isArray(message?.prompt_format)) { lastFormat = String(message.prompt_format[0] || "") || null; showLastFormat(); }
+                if (Array.isArray(message?.prompt_format)) { lastFormat = String(message.prompt_format[0] || "") || null; syncModelSel(); }
                 if (Array.isArray(message?.model_arch) && message.model_arch[0]) {
                     node.properties = node.properties || {};
                     node.properties.rg_model_arch = String(message.model_arch[0]);
@@ -5226,7 +5363,7 @@ app.registerExtension({
                 onDimsChanged();
             });
             chain(node, "onConfigure", function () { remapOutputs(node, nodeData.output_name, nodeData.output); configured = true;
-                moveSizeLinks(); setTimeout(() => { sizeCfg(); syncSizeRow(true); onDimsChanged(); }, 0); fixImportMode(); load(); pushLlmCache(); syncLlm(); updateLlmButtons(); });
+                moveSizeLinks(); setTimeout(() => { sizeCfg(); syncSizeRow(true); onDimsChanged(); }, 0); fixImportMode(); migrateFormat(); if (node.properties?.rg_list_h) cvBox.style.minHeight = CV_MIN + "px"; applyListH(); load(); pushLlmCache(); syncLlm(); updateLlmButtons(); });
             for (const w of [wW, hW]) if (w) chain(w, "callback", () => onDimsChanged());
             if (modeW) chain(modeW, "callback", () => requestDraw());
 
@@ -5234,6 +5371,7 @@ app.registerExtension({
             ro.observe(cvBox);
             sizeReady = true; syncSizeRow();
             const poll = setInterval(() => {
+                if (editor && nodeOffCanvas(node)) closeEditor(true);     // another workflow tab, a subgraph, removed
                 if (!node.graph) return;
                 fixImportMode();
                 syncSettings();
@@ -5246,7 +5384,7 @@ app.registerExtension({
                 updateLlmButtons();
             }, 500);
             chain(node, "onRemoved", function () {
-                clearInterval(poll); ro.disconnect(); offLlmLib(); closeLlmSettings(); lassoRefreshers.delete(refreshVariantButtons); closeArrange(); if (pick) pickCancel();
+                clearInterval(poll); closeEditor(true); ro.disconnect(); offLlmLib(); closeLlmSettings(); lassoRefreshers.delete(refreshVariantButtons); closeArrange(); if (pick) pickCancel();
                 for (const t of PAN_EVENTS) window.removeEventListener(t, midPan, true);
                 window.removeEventListener("pointerdown", hideSelOutside, true);
                 window.removeEventListener("mousedown", noAutoScroll, true);
@@ -5268,6 +5406,7 @@ app.registerExtension({
             node.__rgState = () => state;
             node.__rgRefresh = () => { version++; save(); refreshUI(); };
             node.__rgActive = () => curRegion;
+            node.__rgSetTool = (t) => setTool(t);
             node.__rgSetBackdrop = (img, ref) => { backdrop = img; backdropKey = "test:" + Math.random(); backdropRef = ref || null; requestDraw(); };
             // regions in output order (what Mask Picker / Regional LoRAs index into)
             node.__rgOutputRegions = () => {

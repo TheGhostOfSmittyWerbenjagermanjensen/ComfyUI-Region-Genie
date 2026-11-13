@@ -125,10 +125,11 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
         app.canvas.ds.offset = [0, -200]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);    // the pop-up fully on screen
         await new Promise((r) => setTimeout(r, 1500));
-        const tas = [...document.querySelectorAll("textarea.rg-scene-ta")];
+        const tas = [...document.querySelectorAll("textarea.rg-scene-ta")].filter((t) => t.offsetParent);
         return { n: tas.length, btns: tas.filter((t) => t.parentElement.querySelector(":scope > .rg-expand")).length, pos: [...rg.pos] };
     });
-    check(`${M}: an expand button on each of the 3 scene prompts`, r10.n === 3 && r10.btns === 3);
+    // round 12: scene_prompt_background shows only for Ideogram 4 (the model isn't known here)
+    check(`${M}: an expand button on each scene prompt shown (2: positive, negative)`, r10.n === 2 && r10.btns === 2);
     const sceneTa = page.locator("textarea.rg-scene-ta").first();
     await sceneTa.fill("a quiet harbour at dawn");
     await sceneTa.dblclick(); await page.waitForTimeout(200);
