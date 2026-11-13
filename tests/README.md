@@ -4,12 +4,13 @@ None of these need a GPU. Screenshots go to `tests/out/` (not committed).
 
 | What | How | Needs |
 |---|---|---|
-| Python, stubbed (`test_round5.py`, `test_round6.py`, `test_round9.py`, `test_round12.py`) | `bash tests/run_py.sh` | numpy, Pillow, scipy |
+| Python, stubbed (`test_round5.py`, `test_round6.py`, `test_round9.py`, `test_round12.py`, `test_save_image.py`) | `bash tests/run_py.sh` | numpy, Pillow, scipy |
 | Editor in a stub page (`ui_test*.cjs`) | `bash tests/run_ui.sh` | Node, `npm i -D playwright`, `npx playwright install chromium` |
 | Control against real ComfyUI code (`test_control.py`): MOSS / Flux.1 / ControlNet / Anima paths, maps, region masks | `COMFY_DIR=… python3 tests/test_control.py` | a ComfyUI checkout and torch (no model files) |
 | Select object against real ComfyUI code (`test_select.py`) | see below | a ComfyUI checkout, torch, the SAM 3.1 checkpoint (or the random-weight fixture) |
 | Smoke test in the real ComfyUI frontend (`real_comfy.cjs [vue]`) | see below | a running ComfyUI with this pack in `custom_nodes` |
 | Round 9 in the real ComfyUI (`real_comfy9.cjs [vue]`): size row, old workflows, a real run, region eye, wildcards | see below | a running ComfyUI with this pack and ComfyUI Impact Pack; no model files |
+| Save Image (Region Genie) in the real ComfyUI (`real_comfy_save.cjs [vue]`): fields per format, Settings defaults, a run per format, the size readout, `%date%` tokens, the files and the JPEG `.json` loading their workflow back, transparency | `COMFY_DIR=… node tests/real_comfy_save.cjs [vue]` | a running ComfyUI with this pack; `COMFY_DIR` for its output folder; no model files |
 | Round 12 in the real ComfyUI (`real_comfy12.cjs [vue]`): number field widths, tooltip audit, presets, model dropdown / format / background, pop-ups, divider, tool strip | see below | a running ComfyUI with this pack; no model files |
 
 ## Real ComfyUI (CPU)
