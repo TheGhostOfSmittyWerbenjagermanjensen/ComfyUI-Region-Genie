@@ -35,21 +35,24 @@ function replaceTokens(text) {
             try { const r = fn(arg, text); if (typeof r === "string") return r; } catch (e) { /* try the other signature */ }
         }
     }
+    // the same rules as ComfyUI's own (scripts/utils applyTextReplacements, formatDate), for a frontend without it
+    const nodes = app.graph?.nodes || [];
     return String(text).replace(/%([^%]+)%/g, (m, t) => {
-        const d = t.match(/^date:(.*)$/);
-        if (d) {
-            const now = new Date(), p = (v, n = 2) => String(v).padStart(n, "0");
-            const parts = { yyyy: now.getFullYear(), yy: p(now.getFullYear() % 100), MM: p(now.getMonth() + 1), M: now.getMonth() + 1,
-                            dd: p(now.getDate()), d: now.getDate(), hh: p(now.getHours()), h: now.getHours(),
-                            mm: p(now.getMinutes()), m: now.getMinutes(), ss: p(now.getSeconds()), s: now.getSeconds() };
-            return d[1].replace(/yyyy|yy|MM|M|dd|d|hh|h|mm|m|ss|s/g, (k) => String(parts[k]));
+        const split = t.split(".");
+        if (split.length !== 2) {
+            if (!split[0].startsWith("date:")) return m;
+            const now = new Date();
+            const get = { d: () => now.getDate(), M: () => now.getMonth() + 1, h: () => now.getHours(), m: () => now.getMinutes(), s: () => now.getSeconds() };
+            return split[0].slice(5).replace(/(d+|M+|y+|h+|m+|s+)/g, (k) => {
+                if (k === "yy") return String(now.getFullYear()).slice(2);
+                if (k === "yyyy") return String(now.getFullYear());
+                return k[0] in get ? String(get[k[0]]()).padStart(k.length, "0") : k;
+            });
         }
-        const i = t.lastIndexOf(".");
-        if (i < 0) return m;
-        const name = t.slice(0, i), wname = t.slice(i + 1);
-        const n = (app.graph?.nodes || []).find((x) => x.title === name || x.properties?.["Node name for S&R"] === name);
-        const w = n?.widgets?.find((x) => x.name === wname);
-        return w ? String(w.value).replaceAll("/", "_").replaceAll("\\", "_") : m;
+        // the node by its "Node name for S&R", else by its title
+        const n = nodes.find((x) => x.properties?.["Node name for S&R"] === split[0]) || nodes.find((x) => x.title === split[0]);
+        const w = n?.widgets?.find((x) => x.name === split[1]);
+        return w ? String(w.value ?? "").replaceAll(/[/?<>\\:*|"\x00-\x1F\x7F]/g, "_") : m;
     });
 }
 

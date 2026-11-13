@@ -154,6 +154,25 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }, run);
     check(`${M}: %date:yyyy% is filled in when queued (${tok})`, tok === `${run}/tok_${new Date().getFullYear()}`);
 
+    // without the frontend's helper, the node's own replacement gives the same as ComfyUI's
+    const fb = await page.evaluate(async (run) => {
+        const sv = window.__sv, sm = window.__sm, app = window.app;
+        const img = app.graph.nodes.find((n) => n.type === "EmptyImage");
+        const w = sv.widgets.find((x) => x.name === "filename_prefix"), mv = sm.widgets.find((x) => x.name === "value"), mw = sm.widgets.find((x) => x.name === "width");
+        const keep = { fn: window.comfyAPI.utils.applyTextReplacements, title: img.title, v: mv.value, mw: mw.value, pre: w.value };
+        const viaCore = (t) => keep.fn(app.graph, t);
+        img.title = "SolidMask"; mv.value = 'a:b?c*d|e"f<g>h'; mw.value = 128;
+        const texts = ["x_%SolidMask.width%", "x_%SolidMask.value%", "x_%date:yyyy-MM-dd%", "x_%date:yy-M-d%", "x_%date:yyyyMMdd%", "x_%Nope.width%", "x_%width%", "x_%SolidMask.nope%"];
+        const core = texts.map(viaCore);
+        window.comfyAPI.utils.applyTextReplacements = undefined;
+        const own = texts.map((t) => { w.value = t; return w.serializeValue(); });
+        window.comfyAPI.utils.applyTextReplacements = keep.fn;
+        img.title = keep.title; mv.value = keep.v; mw.value = keep.mw; w.value = keep.pre;
+        return { core, own };
+    }, run);
+    check(`${M}: the node's own token replacement matches ComfyUI's (${fb.own.join(" | ")})`, JSON.stringify(fb.own) === JSON.stringify(fb.core)
+        && fb.core[0] === "x_128" && fb.core[1] === "x_a_b_c_d_e_f_g_h");
+
     // the files load their workflow back; the PNG has the mask's alpha (0.25 mask -> alpha 191)
     const back = await page.evaluate(async (run) => {
         const out = {};
