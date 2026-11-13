@@ -174,8 +174,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         await s.set(id, "default");
         return { name: def?.name || "", sent: pd.autoApart?.["MOSS Image"], keys: Object.keys(pd.autoApart || {}).join(",") };
     });
+    const mossNames = await page.evaluate(() => Object.values(window.app.ui.settings.settingsParamLookup).filter((d) => /^RegionGenie/.test(d.id))
+        .flatMap((d) => [d.name, d.tooltip || ""]).filter((t) => /MOSS[ -]Image/.test(t)));
+    check(`${M}: Settings say MOSS-Image (the official name), never 'MOSS Image' (${mossNames.length} mentions)`,
+        mossNames.length >= 6 && mossNames.every((t) => !/MOSS Image/.test(t)));
     check(`${M}: Settings has 'MOSS Image: keep all regions apart automatically', sent with the run (${mossApart.name}; ${mossApart.keys}; ${mossApart.sent})`,
-        /^MOSS Image/.test(mossApart.name) && mossApart.sent === "off");
+        /^MOSS-Image/.test(mossApart.name) && mossApart.sent === "off");
     // an old workflow with the format select set
     const mig = await page.evaluate(async () => {
         const app = window.app;

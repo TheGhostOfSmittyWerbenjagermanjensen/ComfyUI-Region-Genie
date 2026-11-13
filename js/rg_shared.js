@@ -1472,6 +1472,11 @@ const SETTINGS = [
           tooltip: "1-100. Lower = smaller file, more detail lost. " + NEW_NODES, category: CAT("Save Image", "8 avif quality") },
         { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
+// the model's official name in Settings is MOSS-Image (the node's own controls say MOSS Image)
+for (const d of SETTINGS) {
+    for (const k of ["name", "tooltip"]) if (typeof d[k] === "string") d[k] = d[k].replace(/MOSS Image/g, "MOSS-Image");
+    if (Array.isArray(d.options)) d.options = d.options.map((o) => (o && typeof o.text === "string" ? { ...o, text: o.text.replace(/MOSS Image/g, "MOSS-Image") } : o));
+}
 SETTINGS.forEach((x, i) => { x.sortOrder = 1000 - i; });         // listed in this order (higher sortOrder first)
 // The pack was called "Regional Mask Kit" before: on the first start after the rename, copy the values set under
 // the old setting IDs to the new ones (only where the new one isn't set yet). To be removed in a later version.
