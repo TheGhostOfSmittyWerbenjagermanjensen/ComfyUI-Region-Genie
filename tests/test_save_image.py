@@ -169,7 +169,8 @@ stubs.fp.get_save_image_path = _gsip
 node = si.SaveImageRG()
 IMGS = np.stack([RGB, RGB[::-1].copy(), RGB[:, ::-1].copy()]).view(T)
 DEF = dict(filename_prefix="ComfyUI", format="png", png_compression=9, png_bit_depth="8-bit", webp_lossless=False,
-           webp_quality=90, jpeg_quality=90, jpeg_extension=".jpg", jpeg_workflow="sidecar .json", avif_quality=80)
+           webp_quality=90, jpeg_quality=90, jpeg_extension=".jpg", jpeg_workflow="sidecar .json", avif_quality=80,
+           exr_bit_depth="16-bit float", exr_color_space="sRGB")
 
 
 def save(images=IMGS, **kw):
@@ -248,7 +249,7 @@ check("sidecar counted in the summary", [f["name"] for f in o["ui"]["rg_saved"][
 
 it = si.SaveImageRG.INPUT_TYPES()
 order = ["images", "filename_prefix", "format", "png_compression", "png_bit_depth", "webp_lossless", "webp_quality",
-         "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality"]
+         "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality", "exr_bit_depth", "exr_color_space"]
 check("INPUT_TYPES order", list(it["required"]) == order and list(it["optional"]) == ["mask", "invert_mask"]
       and it["hidden"] == {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"})
 tips = [k for g in ("required", "optional") for k, v in it[g].items() if not (len(v) > 1 and v[1].get("tooltip"))]
@@ -256,7 +257,7 @@ check("every input has a tooltip" + (": missing " + ", ".join(tips) if tips else
 dflt = {k: it["required"][k][1].get("default") for k in order[1:]}
 check("defaults as the design", dflt == {"filename_prefix": "ComfyUI", "format": "png", "png_compression": 9, "png_bit_depth": "8-bit",
       "webp_lossless": False, "webp_quality": 90, "jpeg_quality": 90, "jpeg_extension": ".jpg",
-      "jpeg_workflow": "sidecar .json", "avif_quality": 80})
+      "jpeg_workflow": "sidecar .json", "avif_quality": 80, "exr_bit_depth": "16-bit float", "exr_color_space": "sRGB"})
 check("node: output node, IMAGE passthrough, Region Genie category", si.SaveImageRG.OUTPUT_NODE is True
       and si.SaveImageRG.RETURN_TYPES == ("IMAGE",) and si.SaveImageRG.CATEGORY == "Region Genie")
 
@@ -330,6 +331,18 @@ for fn, args, limit, label in ((si.encode_webp, (None, False, 90, None), 16383, 
         msg = "other: " + type(e).__name__ + " " + str(e)
     check(f"{label} over {limit} px: a clear message ({msg[:70]})", f"{limit}" in msg and label in msg and "png" in msg.lower())
 check(f"WebP at {16383} px still saves", len(si.encode_webp(np.zeros((1, 16383, 3), np.float32), None, False, 90, None)) > 0)
+
+# ---------------------------------------------------------------- EXR (ComfyUI's own encoder; not in the stubbed comfy)
+it = si.SaveImageRG.INPUT_TYPES()["required"]
+check("exr: a format, with Save Image (Advanced)'s bit depths and color spaces", "exr" in it["format"][0]
+      and it["exr_bit_depth"][0] == ["16-bit float", "32-bit float"] and it["exr_color_space"][0] == ["sRGB", "HDR", "linear", "linear ACEScg"])
+try:
+    save(images=IMGS[:1], filename_prefix="x/a", format="exr")
+    msg = ""
+except si.ExrUnavailable as e:
+    msg = str(e)
+check(f"exr without ComfyUI's EXR support: a clear message ({msg[:60]})", "EXR" in msg and "update ComfyUI" in msg and not os.path.exists(os.path.join(OUT, "x")))
+check("exr label", si._label("exr", dict(exr_bit_depth="32-bit float")) == "EXR 32-bit float")
 
 if __name__ == "__main__":
     print("\nall passed" if not fails else f"\n{len(fails)} failed")

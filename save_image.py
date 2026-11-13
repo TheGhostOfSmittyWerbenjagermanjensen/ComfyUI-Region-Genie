@@ -242,7 +242,37 @@ def avif_metadata(prompt, extra):
 # --------------------------------------------------------------------------- #
 # the node
 # --------------------------------------------------------------------------- #
-FORMATS = ("png", "webp", "jpeg", "avif")
+FORMATS = ("png", "webp", "jpeg", "avif", "exr")
+EXR_DEPTHS = ("16-bit float", "32-bit float")              # as core Save Image (Advanced)
+EXR_SPACES = ("sRGB", "HDR", "linear", "linear ACEScg")
+EXR_MISSING = "EXR needs the EXR support of ComfyUI's own Save Image (Advanced) (ComfyUI v0.45 or newer): update ComfyUI"
+
+
+class ExrUnavailable(RuntimeError):
+    pass
+
+
+def _core_exr():
+    """ComfyUI's own EXR helpers (comfy_extras/nodes_images.py), so the files match Save Image (Advanced)'s."""
+    try:
+        from comfy_extras.nodes_images import _to_scene_linear, _encode_image, inject_exr_metadata
+        return _to_scene_linear, _encode_image, inject_exr_metadata
+    except Exception as e:
+        raise ExrUnavailable(EXR_MISSING) from e
+
+
+def encode_exr(rgb, alpha, depth, space, prompt, extra):
+    """Scene-linear EXR (16 / 32-bit float) as core writes it: the input converted from `space` to linear light (not
+    clipped: HDR values above 1 stay), the alpha as it is, the workflow and color space in the header."""
+    to_linear, encode, inject = _core_exr()
+    import torch
+    t = to_linear(torch.from_numpy(np.ascontiguousarray(rgb, dtype=np.float32)), space if space in EXR_SPACES else "sRGB")
+    if alpha is not None:
+        t = torch.cat([t, torch.from_numpy(np.ascontiguousarray(alpha, dtype=np.float32))[..., None]], -1)
+    data = encode(t, "exr", depth if depth in EXR_DEPTHS else EXR_DEPTHS[0], "linear")
+    if not metadata_disabled() and (prompt is not None or extra):
+        data = inject(data, prompt, extra, space)
+    return data
 JPEG_WORKFLOW = ("sidecar .json", "none", "inside the JPEG (EXIF)")
 NOTE_JPEG_MASK = "JPEG has no transparency: the mask was ignored"
 NOTE_EXIF = "The workflow was too big for the JPEG's EXIF (about 64 KB): saved as a .json next to it"
@@ -267,6 +297,20 @@ def next_counter(folder, prefix):
     return best + 1
 
 
+def _exr_preview(rgb, space):
+    """A small preview of an EXR for ComfyUI's asset list, as core writes it (only while ComfyUI's asset manager is on;
+    else None, as core)."""
+    try:
+        from server import PromptServer
+        if not getattr(getattr(PromptServer.instance, "asset_manager", None), "enabled", False):
+            return None
+        from comfy_extras.nodes_images import _write_asset_preview, _to_scene_linear
+        import torch
+        return _write_asset_preview(_to_scene_linear(torch.from_numpy(np.ascontiguousarray(rgb, dtype=np.float32)), space))
+    except Exception:
+        return None
+
+
 def _label(fmt, a):
     if fmt == "png":
         return f"PNG {a['png_compression']}" + (" 16-bit" if a["png_bit_depth"] == "16-bit" else "")
@@ -274,6 +318,8 @@ def _label(fmt, a):
         return "WebP lossless" if a["webp_lossless"] else f"WebP q{a['webp_quality']}"
     if fmt == "jpeg":
         return f"JPEG q{a['jpeg_quality']}"
+    if fmt == "exr":
+        return f"EXR {a['exr_bit_depth']}"
     return f"AVIF q{a['avif_quality']}"
 
 
@@ -293,7 +339,9 @@ class SaveImageRG:
                     "png: Lossless, keeps the workflow.\n"
                     "webp: Lossless or a quality, much smaller, keeps the workflow.\n"
                     "jpeg: A quality, small. The workflow goes in a .json next to it (see jpeg_workflow).\n"
-                    "avif: A quality, smallest, keeps the workflow.")}),
+                    "avif: A quality, smallest, keeps the workflow.\n"
+                    "exr: 16 / 32-bit float, scene-linear (for compositing and HDR; not smaller). The workflow is in "
+                    "its header, which ComfyUI can't load from yet.")}),
                 "png_compression": ("INT", {"default": 9, "min": 0, "max": 9, "step": 1, "tooltip": (
                     "0-9, lossless at every level (always the same pixels). Higher = smaller file, slower save; 9 = "
                     "smallest (ComfyUI's own Save Image uses 4).")}),
@@ -317,10 +365,20 @@ class SaveImageRG:
                     "(about 64 KB) goes into the .json instead.")}),
                 "avif_quality": q(80, "1-100. Lower = smaller file, more detail lost. AVIF needs Pillow 11.3+ or a "
                                       "ComfyUI with AVIF support."),
+                "exr_bit_depth": (list(EXR_DEPTHS), {"default": EXR_DEPTHS[0], "tooltip": (
+                    "16-bit float: Half precision, about half the size; plenty for most edits.\n"
+                    "32-bit float: Full precision.")}),
+                "exr_color_space": (list(EXR_SPACES), {"default": "sRGB", "tooltip": (
+                    "The color space of the images coming in. The EXR is always written as scene-linear light in the "
+                    "matching gamut, as ComfyUI's Save Image (Advanced) does.\n"
+                    "sRGB: sRGB-encoded Rec.709 (the usual); the inverse sRGB curve is applied.\n"
+                    "HDR: HLG-encoded Rec.2020 (BT.2100); the inverse HLG curve is applied.\n"
+                    "linear: Already scene-linear (Rec.709 primaries), written unchanged; for renderer / compositor output.\n"
+                    "linear ACEScg: Already scene-linear ACEScg (AP1 / D60), written unchanged with ACEScg chromaticities.")}),
             },
             "optional": {
                 "mask": ("MASK", {"tooltip": (
-                    "Transparency (PNG, WebP, AVIF; JPEG has none). As ComfyUI's Load Image mask: 1 = transparent. "
+                    "Transparency (PNG, WebP, AVIF, EXR; JPEG has none). As ComfyUI's Load Image mask: 1 = transparent. "
                     "A mask of another size is resized; one mask applies to every image.")}),
                 "invert_mask": ("BOOLEAN", {"default": False, "tooltip": (
                     "On: Mask 1 = opaque instead. Use it for a region mask from Region Genie or Mask Picker, to keep "
@@ -335,14 +393,17 @@ class SaveImageRG:
     FUNCTION = "run"
     OUTPUT_NODE = True
     CATEGORY = "Region Genie"
-    DESCRIPTION = ("Saves images as PNG (compression 0-9, 8 / 16-bit), WebP (lossless or a quality), JPEG (a quality) "
-                   "or AVIF (a quality), with optional transparency from a mask, and shows the saved file sizes.")
+    DESCRIPTION = ("Saves images as PNG (compression 0-9, 8 / 16-bit), WebP (lossless or a quality), JPEG (a quality), "
+                   "AVIF (a quality) or EXR (16 / 32-bit float), with optional transparency from a mask, and shows the "
+                   "saved file sizes.")
 
     def run(self, images, filename_prefix, format, png_compression, png_bit_depth, webp_lossless, webp_quality,
-            jpeg_quality, jpeg_extension, jpeg_workflow, avif_quality, mask=None, invert_mask=False, prompt=None,
-            extra_pnginfo=None):
+            jpeg_quality, jpeg_extension, jpeg_workflow, avif_quality, exr_bit_depth="16-bit float",
+            exr_color_space="sRGB", mask=None, invert_mask=False, prompt=None, extra_pnginfo=None):
         import folder_paths
         fmt = format if format in FORMATS else "png"
+        if fmt == "exr":
+            _core_exr()                            # stops with a clear message before anything is written
         arr = images.cpu().numpy() if hasattr(images, "cpu") else np.asarray(images)
         arr = np.asarray(arr, np.float32)
         b, h, w = arr.shape[0], arr.shape[1], arr.shape[2]
@@ -350,9 +411,10 @@ class SaveImageRG:
         folder, base, _, subfolder, _ = folder_paths.get_save_image_path(filename_prefix, out_dir, w, h)
         os.makedirs(folder, exist_ok=True)
         counter = next_counter(folder, base)
-        ext = {"png": ".png", "webp": ".webp", "avif": ".avif"}.get(fmt, jpeg_extension if jpeg_extension in (".jpg", ".jpeg") else ".jpg")
+        ext = {"png": ".png", "webp": ".webp", "avif": ".avif", "exr": ".exr"}.get(fmt, jpeg_extension if jpeg_extension in (".jpg", ".jpeg") else ".jpg")
         a = dict(png_compression=png_compression, png_bit_depth=png_bit_depth, webp_lossless=webp_lossless,
-                 webp_quality=webp_quality, jpeg_quality=jpeg_quality, avif_quality=avif_quality)
+                 webp_quality=webp_quality, jpeg_quality=jpeg_quality, avif_quality=avif_quality,
+                 exr_bit_depth=exr_bit_depth)
         notes, results, saved = [], [], []
 
         def note(n):
@@ -379,6 +441,8 @@ class SaveImageRG:
                                   png_text(prompt, extra_pnginfo))
             elif fmt == "webp":
                 data = encode_webp(rgb, alpha, bool(webp_lossless), int(webp_quality), comfy_exif(prompt, extra_pnginfo))
+            elif fmt == "exr":
+                data = encode_exr(rgb, alpha, exr_bit_depth, exr_color_space, prompt, extra_pnginfo)
             elif fmt == "avif":
                 if alpha is not None and not features.check("avif"):
                     note(NOTE_AVIF_ALPHA)
@@ -409,6 +473,11 @@ class SaveImageRG:
                     bump += 1
             if sidecar is not None:
                 write(stem + ".json", sidecar.encode("utf-8"))
-            results.append({"filename": name, "subfolder": subfolder, "type": "output"})
+            entry = {"filename": name, "subfolder": subfolder, "type": "output"}
+            if fmt == "exr":
+                preview = _exr_preview(rgb, exr_color_space)
+                if preview is not None:
+                    entry["asset_preview"] = preview
+            results.append(entry)
         summary = {"label": _label(fmt, a), "files": saved, "total": sum(f["bytes"] for f in saved), "notes": notes}
         return {"ui": {"images": results, "rg_saved": [summary]}, "result": (images,)}

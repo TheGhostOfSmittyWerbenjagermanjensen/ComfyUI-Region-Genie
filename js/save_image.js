@@ -10,6 +10,7 @@ const FIELDS = {
     webp: ["webp_lossless", "webp_quality"],
     jpeg: ["jpeg_quality", "jpeg_extension", "jpeg_workflow"],
     avif: ["avif_quality"],
+    exr: ["exr_bit_depth", "exr_color_space"],
 };
 const ALL = ["filename_prefix", "format", ...Object.values(FIELDS).flat(), "invert_mask"];
 const CSS = `
@@ -167,6 +168,8 @@ app.registerExtension({
             set("jpeg_extension", getSetting(SET.saveJpegExt, ".jpg"));
             set("jpeg_workflow", getSetting(SET.saveJpegWorkflow, "sidecar .json"));
             set("avif_quality", Math.max(1, Math.min(100, Math.round(+getSetting(SET.saveAvifQuality, 80)))));
+            set("exr_bit_depth", getSetting(SET.saveExrDepth, "16-bit float"));
+            set("exr_color_space", getSetting(SET.saveExrSpace, "sRGB"));
             setTimeout(sync, 0);
             return r;
         };

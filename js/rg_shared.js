@@ -1088,6 +1088,7 @@ export const SET = {
     saveFormat: "RegionGenie.Save.Format", savePngLevel: "RegionGenie.Save.PngLevel", saveWebpLossless: "RegionGenie.Save.WebpLossless",
     saveWebpQuality: "RegionGenie.Save.WebpQuality", saveJpegQuality: "RegionGenie.Save.JpegQuality", saveJpegExt: "RegionGenie.Save.JpegExtension",
     saveJpegWorkflow: "RegionGenie.Save.JpegWorkflow", saveAvifQuality: "RegionGenie.Save.AvifQuality",
+    saveExrDepth: "RegionGenie.Save.ExrBitDepth", saveExrSpace: "RegionGenie.Save.ExrColorSpace",
     hlFeather: "RegionGenie.RegionalLoRAs.Feather",
     hlMasking: "RegionGenie.RegionalLoRAs.LoraMasking",
     hlSeparation: "RegionGenie.RegionalLoRAs.RegionSeparation",
@@ -1451,8 +1452,9 @@ const SETTINGS = [
         { id: SET.hlAllRegions, name: "separate_all_regions", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "5 all regions") },
         { id: SET.hlShareBg, name: "share_background", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "6 share background") },
         // Save Image (Region Genie): how a new node starts
-        { id: SET.saveFormat, name: "format", type: "combo", defaultValue: "png", options: ["png", "webp", "jpeg", "avif"],
-          tooltip: "png: Lossless.\nwebp: Lossless or a quality, much smaller.\njpeg: A quality, small.\navif: A quality, smallest.\n" + NEW_NODES,
+        { id: SET.saveFormat, name: "format", type: "combo", defaultValue: "png", options: ["png", "webp", "jpeg", "avif", "exr"],
+          tooltip: "png: Lossless.\nwebp: Lossless or a quality, much smaller.\njpeg: A quality, small.\navif: A quality, smallest.\n"
+              + "exr: 16 / 32-bit float, scene-linear (for compositing and HDR; not smaller).\n" + NEW_NODES,
           category: CAT("Save Image", "1 format") },
         { id: SET.savePngLevel, name: "PNG compression", type: "slider", defaultValue: 9, attrs: { min: 0, max: 9, step: 1 },
           tooltip: "0-9, lossless at every level. Higher = smaller file, slower save. " + NEW_NODES, category: CAT("Save Image", "2 png") },
@@ -1470,6 +1472,12 @@ const SETTINGS = [
           category: CAT("Save Image", "7 jpeg workflow") },
         { id: SET.saveAvifQuality, name: "AVIF quality", type: "slider", defaultValue: 80, attrs: { min: 1, max: 100, step: 1 },
           tooltip: "1-100. Lower = smaller file, more detail lost. " + NEW_NODES, category: CAT("Save Image", "8 avif quality") },
+        { id: SET.saveExrDepth, name: "EXR bit depth", type: "combo", defaultValue: "16-bit float", options: ["16-bit float", "32-bit float"],
+          tooltip: "16-bit float: Half precision, about half the size.\n32-bit float: Full precision.\n" + NEW_NODES, category: CAT("Save Image", "9 exr depth") },
+        { id: SET.saveExrSpace, name: "EXR color space", type: "combo", defaultValue: "sRGB", options: ["sRGB", "HDR", "linear", "linear ACEScg"],
+          tooltip: "The color space of the images coming in (the EXR is always scene-linear).\n"
+              + "sRGB: sRGB-encoded Rec.709, the usual.\nHDR: HLG-encoded Rec.2020.\nlinear: Already scene-linear Rec.709.\n"
+              + "linear ACEScg: Already scene-linear ACEScg.\n" + NEW_NODES, category: CAT("Save Image", "91 exr space") },
         { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
 // the model's official name in Settings is MOSS-Image (the node's own controls say MOSS Image)
