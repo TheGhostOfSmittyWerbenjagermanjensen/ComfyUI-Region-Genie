@@ -106,6 +106,33 @@ r = si.mask_alpha(small, 0, H, W, False)
 check("mask_alpha: another size is resized to the image", r.shape == (H, W) and r[0, 0] == 1.0 and r[0, -1] == 0.0)
 check("mask_alpha: no mask, no alpha", si.mask_alpha(None, 0, H, W, False) is None)
 
+# ---------------------------------------------------------------- workflow metadata (as core writes it)
+import stubs  # noqa: E402
+PROMPT = {"3": {"class_type": "KSampler", "inputs": {}}}
+WF = {"nodes": [{"id": 1, "type": "Region-Genie_SaveImage"}], "links": []}
+EXTRA = {"workflow": WF}
+txt = si.png_text(PROMPT, EXTRA)
+check("png carries prompt and workflow", json.loads(Image.open(io.BytesIO(si.encode_png(RGB, None, 6, 8, txt))).text["workflow"]) == WF
+      and json.loads(txt["prompt"]) == PROMPT)
+ex = si.comfy_exif(PROMPT, EXTRA)
+wex = Image.open(io.BytesIO(si.encode_webp(RGB, None, False, 80, ex))).getexif()
+check("webp exif layout as core", wex[0x0110] == "prompt:" + json.dumps(PROMPT) and wex[0x010F] == "workflow:" + json.dumps(WF))
+two = Image.Exif()
+two.load(si.comfy_exif(PROMPT, {"workflow": WF, "extra": {"a": 1}}))
+check("exif: one tag per extra key, counting down from 0x010F", two[0x010E] == 'extra:{"a": 1}')
+if AVIF:
+    aex = Image.open(io.BytesIO(si.encode_avif(RGB, None, 80, ex))).getexif()
+    check("avif exif layout as core", aex[0x0110] == "prompt:" + json.dumps(PROMPT) and aex[0x010F] == "workflow:" + json.dumps(WF))
+jex = Image.open(io.BytesIO(si.encode_jpeg(RGB, 90, ex))).getexif()
+check("jpeg exif option: same tags", jex[0x010F] == "workflow:" + json.dumps(WF))
+check("sidecar json is the workflow", json.loads(si.workflow_json(EXTRA)) == WF)
+check("no workflow, no sidecar", si.workflow_json(None) is None and si.workflow_json({}) is None)
+check("no prompt and no extra: no metadata", si.png_text(None, None) is None and si.comfy_exif(None, None) is None)
+stubs.comfy.cli_args.args.disable_metadata = True
+check("disable-metadata: nothing", si.metadata_disabled() and si.png_text(PROMPT, EXTRA) is None
+      and si.comfy_exif(PROMPT, EXTRA) is None and si.workflow_json(EXTRA) is None)
+stubs.comfy.cli_args.args.disable_metadata = False
+
 if __name__ == "__main__":
     print("\nall passed" if not fails else f"\n{len(fails)} failed")
     sys.exit(1 if fails else 0)

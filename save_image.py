@@ -142,3 +142,61 @@ def encode_avif(rgb, alpha, quality, exif, metadata=None):
         _pil(rgb, alpha).save(buf, "AVIF", **kw)
         return buf.getvalue()
     return _avif_pyav(rgb, alpha, quality, metadata)
+
+
+# --------------------------------------------------------------------------- #
+# the workflow in the files, as ComfyUI's own save nodes write it (so dragging a file in loads it)
+# --------------------------------------------------------------------------- #
+def metadata_disabled():
+    """ComfyUI started with --disable-metadata: no workflow in any file or sidecar."""
+    try:
+        from comfy.cli_args import args
+        return bool(getattr(args, "disable_metadata", False))
+    except Exception:
+        return False
+
+
+def png_text(prompt, extra):
+    """PNG tEXt chunks: 'prompt' and one per extra_pnginfo key (e.g. 'workflow'); None when there is nothing."""
+    if metadata_disabled() or (prompt is None and not extra):
+        return None
+    import json
+    out = {}
+    if prompt is not None:
+        out["prompt"] = json.dumps(prompt)
+    for k, v in (extra or {}).items():
+        out[k] = json.dumps(v)
+    return out
+
+
+def comfy_exif(prompt, extra):
+    """EXIF for WebP / AVIF / JPEG: 0x0110 = 'prompt:<json>', then 0x010F, 0x010E, ... = '<key>:<json>' per
+    extra_pnginfo key (ComfyUI's layout). None when there is nothing."""
+    if metadata_disabled() or (prompt is None and not extra):
+        return None
+    import json
+    ex = Image.Exif()
+    if prompt is not None:
+        ex[0x0110] = "prompt:" + json.dumps(prompt)
+    tag = 0x010F
+    for k, v in (extra or {}).items():
+        ex[tag] = f"{k}:{json.dumps(v)}"
+        tag -= 1
+    return ex.tobytes()
+
+
+def workflow_json(extra):
+    """The workflow as a saved workflow file (the JPEG sidecar), or None."""
+    if metadata_disabled() or not extra or extra.get("workflow") is None:
+        return None
+    import json
+    return json.dumps(extra["workflow"])
+
+
+def avif_metadata(prompt, extra):
+    """The dict core's AVIF helper takes (the PyAV route), or None."""
+    if metadata_disabled() or (prompt is None and not extra):
+        return None
+    out = {} if prompt is None else {"prompt": prompt}
+    out.update(extra or {})
+    return out
