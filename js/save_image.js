@@ -74,6 +74,8 @@ app.registerExtension({
                 if (fmt === "webp" && W("webp_lossless")?.value) want.delete("webp_quality");
                 if (masked && fmt !== "jpeg") want.add("invert_mask");
                 let changed = false;
+                const legacy = !app.extensionManager?.setting?.get?.("Comfy.VueNodes.Enabled");
+                const before = legacy ? node.computeSize?.()[1] : 0;
                 for (const n of ALL) {
                     const w = W(n);
                     if (!w) continue;
@@ -86,10 +88,9 @@ app.registerExtension({
                     else w.computeSize = () => [0, -4];
                 }
                 if (changed) {
-                    if (!app.extensionManager?.setting?.get?.("Comfy.VueNodes.Enabled")) {
-                        const h = node.computeSize?.()[1];
-                        if (h) node.setSize([node.size[0], h]);
-                    }
+                    // legacy: grow or shrink by what the fields add or take, so a node made taller by hand stays taller
+                    const after = legacy ? node.computeSize?.()[1] : 0;
+                    if (legacy && after && before) node.setSize([node.size[0], Math.max(after, node.size[1] + after - before)]);
                     node.setDirtyCanvas?.(true, true);
                 }
             }
@@ -132,29 +133,25 @@ app.registerExtension({
             };
 
             keepWidgetValuesByName(node, ALL);
-            let configured = false;
             const onConf = node.onConfigure;
-            node.onConfigure = function () { configured = true; const x = onConf?.apply(this, arguments); setTimeout(sync, 0); return x; };
-            // Settings > Region Genie > Save Image: how a node that was just added starts (not loaded or pasted ones)
-            setTimeout(() => {
-                if (!configured) {
-                    const set = (n, v) => {
-                        const w = W(n);
-                        if (!w || v === undefined || v === null) return;
-                        if (Array.isArray(w.options?.values) && !w.options.values.includes(v)) return;
-                        w.value = v;
-                    };
-                    set("format", getSetting(SET.saveFormat, "png"));
-                    set("png_compression", Math.max(0, Math.min(9, Math.round(+getSetting(SET.savePngLevel, 9)))));
-                    set("webp_lossless", !!getSetting(SET.saveWebpLossless, false));
-                    set("webp_quality", Math.max(1, Math.min(100, Math.round(+getSetting(SET.saveWebpQuality, 90)))));
-                    set("jpeg_quality", Math.max(1, Math.min(100, Math.round(+getSetting(SET.saveJpegQuality, 90)))));
-                    set("jpeg_extension", getSetting(SET.saveJpegExt, ".jpg"));
-                    set("jpeg_workflow", getSetting(SET.saveJpegWorkflow, "sidecar .json"));
-                    set("avif_quality", Math.max(1, Math.min(100, Math.round(+getSetting(SET.saveAvifQuality, 80)))));
-                }
-                sync();
-            }, 0);
+            node.onConfigure = function () { const x = onConf?.apply(this, arguments); setTimeout(sync, 0); return x; };
+            // Settings > Region Genie > Save Image: how a new node starts. Set right away, while the node is being made:
+            // a saved, pasted or API-format workflow sets its own values afterwards and so keeps them
+            const set = (n, v) => {
+                const w = W(n);
+                if (!w || v === undefined || v === null) return;
+                if (Array.isArray(w.options?.values) && !w.options.values.includes(v)) return;
+                w.value = v;
+            };
+            set("format", getSetting(SET.saveFormat, "png"));
+            set("png_compression", Math.max(0, Math.min(9, Math.round(+getSetting(SET.savePngLevel, 9)))));
+            set("webp_lossless", !!getSetting(SET.saveWebpLossless, false));
+            set("webp_quality", Math.max(1, Math.min(100, Math.round(+getSetting(SET.saveWebpQuality, 90)))));
+            set("jpeg_quality", Math.max(1, Math.min(100, Math.round(+getSetting(SET.saveJpegQuality, 90)))));
+            set("jpeg_extension", getSetting(SET.saveJpegExt, ".jpg"));
+            set("jpeg_workflow", getSetting(SET.saveJpegWorkflow, "sidecar .json"));
+            set("avif_quality", Math.max(1, Math.min(100, Math.round(+getSetting(SET.saveAvifQuality, 80)))));
+            setTimeout(sync, 0);
             return r;
         };
     },

@@ -84,6 +84,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const jpegMask = (await shown()).names;
     check(`${M}: invert_mask shows with a mask linked, not for jpeg`, withMask.includes("invert_mask") && !jpegMask.includes("invert_mask"));
 
+    // a node made taller by hand keeps its height when the format changes (legacy; Nodes 2.0 sizes itself)
+    const hgt = await page.evaluate(async () => {
+        const sv = window.__sv, set = (k, v) => { const w = sv.widgets.find((x) => x.name === k); w.value = v; w.callback?.(v); };
+        sv.setSize([sv.size[0], 700]);
+        set("format", "avif"); await new Promise((r) => setTimeout(r, 200));
+        set("format", "png"); await new Promise((r) => setTimeout(r, 200));
+        return Math.round(sv.size[1]);
+    });
+    if (!vue) check(`${M}: a hand-enlarged node keeps its height when the format changes (${hgt})`, hgt >= 700);
+
     // every input has a tooltip
     const tips = await page.evaluate(() => {
         const d = window.__sv.constructor.nodeData;
@@ -156,6 +166,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: dropping the AVIF loads its workflow`, back.avif);
     check(`${M}: dropping the JPEG's .json loads its workflow`, back.json);
     check(`${M}: the PNG has the mask's transparency (alpha ${back.alpha})`, Math.abs(back.alpha - 191) <= 1);
+
+    // an API-format workflow keeps the node's values (not the Settings defaults)
+    const api = await page.evaluate(async () => {
+        window.app.graph.clear();
+        await window.app.loadApiJson({
+            "2": { class_type: "EmptyImage", inputs: { width: 64, height: 48, batch_size: 1, color: 0 } },
+            "1": { class_type: "Region-Genie_SaveImage", inputs: { images: ["2", 0], filename_prefix: "api", format: "jpeg", png_compression: 5,
+                   png_bit_depth: "16-bit", webp_lossless: true, webp_quality: 41, jpeg_quality: 60, jpeg_extension: ".jpeg",
+                   jpeg_workflow: "none", avif_quality: 33 } },
+        }, "api.json");
+        await new Promise((r) => setTimeout(r, 1200));
+        const n = window.app.graph.nodes.find((x) => x.type === "Region-Genie_SaveImage");
+        return Object.fromEntries((n?.widgets || []).filter((w) => w.name !== "rg_saved").map((w) => [w.name, w.value]));
+    });
+    check(`${M}: an API-format workflow keeps the node's values (${JSON.stringify(api)})`, api.format === "jpeg" && api.jpeg_quality === 60
+        && api.jpeg_extension === ".jpeg" && api.jpeg_workflow === "none" && api.png_compression === 5 && api.webp_lossless === true && api.avif_quality === 33);
 
     await page.screenshot({ path: path.join(__dirname, "out", `real_save_${vue ? "vue" : "legacy"}.png`) });
     check(`${M}: no page errors` + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""), !errors.length);

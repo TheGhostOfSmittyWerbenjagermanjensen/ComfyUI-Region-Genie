@@ -67,7 +67,17 @@ def _png16(rgb, alpha, level, text):
         px = np.concatenate([px, np.round(np.clip(np.asarray(alpha, np.float32), 0, 1) * 65535)[..., None]], -1)
     h, w, c = px.shape
     rows = px.astype(">u2").reshape(h, w * c).view(np.uint8).reshape(h, w * c * 2)
-    raw = np.concatenate([np.zeros((h, 1), np.uint8), rows], 1).tobytes()
+    # each row's filter (PNG: 0 none, 1 Sub, 2 Up), picked by the usual smallest-sum-of-differences rule
+    bpp = c * 2
+    sub = rows.copy()
+    sub[:, bpp:] = rows[:, bpp:] - rows[:, :-bpp]
+    up = rows.copy()
+    up[1:] = rows[1:] - rows[:-1]
+    cand = np.stack([rows, sub, up])                       # uint8 arithmetic wraps mod 256, as PNG wants
+    score = np.minimum(cand, 256 - cand.astype(np.int32)).sum(2)
+    pick = score.argmin(0)
+    filt = cand[pick, np.arange(h)]
+    raw = np.concatenate([pick.astype(np.uint8)[:, None], filt], 1).tobytes()
     out = [b"\x89PNG\r\n\x1a\n", _chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 16, 6 if c == 4 else 2, 0, 0, 0))]
     for k, v in (text or {}).items():
         out.append(_chunk(b"tEXt", k.encode("latin-1", "replace") + b"\x00" + v.encode("latin-1", "replace")))
@@ -93,6 +103,8 @@ def encode_png(rgb, alpha, level, bits, text):
 def encode_webp(rgb, alpha, lossless, quality, exif):
     buf = io.BytesIO()
     kw = {"lossless": True, "quality": 100, "method": 6} if lossless else {"quality": int(quality), "method": 6}
+    if lossless and alpha is not None:
+        kw["exact"] = True                         # keep the colors under fully transparent pixels too
     if exif:
         kw["exif"] = exif
     _pil(rgb, alpha).save(buf, "WEBP", **kw)
@@ -104,12 +116,24 @@ def encode_jpeg(rgb, quality, exif):
     kw = {"quality": int(quality), "optimize": True, "subsampling": 0 if int(quality) >= 90 else 2}
     if exif:
         kw["exif"] = exif
+    img = _pil(rgb, None)
     try:
-        _pil(rgb, None).save(buf, "JPEG", **kw)
+        img.save(buf, "JPEG", **kw)
     except ValueError as e:
         if "too long" in str(e).lower():
             raise ExifTooLong(str(e)) from e
         raise
+    except OSError:
+        # optimize=True needs the whole file in one buffer (Pillow: width x height bytes, x2 from q95); a detailed
+        # image at high quality can be bigger: once more with a buffer large enough for any JPEG of this size
+        from PIL import ImageFile
+        keep = ImageFile.MAXBLOCK
+        try:
+            ImageFile.MAXBLOCK = max(keep, img.size[0] * img.size[1] * 4 + len(exif or b"") + 65536)
+            buf = io.BytesIO()
+            img.save(buf, "JPEG", **kw)
+        finally:
+            ImageFile.MAXBLOCK = keep
     return buf.getvalue()
 
 
@@ -216,7 +240,8 @@ def next_counter(folder, prefix):
     """The node's own file number: the highest existing '<prefix>_NNNNN.<any ext>' + 1 (%batch_num% matches any
     number). Older ComfyUI versions only count core's '<prefix>_NNNNN_.png' names."""
     import re
-    pat = re.compile("^" + re.escape(prefix).replace(re.escape("%batch_num%"), r"\d+") + r"_(\d{5,})\.[^.]+$")
+    # case ignored: on Windows / macOS 'ComfyUI_00001.png' and 'comfyui_00001.png' are the same file
+    pat = re.compile("^" + re.escape(prefix).replace(re.escape("%batch_num%"), r"\d+") + r"_(\d{5,})\.[^.]+$", re.IGNORECASE)
     best = 0
     try:
         for f in os.listdir(folder):
@@ -316,18 +341,20 @@ class SaveImageRG:
             if n not in notes:
                 notes.append(n)
 
-        def write(name, data):
-            with open(os.path.join(folder, name), "wb") as f:
+        def write(name, data, exclusive=False):
+            with open(os.path.join(folder, name), "xb" if exclusive else "wb") as f:
                 f.write(data)
             saved.append({"name": name, "bytes": len(data)})
+
+        bump = 0                                   # names found taken while saving (never overwrite a file)
 
         for i in range(b):
             rgb = arr[i, :, :, :3]
             if rgb.shape[-1] < 3:
                 rgb = np.repeat(rgb[..., :1], 3, -1)
             alpha = mask_alpha(mask, i, h, w, bool(invert_mask))
-            stem = f"{base.replace('%batch_num%', str(i))}_{counter + i:05}"
-            name = stem + ext
+            if alpha is None and arr.shape[-1] == 4:   # an RGBA image (Join Image with Alpha ...): its own alpha
+                alpha = np.clip(arr[i, :, :, 3], 0, 1)
             sidecar = None
             if fmt == "png":
                 data = encode_png(rgb, alpha, int(png_compression), 16 if png_bit_depth == "16-bit" else 8,
@@ -351,7 +378,17 @@ class SaveImageRG:
                     note(NOTE_EXIF)
                     data = encode_jpeg(rgb, int(jpeg_quality), None)
                     sidecar = workflow_json(extra_pnginfo)
-            write(name, data)
+            while True:
+                stem = f"{base.replace('%batch_num%', str(i))}_{counter + i + bump:05}"
+                name = stem + ext
+                if sidecar is not None and os.path.exists(os.path.join(folder, stem + ".json")):
+                    bump += 1
+                    continue
+                try:
+                    write(name, data, exclusive=True)
+                    break
+                except FileExistsError:
+                    bump += 1
             if sidecar is not None:
                 write(stem + ".json", sidecar.encode("utf-8"))
             results.append({"filename": name, "subfolder": subfolder, "type": "output"})

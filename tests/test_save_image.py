@@ -31,12 +31,30 @@ def png_chunks(data):
     return out
 
 
-def png16_pixels(data, channels):
+def png16_pixels(data, channels, h=H, w=W):
+    """Decode 16-bit IDAT rows with filter types 0 (none), 1 (Sub) and 2 (Up)."""
     raw = zlib.decompress(b"".join(d for k, d in png_chunks(data) if k == b"IDAT"))
-    row = 1 + W * channels * 2
-    rows = [raw[i * row:(i + 1) * row] for i in range(H)]
-    assert all(r[0] == 0 for r in rows)
-    return np.frombuffer(b"".join(r[1:] for r in rows), ">u2").reshape(H, W, channels)
+    row, bpp = 1 + w * channels * 2, channels * 2
+    prev = np.zeros(row - 1, np.uint8)
+    out = []
+    for i in range(h):
+        ft, cur = raw[i * row], np.frombuffer(raw[i * row + 1:(i + 1) * row], np.uint8).copy()
+        if ft == 1:
+            for j in range(bpp, len(cur)):
+                cur[j] = (int(cur[j]) + int(cur[j - bpp])) & 255
+        elif ft == 2:
+            cur = ((cur.astype(np.int32) + prev) & 255).astype(np.uint8)
+        else:
+            assert ft == 0, ft
+        out.append(cur)
+        prev = cur
+    return np.frombuffer(b"".join(r.tobytes() for r in out), ">u2").reshape(h, w, channels)
+
+
+def png_filters(data, h, w, channels):
+    raw = zlib.decompress(b"".join(d for k, d in png_chunks(data) if k == b"IDAT"))
+    row = 1 + w * channels * 2
+    return {raw[i * row] for i in range(h)}
 
 
 # ---------------------------------------------------------------- PNG
@@ -241,6 +259,60 @@ check("defaults as the design", dflt == {"filename_prefix": "ComfyUI", "format":
       "jpeg_workflow": "sidecar .json", "avif_quality": 80})
 check("node: output node, IMAGE passthrough, Region Genie category", si.SaveImageRG.OUTPUT_NODE is True
       and si.SaveImageRG.RETURN_TYPES == ("IMAGE",) and si.SaveImageRG.CATEGORY == "Region Genie")
+
+# ---------------------------------------------------------------- final review fixes
+rng = np.random.default_rng(1)
+gy, gx = np.mgrid[0:768, 0:768]
+NOISY = np.clip(np.stack([gx / 767, gy / 767, (gx + gy) / 1534], -1) + rng.normal(0, 0.1, (768, 768, 3)), 0, 1).astype(np.float32)
+ok = True
+for q in (90, 94, 100):
+    try:
+        ok &= Image.open(io.BytesIO(si.encode_jpeg(NOISY, q, None))).size == (768, 768)
+    except Exception as e:
+        ok = False
+        print("   ", q, type(e).__name__, e)
+check("jpeg: a detailed, grainy 768x768 image saves at q90, q94 and q100", ok)
+ex60 = Image.Exif()
+ex60[0x010F] = "workflow:" + "x" * 60000
+try:
+    small_ok = len(si.encode_jpeg(RGB, 95, ex60.tobytes())) > 60000
+except si.ExifTooLong:
+    small_ok = True                                    # too long is fine (the node falls back to the sidecar)
+except Exception as e:
+    small_ok = False
+    print("   ", type(e).__name__, e)
+check("jpeg: a small image with a 60 KB EXIF saves (or reports too long), never another error", small_ok)
+SM = np.clip(np.stack([gx[:256, :256] / 255, gy[:256, :256] / 255, (gx[:256, :256] * gy[:256, :256]) / 65025], -1)
+             + rng.normal(0, 0.004, (256, 256, 3)), 0, 1).astype(np.float32)
+p16 = si.encode_png(SM, None, 9, 16, None)
+plain = len(zlib.compress(np.concatenate([np.zeros((256, 1), np.uint8), np.round(SM * 65535).astype(">u2").reshape(256, -1).view(np.uint8)], 1).tobytes(), 9))
+check("png 16-bit: row filters make a smooth image smaller than no filtering", len(p16) < plain * 0.95 and png_filters(p16, 256, 256, 3) - {0})
+check("png 16-bit with filters is still exact", (png16_pixels(p16, 3, 256, 256) == np.round(SM * 65535)).all())
+check("png 16-bit with alpha and filters is exact", (png16_pixels(si.encode_png(SM, SM[..., 0], 9, 16, None), 4, 256, 256)[..., 3]
+      == np.round(SM[..., 0] * 65535)).all())
+hid = ALPHA.copy()
+hid[:, :8] = 0
+wex = np.asarray(Image.open(io.BytesIO(si.encode_webp(RGB, hid, True, 90, None))))
+check("webp lossless keeps the colors under fully transparent pixels", (wex[..., :3] == U8).all())
+open(os.path.join(OUT, "ComfyUI_00030.png"), "wb").close()
+check("counter ignores case (Windows / macOS treat ComfyUI and comfyui as one name)", si.next_counter(OUT, "comfyui") == 31)
+keep = os.path.join(OUT, "r", "x_00001.png")
+os.makedirs(os.path.dirname(keep), exist_ok=True)
+open(keep, "wb").write(b"original")
+_nc = si.next_counter
+si.next_counter = lambda f, p: 1                      # as if another save took the number meanwhile
+o = save(images=IMGS[:2], filename_prefix="r/x")
+si.next_counter = _nc
+check("never overwrites: a taken name moves to the next number", open(keep, "rb").read() == b"original"
+      and files("r") == ["x_00001.png", "x_00002.png", "x_00003.png"] and [x["filename"] for x in o["ui"]["images"]] == ["x_00002.png", "x_00003.png"])
+RGBA4 = np.concatenate([np.stack([RGB, RGB]), np.stack([ALPHA, ALPHA])[..., None]], -1).astype(np.float32).view(T)
+save(images=RGBA4, filename_prefix="a/p")
+ap = Image.open(os.path.join(OUT, "a", "p_00001.png"))
+check("an RGBA image (4 channels) keeps its transparency", ap.mode == "RGBA" and (np.asarray(ap)[..., 3] == np.round(ALPHA * 255)).all())
+save(images=RGBA4[:1], filename_prefix="a/m", mask=np.ones((H, W), np.float32).view(T), invert_mask=True)
+check("a connected mask wins over the image's own alpha", np.asarray(Image.open(os.path.join(OUT, "a", "m_00001.png")))[..., 3].min() == 255)
+o = save(images=RGBA4[:1], filename_prefix="a/j", format="jpeg")
+check("an RGBA image saved as JPEG: the transparency note", si.NOTE_JPEG_MASK in o["ui"]["rg_saved"][0]["notes"])
 
 if __name__ == "__main__":
     print("\nall passed" if not fails else f"\n{len(fails)} failed")
