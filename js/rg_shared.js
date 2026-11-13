@@ -211,34 +211,36 @@ export const CONTROL_DOWNLOADS = {
 };
 // a Setting's tooltip: what this kind of file does, how it is used, and where to get it
 export function controlFileHelp(key, folder, model, tag) {
-    const what = key === "MOSS" ? "MOSS Image's color / depth control adapter (a LoRA): it reads the regions' color map and / or a depth map, "
+    // three lines: what it is, how the Control row uses it, where to get it
+    const what = key === "MOSS" ? "MOSS Image's color / depth control adapter (a LoRA). It reads the regions' color map and / or a depth map, "
             + "VAE-encoded next to the image (needs 'vae')."
-        : tag ? "Black Forest Labs' structural LoRA for Flux.1 [dev]: the map is VAE-encoded next to the image (needs 'vae'); the LoRA's "
+        : tag ? "Black Forest Labs' structural LoRA for Flux.1 [dev]. The map is VAE-encoded next to the image (needs 'vae'); the LoRA's "
             + "strength in Whole image is the control's strength."
-        : folder === "controlnet" ? "A ControlNet: a separate network that reads the map and steers the model at each step, with the Control "
+        : folder === "controlnet" ? "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control "
             + "row's strength and start / end (also Control-LoRA and union files)."
-        : folder === "model_patches" ? "An Anima LLLite patch: a small control network on the model; it takes the region mask itself."
-        : "ComfyUI's Depth Anything 3: makes the depth map (near = white) from 'image' when no control_image is connected.";
-    const use = tag ? ` Turning on a node's Control row adds it to 'Whole image' (marked 'Control') for ${model} models; turning it off removes it.`
-        : model ? ` Used by the Control row when the model is ${model}.` : "";
+        : folder === "model_patches" ? "An Anima LLLite patch, a small control network on the model. It takes the region mask itself."
+        : "ComfyUI's Depth Anything 3. It makes the depth map (near = white) from 'image' when no control_image is connected.";
+    const use = tag ? `\nTurning on a node's Control row adds it to 'Whole image' (marked 'Control') for ${model} models; turning it off removes it.`
+        : model ? `\nUsed by the Control row when the model is ${model}.` : "";
     const d = CONTROL_DOWNLOADS[key];
-    const get = d ? ` Get ${d.file}: ${d.url}${d.note ? ` (${d.note})` : ""}, into ComfyUI/models/${folder}.` : ` Files go in ComfyUI/models/${folder}.`;
+    const get = d ? `\nGet ${d.file} into ComfyUI/models/${folder}${d.note ? ` (${d.note[0].toUpperCase() + d.note.slice(1)})` : ""}: ${d.url}`
+        : `\nFiles go in ComfyUI/models/${folder}.`;
     return what + use + get;
 }
 export const controlFolder = (key) => (CONTROL_FILES.find((x) => x[0] === key) || [])[2] || "";
 export const controlLabel = (key) => (CONTROL_FILES.find((x) => x[0] === key) || [])[1] || key;
 // what each kind does (tooltips and the Control details)
 export const CONTROL_KIND_HELP = {
-    color: "Color map (MOSS Image): a shape map. Each flat color marks one region; the colors are only IDs, not the colors to paint "
+    color: "Color map (MOSS Image): A shape map. Each flat color marks one region; the colors are only IDs, not the colors to paint "
         + "(the region's prompt says what it is and what color). The model follows the painted outlines, also rough ones: a "
         + "rectangle drawn for a person pushes towards a person filling that rectangle. End % below 100 (e.g. 30–50) keeps the "
         + "layout and lets the shapes loosen at the end; strength below 1 pulls less.",
-    "color+depth": "Color map + depth (MOSS Image): the regions' outlines (see color map) and how far away things are (near = white).",
-    depth: "Depth: a grey map of distances (near = white). The model keeps the 3D layout (what is in front, the shape of the room or "
+    "color+depth": "Color map + depth (MOSS Image): The regions' outlines (see color map) and how far away things are (near = white).",
+    depth: "Depth: A grey map of distances (near = white). The model keeps the 3D layout (what is in front, the shape of the room or "
         + "the land) but is free with textures, colors and details.",
-    canny: "Canny: the edge lines of a picture. The model keeps the outlines and composition closely, so it's good for redrawing a "
+    canny: "Canny: The edge lines of a picture. The model keeps the outlines and composition closely, so it's good for redrawing a "
         + "picture in another style; it follows the lines more strictly than depth.",
-    other: "Your control_image: any map made with other nodes (pose skeletons, lineart, scribble, segmentation …). The file set for "
+    other: "Your control_image: Any map made with other nodes (pose skeletons, lineart, scribble, segmentation …). The file set for "
         + "'other' must read that kind of map (a union ControlNet reads several).",
 };
 setTimeout(() => { for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f); }, 0);
@@ -479,8 +481,8 @@ function attachWildcardComplete(el) {
 // The wildcard seed control: a seed field, what happens to it after each run (fixed / randomize / increment, like
 // ComfyUI's 'control after generate'), and a preview. It drives the node's hidden 'wildcard_seed' widget.
 // host: { fields(): {key: text}, onFilled(filled, preview), useAll(), extraMenu?: [[label, fn]] }
-const WC_MODES = { fixed: ["lock", "fixed: the seed stays as it is"], randomize: ["dice", "randomize: a new random seed after each run"],
-                   increment: ["plusOne", "increment: the seed goes up by 1 after each run"] };
+const WC_MODES = { fixed: ["lock", "fixed: The seed stays as it is."], randomize: ["dice", "randomize: A new random seed after each run."],
+                   increment: ["plusOne", "increment: The seed goes up by 1 after each run."] };
 export function wildcardSeedControl(node, mk, host) {
     const box = mk("span", "rg-wc");
     box.style.display = "none";
@@ -502,7 +504,7 @@ export function wildcardSeedControl(node, mk, host) {
         node.properties = node.properties || {}; node.properties.rg_wc_mode = next;
         refresh(); app.graph?.change?.();
     });
-    const prevBtn = btn("eye", "Preview: fill the wildcards with this seed now (without running); hover a field to see "
+    const prevBtn = btn("eye", "Preview: Fill the wildcards with this seed now (without running); hover a field to see "
         + "what it becomes. Right-click for more.", () => preview());
     box.append(lbl, inp, modeBtn, prevBtn);
     const used = () => Object.values(host.fields() || {}).some((t) => hasWildcards(t));
@@ -559,9 +561,9 @@ export function wildcardSeedControl(node, mk, host) {
         if (document.activeElement !== inp && seedW) inp.value = String(seedW.value ?? 0);
         const [icon, t] = WC_MODES[mode()];
         if (modeBtn.dataset.mode !== mode()) { modeBtn.innerHTML = svgIcon(icon); modeBtn.dataset.mode = mode(); }
-        modeBtn.title = `After each run (when a field has wildcards): ${t}. Click to change.`;
+        modeBtn.title = `After each run (when a field has wildcards):\n${t}\nClick to change.`;
         const u = used();
-        lbl.title = inp.title = "Wildcard seed (ComfyUI Impact Pack): fills __name__ and {a|b} in this node's prompt fields"
+        lbl.title = inp.title = "Wildcard seed (ComfyUI Impact Pack): Fills __name__ and {a|b} in this node's prompt fields"
             + (u ? "." : ". No field has wildcards right now, so it isn't used.") + " Right-click for more.";
         box.classList.toggle("idle", !u);
     }
@@ -655,8 +657,8 @@ export function keyLabel(text) {
 // the tooltip of a pop-up's ◀ / ▶: what it does, and its key
 export function popNavTip(dir, what) {
     const k = keyLabel(popKeyText(dir));
-    return (dir < 0 ? `The previous text field of this node (${what}), in this place and size. From the first: the last one.`
-                    : `The next text field of this node (${what}), in this place and size. From the last: the first one.`)
+    return (dir < 0 ? `The previous text field of this node (${what}), in this place and size (from the first one, the last one).`
+                    : `The next text field of this node (${what}), in this place and size (from the last one, the first one).`)
         + (k ? `\nKey: ${k} (Settings > Region Genie > Text size).` : "");
 }
 // the owner node is gone, or not on the canvas any more (another workflow tab, or into / out of a subgraph)
@@ -695,16 +697,16 @@ export function openFloatPopup(o) {
     wc.style.display = wildcardsInstalled() ? "" : "none";
     const use = btn("icon", svgIcon("useFilled"), "", () => { const f = o.filled?.(ta.value); if (f != null) { ta.value = f; o.onInput(f); syncUse(); } });
     const syncUse = () => { const f = o.filled?.(ta.value); use.style.display = f != null ? "" : "none";
-        use.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : ""; };
+        use.title = f != null ? `Use the filled text: Replace the wildcards with what they produced (last run or preview):\n${f}` : ""; };
     const x = btn("rg-x", "✕", "Close (Enter / Esc)", () => close(true));
     const geom = () => ({ left: box.offsetLeft, top: box.offsetTop, width: box.offsetWidth, height: box.offsetHeight });
     const prev = btn("rg-nav", "◀", popNavTip(-1, o.navWhat || "in order"), () => o.nav(-1, geom()));
     const next = btn("rg-nav", "▶", popNavTip(1, o.navWhat || "in order"), () => o.nav(1, geom()));
     if (!o.nav) prev.style.display = next.style.display = "none";
     head.append(title, prev, next, fm, fp, use, wc, x);
-    head.title = "Drag to move (anywhere on the screen). Double-click: back next to the field";
+    head.title = "Drag to move (anywhere on the screen).\nDouble-click: Back next to the field.";
     const foot = mk("div", "rg-fpop-foot", o.hint || popFootText(!!o.nav));
-    const grip = mk("div", "rg-fpop-grip"); grip.title = "Drag to resize (remembered). Double-click: the default size";
+    const grip = mk("div", "rg-fpop-grip"); grip.title = "Drag to resize (remembered).\nDouble-click: Back to the default size.";
     box.append(head, ta, foot, grip);
     for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "contextmenu", "keyup", "keypress"]) box.addEventListener(ev, (e) => e.stopPropagation());
     box.dataset.captureWheel = "true";
@@ -1192,10 +1194,11 @@ const SETTINGS = [
         },
         {
             id: SET.llmCacheDisk, name: "Keep LLM results on disk between ComfyUI restarts", type: "boolean", defaultValue: false,
-            tooltip: "Off (default): enhanced prompts are kept in memory for this session, and in each workflow that used "
+            tooltip: "Off (default): Enhanced prompts are kept in memory for this session, and in each workflow that used "
                 + "them (a saved workflow brings its own results back when it is opened), so re-running a workflow never "
-                + "needs the LLM again. On: they are also saved to <ComfyUI user dir>/region_genie/llm_cache.json, which "
-                + "only helps workflows queued through the API without opening them. Turning this off deletes that file.",
+                + "needs the LLM again.\n"
+                + "On: They are also saved to <ComfyUI user dir>/region_genie/llm_cache.json, which only helps workflows "
+                + "queued through the API without opening them. Turning this off deletes that file.",
             category: CAT("LLM cache", "1 disk"),
             onChange: (v) => postLlmCache({ [SET.llmCacheDisk]: v }),
         },
@@ -1234,8 +1237,10 @@ const SETTINGS = [
         {
             id: SET.toolWand, name: "Magic wand: default", type: "combo", defaultValue: "contiguous",
             options: [{ text: "Connected area of similar color", value: "contiguous" }, { text: "Every similar color in the image", value: "global" }],
-            tooltip: "What a click with the magic wand selects in the image: the connected area of similar color around "
-                + "the click, or every pixel of similar color. Right-clicking the button still switches it for the session.",
+            tooltip: "What a click with the magic wand selects in the image.\n"
+                + "Connected area: The area of similar color around the click.\n"
+                + "All similar colors: Every pixel of similar color.\n"
+                + "Right-clicking the button still switches it for the session.",
             category: CAT("Canvas tools", "3 wand"),
             onChange: (v) => toolChanged("wand", v),
         },
@@ -1250,15 +1255,15 @@ const SETTINGS = [
         {
             id: SET.toolFill, name: "Fill: default", type: "combo", defaultValue: "normal",
             options: [{ text: "Fill", value: "normal" }, { text: "Fill, closing small gaps", value: "gaps" }],
-            tooltip: "Closing small gaps: the fill doesn't leak out through openings narrower than about twice the gap size "
-                + "(set next to the Fill button). Right-clicking the button still switches it for the session.",
+            tooltip: "Closing small gaps: The fill doesn't leak out through openings narrower than about twice the gap size "
+                + "(set next to the Fill button).\nRight-clicking the button still switches it for the session.",
             category: CAT("Canvas tools", "5 fill"),
             onChange: (v) => toolChanged("fill", v),
         },
         {
             id: SET.toolFillGap, name: "Fill: gap size (px)", type: "number", defaultValue: 4,
             attrs: { min: 1, max: 64, step: 1 },
-            tooltip: "Fill, closing small gaps: openings narrower than about twice this many pixels are closed.",
+            tooltip: "Fill, closing small gaps: Openings narrower than about twice this many pixels are closed.",
             category: CAT("Canvas tools", "6 fill gap"),
             onChange: (v) => toolChanged("fillGap", v),
         },
@@ -1273,16 +1278,16 @@ const SETTINGS = [
             id: SET.samKeep, name: "After a selection", type: "combo", defaultValue: "keep loaded",
             options: [{ text: "Keep the model loaded (faster next time)", value: "keep loaded" },
                 { text: "Unload the model after each selection", value: "unload" }],
-            tooltip: "Keep loaded: the model stays in memory for the session (about 1.7 GB). ComfyUI still moves it out of "
-                + "VRAM into system RAM when a workflow needs the room, and back on the next click. Unload: the model is "
-                + "freed when you accept or cancel a selection (and after 3 idle minutes), so each new selection loads it "
-                + "from disk again.",
+            tooltip: "Keep loaded: The model stays in memory for the session (about 1.7 GB). ComfyUI still moves it out of "
+                + "VRAM into system RAM when a workflow needs the room, and back on the next click.\n"
+                + "Unload: The model is freed when you accept or cancel a selection (and after 3 idle minutes), so each new "
+                + "selection loads it from disk again.",
             category: CAT("Select object", "2 keep"),
         },
         {
             id: SET.samThreshold, name: "Find all: confidence", type: "slider", defaultValue: 0.5,
             attrs: { min: 0.05, max: 0.95, step: 0.05 },
-            tooltip: "Find all (typed text): how sure SAM must be that something matches to select it. Lower finds more "
+            tooltip: "Find all (typed text): How sure SAM must be that something matches to select it. Lower finds more "
                 + "(and more wrong things), higher finds fewer.",
             category: CAT("Select object", "3 threshold"),
         },
@@ -1302,21 +1307,24 @@ const SETTINGS = [
                 + `Default: ${dflt === "PageUp" ? "Page Up" : "Page Down"}.\n`
                 + "Write a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, "
                 + "Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\n"
-                + "Empty: no key. Applies to every Region Genie and Regional LoRAs node.",
+                + "Empty: No key. Applies to every Region Genie and Regional LoRAs node.",
             category: CAT("Text size", ord) })),
         { id: SET.popEscKeeps, name: "Esc in a pop-up editor", type: "combo", defaultValue: "put the text back",
           options: ["put the text back", "keep the edits"],
-          tooltip: "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node). Put the text back: "
-              + "Esc closes it and the text is as it was when it opened (Enter and ✕ keep the edits). Keep the edits: Esc, "
-              + "Enter and ✕ all close it and keep the text.", category: CAT("Text size", "7 esc") },
+          tooltip: "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node).\n"
+              + "Put the text back: Esc closes it and the text is as it was when it opened (Enter and ✕ keep the edits).\n"
+              + "Keep the edits: Esc, Enter and ✕ all close it and keep the text.", category: CAT("Text size", "7 esc") },
         { id: SET.wcPerField, name: "A seed per field", type: "boolean", defaultValue: false,
-          tooltip: "Off: every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing "
-              + "one seed), so the same wildcard in two fields usually picks the same value. On: each field gets its own seed, "
-              + "derived from the wildcard seed and the field, so they pick independently (still the same result for the same seed).",
+          tooltip: "Off: Every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing "
+              + "one seed), so the same wildcard in two fields usually picks the same value.\n"
+              + "On: Each field gets its own seed, derived from the wildcard seed and the field, so they pick independently "
+              + "(still the same result for the same seed).",
           category: CAT("Wildcards (Impact Pack)", "1 per field") },
         { id: SET.sizeMode, name: "Image size: mode", type: "combo", defaultValue: "aspect ratio", options: ["aspect ratio", "presets", "manual"],
-          tooltip: "How a new node's image size is set: aspect ratio + megapixels (like ComfyUI's Resolution Selector), a size from "
-              + "the presets list, or width and height typed in. " + NEW_NODES, category: CAT("Image size", "1 mode") },
+          tooltip: "How a new node's image size is set.\n"
+              + "aspect ratio: An aspect ratio and megapixels (like ComfyUI's Resolution Selector).\n"
+              + "presets: A size from the presets list.\n"
+              + "manual: Width and height typed in.\n" + NEW_NODES, category: CAT("Image size", "1 mode") },
         { id: SET.sizeAspect, name: "Aspect ratio", type: "combo", defaultValue: SIZE_ASPECTS[0][0], options: SIZE_ASPECTS.map((a) => a[0]),
           tooltip: NEW_NODES, category: CAT("Image size", "2 aspect") },
         { id: SET.sizeMegapixels, name: "Megapixels", type: "number", defaultValue: 1, attrs: { min: 0.1, max: 16, step: 0.01 },
@@ -1325,14 +1333,14 @@ const SETTINGS = [
           tooltip: "Width and height are rounded to a multiple of this. " + NEW_NODES, category: CAT("Image size", "4 multiple") },
         { id: SET.sizePresets, name: "Presets", type: "text", defaultValue: SIZE_PRESETS_DEFAULT,
           tooltip: "The sizes in the presets list of every Region Genie node, separated by ';', each as WIDTHxHEIGHT and an optional "
-              + "name (e.g. '1216x832 landscape'). Easier to edit from the node: the last entry of its presets list, 'Edit list…'.",
+              + "name (e.g. '1216x832 landscape'). It's easier to edit from the node, with the last entry of its presets list, 'Edit list…'.",
           category: CAT("Image size", "5 presets") },
         { id: SET.cmWidth, name: "Manual: width", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Image size", "6 width") },
         { id: SET.cmHeight, name: "Manual: height", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Image size", "7 height") },
         { id: SET.cmImageMode, name: "image_mode", type: "combo", defaultValue: "backdrop (trace over)", options: ["backdrop (trace over)", "use as color map"], tooltip: NEW_NODES, category: CAT("Region Genie node", "03 image") },
         {
             id: SET.cmMinPixels, name: "Color map: min region pixels", type: "number", defaultValue: 64, attrs: { min: 1, max: 1000000, step: 1 },
-            tooltip: "With the image used as a color map: a color becomes a region when it has at least this many flat pixels "
+            tooltip: "With the image used as a color map, a color becomes a region when it has at least this many flat pixels "
                 + "(blended edges and specks go to the nearest region). Applies to every Region Genie node at its next run; "
                 + "the node's image control shows it too while 'color map' is chosen.",
             category: CAT("Region Genie node", "04 min"),
@@ -1340,9 +1348,9 @@ const SETTINGS = [
         {
             id: SET.cmImportMode, name: "import_json when the canvas isn't empty", type: "combo", defaultValue: "ask before replacing",
             options: ["ask before replacing", "always replace"],
-            tooltip: "Ask before replacing: the run keeps the canvas and the node asks (Replace canvas / Keep canvas). Always "
-                + "replace: the new layout replaces the canvas right away. An empty canvas is always filled. Applies to every "
-                + "Region Genie node at its next run.",
+            tooltip: "Ask before replacing: The run keeps the canvas and the node asks (Replace canvas / Keep canvas).\n"
+                + "Always replace: The new layout replaces the canvas right away.\n"
+                + "An empty canvas is always filled. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "05 import"),
         },
         { id: SET.cmFeather, name: "Feather (px, linked regions)", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "06 feather") },
@@ -1401,11 +1409,11 @@ const SETTINGS = [
         })),
         ...EDIT_MODELS.filter((m) => m[2]).map(([name, key], i) => ({
             id: SET.editRef + "." + key, name: `${name}: send the source image as a reference`, type: "boolean", defaultValue: true,
-            tooltip: `In Edit Mode, the source image (on 'image') is also given to ${name} as a reference image `
+            tooltip: `On: In Edit Mode, the source image (on 'image') is also given to ${name} as a reference image `
                 + "(reference_latents on positive and negative), as edit models such as "
                 + ({ MOSS: "MOSS Image Edit", Krea2: "Krea 2 edit packs", Flux1: "Flux.1 Kontext", Flux2: "Flux.2 / Klein", Flux3: "Flux 3" }[key])
-                + " expect. Off: image-to-image from the latent only."
-                + (key === "Flux1" ? " Flux.1 dev and Kontext can't be told apart: turn this off for plain Flux.1 dev." : ""),
+                + " expect.\nOff: Image-to-image from the latent only."
+                + (key === "Flux1" ? "\nFlux.1 dev and Kontext can't be told apart; turn this off for plain Flux.1 dev." : ""),
             category: CAT("Edit Mode", "2 ref " + i),
         })),
         {
@@ -1444,16 +1452,16 @@ const SETTINGS = [
         { id: SET.hlShareBg, name: "share_background", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "6 share background") },
         // Save Image (Region Genie): how a new node starts
         { id: SET.saveFormat, name: "format", type: "combo", defaultValue: "png", options: ["png", "webp", "jpeg", "avif"],
-          tooltip: "png: lossless. webp: lossless or a quality, much smaller. jpeg: a quality, small. avif: a quality, smallest. " + NEW_NODES,
+          tooltip: "png: Lossless.\nwebp: Lossless or a quality, much smaller.\njpeg: A quality, small.\navif: A quality, smallest.\n" + NEW_NODES,
           category: CAT("Save Image", "1 format") },
         { id: SET.savePngLevel, name: "PNG compression", type: "slider", defaultValue: 9, attrs: { min: 0, max: 9, step: 1 },
-          tooltip: "0-9, lossless at every level: higher = smaller file, slower save. " + NEW_NODES, category: CAT("Save Image", "2 png") },
+          tooltip: "0-9, lossless at every level. Higher = smaller file, slower save. " + NEW_NODES, category: CAT("Save Image", "2 png") },
         { id: SET.saveWebpLossless, name: "WebP lossless", type: "boolean", defaultValue: false,
           tooltip: "The exact pixels, usually 25-35% smaller than PNG; off: WebP quality decides. " + NEW_NODES, category: CAT("Save Image", "3 webp lossless") },
         { id: SET.saveWebpQuality, name: "WebP quality", type: "slider", defaultValue: 90, attrs: { min: 1, max: 100, step: 1 },
-          tooltip: "1-100: lower = smaller file, more detail lost. " + NEW_NODES, category: CAT("Save Image", "4 webp quality") },
+          tooltip: "1-100. Lower = smaller file, more detail lost. " + NEW_NODES, category: CAT("Save Image", "4 webp quality") },
         { id: SET.saveJpegQuality, name: "JPEG quality", type: "slider", defaultValue: 90, attrs: { min: 1, max: 100, step: 1 },
-          tooltip: "1-100: lower = smaller file, more detail lost. " + NEW_NODES, category: CAT("Save Image", "5 jpeg quality") },
+          tooltip: "1-100. Lower = smaller file, more detail lost. " + NEW_NODES, category: CAT("Save Image", "5 jpeg quality") },
         { id: SET.saveJpegExt, name: "JPEG extension", type: "combo", defaultValue: ".jpg", options: [".jpg", ".jpeg"],
           tooltip: NEW_NODES, category: CAT("Save Image", "6 jpeg extension") },
         { id: SET.saveJpegWorkflow, name: "JPEG workflow", type: "combo", defaultValue: "sidecar .json",
@@ -1461,7 +1469,7 @@ const SETTINGS = [
           tooltip: "ComfyUI can't load a workflow from a JPEG: sidecar .json puts it in a file next to the JPEG (drag that in). " + NEW_NODES,
           category: CAT("Save Image", "7 jpeg workflow") },
         { id: SET.saveAvifQuality, name: "AVIF quality", type: "slider", defaultValue: 80, attrs: { min: 1, max: 100, step: 1 },
-          tooltip: "1-100: lower = smaller file, more detail lost. " + NEW_NODES, category: CAT("Save Image", "8 avif quality") },
+          tooltip: "1-100. Lower = smaller file, more detail lost. " + NEW_NODES, category: CAT("Save Image", "8 avif quality") },
         { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
 SETTINGS.forEach((x, i) => { x.sortOrder = 1000 - i; });         // listed in this order (higher sortOrder first)

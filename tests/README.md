@@ -11,6 +11,7 @@ None of these need a GPU. Screenshots go to `tests/out/` (not committed).
 | Smoke test in the real ComfyUI frontend (`real_comfy.cjs [vue]`) | see below | a running ComfyUI with this pack in `custom_nodes` |
 | Round 9 in the real ComfyUI (`real_comfy9.cjs [vue]`): size row, old workflows, a real run, region eye, wildcards | see below | a running ComfyUI with this pack and ComfyUI Impact Pack; no model files |
 | Save Image (Region Genie) in the real ComfyUI (`real_comfy_save.cjs [vue]`): fields per format, Settings defaults, a run per format, the size readout, `%date%` tokens, the files and the JPEG `.json` loading their workflow back, transparency | `COMFY_DIR=… node tests/real_comfy_save.cjs [vue]` | a running ComfyUI with this pack; `COMFY_DIR` for its output folder; no model files |
+| Tooltip rules (`real_tooltips.cjs [vue]`, rules in `tooltip_rules.cjs`): every node / Settings / editor tooltip has one item per line and capitalized sentences | `node tests/real_tooltips.cjs [vue]` | a running ComfyUI with this pack; no model files |
 | Round 12 in the real ComfyUI (`real_comfy12.cjs [vue]`): number field widths, tooltip audit, presets, model dropdown / format / background, pop-ups, divider, tool strip | see below | a running ComfyUI with this pack; no model files |
 
 ## Real ComfyUI (CPU)

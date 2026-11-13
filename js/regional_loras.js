@@ -162,7 +162,7 @@ function setup(node) {
     const wrap = el("div", "rg-rl-wrap");
     const head = el("div", "rg-rl-head");
     const addBtn = el("button", "rg-rl-btn", "+ Add LoRA");
-    addBtn.title = "Add a row: one LoRA applied inside one mask (index), or everywhere (index -1).";
+    addBtn.title = "Add a row: One LoRA applied inside one mask (index), or everywhere (index -1).";
     const hint = el("span", "rg-rl-hint");
     const acCtl = autocompleteToggle(node, el);
     acCtl.el.style.marginLeft = "auto";

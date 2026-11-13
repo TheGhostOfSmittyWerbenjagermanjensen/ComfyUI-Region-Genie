@@ -906,86 +906,84 @@ class RegionGenie:
                                   "tooltip": "Output size. The canvas follows it, also when connected to another node."}),
                 "height": ("INT", {"default": 1024, "min": 16, "max": 16384, "step": 1}),
                 "scene_prompt_positive": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
-                                                     "tooltip": "Whole-scene description: the summary caption in MOSS "
-                                                                "JSON, the high_level_description in Ideogram JSON and "
-                                                                "the first sentence of the text prompt."}),
+                                                     "tooltip": ("The whole-scene description.\n"
+                                                                 "MOSS JSON: The summary caption.\n"
+                                                                 "Ideogram JSON: The high_level_description.\n"
+                                                                 "Text prompt: The first sentence.")}),
                 "scene_prompt_negative": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
-                                                     "tooltip": "Negative prompt: encoded with the connected clip "
-                                                                "as the 'negative' output (like CLIP Text Encode)."}),
+                                                     "tooltip": ("The negative prompt, encoded with the connected clip as the 'negative' output (like CLIP Text "
+                                                                 "Encode).")}),
                 "image_mode": (IMAGE_MODES, {"default": IMAGE_MODES[0],
-                                             "tooltip": "What a connected image does: shown under the canvas "
-                                                        "to trace over, or used as the color map itself "
-                                                        "(its colors become regions; painting goes on top)."}),
+                                             "tooltip": ("What a connected image does.\n"
+                                                         "backdrop (trace over): Shown under the canvas to trace over.\n"
+                                                         "use as color map: Used as the color map itself (its colors become regions; painting goes on "
+                                                         "top).")}),
                 "min_region_pixels": ("INT", {"default": 64, "min": 1, "max": 1000000,
-                                              "tooltip": "'use as color map' only: a color becomes a region "
-                                                         "when it has at least this many flat pixels (pixels "
-                                                         "matching all 4 neighbours, at the image's own size). "
-                                                         "Blended edges and specks go to the nearest region. "
-                                                         "Set in Settings > Region Genie (the editor sends it "
-                                                         "with each run); this hidden value is only a fallback."}),
+                                              "tooltip": ("'use as color map' only. A color becomes a region when it has at least this many flat pixels "
+                                                          "(pixels matching all 4 neighbours, at the image's own size). Blended edges and specks go to the "
+                                                          "nearest region. Set in Settings > Region Genie (the editor sends it with each run); this hidden "
+                                                          "value is only a fallback.")}),
                 "paint_data": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
-                "model": ("MODEL", {"tooltip": "MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model for the LoRAs set on the regions "
-                                               "(and 'Whole image': any model). The 'model' output is this model with "
-                                               "each LoRA acting only inside its region: connect it to the sampler. "
-                                               "Also picks the prompt format 'positive' uses."}),
-                "clip": ("CLIP", {"tooltip": "Optional: the model's text encoder. Encodes 'positive' and 'negative', and "
-                                             "lets each regional LoRA also act on its own region's caption (trigger "
-                                             "words)."}),
-                "vae": ("VAE", {"tooltip": "Edit mode: encodes the source image (the 'image' input) for the 'latent' "
-                                           "output, and as a reference image for models that read one. Also sets the "
-                                           "'latent' format when no model is connected."}),
-                "image": ("IMAGE", {"tooltip": "Optional image: a backdrop to trace over, or the color map itself "
-                                               "(see image_mode). Edit mode: the picture to change."}),
+                "model": ("MODEL", {"tooltip": ("MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model for the LoRAs set on the "
+                                                "regions (any model for 'Whole image'). The 'model' output is this model with each LoRA acting "
+                                                "only inside its region; connect it to the sampler. While the node's model dropdown is on auto, "
+                                                "it also picks the prompt format.")}),
+                "clip": ("CLIP", {"tooltip": ("Optional. The model's text encoder. It encodes 'positive' and 'negative', and lets each regional "
+                                              "LoRA also act on its own region's caption (trigger words).")}),
+                "vae": ("VAE", {"tooltip": ("Edit mode: Encodes the source image (the 'image' input) for the 'latent' output, and as a "
+                                            "reference image for models that read one.\n"
+                                            "It also sets the 'latent' format when no model is connected.")}),
+                "image": ("IMAGE", {"tooltip": ("Optional.\n"
+                                                "Generate mode: A backdrop to trace over, or the color map itself (see image_mode).\n"
+                                                "Edit mode: The picture to change.")}),
                 "size_from_image": ("IMAGE", {"tooltip": "Take width/height from this image. Takes priority over "
                                                          "size_from_latent and the width/height widgets."}),
                 "size_from_latent": ("LATENT", {"tooltip": "Take width/height from this latent (auto-detects 16x for "
                                                            "MOSS Image / Flux 2 latents, 8x for SD/SDXL/Flux 1)."}),
                 "import_mode": (IMPORT_MODES, {"default": IMPORT_MODES[0],
-                                               "tooltip": "What a new import_json does when the canvas already has "
-                                                          "layers: ask on the node first (this run keeps the canvas), "
-                                                          "or replace the canvas right away. An empty canvas is always "
-                                                          "filled. Set in Settings > Region Genie (the editor "
-                                                          "sends it with each run); this hidden value is only a "
-                                                          "fallback."}),
+                                               "tooltip": ("What a new import_json does when the canvas already has layers.\n"
+                                                           "ask before replacing: The node asks first (this run keeps the canvas).\n"
+                                                           "always replace: The new layout replaces the canvas right away.\n"
+                                                           "An empty canvas is always filled. Set in Settings > Region Genie (the editor sends it with each "
+                                                           "run); this hidden value is only a fallback.")}),
                 "scene_prompt_background": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
-                                                       "tooltip": "Ideogram 4 only: the background / setting behind the "
-                                                                  "regions (ground, floor, sky, room ...), the 'background' "
-                                                                  "its caption JSON requires. Shown only while the model is "
-                                                                  "Ideogram 4; other models don't use it."}),
+                                                       "tooltip": ("Ideogram 4 only. The background / setting behind the regions (ground, floor, sky, room ...), the "
+                                                                   "'background' its caption JSON requires. Shown only while the model is Ideogram 4; other models "
+                                                                   "don't use it.")}),
                 "prompt_format": (PROMPT_FORMATS, {"default": "auto",
-                                                   "tooltip": "Hidden (kept for API prompts and old workflows): the "
-                                                              "node's model dropdown sets the format of 'prompt' and "
-                                                              "'positive'. auto follows the connected model, else the "
-                                                              "clip, else the text encoder 'prompt' is connected to."}),
+                                                   "tooltip": ("Hidden (kept for API prompts and old workflows). The node's model dropdown sets the format of "
+                                                               "'prompt' and 'positive'.\n"
+                                                               "auto: Follows the connected model, else the clip, else the text encoder 'prompt' is connected "
+                                                               "to.")}),
                 "mode": (MODES, {"default": MODES[0],
-                                 "tooltip": "generate: a new image. edit: the image on the 'image' input is the source "
-                                            "to change (image-to-image): 'latent' is that image (connect vae), models "
-                                            "that read a reference image get it on 'positive' / 'negative', and the "
-                                            "edit LoRA set for the model in Settings is added to Whole image."}),
+                                 "tooltip": ("generate: A new image.\n"
+                                             "edit: The image on the 'image' input is the source to change (image-to-image). 'latent' is that "
+                                             "image (connect vae), models that read a reference image get it on 'positive' / 'negative', and "
+                                             "the edit LoRA set for the model in Settings is added to Whole image.")}),
                 "edit_area": (EDIT_AREAS, {"default": EDIT_AREAS[0],
-                                           "tooltip": "Edit mode: what may change. only the regions: 'latent' carries a "
-                                                      "mask of the regions set to change (like inpainting), the rest stays "
-                                                      "as it is. whole image: everything except the regions set to keep "
-                                                      "(no mask when none is kept); the sampler's denoise decides how much. "
-                                                      "The mask's grow / feather are set in the region list header."}),
+                                           "tooltip": ("Edit mode: What may change.\n"
+                                                       "only the regions: 'latent' carries a mask of the regions set to change (like inpainting); the "
+                                                       "rest stays as it is.\n"
+                                                       "whole image: Everything except the regions set to keep (no mask when none is kept); the "
+                                                       "sampler's denoise decides how much.\n"
+                                                       "The mask's grow / feather are set in the region list header.")}),
                 "import_json": ("STRING", {"forceInput": True,
-                                           "tooltip": "A layout to load into the editor when the workflow runs: a "
-                                                      "file saved with Export (e.g. through a Load Text node), MOSS-Image "
-                                                      "layout JSON, Ideogram caption JSON / elements, or bboxes. Each "
-                                                      "new import_json is used once; edits made afterwards are kept."}),
+                                           "tooltip": ("A layout to load into the editor when the workflow runs. It can be a file saved with Export "
+                                                       "(e.g. through a Load Text node), MOSS-Image layout JSON, Ideogram caption JSON / elements, or "
+                                                       "bboxes. Each new import_json is used once; edits made afterwards are kept.")}),
                 # before width / height, which stay the last inputs (as asked)
                 "control_image": ("IMAGE", {"tooltip": "Optional control map for the 'Control' row (a depth, canny, pose, "
                                                        "lineart ... map from any preprocessor). Without it, the node makes "
                                                        "a depth or canny map from 'image'."}),
                 # shown as "width" / "height" (the size row at the top sets the hidden width / height widgets)
                 "width_in": ("INT", {"forceInput": True, "min": 16, "max": 16384,
-                                     "tooltip": "Optional: the image width from another node. Overrides the size row at the "
-                                                "top (size_from_image and size_from_latent still come first)."}),
+                                     "tooltip": ("Optional. The image width from another node. It overrides the size row at the top "
+                                                 "(size_from_image and size_from_latent still come first).")}),
                 "height_in": ("INT", {"forceInput": True, "min": 16, "max": 16384,
-                                      "tooltip": "Optional: the image height from another node. Overrides the size row at "
-                                                 "the top (size_from_image and size_from_latent still come first)."}),
+                                      "tooltip": ("Optional. The image height from another node. It overrides the size row at the top "
+                                                  "(size_from_image and size_from_latent still come first).")}),
                 # hidden; set with the seed control in the editor's footer (shown when Impact Pack is installed)
                 "wildcard_seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF,
                                           "tooltip": "Seed for the wildcards in the prompt fields (ComfyUI Impact Pack's "
@@ -998,23 +996,29 @@ class RegionGenie:
     RETURN_NAMES = ("model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes", "elements",
                     "character_boxes", "region_info", "width", "height")
     OUTPUT_TOOLTIPS = (
-        "The connected model with the regions' LoRAs, each acting only inside its region (one pass; MOSS Image, "
-        "Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5): connect it to the sampler, with 'positive' as the "
-        "prompt. Passed through unchanged when no LoRA is set and the regions aren't kept apart.",
+        ("The connected model with the regions' LoRAs, each acting only inside its region (one pass; MOSS "
+         "Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with "
+         "'positive' as the prompt. Passed through unchanged when no LoRA is set and the regions aren't "
+         "kept apart."),
         "'prompt' encoded with the connected clip. Empty when no clip is connected.",
-        "scene_prompt_negative encoded with the connected clip (like CLIP Text Encode): the negative prompt for the "
-        "sampler. Empty when no clip is connected.",
-        "The latent for the sampler. generate: an empty latent of the canvas size (the connected model's format). "
-        "edit: the source image (the 'image' input, encoded with vae) at the canvas size, with a mask of what may change "
-        "(the regions set to change, or everything but the kept regions; grown and feathered as set in the region list "
-        "header); set the sampler's denoise below 1 to keep more of the source.",
-        "The prompt as text, in the format the model takes: MOSS-Image layout JSON (MOSS Image), Ideogram 4 caption "
-        "JSON (Ideogram 4) or plain text (Krea 2, Flux, Anima, SDXL / SD1.5 and other models). 'auto' (the node's "
-        "format control) picks it from the connected model, else the clip, else the text encoder this output is "
-        "connected to. Also works as import_json for MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director. "
-        "Plain text alone doesn't say where the regions are: with the model on 'model' and clip connected, 'keep "
-        "all regions apart' ties each region's sentence to its region (on automatically, see Settings > Region "
-        "Genie).",
+        ("scene_prompt_negative encoded with the connected clip (like CLIP Text Encode), the negative "
+         "prompt for the sampler. Empty when no clip is connected."),
+        ("The latent for the sampler.\n"
+         "generate: An empty latent of the canvas size (the connected model's format).\n"
+         "edit: The source image (the 'image' input, encoded with vae) at the canvas size, with a mask of "
+         "what may change (the regions set to change, or everything but the kept regions; grown and "
+         "feathered as set in the region list header). Set the sampler's denoise below 1 to keep more of "
+         "the source."),
+        ("The prompt as text, in the format the model takes.\n"
+         "MOSS Image: MOSS-Image layout JSON (plain text in its standard mode, with no regions, and in "
+         "Edit Mode).\n"
+         "Ideogram 4: Ideogram 4 caption JSON.\n"
+         "Krea 2, Flux, Anima, SDXL / SD1.5 and other models: Plain text.\n"
+         "The node's model dropdown picks the format; on auto, the connected model does, else the clip, "
+         "else the text encoder this output is connected to. It also works as import_json for MOSS-Image "
+         "Prompt Builder KJ or (Deno) Ideogram Director. Plain text alone doesn't say where the regions "
+         "are; with the model on 'model' and clip connected, 'keep all regions apart' ties each region's "
+         "sentence to its region (on automatically, see Settings > Region Genie)."),
         "Flat color region map (black = unspecified), e.g. for MOSS-Image Color/Depth Control. A region with a color "
         "palette is shown in its first palette color.",
         "One mask per region, in region order, as a batch (feathered as set on each region).",

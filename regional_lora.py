@@ -1172,27 +1172,27 @@ class CreateHookLoRAQuantized:
                                                "match LoRA keys to layers; the model is not modified."}),
                 "lora_name": (folder_paths.get_filename_list("loras"), {"tooltip": "The LoRA file (models/loras)."}),
                 "strength_model": ("FLOAT", {"default": 1.0, "min": -20.0, "max": 20.0, "step": 0.01,
-                                             "tooltip": "LoRA strength on the diffusion model (0 = off). There is no "
-                                                        "CLIP strength: the LoRA's text-encoder weights are not used."}),
+                                             "tooltip": ("LoRA strength on the diffusion model (0 = off). There is no CLIP strength; the LoRA's "
+                                                         "text-encoder weights are not used.")}),
             },
             "optional": {
-                "prev_hooks": ("HOOKS", {"tooltip": "Hooks from another hook node, combined with this one: chain "
-                                                    "nodes here to stack several LoRAs on the same conditioning."}),
+                "prev_hooks": ("HOOKS", {"tooltip": ("Hooks from another hook node, combined with this one. Chain nodes here to stack several LoRAs on "
+                                                     "the same conditioning.")}),
             },
         }
 
     RETURN_TYPES = ("HOOKS", "STRING")
     RETURN_NAMES = ("HOOKS", "lora_info")
-    OUTPUT_TOOLTIPS = ("This LoRA (plus prev_hooks) as hooks: attach them to a conditioning, e.g. the hooks input of "
-                       "'Cond Pair Set Props'. The LoRA is on only while the model computes that conditioning.",
+    OUTPUT_TOOLTIPS = (("This LoRA (plus prev_hooks) as hooks. Attach them to a conditioning, e.g. the hooks input of "
+                        "'Cond Pair Set Props'. The LoRA is on only while the model computes that conditioning."),
                        "What was applied and skipped, and the LoRA's trigger words (also shown on the node).")
     FUNCTION = "create_hook"
     CATEGORY = "Region Genie"
-    DESCRIPTION = ("Like core 'Create Hook LoRA', but the LoRA is applied while the model runs instead of being baked "
-                   "into the weights, so it works with int8 / fp8 / quantized models. Supports LoRA, LoCon, LoKr, LoHa "
-                   "and DoRA. Model only (no CLIP strength). Attach the HOOKS to a conditioning, e.g. through the hooks "
-                   "input of 'Cond Pair Set Props' (with a mask for a regional LoRA): that conditioning then gets its "
-                   "own model pass with the LoRA on.")
+    DESCRIPTION = ("Like core 'Create Hook LoRA', but the LoRA is applied while the model runs instead of being "
+                   "baked into the weights, so it works with int8 / fp8 / quantized models. Supports LoRA, LoCon, "
+                   "LoKr, LoHa and DoRA. Model only (no CLIP strength). Attach the HOOKS to a conditioning, e.g. "
+                   "through the hooks input of 'Cond Pair Set Props' (with a mask for a regional LoRA); that "
+                   "conditioning then gets its own model pass with the LoRA on.")
 
     def create_hook(self, model, lora_name, strength_model, prev_hooks=None):
         if not _BYPASS_OK:
@@ -1378,18 +1378,17 @@ class RegionalLoRAs:
                                                "the model' and a MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model, the LoRAs go "
                                                "into the 'model' output, each acting only inside its mask. Otherwise "
                                                "they ride on 'positive' / 'negative' (one model pass per region)."}),
-                "clip": ("CLIP", {"tooltip": "Text encoder: encodes 'positive' and 'negative'. Inside the model, it also "
-                                             "finds each region's caption in the prompt, so a LoRA acts on its own "
-                                             "region's caption (and trigger words) too."}),
+                "clip": ("CLIP", {"tooltip": ("Text encoder. It encodes 'positive' and 'negative'. Inside the model, it also finds each "
+                                              "region's caption in the prompt, so a LoRA acts on its own region's caption (and trigger words) "
+                                              "too.")}),
                 "masks": ("MASK", {"tooltip": "Region masks, e.g. the 'masks' output of the Region Genie node. Each row "
                                               "picks one by index (the region numbers shown in the Region Genie node)."}),
                 # was 'prompt' before round 11 (the editor moves old values and links over)
                 "positive_prompt": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
-                                      "tooltip": "The positive prompt: connect 'prompt' of the Region Genie node "
-                                                 "(MOSS JSON, Ideogram JSON or text, in the model's format), or type a "
-                                                 "prompt. Each row's words are added to "
-                                                 "the caption of its region (index -1: to the scene caption); with a "
-                                                 "plain-text prompt they are added as their own sentence."}),
+                                      "tooltip": ("The positive prompt. Connect 'prompt' of the Region Genie node (MOSS JSON, Ideogram JSON or "
+                                                  "text, in the model's format), or type a prompt. Each row's words are added to the caption of its "
+                                                  "region (for index -1, to the scene caption); with a plain-text prompt they are added as their "
+                                                  "own sentence.")}),
                 "negative_prompt": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
                                                "tooltip": "Negative prompt, encoded as 'negative' (like CLIP Text "
                                                           "Encode)."}),
@@ -1397,43 +1396,39 @@ class RegionalLoRAs:
                                     "tooltip": "Soften the mask edges by this many pixels, so each LoRA fades into its "
                                                "surroundings."}),
                 "lora_masking": (MASKING_MODES, {"default": MASKING_MODES[0],
-                                 "tooltip": "inside the model (one pass): each LoRA acts only on its mask's part of the "
-                                            "image and on its region's caption, all in one model pass, like the LoRAs "
-                                            "of the Region Genie node; index -1 LoRAs are merged into the model like "
-                                            "Load LoRA. Needs MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 (other models fall back "
-                                            "to separate passes). separate passes (classic hooks): ComfyUI's hook method, one model pass per "
-                                            "region with its LoRAs, blended by the masks; works with any model, but "
-                                            "strong styles can bleed across regions."}),
+                                 "tooltip": ("inside the model (one pass): Each LoRA acts only on its mask's part of the image and on its "
+                                             "region's caption, all in one model pass, like the LoRAs of the Region Genie node; index -1 LoRAs "
+                                             "are merged into the model like Load LoRA. Needs MOSS Image, Krea 2, Ideogram 4, Flux, Anima or "
+                                             "SDXL / SD1.5 (other models fall back to separate passes).\n"
+                                             "separate passes (classic hooks): ComfyUI's hook method, one model pass per region with its "
+                                             "LoRAs, blended by the masks. Works with any model, but strong styles can bleed across regions.")}),
                 "region_separation": ("FLOAT", {"default": 0.85, "min": 0.0, "max": 1.0, "step": 0.05,
-                                      "tooltip": "inside the model only: how strongly regions are kept apart in "
-                                                 "attention. The image of different LoRA regions (every mask with "
-                                                 "separate_all_regions) for the first separation_until of the steps, "
-                                                 "and each LoRA region's caption from the other regions at every step. "
-                                                 "Higher keeps each LoRA's style in its region; 1 = fully separate (may "
-                                                 "look like a collage at the seams); 0 = off."}),
+                                      "tooltip": ("inside the model only. How strongly regions are kept apart in attention. It applies to the image "
+                                                  "of different LoRA regions (every mask with separate_all_regions) for the first separation_until "
+                                                  "of the steps, and to each LoRA region's caption against the other regions at every step. Higher "
+                                                  "keeps each LoRA's style in its region.\n"
+                                                  "1: Fully separate (may look like a collage at the seams).\n"
+                                                  "0: Off.")}),
                 "separation_until": ("FLOAT", {"default": 0.25, "min": 0.0, "max": 1.0, "step": 0.05,
-                                     "tooltip": "inside the model only: keep the image of the regions apart for this "
-                                                "fraction of the steps (1 = all steps). Early steps set the layout and "
-                                                "style of each region; letting the later steps see across regions "
-                                                "blends the seams (0.1-0.5 works well with region_separation "
-                                                "0.85-0.99)."}),
+                                     "tooltip": ("inside the model only. Keep the image of the regions apart for this fraction of the steps (1 = "
+                                                 "all steps). Early steps set the layout and style of each region; letting the later steps see "
+                                                 "across regions blends the seams (0.1-0.5 works well with region_separation 0.85-0.99).")}),
                 "loras_data": ("STRING", {"default": '{"v":2,"rows":[]}', "multiline": False}),
                 # after loras_data, so workflows saved before it existed keep their widget values
                 "separate_all_regions": ("BOOLEAN", {"default": False,
-                                         "tooltip": "On: every mask is kept apart from the others (and from the "
-                                                    "background) for the first separation_until of the steps, at "
-                                                    "region_separation, with or without LoRAs, and each region's "
-                                                    "caption speaks only to its own region. Off: only masks with "
-                                                    "LoRAs are kept apart. MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 with "
-                                                    "lora_masking 'inside the model' only; a little slower and more "
-                                                    "VRAM while active."}),
+                                         "tooltip": ("On: Every mask is kept apart from the others (and from the background) for the first "
+                                                     "separation_until of the steps, at region_separation, with or without LoRAs, and each region's "
+                                                     "caption speaks only to its own region.\n"
+                                                     "Off: Only masks with LoRAs are kept apart.\n"
+                                                     "MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 with lora_masking 'inside the model' "
+                                                     "only; a little slower and more VRAM while active.")}),
                 # added last, so saved workflows keep their widget values
                 "share_background": ("BOOLEAN", {"default": False,
-                                     "tooltip": "inside the model only: the regions that are kept apart (masks with LoRAs, "
-                                                "or every mask with separate_all_regions) stay apart from each other, but "
-                                                "not from the rest of the image, so lighting, perspective and setting stay "
-                                                "one picture. Each region's caption still speaks only to its own region. "
-                                                "Off: they are kept apart from the rest of the image too."}),
+                                     "tooltip": ("inside the model only.\n"
+                                                 "On: The regions that are kept apart (masks with LoRAs, or every mask with separate_all_regions) "
+                                                 "stay apart from each other, but not from the rest of the image, so lighting, perspective and "
+                                                 "setting stay one picture. Each region's caption still speaks only to its own region.\n"
+                                                 "Off: They are kept apart from the rest of the image too.")}),
             },
             "optional": {
                 # hidden; set with the seed control in the rows editor (shown when Impact Pack is installed)
@@ -1446,23 +1441,23 @@ class RegionalLoRAs:
 
     RETURN_TYPES = ("MODEL", "CONDITIONING", "CONDITIONING", "STRING")
     RETURN_NAMES = ("model", "positive", "negative", "lora_info")
-    OUTPUT_TOOLTIPS = ("The model for the sampler. Inside the model (MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5): carries the "
-                       "LoRAs, each acting only inside its mask (index -1 LoRAs merged in everywhere). Separate passes: the model unchanged "
-                       "(the LoRAs ride on 'positive' / 'negative').",
-                       "The prompt with the rows' words added, encoded with clip (separate passes: with each region's "
-                       "LoRA hooks and mask). Connect it to the sampler.",
-                       "negative_prompt encoded with clip (separate passes: with the same hooks). Connect it to the "
-                       "sampler.",
+    OUTPUT_TOOLTIPS = (("The model for the sampler.\n"
+                        "Inside the model (MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5): Carries the LoRAs, "
+                        "each acting only inside its mask (index -1 LoRAs merged in everywhere).\n"
+                        "Separate passes: The model unchanged (the LoRAs ride on 'positive' / 'negative')."),
+                       ("The prompt with the rows' words added, encoded with clip (with separate passes, also with each "
+                        "region's LoRA hooks and mask). Connect it to the sampler."),
+                       ("negative_prompt encoded with clip (with separate passes, also with the same hooks). Connect it "
+                        "to the sampler."),
                        "What was set up for each region (also printed in the console).")
     FUNCTION = "run"
     CATEGORY = "Region Genie"
-    DESCRIPTION = ("Regional LoRAs from a batch of masks (int8 / fp8 / quantized models work). Each row applies a LoRA "
-                   "inside one mask (index -1: the whole image) and can add words, e.g. trigger words, to that "
-                   "region's caption; rows with the same index stack on that region. MOSS Image, Krea 2, Ideogram 4, "
-                   "Flux, Anima and SDXL / SD1.5: "
-                   "all LoRAs act in one model pass, each limited to its mask and its caption, like the LoRAs of the "
-                   "Region Genie node. "
-                   "Other models: one model pass per region with ComfyUI's hooks.")
+    DESCRIPTION = ("Regional LoRAs from a batch of masks (int8 / fp8 / quantized models work). Each row applies a "
+                   "LoRA inside one mask (index -1 for the whole image) and can add words, e.g. trigger words, to "
+                   "that region's caption; rows with the same index stack on that region.\n"
+                   "MOSS Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5: All LoRAs act in one model pass, "
+                   "each limited to its mask and its caption, like the LoRAs of the Region Genie node.\n"
+                   "Other models: One model pass per region with ComfyUI's hooks.")
 
     @classmethod
     def VALIDATE_INPUTS(cls, input_types=None, lora_masking=None):

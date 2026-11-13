@@ -55,20 +55,20 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("run data follows a Settings change", d.minPixels === 300 && d.importMode === "always replace");
 
     // ---- image mode in the top bar: only with an image connected
-    const imgBox = page.locator(".rg-bar .rg-seg").filter({ has: page.locator('button[title^="Image: backdrop"]') });
+    const imgBox = page.locator(".rg-bar .rg-seg").filter({ has: page.locator('button[title^="Image as a backdrop"]') });
     check("image mode hidden without an image", await imgBox.isHidden());
     await page.evaluate(() => { window.__node.inputs = [{ name: "image", link: 7 }]; });
     await page.waitForTimeout(1300);                                   // the node's poll
     check("image mode shown with an image connected", await imgBox.isVisible());
-    const minIn = page.locator('.rg-bar input[title^="Color map: min region pixels"]');
+    const minIn = page.locator('.rg-bar input[title^="Min region pixels"]');
     check("min px hidden while backdrop", await minIn.isHidden());
-    await page.locator('button[title^="Image: color map"]').click();
+    await page.locator('button[title^="Image as a color map"]').click();
     await page.waitForTimeout(100);
     check("color map picked: widget set, min px shown with the Setting", await page.evaluate(() => window.__node.widgets.find((w) => w.name === "image_mode").value) === "use as color map"
         && await minIn.isVisible() && await minIn.inputValue() === "300");
     await minIn.fill("120"); await minIn.press("Tab");
     check("min px writes the Setting", await page.evaluate(() => window.__settings["RegionGenie.Main.MinRegionPixels"]) === 120);
-    await page.locator('button[title^="Image: backdrop"]').click();
+    await page.locator('button[title^="Image as a backdrop"]').click();
     await page.evaluate(() => { window.__node.inputs = []; });
 
     // ---- tool variants

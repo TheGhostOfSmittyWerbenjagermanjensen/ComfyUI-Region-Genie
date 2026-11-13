@@ -232,7 +232,7 @@ def _common_inputs():
         "feather": ("INT", {"default": 0, "min": 0, "max": 1024, "step": 1,
                             "tooltip": "Soften mask edges by this many pixels (a linear ramp of 2x this width, centred on the box edge). Edges on the canvas border stay solid."}),
         "invert": ("BOOLEAN", {"default": False,
-                               "tooltip": "On: the masks are inverted (everything except the box / region is white)."}),
+                               "tooltip": "On: The masks are inverted (everything except the box / region is white)."}),
         "latent_scale": (LATENT_SCALES, {"default": "auto",
                                          "tooltip": "Pixels per latent cell for size_from_latent. "
                                                     "auto: 16 for MOSS Image / Flux 2 latents, 8 for SD/SDXL/Flux 1."}),
@@ -261,20 +261,18 @@ class BBoxesToMasks:
                                              "for bboxes you add later."}),
                 **_common_inputs(),
                 "feather_canvas_edges": ("BOOLEAN", {"default": False,
-                                         "tooltip": "Off: box edges touching the canvas border stay solid. "
-                                                    "On: they fade toward the border like every other edge."}),
+                                         "tooltip": ("Off: Box edges touching the canvas border stay solid.\n"
+                                                     "On: They fade toward the border like every other edge.")}),
             },
             "optional": {
                 "bboxes": ("*", {"forceInput": True,
                                  "tooltip": "Pixel bboxes, or elements / prompt JSON (those carry the prompts too)."}),
                 **_optional_inputs(),
                 "elements": ("*", {"forceInput": True,
-                                   "tooltip": "The 'prompt' of MOSS-Image Prompt Builder KJ, 'elements' from Create Bounding "
-                                              "Boxes or the Region Genie node, or the 'prompt' of (Deno) Ideogram Director. "
-                                              "Supplies the prompt of each box. "
-                                              "MOSS layouts are measured from the canvas centre, so width/height must "
-                                              "match the builder's. Enough on its own: the "
-                                              "boxes are read from it when 'bboxes' isn't connected."}),
+                                   "tooltip": ("The 'prompt' of MOSS-Image Prompt Builder KJ, 'elements' from Create Bounding Boxes or the "
+                                               "Region Genie node, or the 'prompt' of (Deno) Ideogram Director. It supplies the prompt of each "
+                                               "box. MOSS layouts are measured from the canvas centre, so width/height must match the builder's. "
+                                               "It is enough on its own; the boxes are read from it when 'bboxes' isn't connected.")}),
             },
         }
 
@@ -382,8 +380,8 @@ class MaskPicker:
                 "feather": c["feather"],
                 "invert": c["invert"],
                 "feather_canvas_edges": ("BOOLEAN", {"default": False,
-                                         "tooltip": "Off: mask edges touching the image border stay solid. "
-                                                    "On: they fade toward the border like every other edge."}),
+                                         "tooltip": ("Off: Mask edges touching the image border stay solid.\n"
+                                                     "On: They fade toward the border like every other edge.")}),
             },
             "optional": {
                 "elements": ("*", {"forceInput": True,

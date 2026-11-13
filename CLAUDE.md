@@ -16,6 +16,7 @@ Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the d
 - Must work in ComfyUI's legacy node mode **and** Nodes 2.0, on a 4K high-DPR display.
 - Breaking saved workflows is acceptable, but keep them loading where it's cheap: `keepWidgetValuesByName`, add new inputs after existing ones, remap outputs by name, convert old data.
 - UI: compact header controls; icons with tooltips over words, except these words the owner kept: "▼ LoRAs", "▼ All", "separation", "until", and every "LoRA"/"＋LoRA" label. Reuse existing icons.
+- Tooltips (node inputs / outputs, Settings, every editor control): concise but complete. A tooltip that explains several things (options, states, outputs) puts each on its own line (`name: Description.`). Every sentence starts with a capital letter, also after a ":", unless its first word is a lowercase field / option name (`sidecar .json: The workflow …`). `tests/tooltip_rules.cjs` has the rules; `tests/real_tooltips.cjs [vue]` checks every tooltip.
 - The owner often can't test right away: explain behavior changes clearly, and end every task with what was tested and what wasn't (real GPU runs never are).
 - After each round, update `docs/HANDOFF.md` (decisions, open items) and `README.md`.
 - Before implementing anything (features, fixes, docs), fetch from GitHub and make sure the local copy matches the latest version of the branch the working branch is based on (its base branch: often `main`, but it depends on the situation), plus any newer commits on the working branch itself. If a PR from the working branch has been merged, start the new work from the current base branch.
@@ -24,7 +25,7 @@ Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the d
 ## Checks before pushing
 
 - `node --check --input-type=module < js/<file>.js` for every changed JS file; `python3 -m py_compile` for Python.
-- `tests/run_py.sh`; `tests/run_ui.sh` when the editor changed; `tests/test_select.py` when `region_select.py` changed; `tests/test_control.py` when `control.py` changed; `tests/real_comfy_save.cjs [vue]` when the save node changed.
+- `tests/run_py.sh`; `tests/run_ui.sh` when the editor changed; `tests/test_select.py` when `region_select.py` changed; `tests/test_control.py` when `control.py` changed; `tests/real_comfy_save.cjs [vue]` when the save node changed; `tests/real_tooltips.cjs [vue]` when a tooltip changed.
 
 ## Never commit
 

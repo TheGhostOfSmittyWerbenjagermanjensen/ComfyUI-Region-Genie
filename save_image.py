@@ -290,27 +290,31 @@ class SaveImageRG:
                     "The file name before the number, e.g. ComfyUI → ComfyUI_00001.png. Can include a subfolder "
                     "(portraits/ComfyUI) and tokens such as %date:yyyy-MM-dd% or %Empty Latent Image.width%.")}),
                 "format": (list(FORMATS), {"default": "png", "tooltip": (
-                    "png: lossless, keeps the workflow. webp: lossless or a quality, much smaller, keeps the workflow. "
-                    "jpeg: a quality, small; the workflow goes in a .json next to it (see jpeg_workflow). "
-                    "avif: a quality, smallest, keeps the workflow.")}),
+                    "png: Lossless, keeps the workflow.\n"
+                    "webp: Lossless or a quality, much smaller, keeps the workflow.\n"
+                    "jpeg: A quality, small. The workflow goes in a .json next to it (see jpeg_workflow).\n"
+                    "avif: A quality, smallest, keeps the workflow.")}),
                 "png_compression": ("INT", {"default": 9, "min": 0, "max": 9, "step": 1, "tooltip": (
-                    "0-9. Lossless: every level gives the same pixels; higher = smaller file, slower save. "
-                    "9 = smallest (ComfyUI's own Save Image uses 4).")}),
+                    "0-9, lossless at every level (always the same pixels). Higher = smaller file, slower save; 9 = "
+                    "smallest (ComfyUI's own Save Image uses 4).")}),
                 "png_bit_depth": (["8-bit", "16-bit"], {"default": "8-bit", "tooltip": (
-                    "8-bit: the usual. 16-bit: finer gradients for editing later, about twice the size.")}),
+                    "8-bit: The usual.\n"
+                    "16-bit: Finer gradients for editing later, about twice the size.")}),
                 "webp_lossless": ("BOOLEAN", {"default": False, "tooltip": (
-                    "On: the exact pixels, usually 25-35% smaller than PNG. Off: webp_quality decides "
-                    "(much smaller files, a little detail lost).")}),
+                    "On: The exact pixels, usually 25-35% smaller than PNG.\n"
+                    "Off: webp_quality decides (much smaller files, a little detail lost).")}),
                 "webp_quality": q(90, "1-100. Lower = smaller file, more detail lost. 80-90 looks the same as the "
                                       "original for most images."),
                 "jpeg_quality": q(90, "1-100. Lower = smaller file, more detail lost. 90 and up keeps the full color "
                                       "detail; below 90 colors are stored at half resolution (smaller)."),
                 "jpeg_extension": ([".jpg", ".jpeg"], {"default": ".jpg", "tooltip": "The file extension; the same format either way."}),
                 "jpeg_workflow": (list(JPEG_WORKFLOW), {"default": "sidecar .json", "tooltip": (
-                    "ComfyUI can't load a workflow from a JPEG. sidecar .json: the workflow in a small .json file "
-                    "next to each JPEG (drag that file into ComfyUI to load it). none: no workflow. inside the JPEG "
-                    "(EXIF): readable by other tools, not by ComfyUI; a workflow too big for it (about 64 KB) goes "
-                    "into the .json instead.")}),
+                    "ComfyUI can't load a workflow from a JPEG.\n"
+                    "sidecar .json: The workflow in a small .json file next to each JPEG (drag that file into ComfyUI "
+                    "to load it).\n"
+                    "none: No workflow.\n"
+                    "inside the JPEG (EXIF): Readable by other tools, not by ComfyUI; a workflow too big for it "
+                    "(about 64 KB) goes into the .json instead.")}),
                 "avif_quality": q(80, "1-100. Lower = smaller file, more detail lost. AVIF needs Pillow 11.3+ or a "
                                       "ComfyUI with AVIF support."),
             },
@@ -319,8 +323,8 @@ class SaveImageRG:
                     "Transparency (PNG, WebP, AVIF; JPEG has none). As ComfyUI's Load Image mask: 1 = transparent. "
                     "A mask of another size is resized; one mask applies to every image.")}),
                 "invert_mask": ("BOOLEAN", {"default": False, "tooltip": (
-                    "On: mask 1 = opaque instead (e.g. a region mask from Region Genie or Mask Picker: keep the "
-                    "region, clear the rest).")}),
+                    "On: Mask 1 = opaque instead. Use it for a region mask from Region Genie or Mask Picker, to keep "
+                    "the region and clear the rest.")}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
