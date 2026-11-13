@@ -1,6 +1,6 @@
 # Save Image node with formats and compression: design
 
-Date: 2026-11-13. Status: draft for the owner's approval.
+Date: 2026-11-13. Status: draft for the owner's approval (after the builder check).
 
 ## Intent
 
@@ -29,7 +29,9 @@ Background the owner has seen and agreed with:
     file into ComfyUI loads the workflow;
   - **none**: no workflow saved;
   - **inside the JPEG (EXIF)**: stored in the JPEG's EXIF, readable by other tools; ComfyUI can't drag-load it today
-    (the tooltip says so).
+    (the tooltip says so). A JPEG's EXIF holds about 64 KB at most and many workflows are bigger: when it doesn't
+    fit, the workflow goes into the sidecar `.json` instead, and a note in the console and on the node says so
+    (owner's decision after the builder check; nothing is lost).
 - Behaves like ComfyUI's save nodes otherwise: `filename_prefix` with subfolders and the `%date:…%` /
   `%Node.widget%` tokens, the counter `_00001`, `%batch_num%`, a preview of the saved images on the node, an `images`
   output that passes the images through, and `--disable-metadata` respected (no workflow in any file or sidecar).
@@ -111,18 +113,26 @@ Background the owner has seen and agreed with:
     `quality` = the field, `method=6` (smallest files; the extra save time is small for single images).
   - JPEG: Pillow, `quality` = the field, `optimize=True`; chroma subsampling 4:4:4 at quality >= 90, else 4:2:0
     (sharper colors at high quality, smaller files below).
-  - AVIF: Pillow when it has AVIF (`quality` = the field, speed 6), else PyAV as core does. If neither can encode AVIF,
-    the run stops with a clear message saying what to update; the format list stays the same so workflows don't change.
+  - AVIF: Pillow when it has AVIF (Pillow >= 11.3; `quality` = the field, speed 6, the workflow in its EXIF). Else
+    PyAV as core does, only when core's `inject_avif_metadata` can be imported (so the workflow still goes in the file),
+    with the 1-100 quality mapped onto PyAV's `crf` 63-1. If neither works, the run stops with a clear message
+    (update Pillow); the format list stays the same so workflows don't change. No AVIF file-editing code is copied into
+    the pack. (Builder check: the PyAV route can't store the workflow without core's helper.)
 - **Workflow inside the files**, the same layout ComfyUI's own nodes write and the frontend reads:
   - PNG: `tEXt` chunks `prompt` and each `extra_pnginfo` key (e.g. `workflow`).
   - WebP and AVIF: EXIF `0x0110` = `prompt:<json>`, then `0x010F`, `0x010E`, … = `<key>:<json>` per `extra_pnginfo`
     key.
-  - JPEG "inside" option: the same EXIF tags.
+  - JPEG "inside" option: the same EXIF tags; when they exceed the EXIF limit (Pillow: "EXIF data is too long"),
+    no EXIF workflow, the sidecar instead, and the note.
   - JPEG sidecar: `<same base name>.json` holding the workflow JSON (`extra_pnginfo["workflow"]`) exactly as a saved
     workflow file, so ComfyUI loads it when dragged in. Nothing is written when there is no workflow (API runs).
   - `--disable-metadata`: none of the above (no sidecar either).
-- **File names:** `<prefix>_<counter:05>.<ext>`, the counter from `folder_paths.get_save_image_path` as core (it
-  counts existing files with the prefix whatever their extension, so a PNG and a JPEG never share a number).
+- **File names:** `<prefix>_<counter:05>.<ext>`. The folder, subfolder and prefix come from
+  `folder_paths.get_save_image_path`, but the **counter is the node's own**: the highest number among existing
+  `<prefix>_NNNNN.*` files (any extension, sidecars included) + 1. Older ComfyUI versions only parse core's
+  `<prefix>_NNNNN_.png` names, so relying on theirs could overwrite files (builder check).
+- **Supported ComfyUI:** any version with the classic node API and Pillow >= 10.1 (ComfyUI's own minimum) for PNG,
+  WebP and JPEG; AVIF as above. Tested on v0.45.2 / frontend 1.58.5.
 - **The script (`js/save_image.js`):** shows only the fields of the chosen format (and hides `webp_quality` while
   lossless is on), in legacy and Nodes 2.0; fills in the `filename_prefix` tokens when the prompt is queued (using the
   frontend's own text-replacement helper when it is exported, else the same rules re-implemented); keeps widget values
