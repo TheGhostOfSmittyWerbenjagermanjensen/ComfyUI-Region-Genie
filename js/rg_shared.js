@@ -1172,6 +1172,11 @@ function postLlmCache(over) {
 
 const NEW_NODES = "Applies to nodes added from now on; nodes already in a workflow keep their own value.";
 const CAT = (section, key) => ["Region Genie", section, key];
+// File names as options of a Settings dropdown. The dialog runs every option's label through its translation library
+// (vue-i18n) as a message, where @ { } | % $ are syntax: one LoRA named like 'char@v2' made the whole setting vanish
+// ("SyntaxError: 10"). The label escapes them as literals ({'@'}); the value stays the real file name.
+export const i18nLiteral = (s) => String(s).replace(/[{}@|%$]/g, (c) => `{'${c}'}`);
+const fileOptions = (names) => names.map((n) => ({ text: i18nLiteral(n), value: n }));
 const SETTINGS = [
         {
             id: AC_DEFAULT_SETTING, name: "Tag autocomplete on in new Region Genie nodes", type: "boolean", defaultValue: true,
@@ -1389,7 +1394,7 @@ const SETTINGS = [
             options: (value) => {
                 const list = (folder === "loras" ? knownLoras() : knownModels(folder)) || [];
                 const cur = typeof value === "string" && value && value !== CONTROL_NONE && !list.includes(value) ? [value] : [];
-                return [CONTROL_NONE, ...cur, ...list];
+                return fileOptions([CONTROL_NONE, ...cur, ...list]);
             },
             tooltip: controlFileHelp(key, folder, model, tag) + " The same for every Region Genie node.",
             category: CAT("Control", String(i).padStart(2, "0") + " " + key),
@@ -1400,7 +1405,7 @@ const SETTINGS = [
             options: (value) => {
                 const list = knownLoras() || [];
                 const cur = typeof value === "string" && value && value !== NO_LORA && !list.includes(value) ? [value] : [];
-                return [NO_LORA, ...cur, ...list];
+                return fileOptions([NO_LORA, ...cur, ...list]);
             },
             tooltip: `Switching a Region Genie node to Edit Mode adds this LoRA to its 'Whole image' LoRAs (marked 'edit '`
                 + `LoRA'), and switching back to generate removes it again. It is applied only when the model on 'model' is `

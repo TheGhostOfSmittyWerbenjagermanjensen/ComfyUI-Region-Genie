@@ -25,7 +25,7 @@ Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the d
 ## Checks before pushing
 
 - `node --check --input-type=module < js/<file>.js` for every changed JS file; `python3 -m py_compile` for Python.
-- `tests/run_py.sh`; `tests/run_ui.sh` when the editor changed; `tests/test_select.py` when `region_select.py` changed; `tests/test_control.py` when `control.py` changed; `tests/real_comfy_save.cjs [vue]` when the save node changed; `tests/real_tooltips.cjs [vue]` when a tooltip changed.
+- `tests/run_py.sh`; `tests/run_ui.sh` when the editor changed; `tests/test_select.py` when `region_select.py` changed; `tests/test_control.py` when `control.py` changed; `tests/real_comfy_save.cjs [vue]` when the save node changed; `tests/real_tooltips.cjs [vue]` when a tooltip changed; `tests/real_settings.cjs` when a Setting changed.
 
 ## Never commit
 
