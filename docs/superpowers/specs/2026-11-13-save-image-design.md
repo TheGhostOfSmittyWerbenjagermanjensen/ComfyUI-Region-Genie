@@ -1,6 +1,6 @@
 # Save Image node with formats and compression: design
 
-Date: 2026-11-13. Status: draft for the owner's approval (after the builder check).
+Date: 2026-11-13. Status: **approved by the owner** (2026-11-13), with the two extra ideas added (file sizes on the node, a mask input for transparency).
 
 ## Intent
 
@@ -36,13 +36,14 @@ Background the owner has seen and agreed with:
   `%Node.widget%` tokens, the counter `_00001`, `%batch_num%`, a preview of the saved images on the node, an `images`
   output that passes the images through, and `--disable-metadata` respected (no workflow in any file or sidecar).
 - Works in ComfyUI's **legacy node mode and Nodes 2.0**, on a 4K high-DPR display (owner's requirement for every node).
+- **File sizes on the node** (owner asked for it): after a run, the node shows what it saved and how big it is, so
+  settings can be compared.
+- **Transparency** (owner asked for it): an optional `mask` input saves PNG, WebP and AVIF with an alpha channel.
 
 ## Non-goals
 
 - EXR, HDR / wide-gamut color spaces, animated WebP / AVIF, video (WEBM etc.): core nodes cover these, and they don't
   save space.
-- Transparency (an alpha / mask input). Images are saved as RGB (a 4-channel tensor isn't expected from this pack's
-  workflows). Can be added later if asked.
 - Resizing, cropping, or any image processing before saving.
 - Replacing or patching ComfyUI's own save nodes.
 
@@ -84,6 +85,7 @@ Background the owner has seen and agreed with:
 - Inputs, in this order (new inputs only ever go at the end later):
   1. `images` (IMAGE)
   2. `filename_prefix` (STRING, default `ComfyUI`, as core)
+  - optional `mask` (MASK) and `invert_mask` (BOOLEAN, default off): see *Transparency*.
   3. `format`: `png` / `webp` / `jpeg` / `avif`
   4. `png_compression` (INT 0-9) — png only
   5. `png_bit_depth` (`8-bit` / `16-bit`) — png only
@@ -96,6 +98,29 @@ Background the owner has seen and agreed with:
   - Hidden: `prompt`, `extra_pnginfo` (as core).
 - Output: `images` (IMAGE, passed through).
 - Preview on the node: the saved files (`ui.images` with `type: "output"`), like core.
+
+## Transparency (the `mask` input)
+
+- Optional. Without it, images are saved as RGB as before.
+- The convention is ComfyUI's own (Load Image's `MASK` output, Join Image with Alpha): **mask 1 = transparent**,
+  alpha = 1 - mask. So an image and mask from Load Image save back with their original transparency.
+  `invert_mask` on: mask 1 = opaque (alpha = mask), e.g. for a Region Genie / Mask Picker region mask, to keep the
+  region and clear the rest. (My call; the tooltip explains both.)
+- PNG (8-bit RGBA, 16-bit RGBA), WebP (lossy keeps the alpha too; lossless keeps it exactly) and AVIF get the alpha.
+  **JPEG has no transparency**: the mask is ignored and the note on the node says so.
+- A mask of another size is resized to the image (bilinear); a batch of one mask applies to every image, otherwise
+  mask i goes with image i (the last mask repeats if there are fewer). A mask of 3 dims (B, H, W) or 2 dims (H, W) is
+  accepted.
+- `invert_mask` shows only while `mask` is connected (and not for JPEG).
+
+## File sizes on the node
+
+- After a run, a one-line readout under the node's preview: the format with its setting and the size, e.g.
+  `PNG 9 · 1.42 MB` for one image, `4 × WebP q90 · 1.9 MB total` for a batch; its tooltip lists each file with its
+  size (and the sidecar `.json`s when written). The EXIF-too-big and JPEG-mask notes show on the same line (in the
+  warning color) and in its tooltip.
+- Sent from Python in the run's `ui` data (file name, bytes, format label, notes); kept until the next run, not saved
+  with the workflow. Shown in legacy and Nodes 2.0.
 
 ## Calls I made (the owner can change any of them)
 
@@ -154,7 +179,3 @@ Background the owner has seen and agreed with:
   page).
 - `docs/HANDOFF.md` and `tests/README.md` updates.
 
-## Ideas not in scope (offered, not requested)
-
-- Showing each saved file's size on the node after a run (helps compare settings).
-- An optional mask input for transparency.
