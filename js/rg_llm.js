@@ -4,7 +4,7 @@
 // - the sparkles button used on the region rows and on the Whole image row
 // Not an extension by itself.
 import { api } from "../../scripts/api.js";
-import { pickLora, getSetting, setSetting, SET, modelFilePicker, LLM_ROWS, filePickersOn } from "./rg_shared.js";
+import { pickLora, getSetting, setSetting, SET, fileField, LLM_ROWS } from "./rg_shared.js";
 
 export const LLM_TYPES = ["character", "object", "text", "scene"];
 const TYPE_LABEL = { character: "Character", object: "Object", text: "Text", scene: "Scene" };
@@ -205,13 +205,11 @@ body:has(.rg-llm-pop) .litecontextmenu, body:has(.rg-llm-pop) .litegraph.litecon
 .rg-lset .rg-lset-check { margin-left:auto; width:18px; height:18px; }
 .rg-lset.col > button { align-self:flex-start; }
 .rg-lset-lora { display:flex; gap:6px; align-items:center; margin-top:4px; }
-.rg-lset-lora .rg-file { flex:1 1 auto; width:auto; min-width:0; }
-.rg-lset-lora input[type=number] { width:80px; margin-left:0; }
-.rg-llm-pop .lora .rg-file { width:auto; min-width:0; gap:3px; }
-.rg-llm-pop .lora .rg-file select, .rg-llm-pop .rg-file select { padding:2px 4px; border-radius:4px; }
-.rg-llm-pop .rg-file button { width:24px; height:22px; border-radius:4px; }
-.rg-llm-pop .rg-file button svg { width:14px; height:14px; }
-.rg-llm-pop .row > .rg-file { width:auto; }
+.rg-lset-lora .rg-ff { flex:1 1 auto; width:auto; min-width:0; }
+.rg-llm-pop .lora .rg-ff, .rg-llm-pop .row > .rg-ff { width:auto; min-width:0; gap:3px; flex:1 1 0; }
+.rg-llm-pop .rg-ff-name { padding:2px 20px 2px 5px; border-radius:4px; }
+.rg-llm-pop .rg-ff-browse { width:24px; height:22px; border-radius:4px; }
+.rg-llm-pop .rg-ff-browse svg { width:14px; height:14px; }
 .rg-llm-pop .sep { border-top:1px solid var(--border-color, #555); margin:8px 0 2px; opacity:.6; }
 `;
 (function injectCss() {
@@ -222,14 +220,16 @@ body:has(.rg-llm-pop) .litecontextmenu, body:has(.rg-llm-pop) .litegraph.litecon
 
 // ---------------------------------------------------------------- shared by the pop-up and Settings
 const CLIP_LABEL = "The connected clip (MOSS-Image: Qwen3.5 9B; Krea 2 / Ideogram 4: Qwen3-VL)";
-const LLM_TIP = "The connected clip is used as it is (no extra memory). A file from ComfyUI's text_encoders folders (or "
-    + "anywhere with 'Browse… for model files' on in Settings > Region Genie > Model files) is loaded once and kept while in use.";
-// an LLM LoRA's file: a dropdown of models/loras and Browse…
+const LLM_TIP = "The connected clip is used as it is (no extra memory). A file from ComfyUI's text_encoders folders (or anywhere "
+    + "with 'Browse… for model files' on in Settings > Region Genie > Model files) is loaded once and kept while in use.\n"
+    + "Click to choose it in ComfyUI's menu.";
+// an LLM LoRA's file: ComfyUI's menu of models/loras (Browse… beside it with the Settings switch on)
 function loraPicker(value, onPick) {
-    const p = modelFilePicker({ folders: ["loras"], none: "", noneLabel: "(choose a LoRA)", value, onPick, title: "An LLM LoRA" });
+    const p = fileField({ roots: ["loras"], none: "", noneLabel: false, emptyLabel: "(choose a LoRA)", value, onPick, title: "An LLM LoRA" });
     p.classList.add("name");
     return p;
 }
+const llmField = (value, onPick) => fileField({ roots: ["text_encoders"], none: "", noneLabel: CLIP_LABEL, value, onPick, title: "The LLM" });
 
 // ---------------------------------------------------------------- LLM Settings pop-up
 let openPop = null;
@@ -363,11 +363,8 @@ export async function openLlmSettings(anchor, host) {
         };
         const touch = () => { dirty = true; saveBtn.textContent = "Save*"; saveBtn.disabled = false; };
 
-        // round 19: a dropdown of models/text_encoders and Browse… (a file anywhere, saved by its full path)
-        const llmPick = modelFilePicker({
-            folders: ["text_encoders"], none: "", noneLabel: CLIP_LABEL, value: draft.llm, title: "The LLM",
-            onPick: (v) => { draft.llm = v; typeRow.style.display = draft.llm ? "" : "none"; touch(); },
-        });
+        // round 23: ComfyUI's menu of models/text_encoders (Browse… beside it with the Settings switch on)
+        const llmPick = llmField(draft.llm, (v) => { draft.llm = v; typeRow.style.display = draft.llm ? "" : "none"; touch(); });
         llmPick.classList.add("grow");
         field("LLM", llmPick, LLM_TIP);
         const typeSel = mk("select", "grow");
@@ -390,12 +387,7 @@ export async function openLlmSettings(anchor, host) {
                 const r = mk("div", "lora");
                 const on = mk("input"); on.type = "checkbox"; on.checked = x.on !== false; on.title = "on/off";
                 on.addEventListener("change", () => { x.on = on.checked; touch(); });
-                let nm;
-                if (filePickersOn()) nm = loraPicker(x.lora, (name) => { x.lora = name; touch(); });
-                else {                                   // as before round 19: the LoRA menu
-                    nm = mk("button", "name", x.lora); nm.title = x.lora + " (click to change)";
-                    nm.addEventListener("click", (e) => pickLora(e, (name) => { x.lora = name; touch(); renderLoras(); }));
-                }
+                const nm = loraPicker(x.lora, (name) => { x.lora = name; touch(); });
                 const st = mk("input"); st.type = "number"; st.step = "0.05"; st.min = "-100"; st.max = "100"; st.value = String(x.strength); st.title = "Strength";
                 st.addEventListener("change", () => { const v = +st.value; if (Number.isFinite(v)) { x.strength = v; touch(); } });
                 const del = mk("button", null, "✕"); del.title = "Remove";
@@ -592,8 +584,7 @@ function build(key, box) {
         i.addEventListener("change", commit);
         box.append(i);
     } else if (f === "llm") {
-        box.append(modelFilePicker({ folders: ["text_encoders"], none: "", noneLabel: CLIP_LABEL, value: p.llm, title: "The LLM",
-            onPick: (v) => { p.llm = v; saveLibrary(); refreshRows(box); } }));
+        box.append(llmField(p.llm, (v) => { p.llm = v; saveLibrary(); refreshRows(box); }));
     } else if (f === "llm_type") {
         const sel = RS("select"); sel.append(ROPT("auto", "auto (detect)"));
         sel.disabled = !p.llm; sel.title = p.llm ? "" : "Only for an LLM file (set in the row above)";

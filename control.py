@@ -32,10 +32,32 @@ SUPPORTED = ("MOSS-Image", "Flux.1", "SDXL", "SD1.5", "Anima")
 _cache = {}                                                           # loaded control files and the last depth map
 
 
+def configs(pdata):
+    """The node's Control rows from paint_data (round 23: several, 'controls'; before: one, 'control' with 'on'),
+    each {kind, strength, start, end, files}; [] when there is none."""
+    if not isinstance(pdata, dict):
+        return []
+    files = pdata.get("controlFiles") if isinstance(pdata.get("controlFiles"), dict) else None
+    rows = pdata.get("controls")
+    if not isinstance(rows, list):
+        c = pdata.get("control")
+        rows = [c] if isinstance(c, dict) and c.get("on") else []
+    out = []
+    for c in rows:
+        cfg = _one(c, files)
+        if cfg is not None:
+            out.append(cfg)
+    return out
+
+
 def config(pdata):
-    """The node's control settings from paint_data, or None when control is off."""
-    c = pdata.get("control") if isinstance(pdata, dict) else None
-    if not isinstance(c, dict) or not c.get("on"):
+    """The first Control row, or None (kept for callers that handle one)."""
+    cs = configs(pdata)
+    return cs[0] if cs else None
+
+
+def _one(c, files=None):
+    if not isinstance(c, dict):
         return None
     kind = c.get("kind") if c.get("kind") in KINDS else "depth"
 
@@ -44,20 +66,38 @@ def config(pdata):
             return max(lo, min(hi, float(c.get(k, d))))
         except (TypeError, ValueError):
             return d
-    files = c.get("files") if isinstance(c.get("files"), dict) else {}
+    if files is None:
+        files = c.get("files") if isinstance(c.get("files"), dict) else {}
     return {"kind": kind, "strength": num("strength", 1.0, 0.0, 10.0), "start": num("start", 0.0, 0.0, 1.0),
             "end": num("end", 1.0, 0.0, 1.0), "files": {str(k): str(v) for k, v in files.items() if isinstance(v, str) and v}}
 
 
 def lora_tag_ok(row, cfg, arch_name):
     """A 'Whole image' LoRA row added for control (row['control'] = model, row['ckind'] = 'moss' / 'depth' / 'canny'):
-    used only while control is on, for that model, with a kind that uses it."""
-    if cfg is None or arch_name is None or row.get("control") != arch_name:
-        return False
+    used only while a Control row is on, for that model, with a kind that uses it. cfg: one row or a list of rows."""
+    return lora_row_cfg(row, cfg, arch_name) is not None
+
+
+def lora_row_cfg(row, cfg, arch_name):
+    """The Control row a control LoRA belongs to (the first that uses it), or None."""
+    cfgs = cfg if isinstance(cfg, list) else ([cfg] if cfg else [])
+    if arch_name is None or row.get("control") != arch_name:
+        return None
     ck = row.get("ckind")
-    if ck == "moss":
+    for c in cfgs:
+        if (ck == "moss" and c["kind"] in ("color", "color+depth", "depth")) or ck == c["kind"]:
+            return c
+    return None
+
+
+# the controls that feed their map through the model's one extra input (concat_latent_image): only one per run
+def uses_concat(cfg, arch_name):
+    files = cfg["files"]
+    if arch_name == "MOSS-Image":
         return cfg["kind"] in ("color", "color+depth", "depth")
-    return ck == cfg["kind"]
+    if arch_name == "Flux.1" and cfg["kind"] in ("depth", "canny"):
+        return bool(files.get(f"Flux1{cfg['kind'].capitalize()}"))
+    return False
 
 
 def _fit(img, width, height):
@@ -93,8 +133,9 @@ def _depth(img, model_name, notes, missing=None):
     try:
         from comfy_extras.nodes_depth_anything_3 import LoadDA3Model, DA3Inference, DA3Render
         if _cache.get("da3_name") != model_name:
-            with model_paths.absolute_names():          # a full path set with Settings' Browse…
-                _cache["da3"] = LoadDA3Model.execute(model_name, "default").result[0]
+            path = model_paths.full_path("geometry_estimation", model_name)
+            with model_paths.absolute_names():          # a full path (Browse…) or a file from another folder
+                _cache["da3"] = LoadDA3Model.execute(path or model_name, "default").result[0]
             _cache["da3_name"] = model_name
         geo = DA3Inference._execute_mono(_cache["da3"], img, 504, "upper_bound_resize").result[0]
         out = DA3Render._depth_to_image(geo["depth"], geo.get("sky"), "v2_style").float().cpu()
@@ -243,7 +284,7 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         vals = {"concat_latent_image": vae.encode(img[:, :h8, :w8, :3])}
         positive = node_helpers.conditioning_set_values_with_timestep_range(positive, vals, a, b)
         negative = node_helpers.conditioning_set_values_with_timestep_range(negative, vals, a, b)
-        notes.append(f"control: Flux.1 {kind} LoRA, {a:.0%}-{b:.0%} (strength: the LoRA's strength in Whole image)")
+        notes.append(f"control: Flux.1 {kind} LoRA, strength {s:g}, {a:.0%}-{b:.0%}")
         return model, positive, negative, img
 
     if arch_name in CN_KEY:

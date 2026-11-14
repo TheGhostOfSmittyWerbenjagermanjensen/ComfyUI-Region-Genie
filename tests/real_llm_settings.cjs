@@ -85,10 +85,15 @@ fs.writeFileSync(outLlm, "");
     await page.locator(`${sel("Preset: sampling")} input`).click(); await sleep(700);
     // Escape in the folder browser closes only the browser (checked in the pop-up below too)
     // the LLM: dropdown + Browse…; Browse… to a file outside ComfyUI saves its full path
-    const pickerOk = await page.evaluate((s) => { const p = document.querySelector(`${s} .rg-file`); return !!p?.querySelector("select") && !!p?.querySelector("button svg")
-        && p.querySelector("select").options[0].textContent.startsWith("The connected clip"); }, sel("Preset: LLM"));
-    check(`${M}: Preset: LLM is a dropdown (first: the connected clip) with Browse…`, pickerOk);
-    await page.locator(`${sel("Preset: LLM")} .rg-file button`).click();
+    // round 23: the LLM is a file field: ComfyUI's menu ("None (the connected clip)" + text_encoders) and Browse… beside it
+    const pickerOk = await page.evaluate((s) => { const p = document.querySelector(`${s} .rg-ff`); return !!p?.querySelector(".rg-ff-name") && !!p?.querySelector(".rg-ff-browse svg")
+        && p.querySelector(".rg-ff-name").textContent.startsWith("The connected clip") && !p.querySelector("select"); }, sel("Preset: LLM"));
+    check(`${M}: Preset: LLM is a file field (shows the connected clip) with Browse…`, pickerOk);
+    await page.locator(`${sel("Preset: LLM")} .rg-ff-name`).click(); await sleep(700);
+    const llmMenu = await page.evaluate(() => [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].map((e) => e.textContent.trim()).slice(0, 3));
+    check(`${M}: its menu starts with "None (the connected clip …)" (${llmMenu[0]})`, /^None \(The connected clip/.test(llmMenu[0] || ""));
+    await page.evaluate(() => document.querySelectorAll(".litecontextmenu").forEach((m) => m.remove())); await sleep(200);
+    await page.locator(`${sel("Preset: LLM")} .rg-ff-browse`).click();
     await page.waitForSelector(".rg-fb", { state: "attached", timeout: 5000 }); await sleep(600);
     const start = await page.locator(".rg-fb-path input").inputValue();
     await page.locator(".rg-fb-path input").fill(outDir); await page.locator(".rg-fb-path input").press("Enter"); await sleep(800);
@@ -101,18 +106,14 @@ fs.writeFileSync(outLlm, "");
     check(`${M}: with an LLM file, 'LLM type' can be set`, !(await page.locator(`${sel("Preset: LLM type")} select`).isDisabled()));
     // an LLM LoRA: ＋LoRA adds a row with a picker
     await page.locator(`${sel("Preset: LLM LoRAs")} > button`).click(); await sleep(300);
-    const loraRow = await page.evaluate((s) => { const r = document.querySelector(`${s} .rg-lset-lora`); return !!r?.querySelector(".rg-file select") && !!r?.querySelector(".rg-file button"); }, sel("Preset: LLM LoRAs"));
-    check(`${M}: ＋LoRA adds an LLM LoRA row with a dropdown and Browse…`, loraRow);
-    // pick a LoRA in it (the dropdown re-reads models/loras when pointed at)
-    const loraPicked = await page.evaluate(async (s) => {
-        const x = document.querySelector(`${s} .rg-lset-lora .rg-file select`);
-        x.dispatchEvent(new FocusEvent("focus"));
-        for (let i = 0; i < 20 && x.options.length < 2; i++) await new Promise((r) => setTimeout(r, 250));
-        if (x.options.length < 2) return "";
-        x.value = x.options[1].value; x.dispatchEvent(new Event("change"));
-        await new Promise((r) => setTimeout(r, 900));
-        return x.value;
-    }, sel("Preset: LLM LoRAs"));
+    const loraRow = await page.evaluate((s) => { const r = document.querySelector(`${s} .rg-lset-lora`); return !!r?.querySelector(".rg-ff-name") && !!r?.querySelector(".rg-ff-browse"); }, sel("Preset: LLM LoRAs"));
+    check(`${M}: ＋LoRA adds an LLM LoRA row with a file field and Browse…`, loraRow);
+    // pick a LoRA in it: ComfyUI's menu, its filter
+    await page.locator(`${sel("Preset: LLM LoRAs")} .rg-lset-lora .rg-ff-name`).first().click(); await sleep(700);
+    await page.locator(".litecontextmenu .comfy-context-menu-filter").first().fill("style_12."); await sleep(500);
+    const loraPicked = await page.evaluate(() => { const e = [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].find((x) => x.offsetParent && /style_12\.safetensors$/.test(x.textContent.trim()));
+        e?.click(); return e ? "style_12.safetensors" : ""; });
+    await sleep(900);
     lib = await readLib();
     check(`${M}: an LLM LoRA picked in Settings is saved (${loraPicked})`, !!loraPicked && lib.presets[target].loras.some((x) => x.lora === loraPicked));
     // New: a copy under a new name becomes the one edited; Delete removes it again
@@ -141,20 +142,20 @@ fs.writeFileSync(outLlm, "");
     const pop = await page.evaluate(() => {
         const p = document.querySelector(".rg-llm-pop");
         if (!p) return null;
-        const llm = p.querySelector(".rg-file select");
-        return { browse: p.querySelectorAll(".rg-file button").length, llm: llm?.value || "", first: llm?.options[0]?.textContent || "",
+        const llm = p.querySelector(".row .rg-ff-name");
+        return { browse: p.querySelectorAll(".rg-ff-browse").length, llm: llm?.title || "", name: llm?.textContent || "", select: !!p.querySelector(".rg-ff select"),
                  max: [...p.querySelectorAll(".grid label")].find((l) => l.textContent.startsWith("max_length"))?.querySelector("input")?.value };
     });
-    check(`${M}: the pop-up's LLM is a dropdown with Browse… and shows the file set in Settings (${pop && pop.llm.split(/[\\/]/).pop()})`,
-        !!pop && pop.browse >= 1 && pop.llm === path.resolve(outLlm) && pop.first.startsWith("The connected clip"));
+    check(`${M}: the pop-up's LLM is a file field with Browse… and shows the file set in Settings (${pop?.name})`,
+        !!pop && pop.browse >= 1 && pop.llm.includes(path.resolve(outLlm)) && pop.name === "qwen_outside.safetensors" && !pop.select);
     check(`${M}: the pop-up shows the max_length set in Settings (${pop?.max})`, pop?.max === "1234");
     const popLora = await page.evaluate(() => {
         const p = document.querySelector(".rg-llm-pop");
-        return [...p.querySelectorAll(".lora")].some((r) => r.querySelector(".rg-file select") && r.querySelector(".rg-file button"));
+        return [...p.querySelectorAll(".lora")].some((r) => r.querySelector(".rg-ff-name") && r.querySelector(".rg-ff-browse"));
     });
-    check(`${M}: the pop-up's LLM LoRA rows have a dropdown and Browse…`, popLora);
+    check(`${M}: the pop-up's LLM LoRA rows have a file field and Browse…`, popLora);
     // Browse… from the pop-up (the dialog opens above it; a pick marks the preset changed)
-    await page.evaluate(() => document.querySelector(".rg-llm-pop .row .rg-file button").click());
+    await page.evaluate(() => document.querySelector(".rg-llm-pop .row .rg-ff-browse").click());
     await page.waitForSelector(".rg-fb", { state: "attached", timeout: 5000 }); await sleep(500);
     await page.locator(".rg-fb-list").click({ position: { x: 5, y: 5 } }); await sleep(200);
     await page.keyboard.press("Escape"); await sleep(400);
@@ -162,17 +163,16 @@ fs.writeFileSync(outLlm, "");
         && await page.locator(".rg-llm-pop").count() === 1);
     await page.keyboard.press("Escape");
 
-    // Browse… off (the default): the pop-up's LLM is a plain dropdown, its LoRAs the LoRA-menu buttons, as before
+    // Browse… off (the default): the same file fields (ComfyUI's menu), no Browse buttons
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.ModelFiles.Browse", false); });
     await page.keyboard.press("Escape"); await sleep(400);
     await page.evaluate(() => document.querySelector(".rg-llmset")?.click()); await sleep(1200);
     const off = await page.evaluate(() => {
         const p = document.querySelector(".rg-llm-pop");
-        return { browse: p.querySelectorAll(".rg-file button").length, llmSel: !!p.querySelector(".rg-file select"),
-                 loraBtn: [...p.querySelectorAll(".lora button.name")].length };
+        return { browse: p.querySelectorAll(".rg-ff-browse").length, fields: p.querySelectorAll(".rg-ff-name").length, selects: p.querySelectorAll(".rg-ff select, .lora select").length };
     });
-    check(`${M}: with Browse… off: no Browse buttons, the LLM dropdown and the LoRA buttons as before (${JSON.stringify(off)})`,
-        off.browse === 0 && off.llmSel && off.loraBtn >= 1);
+    check(`${M}: with Browse… off: the same file fields, no Browse buttons, no dropdowns (${JSON.stringify(off)})`,
+        off.browse === 0 && off.fields >= 2 && off.selects === 0);
     await page.keyboard.press("Escape");
     check(`${M}: no errors (${errors.slice(0, 2).join(" | ")})`, !errors.length);
     // restore the library and the setting

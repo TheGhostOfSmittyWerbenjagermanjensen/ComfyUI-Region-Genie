@@ -43,7 +43,7 @@ for (const sub of ["loras", "controlnet"]) {
     page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); }).catch(() => {});
     let shownMs = -1;
     for (let i = 0; i < 100; i++) {
-        const n = await Promise.race([page.evaluate(() => document.querySelectorAll('[role="dialog"] .rg-file').length), sleep(10000).then(() => -1)]);
+        const n = await Promise.race([page.evaluate(() => document.querySelectorAll('[role="dialog"] .rg-ff').length), sleep(10000).then(() => -1)]);
         if (n > 0) { shownMs = Date.now() - t0; break; }
         await sleep(50);
     }
@@ -58,42 +58,40 @@ for (const sub of ["loras", "controlnet"]) {
     check(`every Region Genie setting shows in the dialog (${r.n}; missing: ${r.missing.slice(0, 6).join(" | ")})`, r.n > 80 && !r.missing.length);
     const i18n = errors.filter((e) => /SyntaxError|i18n|compile/i.test(e));
     check(`no translation errors while it shows (${i18n.slice(0, 2).join(" | ")})`, !i18n.length);
-    // round 22: by default Region Genie's dropdowns without Browse… (ComfyUI's own froze the tab with long lists)
+    // round 23: every model-file setting is a field that opens ComfyUI's classic menu (no Browse… by default)
     const off = await page.evaluate(() => {
-        const pickers = [...document.querySelectorAll('[role="dialog"] .rg-file')];
-        return { n: pickers.length, browse: document.querySelectorAll('[role="dialog"] .rg-file button').length,
-                 sam: window.app.ui.settings.settingsParamLookup["RegionGenie.Select.Model"].type !== "text" };
+        const f = [...document.querySelectorAll('[role="dialog"] .rg-ff')];
+        return { n: f.length, browse: document.querySelectorAll('[role="dialog"] .rg-ff-browse').length,
+                 selects: [...f].filter((x) => x.querySelector("select")).length };
     });
-    check(`Browse… off (default): every model-file setting is Region Genie's dropdown, no Browse buttons (${off.n} dropdowns, ${off.browse} buttons)`,
-        off.n >= 26 && off.browse === 0 && off.sam);
-    // a dropdown holds only its value until it is wanted; on hover it lists the files (also 'sub\@author' names)
-    const lazy = await page.evaluate(async () => {
+    check(`Browse… off (default): every model-file setting is a file field, no dropdown, no Browse buttons (${off.n} fields, ${off.browse} buttons)`,
+        off.n >= 27 && off.browse === 0 && off.selects === 0);
+    // the edit LoRA field: its value as it is; the menu opens inside the dialog on the model folders, and the search finds a
+    // 'sub\@author' name in a subfolder
+    const kreaName = await page.evaluate(() => {
         const sp = [...document.querySelectorAll('[role="dialog"] span')].find((e) => e.textContent.trim() === "Krea 2: edit LoRA");
-        let r = sp; while (r && !r.querySelector?.(".rg-file")) r = r.parentElement;
-        const sel = r.querySelector(".rg-file select"), before = sel.options.length, value = sel.value;
-        sel.dispatchEvent(new PointerEvent("pointerenter"));
-        for (let i = 0; i < 40 && sel.options.length <= 2; i++) await new Promise((res) => setTimeout(res, 100));
-        return { before, after: sel.options.length, value, backslash: [...sel.options].some((o) => o.value === "rgtest_sub\\@author\\x.safetensors") };
+        let r = sp; while (r && !r.querySelector?.(".rg-ff")) r = r.parentElement;
+        const n = r.querySelector(".rg-ff-name"); n.id = "rgkrea"; n.scrollIntoView({ block: "center" }); return n.textContent;
     });
-    check(`a dropdown holds only its value until pointed at, then lists the files (${lazy.before} -> ${lazy.after}; value ${lazy.value})`,
-        lazy.before <= 2 && lazy.after > lazy.before && lazy.value === "rgtest_char@v2.safetensors" && lazy.backslash);
+    check(`a set value with '@' shows as it is (${kreaName})`, kreaName === "rgtest_char@v2.safetensors");
+    const tm = Date.now(); await page.click("#rgkrea"); await page.waitForSelector(".litecontextmenu", { timeout: 10000 }); const menuMs = Date.now() - tm;
+    const menu = await page.evaluate(() => { const m = document.querySelector(".litecontextmenu");
+        return { inDlg: !!m.closest('[role="dialog"]'), top: [...m.querySelectorAll(".litemenu-entry")].slice(0, 5).map((e) => e.textContent.trim()) }; });
+    check(`the field opens ComfyUI's menu inside the dialog, on the model folders, quickly with ${BIG.length} LoRAs (${menuMs} ms; ${menu.top.join(" | ")})`,
+        menu.inDlg && menu.top[0] === "None" && menu.top.some((t) => /controlnet/.test(t)) && menu.top.some((t) => /loras/.test(t)) && menuMs < 5000);
+    await page.locator(".litecontextmenu .comfy-context-menu-filter").first().fill("@author"); await sleep(600);
+    const found = await page.evaluate(() => [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].filter((e) => e.offsetParent).map((e) => e.textContent.trim()));
+    check(`the search finds 'sub\\@author' names (${found.slice(0, 2).join(" | ")})`, found.some((t) => t.includes("rgtest_sub\\@author\\x.safetensors")));
+    await page.keyboard.press("Escape"); await page.evaluate(() => document.querySelectorAll(".litecontextmenu").forEach((m) => m.remove())); await sleep(300);
     // Browse… on: Region Genie's pickers (the dialog follows the switch)
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.ModelFiles.Browse", true); });
     await page.keyboard.press("Escape"); await sleep(800);
     await page.keyboard.press("Control+,"); await sleep(1500);
     await page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); });
     await sleep(2500);
-    // round 18: every model-file setting is Region Genie's own picker (dropdown + Browse…); names show as they are
-    const pk = await page.evaluate(() => {
-        const pickers = [...document.querySelectorAll('[role="dialog"] .rg-file')];
-        const sels = pickers.map((p) => p.querySelector("select"));
-        const krea = sels.find((x) => x.value === "rgtest_char@v2.safetensors");
-        const opts = sels[0] ? [...sels[0].options].map((o) => o.textContent) : [];
-        return { n: pickers.length, krea: !!krea, backslash: sels.some((x) => [...x.options].some((o) => o.value === "rgtest_sub\\@author\\x.safetensors")),
-                 buttons: pickers.filter((p) => p.querySelector("button svg")).length, first: opts.slice(0, 3).join(" | ") };
-    });
-    check(`every model-file setting is a picker with a Browse… button (${pk.n} pickers, ${pk.buttons} buttons)`, pk.n === 27 && pk.buttons === 27);
-    check(`with Browse… on too, a set value with '@' shows as it is`, pk.krea);
+    const pk = await page.evaluate(() => { const f = [...document.querySelectorAll('[role="dialog"] .rg-ff')];
+        return { n: f.length, buttons: f.filter((p) => p.querySelector(".rg-ff-browse svg")).length }; });
+    check(`Browse… on: every model-file field has a Browse… button (${pk.n} fields, ${pk.buttons} buttons)`, pk.n >= 27 && pk.buttons === pk.n);
     // Browse…: a file outside ComfyUI's folders is saved by its full path
     const outDir = path.join(DIR, "..", "rgtest_outside", "@author");
     fs.mkdirSync(outDir, { recursive: true });
@@ -101,8 +99,8 @@ for (const sub of ["loras", "controlnet"]) {
     fs.writeFileSync(outFile, "");
     await page.evaluate(() => {
         const row = [...document.querySelectorAll('[role="dialog"] span')].find((e) => e.textContent.trim() === "MOSS-Image: edit LoRA");
-        let p = row; while (p && !p.querySelector?.(".rg-file")) p = p.parentElement;
-        p.querySelector(".rg-file button").click();
+        let p = row; while (p && !p.querySelector?.(".rg-ff")) p = p.parentElement;
+        p.querySelector(".rg-ff-browse").click();
     });
     await page.waitForSelector(".rg-fb", { state: "attached", timeout: 5000 });
     await sleep(600);
@@ -112,9 +110,9 @@ for (const sub of ["loras", "controlnet"]) {
     await page.locator(".rg-fb-item", { hasText: "moss_edit_outside.safetensors" }).click();
     await page.locator(".rg-fb button.primary").click(); await sleep(800);
     const saved = await page.evaluate(() => window.app.extensionManager.setting.get("RegionGenie.Edit.LoRA.MOSS"));
-    const still = await page.evaluate(() => !!document.querySelector('[role="dialog"] .rg-file') && !document.querySelector(".rg-fb")
-        && [...document.querySelectorAll('[role="dialog"] .rg-file select')].some((x) => x.value.endsWith("moss_edit_outside.safetensors")));
-    check("the Settings dialog stays open after Browse…, its dropdown shows the picked file", still);
+    const still = await page.evaluate(() => !!document.querySelector('[role="dialog"] .rg-ff') && !document.querySelector(".rg-fb")
+        && [...document.querySelectorAll('[role="dialog"] .rg-ff-name')].some((x) => x.textContent === "moss_edit_outside.safetensors"));
+    check("the Settings dialog stays open after Browse…, its field shows the picked file", still);
     check(`Browse…: starts in ComfyUI's loras folder (${startPath})`, /models[\\/]loras$/.test(startPath));
     check(`Browse…: a file anywhere is listed, picked and saved by its full path (${listed}; ${saved})`, listed === 1 && saved === path.resolve(outFile));
     const exists = await page.evaluate(async (n) => (await (await fetch(`/region_genie/model_exists?folders=loras&name=${encodeURIComponent(n)}`)).json()).found, saved);

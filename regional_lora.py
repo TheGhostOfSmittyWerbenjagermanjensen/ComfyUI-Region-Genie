@@ -1076,9 +1076,13 @@ def merge_loras(model, loras):
         _MERGE_LOADERS[name] = loader
         while len(_MERGE_LOADERS) > 8:
             _MERGE_LOADERS.popitem(last=False)
-        from .model_paths import absolute_names
-        with absolute_names():                     # a full path (an edit / control LoRA set with Browse…) loads too
-            model = loader.load_lora_model_only(model, name, strength)[0]
+        from .model_paths import absolute_names, full_path, is_full_path, split_folder
+        # a full path (Browse…) or a file picked from another model folder ("controlnet:x") loads by its full path
+        load = name
+        if is_full_path(name) or split_folder(name)[0]:
+            load = full_path("loras", name) or name
+        with absolute_names():
+            model = loader.load_lora_model_only(model, load, strength)[0]
     return model
 
 

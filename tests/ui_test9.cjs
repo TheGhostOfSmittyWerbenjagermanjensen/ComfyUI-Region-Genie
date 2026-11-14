@@ -191,20 +191,22 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.waitForTimeout(700);
     check("0: back to 12 px", await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-list textarea.rg-prompt")).fontSize)) === 12);
 
-    // ---------------- Control row (round 10)
-    // round 18: no Control row until ＋Control (on the Whole image row) adds it; its ✕ removes it
+    // ---------------- Control rows (round 10; round 23: several, ＋Control stays, ✕ per row, no details, no Whole image line)
     const crow = page.locator(".rg-list .rg-row.ctrl:not(.edit)");
     const ctlAdd = () => page.locator(".rg-list .rg-row.scene button", { hasText: "＋Control" }).click();
-    const ctlRemove = () => page.locator('.rg-list .rg-row.ctrl button[title^="Remove the Control row"]').click();
-    check("no Control row by default; ＋Control on the Whole image row", await crow.count() === 0 && !(await st()).control?.on
+    const ctlRemove = (k = 0) => page.locator('.rg-list .rg-row.ctrl:not(.edit) button[title^="Remove this Control row"]').nth(k).click();
+    check("no Control row by default; ＋Control on the Whole image row", await crow.count() === 0 && !((await st()).controls || []).length
         && await page.locator(".rg-list .rg-row.scene button", { hasText: "＋Control" }).isVisible());
     await page.evaluate(() => { window.__settings["RegionGenie.Control.MOSS"] = "moss_ctrl.safetensors"; window.__settings["RegionGenie.Control.SDXL.canny"] = "cn_canny.safetensors"; });
     await ctlAdd(); await page.waitForTimeout(80);
     s = await st();
-    check("＋Control: the row is there, ＋Control hidden" , await crow.count() === 1 && !(await page.locator(".rg-list .rg-row.scene button", { hasText: "＋Control" }).isVisible()));
-    check("toggle: control on (depth), MOSS control LoRA added to Whole image (no run yet: every model)", s.control?.on === true && s.control.kind === "depth"
+    check("＋Control: a row, and ＋Control stays (for more rows)", await crow.count() === 1 && await page.locator(".rg-list .rg-row.scene button", { hasText: "＋Control" }).isVisible());
+    check("the row: depth; MOSS control LoRA kept with Whole image's LoRAs (no run yet: every model)", s.controls?.length === 1 && s.controls[0].kind === "depth"
         && (s.sceneLoras || []).some((x) => x.lora === "moss_ctrl.safetensors" && x.control === "MOSS-Image" && x.ckind === "moss"));
-    check("the LoRA row is marked 'Control'", await page.locator(".rg-list .rg-row.lora .rg-hint", { hasText: "Control" }).count() >= 1);
+    check("no chevron or details on the Control row", await crow.locator(".rg-chev").evaluate((e) => getComputedStyle(e).visibility) === "hidden"
+        && await page.locator(".rg-subbody.ctrl").count() === 0);
+    await page.locator(".rg-list .rg-row.scene").click({ position: { x: 30, y: 8 } }); await page.waitForTimeout(80);
+    check("Whole image doesn't list the Control LoRA (no duplicate)", await page.locator(".rg-list .rg-row.lora .rg-hint", { hasText: "Control" }).count() === 0);
     await crow.locator("select").selectOption("canny"); await page.waitForTimeout(80);
     check("canny: the MOSS LoRA goes (it reads color / depth only)", !((await st()).sceneLoras || []).some((x) => x.control));
     await crow.locator("select").selectOption("color"); await page.waitForTimeout(80);
@@ -212,45 +214,58 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await cs.fill("0.8"); await cs.press("Enter"); await ca.fill("10"); await ca.press("Enter"); await cb.fill("70"); await cb.press("Enter");
     await page.waitForTimeout(80);
     s = await st();
-    check("strength / start / end", s.control.kind === "color" && s.control.strength === 0.8 && Math.abs(s.control.start - 0.1) < 1e-9 && Math.abs(s.control.end - 0.7) < 1e-9);
-    // details: which file each model uses
-    if (!await page.locator(".rg-subbody.ctrl").count()) await crow.locator(".rg-pseudo").click();
-    await page.waitForTimeout(80);
-    check("details list the files and the map's source", /MOSS-Image: LoRA moss_ctrl/.test(await page.locator(".rg-subbody.ctrl").textContent())
-        && /regions' colors/.test(await page.locator(".rg-subbody.ctrl").textContent()));
-    // per-region switch
+    check("strength / start / end", s.controls[0].kind === "color" && s.controls[0].strength === 0.8 && Math.abs(s.controls[0].start - 0.1) < 1e-9 && Math.abs(s.controls[0].end - 0.7) < 1e-9);
+    check("the kind's tooltip names the file (model not known: says so)", /The file depends on the model/.test(await crow.locator("select").getAttribute("title")));
+    // a second row
+    await ctlAdd(); await page.waitForTimeout(80);
+    await crow.nth(1).locator("select").selectOption("canny"); await page.waitForTimeout(80);
+    s = await st();
+    check("a second Control row (canny) next to the first (color)", await crow.count() === 2 && s.controls.map((c) => c.kind).join() === "color,canny");
+    // per-region switch: one per region, for all rows
     const rtog = page.locator('.rg-row.region .rg-btn.mini[title^="Control acts on this region"]');
-    check("a control switch on each region row while control is on", await rtog.count() === (await st()).regions.length);
+    check("a control switch on each region row while a Control row is there", await rtog.count() === (await st()).regions.length);
     await rtog.first().click(); await page.waitForTimeout(80);
     check("switching a region off: noControl on the region", (await st()).regions[0].noControl === true);
-    // what the run gets: the control settings and the files from Settings
+    // what the run gets: the rows and the files from Settings
     const sent = await page.evaluate(() => JSON.parse(window.__node.widgets.find((w) => w.name === "paint_data").serializeValue()));
-    check("paint_data: control and the Settings' files", sent.control?.on && sent.control.kind === "color" && sent.control.files?.MOSS === "moss_ctrl.safetensors"
-        && sent.control.files["SDXL.canny"] === "cn_canny.safetensors" && sent.regions[0].noControl === true);
-    // the model of the last run decides which LoRAs are added
+    check("paint_data: the Control rows and the Settings' files", sent.controls?.length === 2 && sent.controls[0].kind === "color" && sent.controlFiles?.MOSS === "moss_ctrl.safetensors"
+        && sent.controlFiles["SDXL.canny"] === "cn_canny.safetensors" && sent.regions[0].noControl === true);
+    await ctlRemove(1); await page.waitForTimeout(80);
+    // the model of the last run decides which LoRAs are added; a Flux.1 LoRA takes its row's strength
     await page.evaluate(() => { window.__node.properties.rg_model_arch = "Flux.1"; window.__settings["RegionGenie.Control.Flux1Depth"] = "flux-depth-lora.safetensors"; });
     await crow.locator("select").selectOption("depth"); await page.waitForTimeout(80);
     s = await st();
-    check("last run was Flux.1: only the Flux.1 depth LoRA", (s.sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "flux-depth-lora.safetensors");
+    const fl = (s.sceneLoras || []).filter((x) => x.control);
+    check("last run was Flux.1: only the Flux.1 depth LoRA, at the row's strength", fl.map((x) => x.lora).join() === "flux-depth-lora.safetensors" && fl[0].strength === 0.8);
+    await cs.fill("0.6"); await cs.press("Enter"); await page.waitForTimeout(80);
+    check("the row's strength drives the Flux.1 LoRA", ((await st()).sceneLoras || []).find((x) => x.control)?.strength === 0.6);
+    check("the kind's tooltip names the Flux.1 LoRA", /File for Flux\.1: flux-depth-lora\.safetensors \(depth LoRA/.test(await crow.locator("select").getAttribute("title")));
     // reloading the workflow keeps control, the region switches, the region eye and the LLM switches (loader fix)
     await page.evaluate(() => { const st = window.__node.__rgState(); st.regions[1].hidden = true; st.regions[1].llm = true; st.sceneLlm = true; window.__node.__rgRefresh(); });
     await page.evaluate(() => window.__node.onConfigure?.({ properties: window.__node.properties }));
     await page.waitForTimeout(100);
     s = await st();
-    check("reload keeps control, noControl, hidden, llm, sceneLlm, control LoRA tags", s.control?.on && s.control.kind === "depth" && s.regions[0].noControl
+    check("reload keeps the Control row, noControl, hidden, llm, sceneLlm, control LoRA tags", s.controls?.length === 1 && s.controls[0].kind === "depth" && s.regions[0].noControl
         && s.regions[1].hidden && s.regions[1].llm && s.sceneLlm && (s.sceneLoras || []).some((x) => x.control === "Flux.1" && x.ckind === "depth"));
     await page.evaluate(() => { const st = window.__node.__rgState(); delete st.regions[1].hidden; window.__node.__rgRefresh(); });
-    // off: the control LoRAs go; undo brings them back
+    // ✕: the row and its LoRAs go; undo brings them back
     await ctlRemove(); await page.waitForTimeout(80);
     check("✕: the row goes", await crow.count() === 0);
-    check("off: the control LoRAs leave Whole image", !(await st()).control.on && !((await st()).sceneLoras || []).some((x) => x.control));
+    check("…and the control LoRAs too", !((await st()).controls || []).length && !((await st()).sceneLoras || []).some((x) => x.control));
     await page.keyboard.press("Control+z"); await page.waitForTimeout(80);
-    check("undo: on again with its LoRA", (await st()).control.on && ((await st()).sceneLoras || []).some((x) => x.control));
+    check("undo: the row again with its LoRA", (await st()).controls?.length === 1 && ((await st()).sceneLoras || []).some((x) => x.control));
+    // an old workflow's single Control ('control' with 'on') becomes a row
+    await page.evaluate(() => { const n = window.__node, w = n.widgets.find((x) => x.name === "paint_data"); const d = JSON.parse(w.value);
+        delete d.controls; d.control = { on: true, kind: "canny", strength: 0.5, start: 0, end: 1 }; w.value = JSON.stringify(d);
+        n.onConfigure?.({ properties: n.properties, widgets_values: n.widgets.map((x) => x.value) }); });
+    await page.waitForTimeout(150);
+    s = await st();
+    check("an old workflow's Control becomes a row", s.controls?.length === 1 && s.controls[0].kind === "canny" && s.controls[0].strength === 0.5 && !s.control);
 
     // ---------------- the model: guessed from the graph, picked in the footer; Control / Edit LoRAs follow (round 10)
     await page.evaluate(() => {
         const n = window.__node, st = n.__rgState();
-        st.control = { on: false, kind: "depth", strength: 1, start: 0, end: 1 };
+        delete st.controls; delete st.controlLast;
         st.sceneLoras = (st.sceneLoras || []).filter((x) => !x.control && !x.edit);
         delete n.properties.rg_model_arch; delete n.properties.rg_model_src; delete n.properties.rg_model_pick;
         // Load Diffusion Model (moss…) -> LoRA loader -> Region Genie.model
@@ -307,8 +322,31 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await msel.selectOption("Flux.1"); await page.waitForTimeout(150);
     s = await st();
     check("picking Flux.1: the edit LoRA follows", (s.sceneLoras || []).filter((x) => x.edit).map((x) => x.edit + ":" + x.lora).join() === "Flux.1:edit.safetensors");
+    // round 23: the Edit row shows the model's LoRA at once; ✕ removes it for this node; ＋Edit (Edit Mode only) brings it
+    // back, then adds this node's own Edit rows
+    const erow = page.locator(".rg-list .rg-row.ctrl.edit");
+    check("the Edit row follows the model at once (Flux.1: its edit LoRA)", /Flux\.1:/.test(await erow.first().textContent()) && /edit\.safetensors/.test(await erow.first().textContent()));
+    check("Whole image doesn't list the edit LoRA (no duplicate)", await page.locator(".rg-list .rg-row.lora .rg-hint", { hasText: "Edit" }).count() === 0);
+    const estr = erow.first().locator("input.rg-num");
+    await estr.fill("0.7"); await estr.press("Enter"); await page.waitForTimeout(80);
+    check("the Edit row's strength is the edit LoRA's", ((await st()).sceneLoras || []).find((x) => x.edit)?.strength === 0.7);
+    const eadd = page.locator(".rg-list .rg-row.scene button", { hasText: "＋Edit" });
+    await erow.first().locator('button[title^="Remove the Edit row"]').click(); await page.waitForTimeout(100);
+    s = await st();
+    check("✕ on the Edit row: gone for this node, its LoRA too; ＋Edit shown", s.editOff === true && !(s.sceneLoras || []).some((x) => x.edit)
+        && await erow.count() === 0 && await eadd.isVisible());
+    await eadd.click(); await page.waitForTimeout(100);
+    check("＋Edit brings the Settings row back", !(await st()).editOff && await erow.count() === 1 && ((await st()).sceneLoras || []).some((x) => x.edit));
+    await eadd.click(); await page.waitForTimeout(100);
+    s = await st();
+    check("＋Edit again: an Edit row of this node's own", await erow.count() === 2 && (s.editLoras || []).length === 1);
+    await page.evaluate(() => { window.__node.__rgState().editLoras[0].lora = "relight.safetensors"; window.__node.__rgRefresh(); });
+    const sent2 = await page.evaluate(() => JSON.parse(window.__node.widgets.find((w) => w.name === "paint_data").serializeValue()));
+    check("paint_data carries this node's Edit LoRAs", (sent2.editLoras || [])[0]?.lora === "relight.safetensors");
     await page.locator(".rg-settings .rg-seg button", { hasText: "Generate" }).click(); await page.waitForTimeout(150);
-    check("back to Generate: the edit LoRA leaves", !((await st()).sceneLoras || []).some((x) => x.edit));
+    check("back to Generate: the edit LoRA leaves; no Edit rows, no ＋Edit", !((await st()).sceneLoras || []).some((x) => x.edit)
+        && await erow.count() === 0 && !(await eadd.isVisible()));
+    await page.evaluate(() => { const st = window.__node.__rgState(); delete st.editLoras; window.__node.__rgRefresh(); });
     await msel.selectOption(""); await page.waitForTimeout(100);
 
     // ---------------- toolbar: one row whatever the tool; grouped buttons with ▾; options strip; opacity slider (round 11)

@@ -62,6 +62,17 @@ half = np.zeros((H, W), bool); half[:, :32] = True                            # 
 
 # ---------------------------------------------------------------- settings
 check("off: no config", ctl.config({"control": {"on": False}}) is None and ctl.config({}) is None)
+# round 23: several Control rows ('controls' + 'controlFiles'); an old workflow's single 'control' still reads
+cs = ctl.configs({"controls": [{"kind": "depth", "strength": 0.6}, {"kind": "canny"}], "controlFiles": {"SDXL.depth": "d", "SDXL.canny": "c"}})
+check("configs: several rows, the files shared", [c["kind"] for c in cs] == ["depth", "canny"] and cs[0]["files"]["SDXL.canny"] == "c" and cs[0]["strength"] == 0.6)
+check("configs: an old single control", [c["kind"] for c in ctl.configs({"control": {"on": True, "kind": "color"}})] == ["color"]
+      and ctl.configs({"control": {"on": False}}) == [] and ctl.configs({"controls": []}) == [])
+check("uses_concat: MOSS rows and a Flux.1 LoRA row share the one extra input; ControlNets don't",
+      ctl.uses_concat(cs[0], "MOSS-Image") and not ctl.uses_concat(cs[0], "SDXL")
+      and ctl.uses_concat({"kind": "depth", "files": {"Flux1Depth": "l"}}, "Flux.1") and not ctl.uses_concat({"kind": "depth", "files": {}}, "Flux.1"))
+row = {"control": "Flux.1", "ckind": "canny", "lora": "x"}
+check("lora_row_cfg: a control LoRA belongs to the row of its kind", ctl.lora_row_cfg(row, cs, "Flux.1") is cs[1]
+      and ctl.lora_row_cfg(row, cs, "SDXL") is None and ctl.lora_tag_ok(row, cs, "Flux.1"))
 c = cfg("depth", strength=2.5, start=0.2, end=0.7)
 check("config: kind, strength, start, end", c["kind"] == "depth" and c["strength"] == 2.5 and c["start"] == 0.2 and c["end"] == 0.7)
 check("config: bad kind -> depth, numbers clamped", cfg("x", strength=99)["kind"] == "depth" and cfg("x", strength=99)["strength"] == 10)

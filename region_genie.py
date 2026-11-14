@@ -1404,22 +1404,42 @@ class RegionGenie:
         else:
             latent = empty_latent(width, height, model, vae)
         # Control (the list's 'Control' row): ControlNet / control LoRA for the connected model
+        # round 23: several Control rows, applied one after the other (ControlNets chain, LLLite patches stack);
+        # the ones that use the model's one extra input (MOSS-Image's control LoRA, a Flux.1 depth / canny LoRA): the first
         from . import control as ctl
-        ccfg = ctl.config(pdata)
-        if ccfg is not None:
-            try:
-                rmask = ctl.region_mask(regions, id_to_index, idx)
-                missing = []
-                model_out, positive, negative, cmap = ctl.apply(ccfg, arch.name if arch is not None else None, model_out,
-                                                                positive, negative, vae, image, control_image, color_map,
-                                                                rmask, width, height, notes, missing)
-                if missing:
-                    ui["control_missing"] = [json.dumps(missing)]
-                if cmap is not None:
-                    ui["control_map"] = self._save_preview(cmap, "regiongenie.control")
-            except Exception as e:            # a broken control file must not stop the run
-                logging.exception(f"{LOG} control failed")
-                notes.append(f"NOTE: control could not be applied: {e}")
+        ccfgs = ctl.configs(pdata)
+        if ccfgs:
+            rmask = ctl.region_mask(regions, id_to_index, idx)
+            missing, maps, concat_used = [], [], None
+            aname = arch.name if arch is not None else None
+            for k, ccfg in enumerate(ccfgs):
+                try:
+                    if ctl.uses_concat(ccfg, aname):
+                        if concat_used is not None:
+                            notes.append(f"NOTE: control row {k + 1} ({ccfg['kind']}) not used: {aname} takes one map through "
+                                         f"its control LoRA, and row {concat_used + 1} already uses it")
+                            maps.append(None)
+                            continue
+                        concat_used = k
+                    model_out, positive, negative, cmap = ctl.apply(ccfg, aname, model_out, positive, negative, vae, image,
+                                                                    control_image, color_map, rmask, width, height, notes,
+                                                                    missing)
+                    maps.append(cmap)
+                except Exception as e:            # a broken control file must not stop the run
+                    logging.exception(f"{LOG} control failed")
+                    notes.append(f"NOTE: control row {k + 1} could not be applied: {e}")
+                    maps.append(None)
+            if missing:
+                uniq = []
+                for m in missing:
+                    if m not in uniq:
+                        uniq.append(m)
+                ui["control_missing"] = [json.dumps(uniq)]
+            if any(m is not None for m in maps):
+                saved = [(self._save_preview(m, "regiongenie.control") or [None])[0] if m is not None else None for m in maps]
+                ui["control_maps"] = [json.dumps(saved)]            # one per Control row (the editor's eye buttons)
+                if any(x is not None for x in saved):
+                    ui["control_map"] = [next(x for x in saved if x is not None)]
         lines += edit_notes
         lines += lora_lines
         info = "\n".join([f"{count} region(s) on {width}x{height} canvas"] + lines + notes)
@@ -1472,14 +1492,16 @@ class RegionGenie:
             return out
         arch = hl.model_arch(model) if model is not None else None
         from . import control as ctl
-        ccfg = ctl.config(data)
+        ccfgs = ctl.configs(data)
         # edit LoRAs added by Edit Mode (Settings > Region Genie > Edit Mode): only the one for the connected model;
-        # control LoRAs added by the Control row: only for the connected model while control is on
+        # control LoRAs added by a Control row: only for the connected model while that row is there. A Flux.1 depth /
+        # canny LoRA takes its Control row's strength (round 23: that row is where it is set)
         scene_rows = []
         for x in data.get("sceneLoras") or []:
             if isinstance(x, dict) and x.get("control"):
-                if ctl.lora_tag_ok(x, ccfg, arch.name if arch is not None else None):
-                    scene_rows.append(x)
+                c = ctl.lora_row_cfg(x, ccfgs, arch.name if arch is not None else None)
+                if c is not None:
+                    scene_rows.append({**x, "strength": c["strength"]} if x.get("ckind") in ("depth", "canny") else x)
                 continue
             tag = x.get("edit") if isinstance(x, dict) else None
             if tag:
@@ -1489,6 +1511,9 @@ class RegionGenie:
                                      f"{arch.name if arch is not None else 'not connected or unknown'}")
                     continue
             scene_rows.append(x)
+        # round 23: the Edit rows added with ＋Edit (this node's own LoRAs, only in Edit Mode, for any model)
+        if edit:
+            scene_rows += [x for x in data.get("editLoras") or [] if isinstance(x, dict)]
         scene = active(scene_rows)
         regional = [(row, active(row.get("loras"))) for row in table if row.get("out_index") is not None]
         regional = [(row, ls) for row, ls in regional if ls]
