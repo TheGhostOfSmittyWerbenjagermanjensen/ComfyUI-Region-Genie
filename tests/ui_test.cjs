@@ -18,7 +18,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const cacheCalls = await page.evaluate(() => window.__fetches.filter(([u]) => u.includes("llm_cache_config")).map(([, o]) => JSON.parse(o.body)));
     check("setup tells the server the LLM cache settings (disk off by default)", cacheCalls.length === 1 && cacheCalls[0].disk === false && cacheCalls[0].days === 30 && cacheCalls[0].max === 500);
     await page.evaluate(() => window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.Lasso").onChange("plain"));
-    check("changing the lasso setting switches the button", /^Lasso: straight/.test(await lassoTitle()));
+    check("changing the lasso setting switches the button", /^Lasso: Straight/.test(await lassoTitle()));
     await page.evaluate(() => window.__settingsExt.settings.find((s) => s.id === "RegionGenie.LLM.CacheOnDisk").onChange(true));
     const last = await page.evaluate(() => JSON.parse(window.__fetches.filter(([u]) => u.includes("llm_cache_config")).pop()[1].body));
     check("turning disk caching on is sent to the server", last.disk === true);

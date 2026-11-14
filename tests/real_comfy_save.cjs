@@ -55,7 +55,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         if (vue) {
             const box = document.querySelector(`[data-node-id="${sv.id}"]`);
             const txt = box?.innerText || "";
-            dom = ["png_compression", "png_bit_depth", "webp_lossless", "webp_quality", "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality", "invert_mask"]
+            dom = ["png_compression", "png_bit_depth", "webp_lossless", "webp_quality", "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality", "exr_bit_depth", "exr_color_space", "invert_mask"]
                 .filter((n) => txt.includes(n));
         }
         return { names, dom };
@@ -66,8 +66,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         webp: ["filename_prefix", "format", "webp_lossless", "webp_quality"],
         jpeg: ["filename_prefix", "format", "jpeg_quality", "jpeg_extension", "jpeg_workflow"],
         avif: ["filename_prefix", "format", "avif_quality"],
+        exr: ["filename_prefix", "format", "exr_bit_depth", "exr_color_space"],
     };
-    for (const f of ["png", "webp", "jpeg", "avif"]) {
+    for (const f of ["png", "webp", "jpeg", "avif", "exr"]) {
         await setW("format", f); await sleep(300);
         const s = await shown();
         const want = expect[f];
@@ -137,6 +138,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
     r = await queue("avif");
     check(`${M}: avif run`, ls("avif").length === 2 && /AVIF q80/.test(r.text));
+    // EXR (round 14): ComfyUI's own encoder; scene-linear float, the mask as alpha, the workflow in the header
+    r = await queue("exr", { exr_bit_depth: "32-bit float" });
+    const exrs = ls("exr");
+    let exrOk = false, exrInfo = "";
+    if (exrs.length) {
+        const f = path.join(OUT, run, exrs[0]), buf = fs.readFileSync(f);
+        const head = buf.subarray(0, 4).toString("hex"), hasWf = buf.indexOf("workflow") > 0 && buf.indexOf("prompt") > 0;
+        try {
+            const py = "import av,sys,numpy as np\nc=av.open(sys.argv[1]);fr=next(c.decode(video=0));a=fr.to_ndarray(format=fr.format.name)\n"
+                + "print(fr.width,fr.height,fr.format.name,round(float(a.max()),3))";
+            exrInfo = require("child_process").execFileSync("python3", ["-c", py, f], { encoding: "utf8" }).trim();
+        } catch (e) { exrInfo = "decode failed: " + String(e.message).slice(0, 80); }
+        exrOk = head === "762f3101" && hasWf && /^64 48 gbrap?f32le/.test(exrInfo);
+    }
+    check(`${M}: exr run: 2 EXR files, float, 64 x 48, with the workflow in the header (${exrs.join(",")}; ${exrInfo}; ${r.text})`,
+        exrs.length === 2 && exrOk && /EXR 32-bit float/.test(r.text));
     const stale = await page.evaluate(async () => {
         const out = document.querySelector(".rg-save-out"), fresh = !out.classList.contains("stale");
         const w = window.__sv.widgets.find((x) => x.name === "avif_quality"); w.value = 50; w.callback?.(50);

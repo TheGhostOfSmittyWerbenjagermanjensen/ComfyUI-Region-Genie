@@ -317,7 +317,7 @@ export async function openLlmSettings(anchor, host) {
         const delB = mk("button", null, "Delete");
         const inUseBy = LLM_TYPES.filter((t) => lib.defaults[t] === editName);
         delB.disabled = !lib.presets[editName] || Object.keys(lib.presets).length < 2 || inUseBy.length > 0;
-        delB.title = inUseBy.length ? `Default for ${inUseBy.join(", ")}: choose another default first` : "Delete this preset from your library";
+        delB.title = inUseBy.length ? `The default for ${inUseBy.join(", ")}. Choose another default first.` : "Delete this preset from your library";
         delB.addEventListener("click", () => {
             if (delB.dataset.armed !== "1") { delB.dataset.armed = "1"; delB.textContent = "Delete?"; return; }
             delete lib.presets[editName];
@@ -327,7 +327,7 @@ export async function openLlmSettings(anchor, host) {
 
         const nameRow = mk("div", "row");
         const nameIn = mk("input", "grow"); nameIn.type = "text"; nameIn.value = editName;
-        nameIn.title = "Preset name: change it and Save to rename";
+        nameIn.title = "Preset name: Change it and Save to rename";
         nameRow.append(mk("span", "lbl", "Name"), nameIn); pop.append(nameRow);
 
         const field = (label, input, title) => {
@@ -395,7 +395,7 @@ export async function openLlmSettings(anchor, host) {
             l.append(mk("span", null, label), i); grid.append(l); return i;
         };
         numIn("max_length", "max_length", 1, 1, 32768, "Most tokens the LLM writes");
-        chk("sampling", "sampling", "Sampling mode. Off (default): greedy decoding, always the same text for the same input; temperature, top_k, top_p, min_p, the penalties and the seed are not used (Generate Text hides them too)");
+        chk("sampling", "sampling", "Sampling mode.\nOff (default): Greedy decoding, always the same text for the same input; temperature, top_k, top_p, min_p, the penalties and the seed are not used (Generate Text hides them too)");
         const sampled = [
             numIn("temperature", "temperature", 0.05, 0.01, 2),
             numIn("top_k", "top_k", 1, 0, 1000),

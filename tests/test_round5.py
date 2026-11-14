@@ -68,7 +68,7 @@ class FakeRegion:
     def grid_mask(self, h, w, src=None):
         return self.m
 
-moss = hl.ModelArch("MOSS Image")
+moss = hl.ModelArch("MOSS-Image")
 grid = (2, 2, (2, 2, 1))                        # 4 image tokens: 0 = region A, 1 = region B, 2 and 3 = background
 A, B = FakeRegion([0]), FakeRegion([1])
 def pen(sep, nq, nk, tl=None, arch=moss, early=True):

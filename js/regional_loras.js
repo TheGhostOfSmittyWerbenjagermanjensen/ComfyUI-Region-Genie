@@ -113,6 +113,7 @@ function setup(node) {
     });
     // the pop-up editor for a text field ("w:<widget name>" or "row:<i>"); ◀ / ▶ step through all of them in order
     // (positive_prompt, negative_prompt, then each row's words), keeping the pop-up's place and size
+    const NAV_WHAT = "positive_prompt, negative_prompt, then each row's words";
     const rowOpen = [];                      // row i -> (at) => opens its pop-up (made by render)
     const popKeys = () => ["w:positive_prompt", "w:negative_prompt", ...rows.map((_, i) => "row:" + i)];
     function openField(key, at) {
@@ -123,7 +124,7 @@ function setup(node) {
         if (key.startsWith("row:")) { rowOpen[+key.slice(4)]?.(at, nav); return; }
         const name = key.slice(2);
         openFloatPopup({
-            anchor: widgetTA[name] || wrap, title: name, value: node.widgets?.find((x) => x.name === name)?.value ?? "", node, at, nav,
+            anchor: widgetTA[name] || wrap, title: name, value: node.widgets?.find((x) => x.name === name)?.value ?? "", node, at, nav, navWhat: NAV_WHAT,
             fontKey: SET.fsPopScene, onInput: (v) => setW(name, v), filled: (raw) => filledFor(WKEY[name], raw) });
     }
     for (const n of ["positive_prompt", "negative_prompt"]) {
@@ -161,7 +162,7 @@ function setup(node) {
     const wrap = el("div", "rg-rl-wrap");
     const head = el("div", "rg-rl-head");
     const addBtn = el("button", "rg-rl-btn", "+ Add LoRA");
-    addBtn.title = "Add a row: one LoRA applied inside one mask (index), or everywhere (index -1).";
+    addBtn.title = "Add a row: One LoRA applied inside one mask (index), or everywhere (index -1).";
     const hint = el("span", "rg-rl-hint");
     const acCtl = autocompleteToggle(node, el);
     acCtl.el.style.marginLeft = "auto";
@@ -326,7 +327,7 @@ function setup(node) {
             rowEls[i] = { sw, text: regText, pr };
             fillChips(chips, r);
             rowOpen[i] = (at, nav) => openFloatPopup({
-                anchor: pr, title: `Row ${i + 1}: words for ${r.index === -1 ? "the whole image" : "region " + r.index}`, value: r.prompt, node, at, nav,
+                anchor: pr, title: `Row ${i + 1}: words for ${r.index === -1 ? "the whole image" : "region " + r.index}`, value: r.prompt, node, at, nav, navWhat: NAV_WHAT,
                 fontKey: SET.fsPopRegion, onInput: (v) => { r.prompt = v; pr.value = v; save(); wcMark(pr, "row" + i, v); },
                 filled: (raw) => filledFor("row" + i, raw), onClose: () => { fillChips(chips, r); updateHints(); } });
             addExpandButton(pr, "Open this row's words in the pop-up editor", () => openField("row:" + i));

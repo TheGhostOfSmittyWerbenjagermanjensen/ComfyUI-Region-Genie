@@ -222,7 +222,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const sel = document.querySelector(".rg-settings select.rg-model");
         return { first: sel?.options[0]?.textContent };
     });
-    check(`${M}: the model is guessed from the loader before any run (${g10.first})`, g10.first === "auto · MOSS Image");
+    check(`${M}: the model is guessed from the loader before any run (${g10.first})`, g10.first === "auto · MOSS-Image");
     await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
     await page.waitForTimeout(400);
     const mtxt = await page.locator(".rg-msg").first().textContent().catch(() => "");

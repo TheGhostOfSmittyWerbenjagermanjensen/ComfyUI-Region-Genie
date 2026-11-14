@@ -1,11 +1,11 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { svgIcon, setHTML, escReverts, popFootText, naturalHeight, nodeOffCanvas, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName,
+import { svgIcon, setHTML, escReverts, popFootText, naturalHeight, nodeOffCanvas, popNavDir, popNavTip, knownLoras, pickLora, contextMenu, appendWord, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName,
          autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, inAutocompleteList, autocompleteToggle,
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
          ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
-         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
+         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles, OLD_MOSS, MOSS, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
          controlLabel, knownModels, NO_LORA } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
@@ -295,8 +295,7 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
   overflow-y:auto; scrollbar-width:thin; font:12px sans-serif; }
 .rg-pop-head { display:flex; align-items:center; gap:6px; font-weight:600; cursor:move; user-select:none; touch-action:none; }
 .rg-pop-head .rg-btn { cursor:pointer; }
-.rg-pop-head .rg-pop-font { margin-left:auto; padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
-.rg-pop-head .rg-pop-font + .rg-pop-font { margin-left:0; }
+.rg-pop-head .rg-pop-font { padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
 .rg-pop-head .rg-pop-font ~ .rg-x { margin-left:0; }
 .rg-pop.sized .rg-pop-field.grow { flex:1 1 auto; display:flex; flex-direction:column; min-height:60px; }
 .rg-pop.sized .rg-pop-field.grow textarea { flex:1 1 auto; min-height:40px; resize:none; }
@@ -307,6 +306,8 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-pop-head .rg-sw { cursor:default; }
 .rg-pop-head .rg-x { margin-left:auto; padding:0 5px; line-height:16px; }
 .rg-pop-head .rg-nav { padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
+/* ◀ ▶ A− A+ … ✕ stay at the right end, whatever the title's length (they don't move while stepping) */
+.rg-pop-head .rg-nav.prev { margin-left:auto; }
 .rg-pop-types { display:flex; gap:4px; }
 .rg-pop-types .rg-btn { flex:1 1 0; padding:3px 6px; }
 .rg-pop-lbl { font-size:11px; opacity:.75; margin:0 0 2px 1px; }
@@ -673,9 +674,9 @@ function emptyState() { return { v: 2, regions: [], layers: [] }; }
 function normLoras(a) {
     return (Array.isArray(a) ? a : []).filter((x) => x && typeof x.lora === "string")
         .map((x) => ({ lora: x.lora, strength: Number.isFinite(+x.strength) ? +x.strength : 1, on: x.on !== false,
-                       ...(typeof x.edit === "string" && x.edit ? { edit: x.edit } : {}),        // edit: added by Edit Mode, for that model
+                       ...(typeof x.edit === "string" && x.edit ? { edit: x.edit === OLD_MOSS ? MOSS : x.edit } : {}),        // edit: added by Edit Mode, for that model
                        // control: added by the Control row, for that model (ckind: moss / depth / canny)
-                       ...(typeof x.control === "string" && x.control ? { control: x.control, ckind: String(x.ckind || "") } : {}) }));
+                       ...(typeof x.control === "string" && x.control ? { control: x.control === OLD_MOSS ? MOSS : x.control, ckind: String(x.ckind || "") } : {}) }));
 }
 function normLoraOpts(o) {
     o = o && typeof o === "object" ? o : {};
@@ -953,7 +954,7 @@ app.registerExtension({
                 const b = iconBtn(icon, title, () => setTool(key));
                 toolBtns[key] = b; bar1.appendChild(b); return b;
             };
-            addTool("select", "Select: move, resize and rotate layers (V). Shift keeps proportions / snaps angles to 15°.");
+            addTool("select", "Select: Move, resize and rotate layers (V). Shift keeps proportions / snaps angles to 15°.");
             // ---- tools with versions: one button each, showing the active version's icon, with ▾ on its right (and
             // right-click) for the list. Shape: the shapes; Lasso / Fill: their versions; Magic wand: the wand's two versions
             // and Select object; Eraser: the eraser and the three lasso erase versions. Keyboard shortcuts pick an entry too.
@@ -974,29 +975,29 @@ app.registerExtension({
             const GROUPS = {
                 shape: { name: "Shape", tools: ["shape"], cur: () => shapeKind,
                     entries: () => SHAPES.map(([k, label]) => [k, "shape" + k[0].toUpperCase() + k.slice(1),
-                        `Shape (${label}): draw it — drag a box, Shift for equal sides, Alt to draw from the centre`
+                        `Shape (${label}): Drag a box to draw it; Shift for equal sides, Alt to draw from the centre`
                             + (SHAPE_KEYS[k] ? ` (${SHAPE_KEYS[k]})` : "") + ".",
                         () => { shapeKind = k; setTool("shape"); }]) },
                 lasso: { name: "Lasso", tools: ["lasso"], cur: () => LASSO_MODES.lasso,
-                    entries: () => [["plain", "lasso", "Lasso: straight lines between the points."], ["spline", "lassoSpline", "Lasso (spline): a smooth curve through the points."],
-                        ["magnetic", "lassoMagnetic", "Lasso (magnetic): the outline follows edges in the image under the canvas."]]
+                    entries: () => [["plain", "lasso", "Lasso: Straight lines between the points."], ["spline", "lassoSpline", "Lasso (spline): A smooth curve through the points."],
+                        ["magnetic", "lassoMagnetic", "Lasso (magnetic): The outline follows edges in the image under the canvas."]]
                         .map(([m, icon, t]) => [m, icon, `${t} ${LASSO_TIP}Filled with the active region (L).`, () => { setLassoMode("lasso", m); setTool("lasso"); }]) },
                 fill: { name: "Fill", tools: ["fill"], cur: () => LASSO_MODES.fill,
-                    entries: () => [["normal", "fill", "Fill: fills the clicked area (blank space, or one color) with the active region (F)."],
-                        ["gaps", "fillGaps", "Fill (closing small gaps): fills the clicked area, but doesn't leak through small openings (gap size: the field on the canvas) (F)."]]
+                    entries: () => [["normal", "fill", "Fill: Fills the clicked area (blank space, or one color) with the active region (F)."],
+                        ["gaps", "fillGaps", "Fill (closing small gaps): Fills the clicked area, but doesn't leak through small openings (the gap size is the field on the canvas) (F)."]]
                         .map(([m, icon, t]) => [m, icon, t, () => { LASSO_MODES.fill = m; setTool("fill"); }]) },
                 wand: { name: "Magic wand / Select object", tools: ["wand", "object"], cur: () => (grpCur.wand === "object" ? "object" : LASSO_MODES.wand),
                     entries: () => [
-                        ["contiguous", "wand", "Magic wand: selects the connected area of similar color around the click, in the image under the canvas; each click adds it to the active region (W). Tolerance: the field on the canvas.",
+                        ["contiguous", "wand", "Magic wand: Selects the connected area of similar color around the click, in the image under the canvas; each click adds it to the active region (W).\nTolerance: The field on the canvas.",
                             () => { LASSO_MODES.wand = "contiguous"; setTool("wand"); }],
-                        ["global", "wandGlobal", "Magic wand (all similar colors): selects every pixel of similar color in the image under the canvas (W). Tolerance: the field on the canvas.",
+                        ["global", "wandGlobal", "Magic wand (all similar colors): Selects every pixel of similar color in the image under the canvas (W).\nTolerance: The field on the canvas.",
                             () => { LASSO_MODES.wand = "global"; setTool("wand"); }],
                         ["object", "samSelect", OBJECT_TIP, () => setTool("object")]] },
                 erase: { name: "Eraser / Lasso erase", tools: ["erase", "lassoErase"], cur: () => (grpCur.erase === "erase" ? "erase" : "lasso:" + LASSO_MODES.lassoErase),
                     entries: () => [
-                        ["erase", "erase", "Eraser: erase from the selected layer (E). Shift+click draws a straight line from where the last stroke ended.", () => setTool("erase")],
-                        ...[["plain", "lassoErase", "Lasso erase: straight lines between the points."], ["spline", "lassoEraseSpline", "Lasso erase (spline): a smooth curve through the points."],
-                            ["magnetic", "lassoEraseMagnetic", "Lasso erase (magnetic): the outline follows edges in the image under the canvas."]]
+                        ["erase", "erase", "Eraser: Erase from the selected layer (E). Shift+click draws a straight line from where the last stroke ended.", () => setTool("erase")],
+                        ...[["plain", "lassoErase", "Lasso erase: Straight lines between the points."], ["spline", "lassoEraseSpline", "Lasso erase (spline): A smooth curve through the points."],
+                            ["magnetic", "lassoEraseMagnetic", "Lasso erase (magnetic): The outline follows edges in the image under the canvas."]]
                             .map(([m, icon, t]) => ["lasso:" + m, icon, `${t} ${LASSO_TIP}Erases from the selected layer (Shift+L).`, () => { setLassoMode("lassoErase", m); setTool("lassoErase"); }])] },
             };
             function setLassoMode(key, m) {
@@ -1030,7 +1031,7 @@ app.registerExtension({
                 for (const [key, b] of Object.entries(grpBtns)) {
                     const g = GROUPS[key], cur = g.cur(), en = g.entries().find((x) => x[0] === cur) || g.entries()[0];
                     if (b.dataset.cur !== en[0]) { b.querySelector(".rg-grp-ic").innerHTML = svgIcon(en[1]); b.dataset.cur = en[0]; }
-                    b.title = `${en[2]} ▾ or right-click: ${g.name === "Shape" ? "other shapes" : "the other tools and versions"}.`;
+                    b.title = `${en[2]}\n▾ or right-click: ${g.name === "Shape" ? "Other shapes" : "The other tools and versions"}.`;
                 }
                 if (document.activeElement !== tolIn) tolIn.value = String(TOOL_NUMS.wandTol);
                 if (document.activeElement !== gapIn) gapIn.value = String(TOOL_NUMS.fillGap);
@@ -1062,15 +1063,15 @@ app.registerExtension({
             };
             initLassoModes();
             // fill, closing small gaps: the gap size (px)
-            const gapIn = numIn(1, 64, TOOL_NUMS.fillGap, "Fill, closing small gaps: openings narrower than about twice this many "
+            const gapIn = numIn(1, 64, TOOL_NUMS.fillGap, "Fill, closing small gaps: Openings narrower than about twice this many "
                 + "pixels are closed, so the fill doesn't leak through them (default in Settings > Region Genie > Canvas tools)");
             gapIn.addEventListener("change", () => { TOOL_NUMS.fillGap = Math.max(1, Math.min(64, parseInt(gapIn.value) || 4)); gapIn.value = String(TOOL_NUMS.fillGap); });
-            const tolIn = numIn(0, 255, TOOL_NUMS.wandTol, "Magic wand tolerance: how different a color may be from the clicked one "
+            const tolIn = numIn(0, 255, TOOL_NUMS.wandTol, "Magic wand tolerance: How different a color may be from the clicked one "
                 + "(0-255 per channel) and still be selected (default in Settings > Region Genie > Canvas tools)");
             tolIn.addEventListener("change", () => { TOOL_NUMS.wandTol = Math.max(0, Math.min(255, parseInt(tolIn.value) || 0)); tolIn.value = String(TOOL_NUMS.wandTol); });
             const findIn = el("input", "rg-find");
             findIn.type = "text"; findIn.placeholder = "find all…"; findIn.style.display = "none";
-            findIn.title = "Find all: type what to select and press Enter, e.g. 'person' or 'red car, dog' (commas: several "
+            findIn.title = "Find all: Type what to select and press Enter, e.g. 'person' or 'red car, dog' (commas separate several "
                 + "things). Every match is selected; Ctrl+click one to leave it out (click again to bring it back). Drag a box "
                 + "first to search only inside it. Enter adds them all to the active region, Shift+Enter makes each one its "
                 + "own region with the text as its prompt.";
@@ -1106,7 +1107,7 @@ app.registerExtension({
                 for (const l of optLabels) {
                     const on = l === lead;
                     if (l.classList.contains("lead") !== on) l.classList.toggle("lead", on);
-                    const tip = on ? `${l.__for.title}\n(Hover: show the field. Click: ${optPinned ? "fold it again" : "keep it open"})` : l.__for.title;
+                    const tip = on ? `${l.__for.title}\nHover: Show the field.\nClick: ${optPinned ? "Fold it again" : "Keep it open"}.` : l.__for.title;
                     if (l.title !== tip) l.title = tip;
                 }
                 optStrip.classList.toggle("pinned", optPinned);
@@ -1129,12 +1130,12 @@ app.registerExtension({
             }
             lassoRefreshers.add(refreshVariantButtons);
             bar1.append(grpBtns.shape);
-            addTool("brush", "Brush: paint into the selected layer, or a new layer for the active region (B). Shift+click draws a "
-                + "straight line from where the last stroke ended. Size: slider on the canvas, [ ], Alt+wheel");
+            addTool("brush", "Brush: Paint into the selected layer, or a new layer for the active region (B). Shift+click draws a "
+                + "straight line from where the last stroke ended.\nSize: The slider on the canvas, [ ], Alt+wheel.");
             bar1.append(grpBtns.lasso, grpBtns.fill, grpBtns.wand, grpBtns.erase);
             refreshVariantButtons();
             // arrange the selected layer: flip, align to the image, grow / shrink
-            const arrangeBtn = iconBtn("arrange", "Arrange the selected layer: flip, align to the image, grow or shrink", () => toggleArrange());
+            const arrangeBtn = iconBtn("arrange", "Arrange the selected layer: Flip, align to the image, grow or shrink", () => toggleArrange());
             bar1.appendChild(arrangeBtn);
             let arrangePop = null, growPx = 8;
             function closeArrange() {
@@ -1187,8 +1188,8 @@ app.registerExtension({
             function setSnapIcon() {
                 setHTML(snapBtn, svgIcon(snap ? "magnet" : "magnetOff"));
                 snapBtn.classList.toggle("on", snap);
-                snapBtn.title = snap ? "Snap to grid on: points, shapes and moves snap to the grid (click or G to turn off)"
-                    : "Snap to grid off: click (or G) to snap points, shapes and moves to the grid";
+                snapBtn.title = snap ? "Snap to grid on: Points, shapes and moves snap to the grid (click or G to turn off)"
+                    : "Snap to grid off: Click (or G) to snap points, shapes and moves to the grid";
             }
             setSnapIcon();
             const gridIn = el("input", "rg-num");
@@ -1198,7 +1199,7 @@ app.registerExtension({
             const undoBtn = iconBtn("undo", "Undo (Ctrl+Z)", undo);
             const redoBtn = iconBtn("redo", "Redo (Ctrl+Shift+Z / Ctrl+Y)", redo);
             const fitBtn = btn("Fit", "Fit the image in view (Home). Wheel zooms, middle-drag or Space+drag pans.", () => { userView = false; fitView(); requestDraw(); });
-            const clearBtn = iconBtn("clear", "Clear all: remove every layer and region (undoable)", () => {
+            const clearBtn = iconBtn("clear", "Clear all: Remove every layer and region (undoable)", () => {
                 if (state.layers.length || state.regions.length || state.importSig) change(() => { state.layers = []; state.regions = []; delete state.importSig; selId = null; curRegion = null; filter = ALL; });
             });
             // image opacity: a vertical slider over the canvas's right edge while an image is shown under the regions
@@ -1248,8 +1249,8 @@ app.registerExtension({
                 const on = node.properties.rg_labels !== false;
                 setHTML(labBtn, svgIcon(on ? "eye" : "eyeOff"));
                 labBtn.classList.toggle("on", on);
-                labBtn.title = on ? "Labels on: each region's number and prompt are shown on the canvas (click to hide)"
-                    : "Labels off: click to show each region's number and prompt on the canvas";
+                labBtn.title = on ? "Labels on: Each region's number and prompt are shown on the canvas (click to hide)"
+                    : "Labels off: Click to show each region's number and prompt on the canvas";
             }
             setLabIcon();
             const dimsLbl = el("span", "rg-hint"); dimsLbl.style.marginLeft = "auto";
@@ -1258,7 +1259,7 @@ app.registerExtension({
             // ---- layout files (bottom right of the node)
             const exportBtn = btn("Export", "Save this layout (regions, LoRAs, layers, scene prompt, size) as a .json file. "
                 + "Load it again with Import, or through the import_json input.", exportLayout);
-            const importBtn = btn("Import", "Load a layout file: one saved with Export, or MOSS-Image layout JSON, "
+            const importBtn = btn("Import", "Load a layout file: One saved with Export, or MOSS-Image layout JSON, "
                 + "Ideogram caption JSON / elements, or bboxes (boxes become rectangles). Undoable.", () => fileIn.click());
             const fileIn = el("input"); fileIn.type = "file"; fileIn.accept = ".json,.txt,application/json,text/plain"; fileIn.style.display = "none";
             fileIn.addEventListener("change", async () => {
@@ -1292,15 +1293,15 @@ app.registerExtension({
             // ---- image_mode (top bar, only while an image is connected and not in Edit Mode)
             const imgLinked = () => (node.inputs || []).some((i) => i.name === "image" && i.link != null);
             const imgSeg = segmented([
-                ["backdrop (trace over)", svgIcon("imgBackdrop"), "Image: backdrop. The connected image is shown under the canvas to trace over "
+                ["backdrop (trace over)", svgIcon("imgBackdrop"), "Image as a backdrop: The connected image is shown under the canvas to trace over "
                     + "(image_mode; the default for new nodes is in Settings > Region Genie)."],
-                ["use as color map", svgIcon("imgColorMap"), "Image: color map. The connected image's colors become the regions; painting "
-                    + "goes on top. The field next to it: min region pixels (image_mode)."],
+                ["use as color map", svgIcon("imgColorMap"), "Image as a color map: The connected image's colors become the regions; painting "
+                    + "goes on top.\nThe field next to it sets the min region pixels (image_mode)."],
             ], (v) => { setWidget(modeW, v); syncSettings(); requestDraw(); });
             const minIn = el("input", "rg-num"); minIn.type = "number"; minIn.min = "1"; minIn.max = "1000000"; minIn.step = "1";
-            minIn.title = "Color map: min region pixels. A color becomes a region when it has at least this many flat pixels; "
-                + "blended edges and specks go to the nearest region. This is a setting for every node "
-                + "(Settings > Region Genie > Color map: min region pixels).";
+            minIn.title = "Min region pixels (color map). A color becomes a region when it has at least this many flat pixels; "
+                + "blended edges and specks go to the nearest region. It is one setting for every node "
+                + "(Settings > Region Genie > Region Genie node).";
             minIn.addEventListener("keydown", (e) => e.stopPropagation());
             minIn.addEventListener("change", () => {
                 const v = Math.max(1, Math.min(1000000, Math.round(+minIn.value || 64)));
@@ -1321,10 +1322,10 @@ app.registerExtension({
                     + "(and removed again when you switch back)."],
             ], (v) => { if (editW?.value === v) return; setWidget(editW, v); onEditModeChanged(); syncSettings(); });
             const areaCtl = setSel(areaW, "change", [["only the regions", "regions only"], ["whole image", "whole image"]],
-                "edit_area (Edit Mode): what the sampler may change. Only the regions: the 'latent' output carries a mask of "
-                + "all regions, so the rest of the image is kept (like inpainting). Whole image: no mask; the regions still "
+                "edit_area (Edit Mode): What the sampler may change.\nOnly the regions: The 'latent' output carries a mask of "
+                + "all regions, so the rest of the image is kept (like inpainting).\nWhole image: No mask; the regions still "
                 + "steer where each prompt goes.");
-            // the model dropdown (and MOSS Image's layout / standard switch) go here; they also set the prompt format
+            // the model dropdown (and MOSS-Image's layout / standard switch) go here; they also set the prompt format
             // (the old 'format' select is gone: the hidden prompt_format widget stays "auto", see migrateFormat)
             const modelBox = el("span", "rg-modelbox");
             let lastFormat = null;                 // the format the last run used (in the model dropdown's tooltip)
@@ -1346,18 +1347,20 @@ app.registerExtension({
             }
             // a workflow saved with the old format select: its choice becomes a model pick (or MOSS's standard mode)
             function migrateFormat() {
+                // saved before the model was stored as MOSS-Image (its official name)
+                if (node.properties?.rg_model_pick === OLD_MOSS) node.properties.rg_model_pick = MOSS;
                 const v = fmtW?.value;
                 if (!fmtW || !v || v === "auto") return;
                 node.properties = node.properties || {};
                 if (!node.properties.rg_model_pick) {
-                    if (v === "MOSS JSON") node.properties.rg_model_pick = "MOSS Image";
+                    if (v === "MOSS JSON") node.properties.rg_model_pick = "MOSS-Image";
                     else if (v === "Ideogram JSON") node.properties.rg_model_pick = "Ideogram 4";
                 }
                 if (v === "text") node.properties.rg_moss_layout = false;
                 fmtW.value = "auto";
             }
             const acCtl = autocompleteToggle(node, el);
-            const llmSetBtn = iconBtn("shape", "LLM Prompt Enhancer settings: what the LLM sees, the preset for each prompt type, and the "
+            const llmSetBtn = iconBtn("shape", "LLM Prompt Enhancer settings: What the LLM sees, the preset for each prompt type, and the "
                 + "presets themselves (LLM, LLM-only LoRAs, system prompt, Generate Text settings)", () => {
                 if (document.querySelector(".rg-llm-pop")) { closeLlmSettings(); return; }
                 openLlmSettings(llmSetBtn, llmHost);
@@ -1417,10 +1420,10 @@ app.registerExtension({
             // Edit Mode: keep this region as it is in the source (lock) or let it change (pencil)
             // ---- the connected model: picked in the footer, else the last run's (while 'model' still comes from the same
             // loader), else a guess from the graph (the loader's file name / type, or the text encoder loader's type)
-            const MODEL_NAMES = ["MOSS Image", "Krea 2", "Ideogram 4", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5"];
+            const MODEL_NAMES = ["MOSS-Image", "Krea 2", "Ideogram 4", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5"];
             function archFromText(t) {
                 t = String(t || "");
-                if (/moss/i.test(t)) return "MOSS Image";
+                if (/moss/i.test(t)) return "MOSS-Image";
                 if (/krea/i.test(t)) return "Krea 2";
                 if (/ideogram/i.test(t)) return "Ideogram 4";
                 if (/flux[\s._-]*3(?!\d)/i.test(t)) return "Flux 3";
@@ -1500,7 +1503,7 @@ app.registerExtension({
             // the footer select: auto (with what it found) or a model picked to correct it
             const modelSel = el("select", "rg-sel rg-model");
             modelSel.addEventListener("pointerdown", (e) => e.stopPropagation());
-            // MOSS Image: layout (its layout JSON, with the region boxes) or standard (a plain text prompt)
+            // MOSS-Image: layout (its layout JSON, with the region boxes) or standard (a plain text prompt)
             const layoutBtn = iconBtn("mossLayout", "", () => {
                 node.properties = node.properties || {};
                 if (node.properties.rg_moss_layout === false) delete node.properties.rg_moss_layout;
@@ -1523,22 +1526,22 @@ app.registerExtension({
                 if (modelSel.dataset.sig !== sig) { modelSel.replaceChildren(...opts.map(([v, t]) => opt(v, t))); modelSel.dataset.sig = sig; }
                 if (document.activeElement !== modelSel) modelSel.value = pick;
                 modelSel.title = "The model this node works with. It sets the format of the 'prompt' and 'positive' outputs "
-                    + "(MOSS Image: MOSS layout JSON, Ideogram 4: Ideogram caption JSON, the others: plain text), the LoRAs "
+                    + "(MOSS-Image: MOSS layout JSON, Ideogram 4: Ideogram caption JSON, the others: Plain text), the LoRAs "
                     + "Control and Edit Mode add to Whole image, and the control files.\n"
                     + (pick ? `Picked: ${pick}. ` : info.how === "last run" ? `Auto: ${info.arch}, from the last run. `
-                        : info.how === "guess" ? `Auto: ${info.arch}, a guess from the model loader's file / type (the run checks the model itself). `
-                        : "Auto: not known yet (no run, and nothing to guess from); the run checks the connected model. ")
+                        : info.how === "guess" ? `Auto: ${info.arch}, guessed from the model loader's file / type (the run checks the model itself). `
+                        : "Auto: Not known yet (no run, and nothing to guess from); the run checks the connected model. ")
                     + "Pick a model to correct a wrong guess; 'auto' follows the graph and the runs again."
                     + (lastFormat ? `\nThe last run's prompt format: ${lastFormat}.` : "");
                 modelSel.classList.toggle("picked", !!pick);
-                // MOSS Image's layout / standard switch
-                const moss = info.arch === "MOSS Image", layout = node.properties?.rg_moss_layout !== false;
+                // MOSS-Image's layout / standard switch
+                const moss = info.arch === "MOSS-Image", layout = node.properties?.rg_moss_layout !== false;
                 layoutBtn.style.display = moss ? "" : "none";
                 setHTML(layoutBtn, svgIcon(layout ? "mossLayout" : "mossStandard"));
                 layoutBtn.classList.toggle("on", layout);
                 layoutBtn.title = (layout
-                    ? "MOSS Image layout mode: the prompt is MOSS layout JSON, with each region's box. Click for standard mode"
-                    : "MOSS Image standard mode: the prompt is plain text (the regions as sentences; masks still steer them). Click for layout mode")
+                    ? "MOSS-Image layout mode: The prompt is MOSS layout JSON, with each region's box. Click for standard mode"
+                    : "MOSS-Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them). Click for layout mode")
                     + ". With no region drawn or shown, the run uses standard mode by itself. Edit Mode always sends plain text (the edit LoRA takes an instruction).";
                 syncBackground();
             }
@@ -1547,7 +1550,7 @@ app.registerExtension({
             function neededControlFiles(c, arch) {
                 const files = controlFiles(), need = [];
                 const mapMade = !isLinked("control_image") && ["depth", "color+depth"].includes(c.kind);
-                if (arch === "MOSS Image") {
+                if (arch === "MOSS-Image") {
                     if (["color", "color+depth", "depth"].includes(c.kind)) need.push("MOSS");
                 } else if (arch === "Flux.1") {
                     if (c.kind === "depth") need.push(files.Flux1Depth || !files["Flux1.depth"] ? "Flux1Depth" : "Flux1.depth");
@@ -1584,7 +1587,7 @@ app.registerExtension({
                 const c = ctl(), arch = modelArch();
                 if (!c.on) return;
                 if (refreshLists) for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f, true);
-                if (arch && !["MOSS Image", "Flux.1", "SDXL", "SD1.5", "Anima"].includes(arch)) {
+                if (arch && !["MOSS-Image", "Flux.1", "SDXL", "SD1.5", "Anima"].includes(arch)) {
                     showMsg(`Control: ComfyUI has no ControlNet support for ${arch} yet, so this node can't apply control with it. `
                         + "If the model was guessed wrong, pick the right one in the bottom bar.");
                     return;
@@ -1602,7 +1605,7 @@ app.registerExtension({
                 if (!c.on) return [];
                 const files = controlFiles(), arch = modelArch(), out = [];
                 const add = (key, model, ckind) => { if (files[key] && (!arch || arch === model)) out.push({ lora: files[key], control: model, ckind }); };
-                if (["color", "color+depth", "depth"].includes(c.kind)) add("MOSS", "MOSS Image", "moss");
+                if (["color", "color+depth", "depth"].includes(c.kind)) add("MOSS", "MOSS-Image", "moss");
                 if (c.kind === "depth") add("Flux1Depth", "Flux.1", "depth");
                 if (c.kind === "canny") add("Flux1Canny", "Flux.1", "canny");
                 return out;
@@ -1619,6 +1622,16 @@ app.registerExtension({
                 if (add.length) expanded.add(SCENE);
                 return true;
             }
+            // Edit Mode's LoRAs never stay in Generate, nor a control LoRA while Control is off: whatever put them there (Ctrl+Z
+            // after switching back, an old workflow, a Setting changed meanwhile). Only removes; adding is syncEditLoras' /
+            // syncControlLoras' job (on a mode, model or Control change)
+            function pruneManagedLoras() {
+                const cur = state.sceneLoras || [], ctlOn = !!ctl().on, edit = isEdit();
+                const kept = cur.filter((x) => !(x.edit && !edit) && !(x.control && !ctlOn));
+                if (kept.length === cur.length) return false;
+                if (kept.length) state.sceneLoras = kept; else delete state.sceneLoras;
+                return true;
+            }
             function setControl(patch) {
                 change(() => { state.control = { ...ctl(), ...patch }; syncControlLoras(); });
                 if (state.control.on) checkControlFiles(true); else hideMsg();
@@ -1628,8 +1641,8 @@ app.registerExtension({
                 const row = el("div", "rg-row ctrl" + (c.on ? "" : " off"));
                 const onBtn = el("button", "rg-btn mini" + (c.on ? " toggle on" : ""));
                 setHTML(onBtn, svgIcon(c.on ? "control" : "controlOff"));
-                onBtn.title = c.on ? "Control on: the model follows the control map (ControlNet / control LoRA for the connected model). Click to turn it off."
-                    : "Control off. Click to turn it on: the model follows a color map, depth, canny or your own control_image "
+                onBtn.title = c.on ? "Control on: The model follows the control map (ControlNet / control LoRA for the connected model). Click to turn it off."
+                    : "Control off. Click to turn it on: The model follows a color map, depth, canny or your own control_image "
                       + "(the files are set in Settings > Region Genie > Control).";
                 onBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
                 onBtn.addEventListener("click", (e) => { e.preventDefault(); setControl({ on: !c.on }); if (!c.on) expanded.add(CONTROL); });
@@ -1637,7 +1650,7 @@ app.registerExtension({
                 row.append(chevron(CONTROL, c.on, "the control files for each model"), onBtn, lbl);
                 if (c.on) {
                     const kind = el("select", "rg-sel");
-                    kind.title = (CONTROL_KIND_HELP[c.kind] || "") + "\n\nWhat the model follows: the regions' color map and / or depth (MOSS Image's "
+                    kind.title = (CONTROL_KIND_HELP[c.kind] || "") + "\n\nWhat the model follows: The regions' color map and / or depth (MOSS-Image's "
                         + "control LoRA), depth, canny, or the map on 'control_image'. Depth and canny are made from 'image' when control_image isn't connected.";
                     for (const [v, t] of CONTROL_KIND_LABELS) kind.appendChild(opt(v, t));
                     kind.value = c.kind;
@@ -1677,8 +1690,8 @@ app.registerExtension({
                 const info = modelInfo(), arch = info.arch;
                 const pick = (key) => files[key] || "—";
                 const per = c.kind === "color" || c.kind === "color+depth"
-                    ? [["MOSS Image", `LoRA ${pick("MOSS")}`]]
-                    : [["MOSS Image", c.kind === "depth" ? `LoRA ${pick("MOSS")}` : "— (color map / depth only)"],
+                    ? [["MOSS-Image", `LoRA ${pick("MOSS")}`]]
+                    : [["MOSS-Image", c.kind === "depth" ? `LoRA ${pick("MOSS")}` : "— (color map / depth only)"],
                        ["Flux.1", (c.kind === "depth" && files.Flux1Depth) ? `LoRA ${files.Flux1Depth}` : (c.kind === "canny" && files.Flux1Canny) ? `LoRA ${files.Flux1Canny}` : `ControlNet ${pick(`Flux1.${c.kind}`)}`],
                        ["SDXL", `ControlNet ${pick(`SDXL.${c.kind}`)}`], ["SD1.5", `ControlNet ${pick(`SD15.${c.kind}`)}`],
                        ["Anima", `LLLite ${pick(`Anima.${c.kind}`)}`]];
@@ -1709,9 +1722,9 @@ app.registerExtension({
                 const b = el("button", "rg-btn mini" + (r.keep ? " toggle on" : ""));
                 setHTML(b, svgIcon(r.keep ? "lock" : "pencil"));
                 b.title = r.keep
-                    ? "Keep (Edit Mode): this region stays as it is in the source image, also with change = whole image, and "
+                    ? "Keep (Edit Mode): This region stays as it is in the source image, also with change = whole image, and "
                         + "the edit mask never grows into it. Its prompt is still part of the prompt. Click to let it change."
-                    : "Change (Edit Mode): the sampler may change this region. Click to keep it as it is in the source image "
+                    : "Change (Edit Mode): The sampler may change this region. Click to keep it as it is in the source image "
                         + "(it is hatched on the canvas then).";
                 b.addEventListener("pointerdown", (e) => e.stopPropagation());
                 b.addEventListener("click", (e) => { e.preventDefault(); change(() => { if (r.keep) delete r.keep; else r.keep = true; }); });
@@ -1886,8 +1899,8 @@ app.registerExtension({
             const statusLbl = el("span", "rg-hint");
             const loraOptsBox = el("span", "rg-loraopts");
             const sepIn = el("input", "rg-num"); sepIn.type = "number"; sepIn.min = "0"; sepIn.max = "1"; sepIn.step = "0.05";
-            sepIn.title = "LoRA region separation: how much attention between the image of different LoRA regions is removed "
-                + "(MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5; model output). Higher keeps each LoRA's style in its region; 1 = fully separate.";
+            sepIn.title = "LoRA region separation: How much attention between the image of different LoRA regions is removed "
+                + "(MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5; model output). Higher keeps each LoRA's style in its region; 1 = fully separate.";
             const untilIn = el("input", "rg-num"); untilIn.type = "number"; untilIn.min = "0"; untilIn.max = "1"; untilIn.step = "0.05";
             untilIn.title = "Apply the separation for this fraction of the steps; the rest blends the seams. "
                 + "0.1-0.5 with separation 0.85-0.99 works well.";
@@ -1928,17 +1941,17 @@ app.registerExtension({
                 allApartShown = key;
                 setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart"));
                 allApartBtn.classList.toggle("on", on);
-                allApartBtn.title = (own ? "Keep all regions apart: ON. "
+                allApartBtn.title = (own ? "Keep all regions apart: ON."
                     : autoApart ? "Keep all regions apart: ON automatically in the last run (a model without a layout format, "
                         + "with region prompts; Settings > Region Genie > keep all regions apart automatically sets this for "
                         + "all such models or one model). "
-                        + "Clicking switches it on for this node in any case. "
-                    : "Keep all regions apart: OFF. ")
-                    + "On: every region, with or without LoRAs, is kept apart from the others and from the background for "
+                        + "Clicking switches it on for this node in any case."
+                    : "Keep all regions apart: OFF.")
+                    + "\nOn: Every region, with or without LoRAs, is kept apart from the others and from the background for "
                     + "the first part of sampling ('until'), at the separation strength set here, and each region's caption "
-                    + "speaks only to its own region. Off (default): only regions with LoRAs are kept apart. "
+                    + "speaks only to its own region.\nOff (default): Only regions with LoRAs are kept apart.\n"
                     + "With Krea 2, Flux, Anima or SDXL / SD1.5 (no layout format of their own) this is what places each "
-                    + "region's prompt in its region. Needs a MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 "
+                    + "region's prompt in its region. Needs a MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 "
                     + "model on the model input; while active, sampling is a "
                     + "little slower and uses more VRAM.\n\n"
                     + (shared ? "Share the background: ON. The regions are kept apart from each other only; the image around "
@@ -1956,12 +1969,12 @@ app.registerExtension({
             // An empty field follows Settings > Region Genie > Edit Mode (its value shows greyed in the field).
             const editMaskBox = el("span", "rg-editmask");
             const MASK_TIPS = {
-                grow: "Edit mask grow (px): the area the sampler may change in Edit Mode grows this far past the regions "
+                grow: "Edit mask grow (px): The area the sampler may change in Edit Mode grows this far past the regions "
                     + "set to change, so the edit blends into its surroundings; negative shrinks it. Kept regions are never "
-                    + "grown into. Separate from each region's own feather (which is for 'masks' and LoRAs). Empty: the "
+                    + "grown into. Separate from each region's own feather (which is for 'masks' and LoRAs).\nEmpty: The "
                     + "Settings default (Settings > Region Genie > Edit Mode), shown greyed.",
-                feather: "Edit mask feather (px): softens the edge of the area the sampler may change in Edit Mode (after "
-                    + "growing). Separate from each region's own feather. Empty: the Settings default (Settings > Region "
+                feather: "Edit mask feather (px): Softens the edge of the area the sampler may change in Edit Mode (after "
+                    + "growing). Separate from each region's own feather.\nEmpty: The Settings default (Settings > Region "
                     + "Genie > Edit Mode), shown greyed.",
             };
             const maskIn = (key, icon, min, max) => {
@@ -2009,7 +2022,7 @@ app.registerExtension({
             // size); the list's height is this node's (node.properties.rg_list_h); double-click: the usual 220 px
             const LIST_H = 220, LIST_MIN = 90, CV_MIN = 120;
             const split = el("div", "rg-split");
-            split.title = "Drag: more room for the canvas or for the Regions list (this node keeps its size). Double-click: the usual height";
+            split.title = "Drag: More room for the canvas or for the Regions list (this node keeps its size).\nDouble-click: The usual height.";
             const applyListH = () => {
                 const h = Math.round(+node.properties?.rg_list_h || LIST_H);
                 const want = Math.max(LIST_MIN, h) + "px";
@@ -2128,7 +2141,7 @@ app.registerExtension({
             aspSel.title = "Aspect ratio (as in ComfyUI's Resolution Selector)";
             for (const [name] of SIZE_ASPECTS) aspSel.appendChild(opt(name, name));
             aspSel.addEventListener("change", () => { sizeCfg().ratio.aspect = aspSel.value; applySize(); });
-            const mpIn = sizeNum(0.1, 16, 0.01, "Megapixels: the target pixel count (1.0 = 1024 x 1024 for square)", "48px");
+            const mpIn = sizeNum(0.1, 16, 0.01, "Megapixels: The target pixel count (1.0 = 1024 x 1024 for square)", "48px");
             mpIn.addEventListener("change", () => { const c = sizeCfg(); c.ratio.mp = Math.round(clampNum(mpIn.value, 0.1, 16, 1) * 100) / 100; applySize(); });
             const multIn = sizeNum(8, 128, 4, "Multiple: width and height are rounded to a multiple of this", "38px");
             multIn.addEventListener("change", () => { const c = sizeCfg(); c.ratio.multiple = Math.round(clampNum(multIn.value, 8, 128, 8)); applySize(); });
@@ -2210,17 +2223,17 @@ app.registerExtension({
                 if (idle(hIn)) hIn.value = String(c.manual.h);
                 setHTML(linkBtn, svgIcon(c.manual.link ? "link" : "unlink"));
                 linkBtn.classList.toggle("on", !!c.manual.link);
-                linkBtn.title = c.manual.link ? "Ratio kept: changing one side changes the other. Click to set them separately"
-                    : "Keep the ratio: changing one side changes the other";
+                linkBtn.title = c.manual.link ? "Ratio kept: Changing one side changes the other. Click to set them separately"
+                    : "Keep the ratio: Changing one side changes the other";
                 swapR.classList.toggle("on", !!c.ratio.swap); swapP.classList.toggle("on", !!c.preset.swap);
                 if (!sizeReady) { sizeOut.textContent = sizeOfCfg(c).join(" × "); return; }
                 // what decides the size in the end (same priority as the Python side)
                 const [W, H] = dims();
                 const from = isLinked("size_from_image") ? "from size_from_image" : isLinked("size_from_latent") ? "from size_from_latent"
-                    : editSized() ? "Edit: the image's shape at this many pixels"
+                    : editSized() ? "Edit: The image's shape at this many pixels"
                     : isLinked("width_in") || isLinked("height_in") ? "from the width / height inputs" : "";
                 sizeOut.textContent = `${W} × ${H}`;
-                sizeOut.title = from ? `Image size ${W} x ${H}: ${from}` : `Image size: ${W} x ${H}`;
+                sizeOut.title = from ? `Image size ${W} x ${H}, ${from.startsWith("Edit") ? "in Edit Mode: " + from.slice(6) : from}.` : `Image size: ${W} x ${H}.`;
                 sizeRow.classList.toggle("ext", /^from/.test(from));
                 sizeRow.classList.toggle("editsized", from.startsWith("Edit"));
             }
@@ -2708,8 +2721,10 @@ app.registerExtension({
                 if (filter !== ALL && filter !== UNSPEC && !regionById(filter)) filter = ALL;
                 save(); refreshUI();
             }
-            function undo() { if (undoStack.length) { redoStack.push(snapshot()); restore(undoStack.pop()); } }
-            function redo() { if (redoStack.length) { undoStack.push(snapshot()); restore(redoStack.pop()); } }
+            function undo() { if (undoStack.length) { redoStack.push(snapshot()); restore(undoStack.pop()); afterRestore(); } }
+            function redo() { if (redoStack.length) { undoStack.push(snapshot()); restore(redoStack.pop()); afterRestore(); } }
+            // the Generate / Edit switch isn't part of an undo step: an undone list must still fit the mode it's in now
+            function afterRestore() { if (pruneManagedLoras()) { save(); renderRegions(); } }
             function save() {
                 version++;
                 if (dataW) dataW.value = JSON.stringify(state);
@@ -4129,13 +4144,13 @@ app.registerExtension({
                 };
                 const fm = mkB("A−", "Smaller text in the box you're typing in (Settings > Region Genie > Text size). The pop-up keeps its size", () => font(-1), "rg-pop-font");
                 const fp = mkB("A+", "Larger text in the box you're typing in (Settings > Region Genie > Text size). The pop-up keeps its size", () => font(1), "rg-pop-font");
-                const prev = mkB("◀", "The previous text field of this node (scene prompts, then each region's prompt), in this place and size. From the first: the last one", () => popStep(-1), "rg-nav");
-                const next = mkB("▶", "The next text field of this node (scene prompts, then each region's prompt), in this place and size. From the last: the first one", () => popStep(1), "rg-nav");
+                const prev = mkB("◀", popNavTip(-1, "scene prompts, then each region's prompt"), () => popStep(-1), "rg-nav prev");
+                const next = mkB("▶", popNavTip(1, "scene prompts, then each region's prompt"), () => popStep(1), "rg-nav");
                 const x = head.querySelector(".rg-x");
                 head.insertBefore(fp, x?.previousElementSibling?.classList.contains("rg-wc-pick") ? x.previousElementSibling : x);
                 head.insertBefore(fm, fp);
                 head.insertBefore(prev, fm); head.insertBefore(next, fm);
-                head.title = "Drag to move (anywhere on the screen). Double-click: back next to the field";
+                head.title = "Drag to move (anywhere on the screen).\nDouble-click: Back next to the field.";
                 const drag = (e, onMove, onEnd) => {
                     e.preventDefault(); e.stopPropagation();
                     const t = e.currentTarget, x0 = e.clientX, y0 = e.clientY;
@@ -4157,7 +4172,7 @@ app.registerExtension({
                     ed.at = null; ed.placed = false; ed.place();
                 });
                 const grip = el("div", "rg-pop-grip");
-                grip.title = "Drag to resize (remembered for every Region Genie node). Double-click: back to the default size";
+                grip.title = "Drag to resize (remembered for every Region Genie node).\nDouble-click: Back to the default size.";
                 grip.addEventListener("pointerdown", (e) => {
                     if (e.button !== 0) return;
                     const w0 = box.offsetWidth, h0 = box.offsetHeight, W = window.innerWidth, H = window.innerHeight;
@@ -4215,6 +4230,8 @@ app.registerExtension({
                 box.dataset.captureWheel = "true";
                 box.addEventListener("keydown", (e) => {
                     e.stopPropagation();                           // editor shortcuts (Delete, V, B, ...) stay off
+                    const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
+                    if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
                     if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); popEsc(); }
                 });
                 // header: number, color, close
@@ -4236,7 +4253,7 @@ app.registerExtension({
                 for (const [t, label] of [["object", "Object"], ["character", "Character"], ["text", "Text"]]) {
                     const b = el("button", "rg-btn"); b.textContent = label;
                     b.title = { object: "MOSS 'object' item", character: "MOSS 'character' item (a person / character)",
-                                text: "MOSS 'text' item: the Text below is rendered in the image" }[t];
+                                text: "MOSS 'text' item: The Text below is rendered in the image" }[t];
                     b.addEventListener("click", (e) => { e.preventDefault(); if (r.type !== t) change(() => { r.type = t; }); });
                     typeBtns[t] = b; types.appendChild(b);
                 }
@@ -4257,7 +4274,7 @@ app.registerExtension({
                     const syncUse = () => {
                         const f = filledFor(fkey, r[key] || "");
                         use.style.display = f != null ? "" : "none";
-                        use.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : "";
+                        use.title = f != null ? `Use the filled text: Replace the wildcards with what they produced (last run or preview):\n${f}` : "";
                     };
                     lab.appendChild(use);
                     ta.addEventListener("focus", () => { lastTa = ta; });
@@ -4320,7 +4337,7 @@ app.registerExtension({
                             if (document.activeElement !== f.ta && f.ta.value !== (rr[key] || "")) f.ta.value = rr[key] || "";
                         }
                         const ctl = el("div", "rg-row pop-ctl");
-                        const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { rr.loras = rr.loras || []; addLoraTo(rr.loras, e, () => openSub(rr.id, "loras")); }, "txt");
+                        const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { rr.loras = rr.loras || []; addLoraTo(rr.loras, e, () => openSub(rr.id, "loras")); }, "txt");
                         ctl.append(llmButton(rr.id, "pop"), ...(isEdit() ? [keepToggle(rr)] : []), featherBox(rr), paletteToggle(rr), addL);
                         const loras = el("div", "rg-pop-loras");
                         if ((rr.loras || []).length) loras.appendChild(regionLoraRows(rr));
@@ -4359,6 +4376,8 @@ app.registerExtension({
                 box.dataset.captureWheel = "true";
                 box.addEventListener("keydown", (e) => {
                     e.stopPropagation();
+                    const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
+                    if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
                     if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); popEsc(); }
                 });
                 const head = el("div", "rg-pop-head");
@@ -4382,7 +4401,7 @@ app.registerExtension({
                 const syncUseS = () => {
                     const f = filledFor(skey, String(w.value ?? ""));
                     useS.style.display = f != null ? "" : "none";
-                    useS.title = f != null ? `Use the filled text: replace the wildcards with what they produced (last run or preview):\n${f}` : "";
+                    useS.title = f != null ? `Use the filled text: Replace the wildcards with what they produced (last run or preview):\n${f}` : "";
                 };
                 useS.addEventListener("click", (e) => {
                     e.preventDefault();
@@ -4638,7 +4657,7 @@ app.registerExtension({
                     const row = el("div", "rg-row lora");
                     const tag = el("span", "rg-hint"); tag.textContent = lo.control ? "Control" : lo.edit ? "Edit" : "LoRA";
                     if (lo.edit) {
-                        tag.title = `Edit LoRA for ${lo.edit}, added by Edit Mode: used only in Edit Mode with a ${lo.edit} model, `
+                        tag.title = `Edit LoRA for ${lo.edit}, added by Edit Mode: Used only in Edit Mode with a ${lo.edit} model, `
                             + "and removed when the node is switched back to generate (Settings > Region Genie > Edit Mode).";
                         row.classList.add("edit");
                     }
@@ -4690,7 +4709,7 @@ app.registerExtension({
                     up.disabled = moveTarget(L, +1) < 0;
                     const dn = ico("▼", L.region === UNSPEC ? "Move down one step in the stack" : "Move down (behind this region's other layers)", () => moveLayer(L, -1));
                     dn.disabled = moveTarget(L, -1) < 0;
-                    const dup = ico("⧉", "Duplicate (Ctrl+D). Right-click: duplicate into another region", () => duplicate(L));
+                    const dup = ico("⧉", "Duplicate (Ctrl+D).\nRight-click: Duplicate into another region.", () => duplicate(L));
                     dup.classList.add("variants");
                     dup.addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
                     dup.addEventListener("contextmenu", (e) => {
@@ -4706,7 +4725,7 @@ app.registerExtension({
                         const items = regionTargets(L.region).map((it) => ({ content: `Move to ${it.label}`, rid: it.rid }));
                         contextMenu(e, items, "Move to region", (v) => { if (v && v.rid != null) moveLayerToRegion(L, v.rid); focusSink(); });
                     });
-                    const er = ico("⌫", "Erase layer: remove its shapes and paint, keep the empty layer", () => eraseLayer(L));
+                    const er = ico("⌫", "Erase layer: Remove its shapes and paint, keep the empty layer", () => eraseLayer(L));
                     const del = ico("🗑", "Delete layer (Del)", () => deleteSelected(L));
                     row.append(eye, sw, name, up, dn, dup, md, mv, er, del);
                     frag.appendChild(row);
@@ -4723,8 +4742,8 @@ app.registerExtension({
                     sw.title = `${r.color} (found in the image, so its color can't change)`;
                 } else {
                     sw = el("button", "rg-sw pick"); sw.type = "button"; sw.style.background = colorOf(r.id);
-                    sw.title = pal.length ? `${colorOf(r.id)}: the region is shown in its first palette color; click to change it`
-                        : `${r.color}: click to change the color (display only)`;
+                    sw.title = pal.length ? `${colorOf(r.id)}: The region is shown in its first palette color. Click to change it.`
+                        : `${r.color}: Click to change the color (display only).`;
                     const apply = (v) => {
                         if (activePalette(r).length) { r.palette = normPalette(r.palette); r.palette[0] = v.toUpperCase(); }
                         else r.color = uniqueColor(v, r.id);
@@ -4774,8 +4793,8 @@ app.registerExtension({
                 const linked = r.featherLinked !== false;
                 const fIn = el("input", "rg-num"); fIn.type = "number"; fIn.min = "0"; fIn.max = "512"; fIn.step = "1";
                 fIn.value = String(linked ? (state.feather || 0) : (r.feather || 0));
-                fIn.title = linked ? "Feather (px): softens this region's mask edges in 'masks' and for its LoRAs. "
-                    + "Linked: the same value for every linked region." : "Feather (px) of this region only (unlinked)";
+                fIn.title = linked ? "Feather (px): Softens this region's mask edges in 'masks' and for its LoRAs. "
+                    + "\nLinked: The same value for every linked region." : "Feather (px) of this region only (unlinked)";
                 fIn.addEventListener("keydown", (e) => e.stopPropagation());
                 fIn.addEventListener("change", () => {
                     const v = Math.max(0, Math.min(512, Math.round(+fIn.value || 0)));
@@ -4783,7 +4802,7 @@ app.registerExtension({
                 });
                 const fLink = el("button", "rg-btn mini toggle" + (linked ? " on" : ""));
                 setHTML(fLink, svgIcon(linked ? "link" : "unlink"));
-                fLink.title = linked ? "Linked: every linked region uses the same feather. Click to give this region its own value."
+                fLink.title = linked ? "Linked: Every linked region uses the same feather. Click to give this region its own value."
                     : "Own feather value. Click to link it to the shared value again.";
                 fLink.addEventListener("pointerdown", (e) => e.stopPropagation());
                 fLink.addEventListener("click", (e) => {
@@ -4795,8 +4814,8 @@ app.registerExtension({
                 });
                 const fEdge = el("button", "rg-btn mini toggle" + (r.featherEdges ? " on" : ""));
                 setHTML(fEdge, svgIcon("edges"));
-                fEdge.title = r.featherEdges ? "feather_canvas_edges on: edges on the image border fade too. Click to keep them solid."
-                    : "feather_canvas_edges off: edges on the image border stay solid. Click to fade them too.";
+                fEdge.title = r.featherEdges ? "feather_canvas_edges on: Edges on the image border fade too. Click to keep them solid."
+                    : "feather_canvas_edges off: Edges on the image border stay solid. Click to fade them too.";
                 fEdge.addEventListener("pointerdown", (e) => e.stopPropagation());
                 fEdge.addEventListener("click", (e) => { e.preventDefault(); change(() => { if (r.featherEdges) delete r.featherEdges; else r.featherEdges = true; }); });
                 const fIco = el("span", "rg-fico"); fIco.innerHTML = svgIcon("feather"); fIco.title = fIn.title;
@@ -4808,9 +4827,9 @@ app.registerExtension({
                 const b = el("button", "rg-btn mini toggle" + (r.paletteOn ? " on" : ""));
                 b.innerHTML = svgIcon("palette");
                 const n = normPalette(r.palette).length;
-                b.title = r.paletteOn ? `Color palette on (${n} color${n === 1 ? "" : "s"}): sent with the region in elements, `
+                b.title = r.paletteOn ? `Color palette on (${n} color${n === 1 ? "" : "s"}): Sent with the region in elements, `
                     + "the MOSS and Ideogram JSON prompts; the first color shows the region. Click to turn it off."
-                    : "Color palette: give this region up to 5 colors (MOSS 'palette' / Ideogram 'color_palette'). Click to turn it on.";
+                    : "Color palette: Give this region up to 5 colors (MOSS 'palette' / Ideogram 'color_palette'). Click to turn it on.";
                 b.addEventListener("pointerdown", (e) => e.stopPropagation());
                 b.addEventListener("click", (e) => {
                     e.preventDefault();
@@ -4823,13 +4842,13 @@ app.registerExtension({
             function paletteRow(r, inPopup) {
                 const row = el("div", "rg-row pal" + (r.paletteOn ? "" : " off"));
                 const tag = el("span", "rg-palico"); tag.innerHTML = svgIcon("palette");
-                tag.title = r.paletteOn ? "Color palette of this region" : "Color palette (off: not used; turn it on with the palette button)";
+                tag.title = r.paletteOn ? "Color palette of this region" : "Color palette (off, so not used; turn it on with the palette button)";
                 row.appendChild(tag);
                 const pal = normPalette(r.palette);
                 pal.forEach((c, i) => {
                     const sw = el("button", "rg-sw pal pick"); sw.type = "button"; sw.style.background = c;
                     sw.dataset.pal = `${r.id}:${i}`;
-                    sw.title = `${c}: click to change, right-click to remove` + (i === 0 ? " (the first color shows the region)" : "");
+                    sw.title = `${c}: Click to change, right-click to remove` + (i === 0 ? " (the first color shows the region)." : ".");
                     sw.addEventListener("pointerdown", (e) => e.stopPropagation());
                     sw.addEventListener("click", (e) => {
                         e.preventDefault();
@@ -4942,7 +4961,7 @@ app.registerExtension({
                     else if (ready) tip = `LLM Prompt Enhancer on (preset '${t.res.preset || preset}'). Text used in the last run:\n\n${t.res.text}`
                         + (t.res.thinking ? `\n\nThinking:\n${t.res.thinking.slice(0, 1200)}${t.res.thinking.length > 1200 ? "..." : ""}` : "")
                         + "\n\nClick to turn off (restore your prompt or keep this text). Right-click for more.";
-                    else if (failed) tip = `LLM Prompt Enhancer on: the LLM returned nothing last time, so the typed prompt was used; it is tried again on the next run.`;
+                    else if (failed) tip = `LLM Prompt Enhancer on: The LLM returned nothing last time, so the typed prompt was used; it is tried again on the next run.`;
                     else tip = `LLM Prompt Enhancer on (preset '${preset}'): ${t.what} is rewritten when the workflow runs. Click to turn off.`;
                     // only touch the button when something changed: replacing its contents while the pointer rests
                     // on it (the 0.5 s poll) would cancel the browser's tooltip
@@ -5101,8 +5120,8 @@ app.registerExtension({
                     const ix = el("span", "rg-idx"); ix.dataset.k = String(i);
                     const cnt = el("span", "rg-cnt"); cnt.textContent = lays.length ? String(lays.length) : ""; cnt.title = `${lays.length} layer(s)`;
                     const kinds = subKinds(r);
-                    const eye = ico(r.hidden ? "○" : "◉", r.hidden ? "Hidden: not drawn and not output. Click to show it again (its layers keep their own show / hide)"
-                        : "Show / hide this region: a hidden region is not drawn and is left out of every output; its layers keep their own show / hide",
+                    const eye = ico(r.hidden ? "○" : "◉", r.hidden ? "Hidden: Not drawn and not output. Click to show it again (its layers keep their own show / hide)"
+                        : "Show / hide this region: A hidden region is not drawn and is left out of every output; its layers keep their own show / hide",
                         () => change(() => { if (r.hidden) delete r.hidden; else r.hidden = true; }));
                     eye.classList.add("rg-reye");
                     row.append(chevron(r.id, kinds.length > 0, "this region's " + (kinds.map((k) => ({ layers: "layers", loras: "LoRAs", palette: "palette" })[k]).join(", ") || "layers")), eye, ix, sw, ty, prWrap);
@@ -5124,13 +5143,13 @@ app.registerExtension({
                         row.appendChild(txWrap);
                         addExpandButton(tx, "Open this region in the pop-up editor (its text to render)", openPop("text", tx));
                     }
-                    const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { r.loras = r.loras || []; addLoraTo(r.loras, e, () => openSub(r.id, "loras")); }, "txt");
+                    const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { r.loras = r.loras || []; addLoraTo(r.loras, e, () => openSub(r.id, "loras")); }, "txt");
                     const mergeAll = ico("⇊", "Merge all visible layers of this region into one layer", () => mergeRegion(r.id));
                     mergeAll.disabled = lays.filter((l) => l.visible !== false).length < 2;
-                    const up = ico("↑", "Move up: earlier in the output order, and its layers in front", () => change(() => {
+                    const up = ico("↑", "Move up: Earlier in the output order, and its layers in front", () => change(() => {
                         [state.regions[i - 1], state.regions[i]] = [state.regions[i], state.regions[i - 1]]; sortLayersByRegions(); }));
                     up.disabled = i === 0;
-                    const down = ico("↓", "Move down: later in the output order, and its layers behind", () => change(() => {
+                    const down = ico("↓", "Move down: Later in the output order, and its layers behind", () => change(() => {
                         [state.regions[i + 1], state.regions[i]] = [state.regions[i], state.regions[i + 1]]; sortLayersByRegions(); }));
                     down.disabled = i === state.regions.length - 1;
                     const del = ico("✕", "Delete region and its layers", () => change(() => {
@@ -5373,6 +5392,7 @@ app.registerExtension({
             const poll = setInterval(() => {
                 if (editor && nodeOffCanvas(node)) closeEditor(true);     // another workflow tab, a subgraph, removed
                 if (!node.graph) return;
+                if (pruneManagedLoras()) { save(); renderRegions(); }
                 fixImportMode();
                 syncSettings();
                 applyFieldFonts();
@@ -5407,6 +5427,7 @@ app.registerExtension({
             node.__rgRefresh = () => { version++; save(); refreshUI(); };
             node.__rgActive = () => curRegion;
             node.__rgSetTool = (t) => setTool(t);
+            node.__rgToolTips = () => Object.values(GROUPS).flatMap((g) => g.entries().map((e) => e[2]));   // tests: every tool version's tooltip
             node.__rgSetBackdrop = (img, ref) => { backdrop = img; backdropKey = "test:" + Math.random(); backdropRef = ref || null; requestDraw(); };
             // regions in output order (what Mask Picker / Regional LoRAs index into)
             node.__rgOutputRegions = () => {
