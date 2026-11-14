@@ -14,10 +14,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ODD = ["rgtest_char@v2.safetensors", "rgtest_mix {style}.safetensors", "rgtest_a|b.safetensors", "rgtest_100% detail.safetensors", "rgtest_$x.safetensors",
     "rgtest_sub\\@author\\x.safetensors", "rgtest_sub\\{y}.safetensors", "rgtest_end\\.safetensors"];
 const made = [];
+// round 22: a large library (10000 LoRAs, Windows-style subfolder names) must not slow the Settings tab down
+const BIG = Array.from({ length: 10000 }, (_, i) => `rgtest_big_SDXL\\@maker_${i % 97}\\style_${i}.safetensors`);
 for (const sub of ["loras", "controlnet"]) {
     const d = path.join(DIR, "models", sub);
     fs.mkdirSync(d, { recursive: true });
-    for (const n of ODD) { const f = path.join(d, n); if (!fs.existsSync(f)) { fs.writeFileSync(f, ""); made.push(f); } }
+    for (const n of sub === "loras" ? [...ODD, ...BIG] : ODD) { const f = path.join(d, n); if (!fs.existsSync(f)) { fs.writeFileSync(f, ""); made.push(f); } }
 }
 
 (async () => {
@@ -31,14 +33,23 @@ for (const sub of ["loras", "controlnet"]) {
     await sleep(2500);
     for (let i = 0; i < 3; i++) { await page.keyboard.press("Escape"); await sleep(300); }
     const lists = await page.evaluate(async () => (await (await fetch("/models/loras")).json()).filter((x) => /rgtest_/.test(x)));
-    check(`the odd file names are listed by ComfyUI (${lists.length})`, lists.length === ODD.length);
+    check(`the odd file names are listed by ComfyUI (${lists.length})`, lists.length === ODD.length + BIG.length);
     // a set value with odd characters must show too
     await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.ModelFiles.Browse", false);
         await s.set("RegionGenie.Edit.LoRA.Krea2", "rgtest_char@v2.safetensors"); });
     errors.length = 0;
     await page.keyboard.press("Control+,"); await sleep(1500);
-    await page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); });
-    await sleep(2500);
+    const t0 = Date.now();
+    page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); }).catch(() => {});
+    let shownMs = -1;
+    for (let i = 0; i < 100; i++) {
+        const n = await Promise.race([page.evaluate(() => document.querySelectorAll('[role="dialog"] .rg-file').length), sleep(10000).then(() => -1)]);
+        if (n > 0) { shownMs = Date.now() - t0; break; }
+        await sleep(50);
+    }
+    const p0 = Date.now(); await page.evaluate(() => 1); const ping = Date.now() - p0;
+    check(`with ${BIG.length + ODD.length} LoRAs the Region Genie tab opens fast and stays responsive (${shownMs} ms; then ${ping} ms)`, shownMs >= 0 && shownMs < 5000 && ping < 300);
+    await sleep(1500);
     const r = await page.evaluate(() => {
         const txt = document.querySelector('[role="dialog"]')?.innerText || "";
         const all = Object.values(window.app.ui.settings.settingsParamLookup).filter((d) => /^RegionGenie/.test(d.id) && d.type !== "hidden");
@@ -47,33 +58,25 @@ for (const sub of ["loras", "controlnet"]) {
     check(`every Region Genie setting shows in the dialog (${r.n}; missing: ${r.missing.slice(0, 6).join(" | ")})`, r.n > 80 && !r.missing.length);
     const i18n = errors.filter((e) => /SyntaxError|i18n|compile/i.test(e));
     check(`no translation errors while it shows (${i18n.slice(0, 2).join(" | ")})`, !i18n.length);
-    // round 21: by default ComfyUI's own dropdowns (no Browse…); their labels go through the dialog's translation, so
-    // every odd name must come back exactly (the dialog's own path: the setting's options through $t)
-    const nat = await page.evaluate(() => {
-        const look = window.app.ui.settings.settingsParamLookup;
-        const el = [...document.querySelectorAll("*")].find((e) => e.__vue_app__), t = el.__vue_app__.config.globalProperties.$t;
-        const ids = Object.keys(look).filter((id) => /^RegionGenie\.(Control|Edit\.LoRA)\./.test(id));
-        const bad = [];
-        for (const id of ids) {
-            const d = look[id];
-            if (d.type !== "combo" || typeof d.options !== "function") { bad.push(id + " is " + typeof d.type); continue; }
-            for (const o of d.options(d.defaultValue)) {
-                try { const r = t(`settings.${id.replace(/\./g, "_")}.options.${o.text.replace(/\./g, "_")}`, o.text); if (r !== o.value) bad.push(`${o.value} -> ${r}`); }
-                catch (e) { bad.push(`${o.value} (${e})`); }
-            }
-        }
-        const lora = look["RegionGenie.Edit.LoRA.MOSS"].options("(none)").map((o) => o.value);
-        return { n: ids.length, bad: bad.slice(0, 4), browse: document.querySelectorAll('[role="dialog"] .rg-file button').length,
-                 backslash: lora.includes("rgtest_sub\\@author\\x.safetensors"), sam: look["RegionGenie.Select.Model"].type };
+    // round 22: by default Region Genie's dropdowns without Browse… (ComfyUI's own froze the tab with long lists)
+    const off = await page.evaluate(() => {
+        const pickers = [...document.querySelectorAll('[role="dialog"] .rg-file')];
+        return { n: pickers.length, browse: document.querySelectorAll('[role="dialog"] .rg-file button').length,
+                 sam: window.app.ui.settings.settingsParamLookup["RegionGenie.Select.Model"].type !== "text" };
     });
-    check(`Browse… off (default): ComfyUI's dropdowns, every odd name shows exactly, no Browse buttons (${nat.n} settings; ${nat.bad.join(" | ")})`,
-        nat.n === 25 && !nat.bad.length && nat.browse === 0 && nat.backslash && nat.sam === "text");
-    const kreaLine = await page.evaluate(() => {
-        const lines = (document.querySelector('[role="dialog"]')?.innerText || "").split("\n").map((x) => x.trim()).filter(Boolean);
-        const i = lines.findIndex((l) => /^Krea 2: edit LoRA/.test(l));
-        return i < 0 ? "" : lines.slice(i, i + 2).join(" → ");
+    check(`Browse… off (default): every model-file setting is Region Genie's dropdown, no Browse buttons (${off.n} dropdowns, ${off.browse} buttons)`,
+        off.n >= 26 && off.browse === 0 && off.sam);
+    // a dropdown holds only its value until it is wanted; on hover it lists the files (also 'sub\@author' names)
+    const lazy = await page.evaluate(async () => {
+        const sp = [...document.querySelectorAll('[role="dialog"] span')].find((e) => e.textContent.trim() === "Krea 2: edit LoRA");
+        let r = sp; while (r && !r.querySelector?.(".rg-file")) r = r.parentElement;
+        const sel = r.querySelector(".rg-file select"), before = sel.options.length, value = sel.value;
+        sel.dispatchEvent(new PointerEvent("pointerenter"));
+        for (let i = 0; i < 40 && sel.options.length <= 2; i++) await new Promise((res) => setTimeout(res, 100));
+        return { before, after: sel.options.length, value, backslash: [...sel.options].some((o) => o.value === "rgtest_sub\\@author\\x.safetensors") };
     });
-    check(`a set value with '@' shows as it is in ComfyUI's dropdown (${kreaLine.slice(0, 80)})`, /rgtest_char@v2\.safetensors/.test(kreaLine));
+    check(`a dropdown holds only its value until pointed at, then lists the files (${lazy.before} -> ${lazy.after}; value ${lazy.value})`,
+        lazy.before <= 2 && lazy.after > lazy.before && lazy.value === "rgtest_char@v2.safetensors" && lazy.backslash);
     // Browse… on: Region Genie's pickers (the dialog follows the switch)
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.ModelFiles.Browse", true); });
     await page.keyboard.press("Escape"); await sleep(800);
@@ -90,7 +93,7 @@ for (const sub of ["loras", "controlnet"]) {
                  buttons: pickers.filter((p) => p.querySelector("button svg")).length, first: opts.slice(0, 3).join(" | ") };
     });
     check(`every model-file setting is a picker with a Browse… button (${pk.n} pickers, ${pk.buttons} buttons)`, pk.n === 27 && pk.buttons === 27);
-    check(`a set value with '@' shows as it is; a 'sub\\@author' name is listed (${pk.first})`, pk.krea && pk.backslash);
+    check(`with Browse… on too, a set value with '@' shows as it is`, pk.krea);
     // Browse…: a file outside ComfyUI's folders is saved by its full path
     const outDir = path.join(DIR, "..", "rgtest_outside", "@author");
     fs.mkdirSync(outDir, { recursive: true });
