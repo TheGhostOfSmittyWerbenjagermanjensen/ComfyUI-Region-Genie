@@ -25,6 +25,21 @@ def is_full_path(name):
     return isinstance(name, str) and bool(name) and os.path.isabs(name)
 
 
+def split_folder(name):
+    """(folder type, name) for a value picked in the Models menu from another folder than the setting's own
+    ("controlnet:SDXL/x.safetensors"), else (None, name). A Windows full path ("C:\\...") is never split."""
+    if isinstance(name, str) and ":" in name and not is_full_path(name):
+        folder, rest = name.split(":", 1)
+        if len(folder) > 1 and rest:
+            try:
+                import folder_paths
+                if folder in folder_paths.folder_names_and_paths:
+                    return folder, rest
+            except Exception:
+                pass
+    return None, name
+
+
 def _model_file(path):
     return os.path.isfile(path) and path.lower().endswith(MODEL_EXTS)
 
@@ -37,7 +52,8 @@ def full_path(folders, name):
     if is_full_path(name):
         return name if _model_file(name) else None
     import folder_paths
-    for f in ([folders] if isinstance(folders, str) else folders):
+    picked, name = split_folder(name)
+    for f in ([picked] if picked else [folders] if isinstance(folders, str) else folders):
         try:
             p = folder_paths.get_full_path(f, name)
         except Exception:
@@ -52,7 +68,8 @@ def folder_of(folders, name):
     if is_full_path(name):
         return ([folders] if isinstance(folders, str) else list(folders))[0] if _model_file(name) else None
     import folder_paths
-    for f in ([folders] if isinstance(folders, str) else folders):
+    picked, name = split_folder(name)
+    for f in ([picked] if picked else [folders] if isinstance(folders, str) else folders):
         try:
             if folder_paths.get_full_path(f, name):
                 return f
@@ -123,9 +140,9 @@ def _roots(folders):
     return out
 
 
-def relative_name(folders, path):
+def relative_name(folders, path, with_folder=False):
     """The name ComfyUI knows `path` by in one of `folders` (so a file inside a model folder is saved as its usual
-    name and stays portable), else None."""
+    name and stays portable), else None. with_folder: (folder type, name)."""
     import folder_paths
     path = os.path.normcase(os.path.normpath(path))
     for f in folders:
@@ -139,10 +156,10 @@ def relative_name(folders, path):
                 rel = os.path.relpath(path, r)
                 try:
                     if os.path.normcase(os.path.normpath(folder_paths.get_full_path(f, rel) or "")) == path:
-                        return rel
+                        return (f, rel) if with_folder else rel
                 except Exception:
                     pass
-    return None
+    return (None, None) if with_folder else None
 
 
 def browse(path, folders):
@@ -172,8 +189,8 @@ def browse(path, folders):
                 out["dirs"].append(e.name)
             elif e.is_file() and e.name.lower().endswith(MODEL_EXTS):
                 full = os.path.join(path, e.name)
-                out["files"].append({"name": e.name, "path": full, "rel": relative_name(folders, full),
-                                     "size": e.stat().st_size})
+                folder, rel = relative_name(folders, full, with_folder=True)
+                out["files"].append({"name": e.name, "path": full, "rel": rel, "folder": folder, "size": e.stat().st_size})
         except OSError:
             pass
     out["dirs"].sort(key=str.lower)

@@ -76,9 +76,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
     await page.evaluate(() => { const s = document.querySelector("select.rg-size-pre"); });
     // Edit Mode and Control
-    await page.evaluate(() => [...document.querySelectorAll(".rg-settings button")].find((b) => b.textContent.trim() === "Edit")?.click()); await sleep(500); await harvest("Edit Mode");
+    await page.evaluate(() => [...document.querySelectorAll(".rg-settings button")].find((b) => b.textContent.trim() === "Edit")?.click()); await sleep(500);
+    await page.evaluate(async () => { const st = window.__rg.__rgState(); st.editLoras = [{ lora: "x.safetensors", strength: 1, on: true }]; window.__rg.__rgRefresh(); await new Promise((r) => setTimeout(r, 400)); });
+    await harvest("Edit Mode");                                   // the Edit rows (Settings' and the node's own), ＋Edit
+    await page.evaluate(async () => { const st = window.__rg.__rgState(); st.editOff = true; window.__rg.__rgRefresh(); await new Promise((r) => setTimeout(r, 400)); });
+    await harvest("Edit Mode, Settings row removed");
+    await page.evaluate(async () => { const st = window.__rg.__rgState(); delete st.editOff; delete st.editLoras; window.__rg.__rgRefresh(); });
     await page.evaluate(() => [...document.querySelectorAll(".rg-settings button")].find((b) => b.textContent.trim() === "Generate")?.click()); await sleep(300);
-    await page.evaluate(async () => { const st = window.__rg.__rgState(); st.control = { on: true, kind: "depth", strength: 1, start: 0, end: 1 }; window.__rg.__rgRefresh(); await new Promise((r) => setTimeout(r, 500)); });
+    await page.evaluate(async () => { const st = window.__rg.__rgState(); st.controls = [{ kind: "depth", strength: 1, start: 0, end: 1 }, { kind: "canny", strength: 1, start: 0, end: 1 }]; window.__rg.__rgRefresh(); await new Promise((r) => setTimeout(r, 500)); });
     await harvest("Control");
     // pop-ups: scene and region, then the presets editor, the LLM settings, a color picker
     await page.evaluate(() => document.querySelector(".rg-scene-ta")?.parentElement?.querySelector(".rg-expand")?.click()); await sleep(400); await harvest("scene pop-up");

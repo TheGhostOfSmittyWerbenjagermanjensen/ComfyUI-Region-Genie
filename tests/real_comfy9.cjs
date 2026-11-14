@@ -204,10 +204,10 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const before = !!eye && !eye.disabled;
         eye?.click();
         await new Promise((r) => setTimeout(r, 300));
-        return { enabled: before, shown: eye ? /Hide the control map/.test(document.querySelector(".rg-list .rg-row.ctrl .rg-btn.icon").title) : false };
+        return { enabled: before, shown: eye ? /Hide this row's control map/.test(document.querySelector(".rg-list .rg-row.ctrl .rg-btn.icon").title) : false };
     }, c11.img);
     check(`${M}: after a run the control map can be shown on the canvas`, ov.enabled && ov.shown);
-    await page.evaluate(() => { document.querySelector('.rg-list .rg-row.ctrl button[title^="Remove the Control row"]')?.click(); });
+    await page.evaluate(() => { document.querySelector('.rg-list .rg-row.ctrl:not(.edit) button[title^="Remove this Control row"]')?.click(); });
 
     // ---------------- the model guess and the missing-file message (round 10)
     const g10 = await page.evaluate(async () => {
@@ -229,7 +229,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`${M}: control on with no MOSS LoRA set: the message gives the official link and folder`,
         /moss_image_color_depth_control\.safetensors/.test(mtxt) && /ComfyUI\/models\/loras/.test(mtxt)
         && await page.locator(".rg-msg a").first().getAttribute("href") === "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors");
-    await page.evaluate(() => document.querySelector('.rg-list .rg-row.ctrl button[title^="Remove the Control row"]').click());
+    await page.evaluate(() => document.querySelector('.rg-list .rg-row.ctrl:not(.edit) button[title^="Remove this Control row"]').click());
     await page.waitForTimeout(200);
 
     // ---------------- round 11: the toolbar stays one row with every tool (default node width)

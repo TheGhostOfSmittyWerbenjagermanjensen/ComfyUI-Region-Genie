@@ -229,38 +229,41 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: an old workflow's 'Unspecified' layer is listed as a hole under the region below it (${JSON.stringify(hl.oldHole)})`, hl.oldHole.listed && hl.oldHole.under);
     check(`${M}: only a hole left: Standard; ✂ again paints the region again and Layout is back`,
         !hl.holeOnly.on && hl.back.region === 1 && hl.back.owner === undefined && hl.again.on);
-    // round 18: in Edit Mode the Edit row is always there; with no edit LoRA for the model it offers the picker, and a
-    // pick there sets the Setting and adds the LoRA to Whole image
+    // round 18 / 23: in Edit Mode the Edit row is always there; its file opens ComfyUI's classic menu on the model folders
+    // (no Browse… by default); a pick sets the Setting, adds the LoRA (not listed under Whole image) and shows at once
     const fsx = require("fs"), pathx = require("path");
     const editFile = pathx.join(process.env.COMFY_DIR || "/tmp/comfy_src", "models", "loras", "rgtest_edit_row.safetensors");
     fsx.writeFileSync(editFile, "");
-    const er = await page.evaluate(async () => {
-        const s = window.app.extensionManager.setting, rg = window.__rg, wait = (ms) => new Promise((r) => setTimeout(r, ms));
-        await s.set("RegionGenie.Edit.LoRA.MOSS", "(none)");
-        const seg = (t) => [...document.querySelectorAll(".rg-settings button")].find((b) => b.textContent.trim() === t)?.click();
-        const genRow = !!document.querySelector(".rg-row.ctrl.edit");
-        seg("Edit"); await wait(900);
-        const row = document.querySelector(".rg-row.ctrl.edit");
-        const text = row?.innerText.replace(/\s+/g, " ") || "";
-        const sel = row?.querySelector(".rg-file select"), btn = row?.querySelector(".rg-file button");
-        sel?.dispatchEvent(new FocusEvent("focus"));                 // opening the dropdown reads the folder again
-        for (let i = 0; i < 20 && sel && ![...sel.options].some((o) => o.value === "rgtest_edit_row.safetensors"); i++) await wait(250);
-        const listed = !!sel && [...sel.options].some((o) => o.value === "rgtest_edit_row.safetensors");
-        if (sel) { sel.value = "rgtest_edit_row.safetensors"; sel.dispatchEvent(new Event("change")); }
-        await wait(1200);
-        const setting = s.get("RegionGenie.Edit.LoRA.MOSS");
-        const tags = (rg.__rgState().sceneLoras || []).filter((x) => x.edit).map((x) => x.edit + ":" + x.lora).join();
-        const after = document.querySelector(".rg-row.ctrl.edit")?.innerText.replace(/\s+/g, " ") || "";
-        seg("Generate"); await wait(700);
-        const genAfter = !!document.querySelector(".rg-row.ctrl.edit");
-        await s.set("RegionGenie.Edit.LoRA.MOSS", "(none)");
-        return { genRow, text, picker: !!sel && !btn, listed, setting, tags, after, genAfter };
+    const segc = (t) => page.evaluate((t) => [...document.querySelectorAll(".rg-settings button")].find((b) => b.textContent.trim() === t)?.click(), t);
+    await page.evaluate(async () => window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.MOSS", "(none)"));
+    const genRow = await page.evaluate(() => !!document.querySelector(".rg-row.ctrl.edit"));
+    await segc("Edit"); await sleep(900);
+    const er0 = await page.evaluate(() => { const row = document.querySelector(".rg-row.ctrl.edit");
+        return { text: row?.innerText.replace(/\s+/g, " ") || "", field: !!row?.querySelector(".rg-ff-name"), browse: !!row?.querySelector(".rg-ff-browse"),
+                 select: !!row?.querySelector("select") }; });
+    await page.evaluate(() => document.querySelector(".rg-row.ctrl.edit .rg-ff-name").click()); await sleep(900);
+    const menu0 = await page.evaluate(() => [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].slice(0, 6).map((e) => e.textContent.trim()));
+    const filt = page.locator(".litecontextmenu .comfy-context-menu-filter").first();
+    await filt.fill("rgtest_edit_row"); await sleep(500);
+    await page.evaluate(() => { const e = [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].find((x) => x.offsetParent && /rgtest_edit_row\.safetensors$/.test(x.textContent.trim())); e?.click(); });
+    await sleep(1200);
+    const er = await page.evaluate(() => {
+        const rg = window.__rg;
+        return { setting: window.app.extensionManager.setting.get("RegionGenie.Edit.LoRA.MOSS"),
+                 tags: (rg.__rgState().sceneLoras || []).filter((x) => x.edit).map((x) => x.edit + ":" + x.lora).join(),
+                 after: document.querySelector(".rg-row.ctrl.edit")?.innerText.replace(/\s+/g, " ") || "",
+                 wholeListed: [...document.querySelectorAll(".rg-row.lora .rg-hint")].some((h) => h.textContent === "Edit") };
     });
+    await segc("Generate"); await sleep(700);
+    const genAfter = await page.evaluate(() => !!document.querySelector(".rg-row.ctrl.edit"));
+    await page.evaluate(async () => window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.MOSS", "(none)"));
     fsx.unlinkSync(editFile);
-    check(`${M}: Edit row: only in Edit Mode, says there's no edit LoRA for the model, with a dropdown (no Browse… by default) (${er.text.slice(0, 60)})`,
-        !er.genRow && /^Edit No edit LoRA for MOSS-Image:/.test(er.text) && er.picker && er.listed && !er.genAfter);
-    check(`${M}: Edit row: a pick sets the Setting and adds the LoRA to Whole image (${er.setting}; ${er.tags})`,
-        er.setting === "rgtest_edit_row.safetensors" && er.tags === "MOSS-Image:rgtest_edit_row.safetensors" && /LoRA for MOSS-Image:/.test(er.after));
+    check(`${M}: Edit row: only in Edit Mode, names the model, a file field (no dropdown, no Browse… by default) (${er0.text.slice(0, 60)})`,
+        !genRow && /^Edit MOSS-Image:/.test(er0.text) && er0.field && !er0.browse && !er0.select && !genAfter);
+    check(`${M}: the Edit row's field opens ComfyUI's menu on the model folders (${menu0.join(" | ")})`,
+        menu0[0] === "None" && menu0.some((t) => /^(📁 )?controlnet/.test(t)) && menu0.some((t) => /^(📁 )?loras/.test(t)));
+    check(`${M}: a pick in the menu sets the Setting and adds the LoRA, not listed under Whole image (${er.setting}; ${er.tags})`,
+        er.setting === "rgtest_edit_row.safetensors" && er.tags === "MOSS-Image:rgtest_edit_row.safetensors" && /rgtest_edit_row/.test(er.after) && !er.wholeListed);
     await page.evaluate(() => document.querySelector(".rg-layout").click()); await sleep(200);
     s1 = await ms();
     check(`${M}: the switch: standard mode, sent with the run`, !s1.layoutOn && s1.mossLayout === false);

@@ -6,7 +6,7 @@ import { svgIcon, setHTML, escReverts, popFootText, naturalHeight, nodeOffCanvas
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
          ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
          wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles, OLD_MOSS, MOSS, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
-         controlLabel, knownModels, NO_LORA, controlFolders, modelFilePicker, isFullPath, EDIT_MODELS } from "./rg_shared.js";
+         controlLabel, knownModels, NO_LORA, controlFolders, fileField, MODEL_ROOTS, splitValue, isFullPath, EDIT_MODELS } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
 import { openColorPicker, inColorPicker } from "./rg_colorpicker.js";
@@ -451,10 +451,11 @@ textarea.rg-scene-ta { padding-right:20px !important; }
 .rg-row.layer.hole .rg-sw { background:repeating-linear-gradient(135deg, #000 0 3px, #8a8a8a 3px 4px); }
 .rg-row.layer .ico.on { color:var(--p-primary-color, #4a9eff); border-color:var(--p-primary-color, #4a9eff); }
 .rg-row.ctrl.edit:hover { background:none; }
-.rg-row .rg-file { width:auto; min-width:0; max-width:none; flex:1 1 auto; gap:4px; }
-.rg-row .rg-file select { padding:1px 4px; border-radius:4px; font-size:11px; }
-.rg-row .rg-file button { width:22px; height:20px; border-radius:4px; }
-.rg-row .rg-file button svg { width:14px; height:14px; }
+.rg-row .rg-ff { width:auto; min-width:0; max-width:none; flex:1 1 auto; gap:4px; }
+.rg-row .rg-ff-name { padding:1px 18px 1px 5px; border-radius:4px; font-size:11px; }
+.rg-row .rg-ff-name::after { right:5px; }
+.rg-row .rg-ff-browse { width:22px; height:20px; border-radius:4px; }
+.rg-row .rg-ff-browse svg { width:14px; height:14px; }
 .rg-row.ctrl .rg-num { width:44px; }
 .rg-row.ctrl .rg-sel { min-width:150px; max-width:190px; }
 .rg-settings .rg-sel.rg-model { max-width:150px; }
@@ -777,15 +778,26 @@ function parseState(text, W, H) {
         ...(d.sceneLlm ? { sceneLlm: true } : {}),
         ...(Number.isFinite(+d.sceneLlmSalt) && +d.sceneLlmSalt ? { sceneLlmSalt: Math.round(+d.sceneLlmSalt) } : {}),
         ...(d.llm && typeof d.llm === "object" ? { llm: d.llm } : {}),
-        ...(normControl(d.control) ? { control: normControl(d.control) } : {}),
+        // round 23: the Control rows (before: one 'control' with 'on') and the Edit rows (the Settings one can be removed
+        // for this node; ＋Edit adds this node's own)
+        ...(normControls(d).length ? { controls: normControls(d) } : {}),
+        ...(normControl(d.controlLast) ? { controlLast: normControl(d.controlLast) } : {}),
+        ...(d.editOff ? { editOff: true } : {}),
+        ...(Array.isArray(d.editLoras) ? { editLoras: d.editLoras.filter((x) => x && typeof x === "object")
+            .map((x) => ({ lora: typeof x.lora === "string" ? x.lora : "", strength: Number.isFinite(+x.strength) ? +x.strength : 1, on: x.on !== false })) } : {}),
     };
+}
+function normControls(d) {
+    if (Array.isArray(d.controls)) return d.controls.map(normControl).filter(Boolean);
+    const c = normControl(d.control);
+    return c && d.control.on ? [c] : [];
 }
 // the Control row: on / off, what the map is, strength and the part of the steps (fractions 0..1)
 const CONTROL_KINDS = ["color", "color+depth", "depth", "canny", "other"];
 function normControl(c) {
     if (!c || typeof c !== "object") return null;
     const n = (v, d, lo, hi) => (Number.isFinite(+v) ? Math.min(hi, Math.max(lo, +v)) : d);
-    return { on: !!c.on, kind: CONTROL_KINDS.includes(c.kind) ? c.kind : "depth", strength: n(c.strength, 1, 0, 10),
+    return { kind: CONTROL_KINDS.includes(c.kind) ? c.kind : "depth", strength: n(c.strength, 1, 0, 10),
              start: n(c.start, 0, 0, 1), end: n(c.end, 1, 0, 1) };
 }
 
@@ -843,7 +855,7 @@ app.registerExtension({
                         d.llmCache = llmCacheSettings();
                         d.minPixels = minPixelsNow();
                         d.wcPerField = !!getSetting(SET.wcPerField, false);
-                        if (d.control?.on) d.control = { ...d.control, files: controlFiles() };
+                        if (Array.isArray(d.controls) && d.controls.length) d.controlFiles = controlFiles();
                         d.importMode = importModeNow();
                         return JSON.stringify(d);
                     } catch (e) { return v; }
@@ -1334,8 +1346,8 @@ app.registerExtension({
                 ["edit", "Edit", "Edit the image on 'image' (image-to-image). Connect 'vae' too, and use the 'latent' output (sampler "
                     + "denoise below 1 for models without a reference image). The canvas takes the image's shape at width x height "
                     + "pixels, the image is the backdrop, the model gets it as a reference image where it reads one (Settings > "
-                    + "Region Genie > Edit Mode), and the edit LoRA set there for the model is added to the 'Whole image' LoRAs "
-                    + "(and removed again when you switch back)."],
+                    + "Region Genie > Edit Mode), and the edit LoRA set there for the model is used (the Edit row under Whole image; "
+                    + "＋Edit adds more)."],
             ], (v) => { if (editW?.value === v) return; setWidget(editW, v); onEditModeChanged(); syncSettings(); });
             const areaCtl = setSel(areaW, "", [["only the regions", "regions only"], ["whole image", "whole image"]],
                 "edit_area (Edit Mode): What the sampler may change.\nOnly the regions: The 'latent' output carries a mask of "
@@ -1495,26 +1507,27 @@ app.registerExtension({
             // the edit LoRAs Edit Mode wants in Whole image: the one for the model, or every one while the model isn't known
             function syncEditLoras() {
                 const all = editLoras(), arch = modelArch();
-                const want = !isEdit() ? [] : arch ? all.filter(([m]) => m === arch) : all;
+                const want = !isEdit() || state.editOff ? [] : arch ? all.filter(([m]) => m === arch) : all;
                 const cur = state.sceneLoras || [];
                 const kept = cur.filter((x) => !x.edit || want.some(([m, l]) => x.edit === m && x.lora === l));
                 const add = want.filter(([m, l]) => !kept.some((x) => x.edit === m && x.lora === l)).map(([m, lora]) => ({ lora, strength: 1, on: true, edit: m }));
                 if (kept.length === cur.length && !add.length) return false;
                 state.sceneLoras = [...kept, ...add];
                 if (!state.sceneLoras.length) delete state.sceneLoras;
-                if (add.length) expanded.add(SCENE);
                 return true;
             }
-            let syncedArch;
+            let syncedArch, filesSig = "";
             // the model changed (picked, rewired, or a run said so): the Control and Edit Mode LoRAs follow it (no undo step)
             function onModelChanged(force) {
                 const arch = modelArch();
                 if (!force && arch === syncedArch) return;
                 syncedArch = arch;
                 const a = syncControlLoras(), b = syncEditLoras();
-                if (a || b) { save(); renderRegions(); }
+                if (a || b) save();
+                // the Edit / Control rows show the model's LoRA and files: redraw them now (round 23)
+                if (a || b || isEdit() || controls().length) renderRegions();
                 syncModelSel();
-                if (state.control?.on) checkControlFiles(false);
+                if (controls().length) checkControlFiles(false);
             }
             // the footer select: auto (with what it found) or a model picked to correct it
             const modelSel = el("select", "rg-sel rg-model");
@@ -1596,11 +1609,11 @@ app.registerExtension({
             function missingControlFiles(keys) {
                 const files = controlFiles(), out = [];
                 for (const key of keys) {
-                    const folder = controlFolder(key);
-                    const list = folder === "loras" ? (knownLoras() || []) : controlFolders(key).flatMap((f) => knownModels(f) || []);
+                    const sv = splitValue(files[key] || ""), folder = sv.folder || controlFolder(key);
+                    const list = folder === "loras" ? (knownLoras() || []) : (sv.folder ? [folder] : controlFolders(key)).flatMap((f) => knownModels(f) || []);
                     if (!files[key]) out.push([key, "unset"]);
                     // a full path (Browse…) is checked by the run, which notes a file it can't find
-                    else if (!isFullPath(files[key]) && list.length && !list.includes(files[key])) out.push([key, "missing", files[key]]);
+                    else if (!isFullPath(files[key]) && list.length && !list.includes(sv.name)) out.push([key, "missing", files[key]]);
                 }
                 return out;
             }
@@ -1617,156 +1630,199 @@ app.registerExtension({
                 return true;
             }
             function checkControlFiles(refreshLists) {
-                const c = ctl(), arch = modelArch();
-                if (!c.on) return;
+                const rows = controls(), arch = modelArch();
+                if (!rows.length) return;
                 if (refreshLists) for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f, true);
                 if (arch && !["MOSS-Image", "Flux.1", "SDXL", "SD1.5", "Anima"].includes(arch)) {
                     showMsg(`Control: ComfyUI has no ControlNet support for ${arch} yet, so this node can't apply control with it. `
                         + "If the model was guessed wrong, pick the right one in the bottom bar.");
                     return;
                 }
-                if (!showControlMissing(missingControlFiles(neededControlFiles(c, arch)))) hideMsg();
+                const keys = [...new Set(rows.flatMap((c) => neededControlFiles(c, arch)))];
+                if (!showControlMissing(missingControlFiles(keys))) hideMsg();
             }
             // ---- Control (ControlNet / control LoRAs): the row under Whole image, the per-region switch, the LoRAs it adds
-            const CONTROL = "control";
             const CONTROL_KIND_LABELS = [["color", "color map (MOSS)"], ["color+depth", "color map + depth (MOSS)"], ["depth", "depth"],
                                          ["canny", "canny"], ["other", "your control_image"]];
-            const ctl = () => state.control || { on: false, kind: "depth", strength: 1, start: 0, end: 1 };
-            let controlMap = null, controlMapKey = "", controlShow = false;          // the map of the last run, shown on the canvas
-            // the control LoRAs the current settings want in Whole image: [{lora, control: model, ckind}]
-            function wantedControlLoras(c) {
-                if (!c.on) return [];
+            const CONTROL_DEFAULT = { kind: "depth", strength: 1, start: 0, end: 1 };
+            const controls = () => state.controls || [];           // the Control rows (round 23: several)
+            let controlMaps = [], controlMapsKey = "", controlShowK = -1;   // each row's map of the last run; the one shown
+            // the control LoRAs the Control rows want (kept with Whole image's LoRAs, not listed there): [{lora, control: model,
+            // ckind, strength}]; a Flux.1 depth / canny LoRA takes its row's strength
+            function wantedControlLoras() {
                 const files = controlFiles(), arch = modelArch(), out = [];
-                const add = (key, model, ckind) => { if (files[key] && (!arch || arch === model)) out.push({ lora: files[key], control: model, ckind }); };
-                if (["color", "color+depth", "depth"].includes(c.kind)) add("MOSS", "MOSS-Image", "moss");
-                if (c.kind === "depth") add("Flux1Depth", "Flux.1", "depth");
-                if (c.kind === "canny") add("Flux1Canny", "Flux.1", "canny");
+                for (const c of controls()) {
+                    const add = (key, model, ckind, strength) => {
+                        if (!files[key] || (arch && arch !== model)) return;
+                        if (!out.some((x) => x.lora === files[key] && x.control === model && x.ckind === ckind)) out.push({ lora: files[key], control: model, ckind, strength });
+                    };
+                    if (["color", "color+depth", "depth"].includes(c.kind)) add("MOSS", "MOSS-Image", "moss", 1);
+                    if (c.kind === "depth") add("Flux1Depth", "Flux.1", "depth", c.strength);
+                    if (c.kind === "canny") add("Flux1Canny", "Flux.1", "canny", c.strength);
+                }
                 return out;
             }
-            // keep the Whole image LoRAs in step (inside a change(): one undo step with the switch that caused it)
+            // keep those LoRAs in step (inside a change(): one undo step with the switch that caused it)
             function syncControlLoras() {
-                const want = wantedControlLoras(ctl()), cur = state.sceneLoras || [];
+                const want = wantedControlLoras(), cur = state.sceneLoras || [];
                 const same = (a, b) => a.lora === b.lora && a.control === b.control && a.ckind === b.ckind;
+                let changed = false;
                 const kept = cur.filter((x) => !x.control || want.some((w) => same(w, x)));
-                const add = want.filter((w) => !kept.some((x) => x.control && same(w, x))).map((w) => ({ ...w, strength: 1, on: true }));
-                if (kept.length === cur.length && !add.length) return false;
+                for (const x of kept) {
+                    const w = x.control && want.find((y) => same(y, x));
+                    if (w && x.strength !== w.strength) { x.strength = w.strength; changed = true; }
+                }
+                const add = want.filter((w) => !kept.some((x) => x.control && same(w, x))).map((w) => ({ ...w, on: true }));
+                if (kept.length === cur.length && !add.length && !changed) return false;
                 state.sceneLoras = [...kept, ...add];
                 if (!state.sceneLoras.length) delete state.sceneLoras;
-                if (add.length) expanded.add(SCENE);
                 return true;
             }
             // Edit Mode's LoRAs never stay in Generate, nor a control LoRA while Control is off: whatever put them there (Ctrl+Z
             // after switching back, an old workflow, a Setting changed meanwhile). Only removes; adding is syncEditLoras' /
             // syncControlLoras' job (on a mode, model or Control change)
             function pruneManagedLoras() {
-                const cur = state.sceneLoras || [], ctlOn = !!ctl().on, edit = isEdit();
+                const cur = state.sceneLoras || [], ctlOn = controls().length > 0, edit = isEdit() && !state.editOff;
                 const kept = cur.filter((x) => !(x.edit && !edit) && !(x.control && !ctlOn));
                 if (kept.length === cur.length) return false;
                 if (kept.length) state.sceneLoras = kept; else delete state.sceneLoras;
                 return true;
             }
-            function setControl(patch) {
-                change(() => { state.control = { ...ctl(), ...patch }; syncControlLoras(); });
-                if (state.control.on) checkControlFiles(true); else hideMsg();
+            function setControl(k, patch) {
+                change(() => { state.controls[k] = { ...state.controls[k], ...patch }; syncControlLoras(); });
+                checkControlFiles(true);
             }
-            // Edit Mode's Edit row (round 18): always there in Edit Mode; the edit LoRA for the node's model, picked here
-            // (dropdown or Browse…) or in Settings > Region Genie > Edit Mode (the same setting)
-            function editRow() {
-                const row = el("div", "rg-row ctrl edit");
-                const pad = el("span", "rg-chev"); pad.style.visibility = "hidden"; pad.textContent = "▶";   // lines up with Control
-                const lbl = el("span", "rg-pseudo"); lbl.textContent = "Edit";
-                lbl.title = "Edit Mode adds the edit LoRA set for the node's model to Whole image (marked 'Edit'), and removes it "
-                    + "when the node is switched back to Generate.";
-                row.append(pad, lbl);
-                const arch = modelArch(), m = EDIT_MODELS.find(([name]) => name === arch);
-                const t = el("span", "rg-hint"); t.style.flex = "0 0 auto";
-                if (!m) {
-                    t.textContent = "The model isn't known yet: Pick it in the bottom bar to choose its edit LoRA here";
-                    t.title = "Until the model is known, the edit LoRAs set for every model in Settings > Region Genie > Edit Mode are added.";
-                    row.appendChild(t);
-                    return row;
-                }
-                const id = SET.editLora + "." + m[1], cur = getSetting(id, NO_LORA) || NO_LORA;
-                t.textContent = cur === NO_LORA ? `No edit LoRA for ${arch}:` : `LoRA for ${arch}:`;
-                const picker = modelFilePicker({
-                    folders: ["loras"], none: NO_LORA, value: cur,
-                    title: `The edit LoRA for ${arch} (the same as Settings > Region Genie > Edit Mode > '${arch}: edit LoRA')`,
-                    onPick: async (v) => { await setSetting(id, v); onModelChanged(true); renderRegions(); },
+            function addControl() {
+                change(() => {
+                    // the first row: as the last one removed; more rows: the first kind not in use yet
+                    const used = new Set(controls().map((c) => c.kind));
+                    const row = !controls().length && state.controlLast ? { ...CONTROL_DEFAULT, ...state.controlLast }
+                        : { ...CONTROL_DEFAULT, kind: ["depth", "canny", "other", "color", "color+depth"].find((k) => !used.has(k)) || "depth" };
+                    state.controls = [...controls(), row];
+                    syncControlLoras();
                 });
-                picker.classList.add("rg-edit-pick");
-                row.append(t, picker);
-                return row;
+                checkControlFiles(true);
             }
-            function controlRow() {
-                const c = ctl();
-                // round 18: the row is there only while control is on (＋Control on Whole image adds it, its ✕ removes it)
+            function removeControl(k) {
+                change(() => {
+                    state.controlLast = { ...state.controls[k] };
+                    state.controls.splice(k, 1);
+                    if (!state.controls.length) delete state.controls;
+                    syncControlLoras();
+                });
+                if (controlShowK === k) controlShowK = -1;
+                controls().length ? checkControlFiles(false) : hideMsg();
+            }
+            // the file a Control row uses for the node's model (its kind's tooltip names it)
+            function controlFileFor(c, arch) {
+                const f = controlFiles(), n = (k) => f[k] ? (isFullPath(f[k]) ? f[k] : splitValue(f[k]).name) : "none set (Settings > Region Genie > Control)";
+                if (!arch) return "The file depends on the model, which isn't known yet (pick it in the bottom bar).";
+                if (arch === "MOSS-Image") return ["color", "color+depth", "depth"].includes(c.kind) ? `File for MOSS-Image: ${n("MOSS")} (control LoRA).`
+                    : "MOSS-Image reads only the color map and / or depth.";
+                if (arch === "Flux.1") {
+                    if (c.kind === "depth" && f.Flux1Depth) return `File for Flux.1: ${n("Flux1Depth")} (depth LoRA, at this row's strength).`;
+                    if (c.kind === "canny" && f.Flux1Canny) return `File for Flux.1: ${n("Flux1Canny")} (canny LoRA, at this row's strength).`;
+                    return ["depth", "canny", "other"].includes(c.kind) ? `File for Flux.1: ${n(`Flux1.${c.kind}`)} (ControlNet).` : "Flux.1 doesn't read a color map.";
+                }
+                const k = { SDXL: "SDXL", "SD1.5": "SD15", Anima: "Anima" }[arch];
+                if (k) return ["depth", "canny", "other"].includes(c.kind) ? `File for ${arch}: ${n(`${k}.${c.kind}`)}.` : `${arch} doesn't read a color map.`;
+                return `ComfyUI has no ControlNet for ${arch} yet.`;
+            }
+            // ---- round 23: the Edit rows (Edit Mode only). The first is the edit LoRA set in Settings > Region Genie >
+            // Edit Mode for the node's model (✕ removes it for this node); ＋Edit adds rows of this node's own LoRAs, used
+            // in Edit Mode with any model. The files: ComfyUI's menu on the model folders (Browse… with the Settings switch).
+            const rowNum = (v, title, lo, hi, step, set) => {
+                const i = el("input", "rg-num"); i.type = "number"; i.min = String(lo); i.max = String(hi); i.step = String(step);
+                i.value = String(v); i.title = title;
+                i.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") i.blur(); });
+                i.addEventListener("change", () => set(Math.min(hi, Math.max(lo, +i.value || 0))));
+                i.addEventListener("pointerdown", (e) => e.stopPropagation());
+                return i;
+            };
+            const rowLabel = (text, title) => {
+                const pad = el("span", "rg-chev"); pad.style.visibility = "hidden"; pad.textContent = "▶";   // lines up with the regions
+                const lbl = el("span", "rg-pseudo"); lbl.textContent = text; lbl.title = title;
+                return [pad, lbl];
+            };
+            const rowX = (title, fn) => { const x = iconBtn("close", title, fn); x.addEventListener("pointerdown", (e) => e.stopPropagation()); return x; };
+            function editRows() {
+                const frag = document.createDocumentFragment();
+                if (!state.editOff) {
+                    const row = el("div", "rg-row ctrl edit");
+                    row.append(...rowLabel("Edit", "The edit LoRA set in Settings > Region Genie > Edit Mode for the node's model: Used only in "
+                        + "Edit Mode, with that model."));
+                    const arch = modelArch(), m = EDIT_MODELS.find(([name]) => name === arch);
+                    const t = el("span", "rg-hint"); t.style.flex = "0 0 auto";
+                    if (!m) {
+                        t.textContent = "The model isn't known yet: Pick it in the bottom bar to choose its edit LoRA here";
+                        t.title = "Until the model is known, the edit LoRAs set for every model in Settings > Region Genie > Edit Mode are used.";
+                        row.append(t);
+                    } else {
+                        const id = SET.editLora + "." + m[1], cur = getSetting(id, NO_LORA) || NO_LORA;
+                        t.textContent = `${arch}:`;
+                        const f = fileField({
+                            roots: MODEL_ROOTS, home: "loras", none: NO_LORA, value: cur, cls: "rg-row-ff", menuTitle: `${arch}: edit LoRA`,
+                            title: `The edit LoRA for ${arch} (the same as Settings > Region Genie > Edit Mode > '${arch}: edit LoRA')`,
+                            onPick: async (v) => { await setSetting(id, v); onModelChanged(true); },
+                        });
+                        const lo = (state.sceneLoras || []).find((x) => x.edit === arch);
+                        const str = rowNum(lo ? lo.strength : 1, "Strength of the edit LoRA (1 = as trained)", -10, 10, 0.05,
+                            (v) => change(() => { const x = (state.sceneLoras || []).find((y) => y.edit === arch); if (x) x.strength = v; }));
+                        str.disabled = !lo;
+                        row.append(t, f, str);
+                    }
+                    row.append(rowX("Remove the Edit row: This node doesn't use the edit LoRA from Settings (the setting stays). ＋Edit brings it back.",
+                        () => change(() => { state.editOff = true; syncEditLoras(); })));
+                    frag.appendChild(row);
+                }
+                (state.editLoras || []).forEach((lo, k) => {
+                    const row = el("div", "rg-row ctrl edit");
+                    row.append(...rowLabel("Edit", "A LoRA of this node's own for Edit Mode (added with ＋Edit): Used only in Edit Mode, "
+                        + "with any model (e.g. a relighting or style add-on for an edit model)."));
+                    const f = fileField({
+                        roots: MODEL_ROOTS, home: "loras", none: "", noneLabel: false, emptyLabel: "(choose a LoRA)", value: lo.lora, cls: "rg-row-ff", menuTitle: "Edit LoRA (this node)",
+                        title: "A LoRA used in Edit Mode only, in this node", onPick: (v) => change(() => { lo.lora = v; }),
+                    });
+                    const str = rowNum(lo.strength, "Strength (1 = as trained)", -10, 10, 0.05, (v) => change(() => { lo.strength = v; }));
+                    row.append(f, str, rowX("Remove this Edit row", () => change(() => {
+                        state.editLoras.splice(k, 1); if (!state.editLoras.length) delete state.editLoras;
+                    })));
+                    frag.appendChild(row);
+                });
+                return frag;
+            }
+            function addEditRow() {
+                change(() => {
+                    if (state.editOff) { delete state.editOff; syncEditLoras(); }         // the Settings one first
+                    else state.editLoras = [...(state.editLoras || []), { lora: "", strength: 1, on: true }];
+                });
+            }
+            // ---- the Control rows (round 23: several; ＋Control adds one, ✕ removes it; no details under them)
+            function controlRow(c, k) {
                 const row = el("div", "rg-row ctrl");
-                const lbl = el("span", "rg-pseudo"); lbl.textContent = "Control";
-                lbl.title = "Control: The model follows a map (ControlNet / control LoRA for the connected model). The files are set in "
-                    + "Settings > Region Genie > Control.";
-                row.append(chevron(CONTROL, c.on, "the control files for each model"), lbl);
-                if (c.on) {
-                    const kind = el("select", "rg-sel");
-                    kind.title = (CONTROL_KIND_HELP[c.kind] || "") + "\n\nWhat the model follows: The regions' color map and / or depth (MOSS-Image's "
-                        + "control LoRA), depth, canny, or the map on 'control_image'. Depth and canny are made from 'image' when control_image isn't connected.";
-                    for (const [v, t] of CONTROL_KIND_LABELS) kind.appendChild(opt(v, t));
-                    kind.value = c.kind;
-                    kind.addEventListener("change", () => setControl({ kind: kind.value }));
-                    const num = (v, title, lo, hi, step, set) => {
-                        const i = el("input", "rg-num"); i.type = "number"; i.min = String(lo); i.max = String(hi); i.step = String(step);
-                        i.value = String(v); i.title = title;
-                        i.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") i.blur(); });
-                        i.addEventListener("change", () => set(Math.min(hi, Math.max(lo, +i.value || 0))));
-                        return i;
-                    };
-                    const str = num(c.strength, "Strength (1 = as trained)", 0, 10, 0.05, (v) => setControl({ strength: v }));
-                    const a = num(Math.round(c.start * 100), "Start, in % of the steps", 0, 100, 1, (v) => setControl({ start: v / 100 }));
-                    const b = num(Math.round(c.end * 100), "End, in % of the steps (ending early keeps the layout, then lets the shapes loosen)", 0, 100, 1, (v) => setControl({ end: v / 100 }));
-                    const pct = el("span", "rg-hint"); pct.textContent = "%";
-                    const dash = el("span", "rg-hint"); dash.textContent = "–";
-                    const eye = iconBtn(controlShow ? "eye" : "eyeOff", controlMap ? (controlShow ? "Hide the control map on the canvas" : "Show the control map of the last run on the canvas")
-                        : "The control map shows here after a run", () => { controlShow = !controlShow; renderRegions(); requestDraw(); });
-                    eye.disabled = !controlMap;
-                    eye.addEventListener("pointerdown", (e) => e.stopPropagation());
-                    for (const x of [kind, str, a, b]) x.addEventListener("pointerdown", (e) => e.stopPropagation());
-                    const gap = el("span"); gap.style.flex = "1 1 auto";
-                    const rm = iconBtn("close", "Remove the Control row (control off). Its settings are kept for the next ＋Control.",
-                        () => { setControl({ on: false }); expanded.delete(CONTROL); });
-                    rm.addEventListener("pointerdown", (e) => e.stopPropagation());
-                    row.append(kind, str, a, dash, b, pct, gap, eye, rm);
-                }
-                row.addEventListener("pointerdown", (e) => {
-                    if (e.button !== 0 || e.target.closest?.("button, input, select, textarea") || !c.on) return;
-                    e.stopPropagation();
-                    if (expanded.has(CONTROL)) expanded.delete(CONTROL); else expanded.add(CONTROL);
-                    renderRegions();
-                });
+                row.append(...rowLabel("Control", "Control: The model follows a map (ControlNet / control LoRA for the connected model). "
+                    + "The files are set in Settings > Region Genie > Control."));
+                const kind = el("select", "rg-sel");
+                kind.title = (CONTROL_KIND_HELP[c.kind] || "") + "\n" + controlFileFor(c, modelArch())
+                    + "\n\nWhat the model follows: The regions' color map and / or depth (MOSS-Image's control LoRA), depth, canny, or "
+                    + "the map on 'control_image'. Depth and canny are made from 'image' when control_image isn't connected.";
+                for (const [v, t] of CONTROL_KIND_LABELS) kind.appendChild(opt(v, t));
+                kind.value = c.kind;
+                kind.addEventListener("change", () => setControl(k, { kind: kind.value }));
+                kind.addEventListener("pointerdown", (e) => e.stopPropagation());
+                const str = rowNum(c.strength, "Strength (1 = as trained)", 0, 10, 0.05, (v) => setControl(k, { strength: v }));
+                const a = rowNum(Math.round(c.start * 100), "Start, in % of the steps", 0, 100, 1, (v) => setControl(k, { start: v / 100 }));
+                const b = rowNum(Math.round(c.end * 100), "End, in % of the steps (ending early keeps the layout, then lets the shapes loosen)", 0, 100, 1, (v) => setControl(k, { end: v / 100 }));
+                const pct = el("span", "rg-hint"); pct.textContent = "%";
+                const dash = el("span", "rg-hint"); dash.textContent = "–";
+                const map = controlMaps[k], shown = controlShowK === k;
+                const eye = iconBtn(shown ? "eye" : "eyeOff", map ? (shown ? "Hide this row's control map on the canvas" : "Show this row's control map of the last run on the canvas")
+                    : "This row's control map shows here after a run", () => { controlShowK = shown ? -1 : k; renderRegions(); requestDraw(); });
+                eye.disabled = !map;
+                eye.addEventListener("pointerdown", (e) => e.stopPropagation());
+                const gap = el("span"); gap.style.flex = "1 1 auto";
+                row.append(kind, str, a, dash, b, pct, gap, eye, rowX("Remove this Control row (its settings are kept for the next ＋Control)", () => removeControl(k)));
                 return row;
-            }
-            // the details: which file each model uses for this kind, and where the map comes from
-            function controlDetails() {
-                const c = ctl(), files = controlFiles(), box = el("div", "rg-subbody ctrl");
-                const line = (text, title) => { const d = el("div", "rg-row lora"); const t = el("span", "rg-hint"); t.textContent = text; if (title) t.title = title; d.appendChild(t); box.appendChild(d); };
-                const info = modelInfo(), arch = info.arch;
-                const pick = (key) => files[key] || "—";
-                const per = c.kind === "color" || c.kind === "color+depth"
-                    ? [["MOSS-Image", `LoRA ${pick("MOSS")}`]]
-                    : [["MOSS-Image", c.kind === "depth" ? `LoRA ${pick("MOSS")}` : "— (color map / depth only)"],
-                       ["Flux.1", (c.kind === "depth" && files.Flux1Depth) ? `LoRA ${files.Flux1Depth}` : (c.kind === "canny" && files.Flux1Canny) ? `LoRA ${files.Flux1Canny}` : `ControlNet ${pick(`Flux1.${c.kind}`)}`],
-                       ["SDXL", `ControlNet ${pick(`SDXL.${c.kind}`)}`], ["SD1.5", `ControlNet ${pick(`SD15.${c.kind}`)}`],
-                       ["Anima", `LLLite ${pick(`Anima.${c.kind}`)}`]];
-                for (const [m, f] of per) line(`${m === arch ? "▸ " : ""}${m}: ${f}`, m === arch ? `The model this node works with (${info.how}; the bottom bar's model select)` : "");
-                line("Krea 2, Flux.2, Flux 3, Ideogram 4: no ControlNet in ComfyUI yet");
-                const src = c.kind === "color" ? "the regions' colors (the color_map output)"
-                    : c.kind === "other" ? "the control_image input"
-                    : `control_image if connected, else made from 'image' (${c.kind === "canny" ? "ComfyUI's Canny" : `Depth Anything 3: ${files.DA3 || "set its model in Settings"}`})`
-                        + (c.kind === "color+depth" ? "; the color map from the regions" : "");
-                line("Map: " + src);
-                const off = state.regions.filter((r) => r.noControl).length;
-                line(off ? `${off} region(s) switched off: the control acts only inside the regions still on` : "Every region is on (the region rows' control button switches one off)");
-                line("Files: Settings > Region Genie > Control (each one's tooltip says where to get it)");
-                const help = el("div", "rg-row lora"); const ht = el("span", "rg-hint rg-ctrl-help"); ht.textContent = CONTROL_KIND_HELP[c.kind] || ""; help.appendChild(ht); box.appendChild(help);
-                return box;
             }
             function controlToggle(r) {
                 const on = !r.noControl;
@@ -3115,8 +3171,9 @@ app.registerExtension({
                 ctx.globalAlpha = 0.35;
                 ctx.drawImage(comp, 0, 0);
                 ctx.restore();
-                if (controlShow && controlMap && state.control?.on) {         // the control map of the last run
-                    ctx.save(); ctx.globalAlpha = 0.65; ctx.drawImage(controlMap, ix, iy, iw, ih); ctx.restore();
+                const shownMap = controlShowK >= 0 ? controlMaps[controlShowK] : null;
+                if (shownMap && controls().length) {                        // a Control row's map of the last run
+                    ctx.save(); ctx.globalAlpha = 0.65; ctx.drawImage(shownMap, ix, iy, iw, ih); ctx.restore();
                 }
                 if (isEdit() && state.regions.some((r) => r.keep)) {        // Edit Mode: kept regions are hatched
                     ctx.save();
@@ -4765,6 +4822,7 @@ app.registerExtension({
                 // owner: { prompt(): string, append(word) } (region prompt, or scene_prompt_positive for whole-image LoRAs)
                 const frag = document.createDocumentFragment();
                 list.forEach((lo, i) => {
+                    if (owner?.sceneOnly && (lo.edit || lo.control)) return;          // on the Edit / Control rows instead
                     const row = el("div", "rg-row lora");
                     const tag = el("span", "rg-hint"); tag.textContent = lo.control ? "Control" : lo.edit ? "Edit" : "LoRA";
                     if (lo.edit) {
@@ -5180,14 +5238,18 @@ app.registerExtension({
                 sl.title = "LoRAs here act on the whole picture (and all text), like a normal LoRA";
                 const sceneAdd = ico("＋LoRA", "Add a LoRA for the whole image", (e) => { state.sceneLoras = state.sceneLoras || []; addLoraTo(state.sceneLoras, e, () => expanded.add(SCENE)); }, "txt");
                 // round 18: Control is a row you add (and remove with its ✕), not an always-there switch
-                const ctlAdd = ico("＋Control", "Add the Control row: The model follows a color map, depth, canny or your own "
-                    + "control_image (ControlNet / control LoRA; the files are set in Settings > Region Genie > Control)",
-                    () => { expanded.add(CONTROL); setControl({ on: true }); }, "txt");
-                if (state.control?.on) ctlAdd.style.display = "none";
-                const nScene = (state.sceneLoras || []).length;
+                const ctlAdd = ico("＋Control", "Add a Control row: The model follows a color map, depth, canny or your own control_image "
+                    + "(ControlNet / control LoRA; the files are set in Settings > Region Genie > Control). Several rows combine where the "
+                    + "model allows it (ControlNets, Anima LLLite).", () => addControl(), "txt");
+                const editAdd = ico("＋Edit", state.editOff ? "Add the Edit row back: The edit LoRA set in Settings for the node's model"
+                    : "Add an Edit row: A LoRA of this node's own, used only in Edit Mode (any model)", () => addEditRow(), "txt");
+                if (!isEdit()) editAdd.style.display = "none";
+                // the Edit and Control LoRAs are set on their own rows, not listed here (round 23)
+                const ownLoras = (state.sceneLoras || []).filter((x) => !x.edit && !x.control);
+                const nScene = ownLoras.length;
                 const sGap = el("span"); sGap.style.flex = "1 1 auto";
                 const sOpen = expanded.has(SCENE);
-                scene.append(chevron(SCENE, true, `the whole-image LoRAs (${nScene})`), sl, sGap, llmButton(LLM_SCENE), sceneAdd, ctlAdd);
+                scene.append(chevron(SCENE, true, `the whole-image LoRAs (${nScene})`), sl, sGap, llmButton(LLM_SCENE), sceneAdd, ctlAdd, editAdd);
                 // a click anywhere on the row (but its buttons) opens or closes it, like the chevron
                 scene.title = `${sOpen ? "Hide" : "Show"} the LoRAs that act on the whole image (${nScene})`;
                 scene.addEventListener("pointerdown", (e) => {
@@ -5199,23 +5261,20 @@ app.registerExtension({
                 regList.appendChild(scene);
                 if (sOpen && nScene) {
                     regList.appendChild(loraRows(state.sceneLoras, {
+                        sceneOnly: true,
                         prompt: () => sceneW?.value || "",
                         append: (words) => { let v = sceneW?.value || ""; for (const w of words) v = appendWord(v, w); setWidget(sceneW, v); hint("Added to scene_prompt_positive"); renderRegions(); },
                     }));
                 } else if (sOpen) {
                     const empty = el("div", "rg-row lora");
                     const t = el("span", "rg-hint");
-                    t.textContent = "No whole-image LoRAs yet: ＋LoRA adds one that acts on the whole picture, like Load LoRA"
-                        + (isEdit() ? " (Edit Mode adds the edit LoRA set in Settings > Region Genie > Edit Mode)" : "");
+                    t.textContent = "No whole-image LoRAs yet: ＋LoRA adds one that acts on the whole picture, like Load LoRA";
                     empty.appendChild(t);
                     regList.appendChild(empty);
                 }
 
-                if (isEdit()) regList.appendChild(editRow());
-                if (state.control?.on) {
-                    regList.appendChild(controlRow());
-                    if (expanded.has(CONTROL)) regList.appendChild(controlDetails());
-                }
+                if (isEdit()) regList.appendChild(editRows());
+                controls().forEach((c, k) => regList.appendChild(controlRow(c, k)));
 
                 state.regions.forEach((r, i) => {
                     const lays = listedOf(r.id);
@@ -5283,7 +5342,7 @@ app.registerExtension({
                         if (curRegion === r.id) curRegion = state.regions[0]?.id ?? null;
                         if (!selLayer()) selId = null;
                     }));
-                    row.append(llmButton(r.id), ...(isEdit() ? [keepToggle(r)] : []), ...(state.control?.on ? [controlToggle(r)] : []), cnt, featherBox(r), paletteToggle(r), addL,
+                    row.append(llmButton(r.id), ...(isEdit() ? [keepToggle(r)] : []), ...(controls().length ? [controlToggle(r)] : []), cnt, featherBox(r), paletteToggle(r), addL,
                                mergeAll, up, down, del);
                     regList.appendChild(row);
                     if (kinds.length && expanded.has(r.id)) {
@@ -5451,17 +5510,23 @@ app.registerExtension({
                 let missing = null;
                 try { missing = JSON.parse(message?.control_missing?.[0] || "null"); } catch (e) { /* ignore */ }
                 if (Array.isArray(missing) && missing.length) showControlMissing(missing);
-                const cm = Array.isArray(message?.control_map) ? message.control_map[0] : null;
-                if (cm?.filename) {
-                    const key = cm.filename + cm.subfolder;
-                    if (key !== controlMapKey) {
-                        controlMapKey = key;
-                        const img = new Image();
-                        img.onload = () => { controlMap = img; renderRegions(); requestDraw(); };
-                        img.src = api.apiURL(`/view?filename=${encodeURIComponent(cm.filename)}&type=${cm.type}&subfolder=${encodeURIComponent(cm.subfolder || "")}&t=${Date.now()}`);
+                let cms = null;
+                try { cms = JSON.parse(message?.control_maps?.[0] || "null"); } catch (e) { cms = null; }
+                if (!Array.isArray(cms) && Array.isArray(message?.control_map)) cms = [message.control_map[0]];
+                if (Array.isArray(cms)) {
+                    const key = cms.map((cm) => (cm ? cm.filename + cm.subfolder : "")).join("|");
+                    if (key !== controlMapsKey) {
+                        controlMapsKey = key;
+                        controlMaps = cms.map(() => null);
+                        cms.forEach((cm, k) => {
+                            if (!cm?.filename) return;
+                            const img = new Image();
+                            img.onload = () => { controlMaps[k] = img; renderRegions(); requestDraw(); };
+                            img.src = api.apiURL(`/view?filename=${encodeURIComponent(cm.filename)}&type=${cm.type}&subfolder=${encodeURIComponent(cm.subfolder || "")}&t=${Date.now()}`);
+                        });
                     }
                 }
-                if (state.control?.on && Array.isArray(message?.model_arch) && message.model_arch[0]) {
+                if (controls().length && Array.isArray(message?.model_arch) && message.model_arch[0]) {
                     const before = JSON.stringify(state.sceneLoras || []);
                     if (syncControlLoras() && JSON.stringify(state.sceneLoras || []) !== before) { save(); renderRegions(); }
                 }
@@ -5508,6 +5573,12 @@ app.registerExtension({
                 if (editor && nodeOffCanvas(node)) closeEditor(true);     // another workflow tab, a subgraph, removed
                 if (!node.graph) return;
                 if (pruneManagedLoras()) { save(); renderRegions(); }
+                // an edit LoRA or a control file changed in Settings: the rows (and the LoRAs they add) follow (round 23)
+                const sig = JSON.stringify([editLoras(), controlFiles()]);
+                if (sig !== filesSig) {
+                    const first = !filesSig; filesSig = sig;
+                    if (!first) { const a = syncEditLoras(), b = syncControlLoras(); if (a || b) save(); if (isEdit() || controls().length) renderRegions(); }
+                }
                 fixImportMode();
                 syncSettings();
                 applyFieldFonts();

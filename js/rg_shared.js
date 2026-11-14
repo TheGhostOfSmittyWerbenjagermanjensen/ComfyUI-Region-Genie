@@ -189,11 +189,10 @@ export const isFullPath = (v) => typeof v === "string" && (/^[a-zA-Z]:[\\/]/.tes
 export const fileBase = (v) => String(v || "").split(/[\\/]/).pop();
 // every file ComfyUI lists for these folder types: [{ name, folder }]
 const fileListCache = new Map();          // folders -> { t, p }: the lists are fetched at most every 5 s
-const fileListData = new Map();           // folders -> the last list read (to fill a dropdown at once on a click)
 export function listModelFiles(folders, force = false) {
     const k = folders.join(","), c = fileListCache.get(k);
     if (c && !force && performance.now() - c.t < 5000) return c.p;
-    const p = fetchModelFiles(folders).then((l) => { fileListData.set(k, l); return l; });
+    const p = fetchModelFiles(folders);
     fileListCache.set(k, { t: performance.now(), p });
     return p;
 }
@@ -243,12 +242,6 @@ const FB_CSS = `
 .rg-fb-msg { color:#d9a441; min-height:16px; }
 .rg-fb-foot { display:flex; gap:6px; justify-content:flex-end; align-items:center; }
 .rg-fb-foot span { flex:1 1 auto; opacity:.75; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.rg-file { display:flex; gap:6px; align-items:center; width:360px; max-width:100%; }
-.rg-file select { flex:1 1 auto; min-width:0; font:inherit; color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a);
-  border:1px solid var(--border-color,#4a4a4a); border-radius:6px; padding:6px 8px; }
-.rg-file button { flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:34px; height:32px; padding:0; cursor:pointer;
-  color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a); border:1px solid var(--border-color,#4a4a4a); border-radius:6px; }
-.rg-file button svg { width:18px; height:18px; }
 `;
 function fbCss() {
     if (document.getElementById("rg-fb-css")) return;
@@ -257,7 +250,7 @@ function fbCss() {
 const fmtMB = (n) => (n >= 1024 * 1024 * 1024 ? `${(n / 1024 / 1024 / 1024).toFixed(2)} GB` : `${Math.max(0.01, n / 1024 / 1024).toFixed(1)} MB`);
 // The folder browser: the ComfyUI machine's folders and model files. Resolves to the setting's value (the name
 // ComfyUI knows the file by when it is inside one of `folders`, else its full path), or null when cancelled.
-export function openFileBrowser({ folders = ["loras"], title = "Choose a model file", current = "" } = {}) {
+export function openFileBrowser({ folders = ["loras"], home, title = "Choose a model file", current = "" } = {}) {
     fbCss();
     return new Promise((resolve) => {
         // a modal <dialog>: it goes on the browser's top layer, above ComfyUI's Settings dialog (also there), and takes
@@ -327,7 +320,7 @@ export function openFileBrowser({ folders = ["loras"], title = "Choose a model f
             if (/\.(safetensors|sft|ckpt|pt2?|pth|bin|gguf)$/i.test(v)) go(v.replace(/[\\/][^\\/]*$/, "")); else go(v);
         });
         cancel.addEventListener("click", () => done(null));
-        ok.addEventListener("click", () => pick && done(pick.rel || pick.path));
+        ok.addEventListener("click", () => pick && done(pick.rel ? encodeValue(pick.folder, pick.rel, home || folders[0]) : pick.path));
         back.addEventListener("pointerdown", (e) => { if (e.target === back) done(null); });   // the backdrop
         back.addEventListener("cancel", (e) => { e.preventDefault(); done(null); });            // Esc
         // nothing inside reaches the page: a click here must not count as a click outside ComfyUI's Settings dialog
@@ -340,68 +333,208 @@ export function openFileBrowser({ folders = ["loras"], title = "Choose a model f
         go(start);
     });
 }
-// A model-file picker: a dropdown of the files ComfyUI lists for `folders` (plus the set value) and a Browse button.
-// onPick(value) gets the new value. Used in Settings (a custom setting type) and on the Edit row.
-export function modelFilePicker({ folders, none, noneLabel, value, onPick, title, browse }) {
+// ---------------------------------------------------------------- model-file fields (round 23)
+// Every model file (Settings, the Edit row, the LLM settings) is a field showing the file's name; a click opens
+// ComfyUI's classic menu (LiteGraph.ContextMenu: its 'Filter list' box, rgthree-comfy's 'Auto Nest Subdirectories in
+// Menus' folders), with a search through every level added. The control and edit files open on ComfyUI's model folders
+// (📁 controlnet, 📁 loras, 📁 model_patches, 📁 geometry_estimation). 'Browse… for model files' adds a folder button.
+// A file from another folder than the setting's own is saved as "folder:name" (Python: model_paths.split_folder).
+export const MODEL_ROOTS = ["controlnet", "loras", "model_patches", "geometry_estimation"];
+export const filePickersOn = () => getSetting(SET.filePickers, false) === true;
+export function splitValue(v) {
+    if (typeof v === "string" && !isFullPath(v)) {
+        const m = /^([A-Za-z0-9_]{2,}):(.+)$/.exec(v);
+        if (m) return { folder: m[1], name: m[2] };
+    }
+    return { folder: null, name: v };
+}
+export const encodeValue = (folder, name, home) => (folder && folder !== home ? `${folder}:${name}` : name);
+// is a set value among the files ComfyUI lists (full paths: asked of the server)
+async function fileKnown(v, roots, home) {
+    if (isFullPath(v)) return modelFileFound(roots, v);
+    const { folder, name } = splitValue(v);
+    const files = await listModelFiles(roots);
+    return files.some((f) => f.name === name && (folder ? f.folder === folder : (f.folder === home || roots.length === 1)));
+}
+const FF_CSS = `
+.rg-ff { display:flex; gap:6px; align-items:center; width:360px; max-width:100%; min-width:0; }
+.rg-ff-name { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; cursor:pointer;
+  font:inherit; color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a); border:1px solid var(--border-color,#4a4a4a);
+  border-radius:6px; padding:6px 24px 6px 8px; position:relative; }
+.rg-ff-name::after { content:"▾"; position:absolute; right:8px; top:50%; transform:translateY(-50%); opacity:.7; }
+.rg-ff-name.missing { color:#e88; }
+.rg-ff-browse { flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:34px; height:32px; padding:0; cursor:pointer;
+  color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a); border:1px solid var(--border-color,#4a4a4a); border-radius:6px; }
+.rg-ff-browse svg { width:18px; height:18px; }
+.litecontextmenu .rg-ff-hit { white-space:nowrap; }
+.litecontextmenu .rg-ff-more { opacity:.6; font-style:italic; pointer-events:none; }
+`;
+function ffCss() {
     fbCss();
-    const box = document.createElement("div"); box.className = "rg-file";
-    const sel = document.createElement("select");
-    const btn = document.createElement("button"); btn.type = "button"; btn.innerHTML = svgIcon("folder");
-    btn.title = `Browse…: Pick the file anywhere on the ComfyUI machine (a full path is saved when it isn't in ComfyUI's ${folders.join(" / ")} folders)`;
-    let cur = value || none;
-    const key = folders.join(",");
-    // round 22: only the set value until the list is wanted (pointed at, focused, clicked): with thousands of files,
-    // filling every dropdown up front made the Settings tab slow (10000 files x 26 settings)
-    const label = (v) => (isFullPath(v) ? `${fileBase(v)}  (${v})` : v);
-    const fill = (files) => {
-        const frag = document.createDocumentFragment();
-        const add = (v, t, tip) => { const o = document.createElement("option"); o.value = v; o.textContent = t; if (tip) o.title = tip; frag.appendChild(o); };
-        add(none, noneLabel || none);
-        if (files) {
-            const names = new Set(files.map((f) => f.name));
-            if (cur && cur !== none && !names.has(cur)) add(cur, isFullPath(cur) ? label(cur) : `${cur}  (not found)`, cur);
-            const multi = new Set(files.map((f) => f.folder)).size > 1;
-            for (const f of files) if (f.name !== none) add(f.name, multi ? `${f.name}  (${f.folder})` : f.name);
-        } else if (cur && cur !== none) add(cur, label(cur), cur);
-        sel.replaceChildren(frag);
-        sel.value = cur;
+    if (document.getElementById("rg-ff-css")) return;
+    const st = document.createElement("style"); st.id = "rg-ff-css"; st.textContent = FF_CSS; document.head.appendChild(st);
+}
+// ComfyUI's Settings dialog lets nothing outside it take clicks or focus: a menu opened from it lives inside it
+// (submenus too, while one is open)
+function keepMenusIn(dlg) {
+    const move = (m) => {
+        if (!(m instanceof HTMLElement) || !m.classList.contains("litecontextmenu") || dlg.contains(m)) return;
+        const r0 = m.getBoundingClientRect();
+        dlg.appendChild(m);
+        m.style.pointerEvents = "auto";
+        const r1 = m.getBoundingClientRect();
+        if (Math.abs(r1.left - r0.left) > 1 || Math.abs(r1.top - r0.top) > 1) {
+            m.style.left = `${parseFloat(m.style.left || 0) - (r1.left - r0.left)}px`;
+            m.style.top = `${parseFloat(m.style.top || 0) - (r1.top - r0.top)}px`;
+        }
     };
-    fill(null);
-    sel.title = title || "";
-    sel.addEventListener("change", () => { cur = sel.value; onPick(cur); });
-    // the list (read again at most every 2 s, so a file added since shows up): filled on hover or focus, before a click
-    // opens it, and right away on a click when it is already known
-    let lastRead = 0, filled = false;
-    const want = () => {
-        if (filled && performance.now() - lastRead < 2000) return;
-        lastRead = performance.now();
-        listModelFiles(folders, filled).then((f) => { if (document.activeElement !== sel || !filled) { fill(f); filled = true; } });
+    document.querySelectorAll("body > .litecontextmenu").forEach(move);
+    const obs = new MutationObserver((list) => { for (const x of list) x.addedNodes.forEach(move); });
+    obs.observe(document.body, { childList: true });
+    const t = setInterval(() => { if (!document.querySelector(".litecontextmenu")) { obs.disconnect(); clearInterval(t); } }, 400);
+}
+// the search through every level: while the filter has text, the menu lists the matching files of all folders
+function deepSearch(root, entries, pick) {
+    const nested = [...root.querySelectorAll(".litemenu-entry")].some((e) => e.textContent.trim().startsWith("📁"));
+    let input = root.querySelector(".comfy-context-menu-filter");
+    if (!nested && input) return;                          // a flat list: ComfyUI's own filter already searches all of it
+    if (!input) {                                          // ComfyUI adds its box only to menus of more than 4 entries
+        input = document.createElement("input"); input.className = "comfy-context-menu-filter"; input.placeholder = "Filter list";
+        const title = root.querySelector(".litemenu-title");
+        if (title) title.after(input); else root.prepend(input);
+        requestAnimationFrame(() => input.focus());
+        input.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenus(); e.stopPropagation(); });
+    }
+    let hits = [], sel = 0;
+    const box = document.createElement("div");
+    const originals = () => [...root.querySelectorAll(".litemenu-entry")].filter((e) => !box.contains(e));
+    const render = () => {
+        const q = input.value.trim().toLowerCase();
+        box.replaceChildren();
+        if (!q) { box.remove(); return; }
+        for (const e of originals()) e.style.display = "none";
+        const words = q.split(/\s+/);
+        hits = entries.filter((t) => { const l = t.toLowerCase(); return words.every((w) => l.includes(w)); });
+        sel = 0;
+        hits.slice(0, 60).forEach((t, k) => {
+            const e = document.createElement("div"); e.className = "litemenu-entry submenu rg-ff-hit" + (k === sel ? " selected" : "");
+            e.textContent = t;
+            e.addEventListener("click", (ev) => { ev.stopPropagation(); pick(t); });
+            box.appendChild(e);
+        });
+        const more = document.createElement("div"); more.className = "litemenu-entry rg-ff-more";
+        more.textContent = hits.length > 60 ? `${hits.length - 60} more: type more to narrow it down` : hits.length ? "" : "No match";
+        if (more.textContent) box.appendChild(more);
+        if (!box.isConnected) input.after(box);
     };
-    sel.addEventListener("pointerenter", want);
-    sel.addEventListener("focus", want);
-    sel.addEventListener("mousedown", () => { if (!filled && fileListData.has(key)) { fill(fileListData.get(key)); filled = true; } else want(); });
-    btn.addEventListener("click", async (e) => {
-        e.preventDefault(); e.stopPropagation();
-        const v = await openFileBrowser({ folders, current: cur !== none ? cur : "", title: title ? `Choose: ${title.split("\n")[0]}` : undefined });
-        if (v == null) return;
-        cur = v; onPick(v);
-        fileListCache.delete(key);
-        fill(await listModelFiles(folders)); filled = true;
+    input.addEventListener("input", render);
+    root.addEventListener("keydown", (e) => {
+        if (!input.value.trim() || !hits.length) return;
+        const items = [...box.querySelectorAll(".rg-ff-hit")];
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            sel = (sel + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+            items.forEach((x, k) => x.classList.toggle("selected", k === sel));
+            items[sel]?.scrollIntoView({ block: "nearest" });
+        } else if (e.key === "Enter") pick(hits[sel]);
+        else return;
+        e.preventDefault(); e.stopImmediatePropagation();
+    }, true);
+}
+const closeMenus = () => {
+    try { LiteGraph.closeAllContextMenus?.(window); } catch (e) { /* older litegraph */ }
+    document.querySelectorAll(".litecontextmenu").forEach((m) => m.remove());
+};
+// ComfyUI's classic menu of the files in `roots` (several: each under its folder name). onPick(value).
+export async function openModelMenu(ev, { roots, home, none, noneLabel, title, onPick }) {
+    ev?.preventDefault?.(); ev?.stopPropagation?.();
+    const anchor = ev?.currentTarget || ev?.target;
+    const dlg = anchor?.closest?.('[role="dialog"]');
+    const files = await listModelFiles(roots, true);
+    const multi = roots.length > 1, map = new Map(), items = [];
+    if (noneLabel !== false && none !== undefined) {
+        const t = noneLabel ? `None (${noneLabel})` : "None";       // first in rgthree's nested menus too ("None …")
+        items.push(t); map.set(t, none);
+    }
+    for (const f of files) {
+        if (f.name === none) continue;
+        const t = multi ? `${f.folder}/${f.name}` : f.name;
+        if (!map.has(t)) { items.push(t); map.set(t, encodeValue(f.folder, f.name, home)); }
+    }
+    if (!items.length) { items.push("(no files in ComfyUI's folders)"); }
+    const pick = (t) => { const v = map.get(t); closeMenus(); if (v !== undefined) onPick(v); };
+    if (dlg) keepMenusIn(dlg);
+    ensureActiveCanvas();
+    const before = new Set(document.querySelectorAll(".litecontextmenu"));
+    // below the field, like a dropdown (also when opened from the keyboard, which gives no pointer position)
+    const ar = anchor?.getBoundingClientRect?.();
+    const at = ar ? new MouseEvent("click", { clientX: ar.left, clientY: ar.bottom + 2 }) : ev;
+    new LiteGraph.ContextMenu(items, {
+        event: at, className: "dark", title, scale: Math.max(1, dlg ? 1 : (app.canvas?.ds?.scale || 1)),
+        callback: (v) => {
+            const t = typeof v === "string" ? v : (v?.rgthree_originalValue ?? v?.content);
+            const s2 = typeof t === "string" ? t : t?.content;
+            if (map.has(s2)) onPick(map.get(s2));
+        },
     });
-    for (const ev of ["pointerdown", "mousedown", "keydown"]) box.addEventListener(ev, (e) => e.stopPropagation());
-    // Browse… only with Settings > Region Genie > Model files > 'Browse… for model files' on
-    if (browse ?? filePickersOn()) box.append(sel, btn); else { box.append(sel); box.classList.add("plain"); }
+    const root = [...document.querySelectorAll(".litecontextmenu")].find((m) => !before.has(m));
+    if (root) {
+        if (dlg) keepMenusIn(dlg);
+        deepSearch(root, items.filter((t) => map.has(t)), pick);
+    }
+}
+// the field: the file's name (red when ComfyUI doesn't list it), a click opens the menu; Browse… beside it with the
+// Settings switch on. Returns the element; .set(v) changes what it shows.
+export function fileField({ roots, home, none, noneLabel, emptyLabel, value, onPick, title, menuTitle, browse, cls }) {
+    ffCss();
+    home = home || roots[0];
+    const box = document.createElement("div"); box.className = "rg-ff" + (cls ? " " + cls : "");
+    const name = document.createElement("button"); name.type = "button"; name.className = "rg-ff-name";
+    let cur = value ?? none;
+    const show = () => {
+        const empty = cur === undefined || cur === null || cur === "" || cur === none;
+        let text;
+        if (empty) text = emptyLabel || (noneLabel ? noneLabel : (none || ""));
+        else if (isFullPath(cur)) text = fileBase(cur);
+        else { const { folder, name: n } = splitValue(cur); text = folder ? `${n}  (${folder})` : n; }
+        name.textContent = text;
+        const where = empty ? "" : isFullPath(cur) ? cur : (() => { const { folder, name: n } = splitValue(cur); return `${folder || home}/${n}`; })();
+        const t1 = title ? title.split("\n")[0] : "";
+        name.title = (t1 ? (/[.!?)]$/.test(t1) ? t1 : t1 + ".") + "\n" : "") + (where ? where + "\n" : "") + "Click to choose it in ComfyUI's menu (typing there searches every folder).";
+        name.classList.remove("missing");
+        if (!empty) fileKnown(cur, roots, home).then((ok) => {
+            if (cur !== undefined && !ok) {
+                name.classList.add("missing");
+                name.title += "\nIn red: It isn't in ComfyUI's model folders (moved, renamed or deleted, or added since ComfyUI started; R reloads them).";
+            }
+        }).catch(() => {});
+    };
+    show();
+    const set = (v) => { cur = v; show(); onPick(v); };
+    name.addEventListener("click", (e) => openModelMenu(e, { roots, home, none, noneLabel, title: menuTitle || (title ? title.split("\n")[0] : "Model file"), onPick: set }));
+    box.appendChild(name);
+    if (browse ?? filePickersOn()) {
+        const btn = document.createElement("button"); btn.type = "button"; btn.className = "rg-ff-browse"; btn.innerHTML = svgIcon("folder");
+        btn.title = "Browse…: Pick the file anywhere on the ComfyUI machine (a full path is saved when it isn't in ComfyUI's model folders)";
+        btn.addEventListener("click", async (e) => {
+            e.preventDefault(); e.stopPropagation();
+            // it starts in the setting's own folder
+            const v = await openFileBrowser({ folders: [home, ...roots.filter((r) => r !== home)], home, current: cur && cur !== none ? cur : "",
+                                             title: title ? `Choose: ${title.split("\n")[0]}` : undefined });
+            if (v == null) return;
+            fileListCache.clear();
+            set(v);
+        });
+        box.appendChild(btn);
+    }
+    for (const ev of ["pointerdown", "mousedown", "keydown", "dblclick"]) box.addEventListener(ev, (e) => e.stopPropagation());
+    box.set = (v) => { cur = v; show(); };
     return box;
 }
-// a Settings type: the setting's own row control (ComfyUI calls it with the setting's name, a setter and the value)
-// (saved by its id too, so a pick still lands when the dialog re-rendered or closed while the browser was open)
-// Round 22: the model-file settings are always Region Genie's dropdowns (a plain browser dropdown, filled only when
-// opened). ComfyUI's own Settings dropdown (round 21) froze the tab with long lists (1000 files in the 25 settings);
-// 'Browse… for model files' only adds the folder button.
-export const filePickersOn = () => getSetting(SET.filePickers, false) === true;
-const fileSettingType = (folders, none, id) => (name, setter, value) =>
-    modelFilePicker({ folders, none, value: typeof value === "string" && value ? value : none, title: name,
-                      onPick: (v) => { try { setter(v); } catch (e) { /* the dialog is gone */ } if (id) setSetting(id, v); } });
+// a Settings type: the setting's own row control (ComfyUI calls it with the setting's name, a setter and the value);
+// saved by its id too, so a pick lands even if the dialog re-rendered meanwhile
+const fileSettingType = (roots, none, id, home, noneLabel) => (name, setter, value) =>
+    fileField({ roots, home, none, noneLabel, value: typeof value === "string" && value ? value : none, title: name,
+                onPick: (v) => { try { setter(v); } catch (e) { /* the dialog is gone */ } if (id) setSetting(id, v); } });
 
 // ---------------------------------------------------------------- the LLM presets in Settings (round 19)
 // One Settings row per field of the LLM Prompt Enhancer's presets (the pop-up's library, in user data, not in
@@ -492,7 +625,7 @@ export function controlFileHelp(key, folder, model, tag) {
             + "row's strength and start / end (also Control-LoRA and union files)."
         : folder === "model_patches" ? "An Anima LLLite patch, a small control network on the model. It takes the region mask itself."
         : "ComfyUI's Depth Anything 3. It makes the depth map (near = white) from 'image' when no control_image is connected.";
-    const use = tag ? `\nAdding a node's Control row adds it to 'Whole image' (marked 'Control') for ${model} models; removing the row removes it.`
+    const use = tag ? `\nA node's Control row uses it (as a LoRA on the model) for ${model} models${tag !== "moss" ? ", at the row's strength" : ""}.`
         : model ? `\nUsed by the Control row when the model is ${model}.` : "";
     const d = CONTROL_DOWNLOADS[key];
     const where = folder === "model_patches" ? "ComfyUI/models/model_patches (or models/controlnet)" : `ComfyUI/models/${folder}`;
@@ -1454,10 +1587,10 @@ const SETTINGS = [
         // first: the model-file settings below take their form from it when they are registered
         {
             id: SET.filePickers, name: "Browse… for model files", type: "boolean", defaultValue: false,
-            tooltip: "Off (default): The model-file dropdowns list the files in ComfyUI's model folders.\nOn: They also get a "
-                + "folder button (Browse…) that picks a file anywhere on the ComfyUI machine (saved by its full path), in these "
-                + "Settings (once the dialog is opened again), on the node's Edit row and in the LLM settings. Files "
-                + "picked with it keep working when it is off.",
+            tooltip: "Off (default): A model-file field opens ComfyUI's menu of the files in ComfyUI's model folders.\nOn: Each "
+                + "field also gets a folder button (Browse…) that picks a file anywhere on the ComfyUI machine (saved by its full "
+                + "path), in these Settings (once the dialog is opened again), on the node's Edit rows and in the LLM settings. "
+                + "Files picked with it keep working when it is off.",
             category: CAT("Model files", "1 browse"),
         },
         {
@@ -1573,7 +1706,7 @@ const SETTINGS = [
             onChange: (v) => toolChanged("fillGap", v),
         },
         {
-            id: SET.samModel, name: "Model", type: fileSettingType(["checkpoints"], "sam3.1_multiplex_fp16.safetensors", SET.samModel), defaultValue: "sam3.1_multiplex_fp16.safetensors",
+            id: SET.samModel, name: "Model", type: fileSettingType(["checkpoints"], "sam3.1_multiplex_fp16.safetensors", SET.samModel, "checkpoints", false), defaultValue: "sam3.1_multiplex_fp16.safetensors",
             tooltip: "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download "
                 + "sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. "
                 + "When this file isn't there, another SAM 3 checkpoint in that folder is used. With 'Browse… for model files' "
@@ -1689,16 +1822,15 @@ const SETTINGS = [
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
         { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
-            // Region Genie's dropdown (not ComfyUI's: it froze the dialog with long lists), Browse… with SET.filePickers
-            id: SET.control + "." + key, name, type: fileSettingType(controlFolders(key), CONTROL_NONE, SET.control + "." + key), defaultValue: CONTROL_NONE,
+            // the file field: ComfyUI's menu on the model folders (round 23), Browse… with SET.filePickers
+            id: SET.control + "." + key, name, type: fileSettingType(MODEL_ROOTS, CONTROL_NONE, SET.control + "." + key, folder), defaultValue: CONTROL_NONE,
             tooltip: controlFileHelp(key, folder, model, tag) + " The same for every Region Genie node.",
             category: CAT("Control", String(i).padStart(2, "0") + " " + key),
         })),
         ...EDIT_MODELS.map(([name, key], i) => ({
-            id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: fileSettingType(["loras"], NO_LORA, SET.editLora + "." + key), defaultValue: NO_LORA,
-            tooltip: `Switching a Region Genie node to Edit Mode adds this LoRA to its 'Whole image' LoRAs (marked 'edit '`
-                + `LoRA'), and switching back to generate removes it again. It is applied only when the model on 'model' is `
-                + `${name}, so one LoRA per model can be set here.`
+            id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: fileSettingType(MODEL_ROOTS, NO_LORA, SET.editLora + "." + key, "loras"), defaultValue: NO_LORA,
+            tooltip: `A Region Genie node in Edit Mode uses this LoRA (its Edit row, under Whole image), only when the model on `
+                + `'model' is ${name}, so one LoRA per model can be set here; the Edit row's ✕ leaves it out for that node.`
                 + (key === "MOSS" ? " For MOSS-Image, e.g. the Moss-Image-Edit LoRA; its file decides the edit layout (see below)." : "")
                 + " The node's Edit row sets this too. With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine.",
             category: CAT("Edit Mode", "1 lora " + String(i).padStart(2, "0")),
