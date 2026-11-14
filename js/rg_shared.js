@@ -122,6 +122,20 @@ export function migrateProps(props) {
 // (they count connection-only inputs), which shifts values into the wrong widgets. Keep a copy by name
 // in the node's properties and put each value back where it belongs after loading.
 export function keepWidgetValuesByName(node, names) {
+    // the values a new node starts with: a loaded value that can't be right for its widget (a choice not in its
+    // list, or another type, e.g. a workflow saved before a widget was added shifts its neighbour's value into it)
+    // goes back to this
+    const initial = {};
+    for (const n of names) { const w = node.widgets?.find((x) => x.name === n); if (w) initial[n] = w.value; }
+    const fixInvalid = () => {
+        for (const n of names) {
+            const w = node.widgets?.find((x) => x.name === n);
+            if (!w || !(n in initial)) continue;
+            const opts = w.options?.values, d = initial[n];
+            const bad = Array.isArray(opts) ? !opts.includes(w.value) : (d !== undefined && d !== null && typeof w.value !== typeof d);
+            if (bad) w.value = d;
+        }
+    };
     const onSerialize = node.onSerialize;
     node.onSerialize = function (o) {
         const r = onSerialize?.apply(this, arguments);
@@ -132,7 +146,7 @@ export function keepWidgetValuesByName(node, names) {
         return r;
     };
     const restore = (vals) => {
-        if (!vals || typeof vals !== "object") return;
+        if (!vals || typeof vals !== "object") vals = {};
         for (const [n, v] of Object.entries(vals)) {
             const w = node.widgets?.find((w) => w.name === n);
             if (!w || v === undefined || w.value === v) continue;
@@ -140,6 +154,7 @@ export function keepWidgetValuesByName(node, names) {
             if (Array.isArray(opts) && !opts.includes(v)) continue;
             w.value = v;
         }
+        fixInvalid();
         node.setDirtyCanvas?.(true, true);
     };
     const onConfigure = node.onConfigure;
@@ -148,8 +163,8 @@ export function keepWidgetValuesByName(node, names) {
         migrateProps(this.properties);
         const r = onConfigure?.apply(this, arguments);
         const vals = info?.properties?.rg_widget_values;
-        restore(vals);
-        setTimeout(() => restore(vals), 0);
+        restore(vals || {});
+        setTimeout(() => restore(vals || {}), 0);
         return r;
     };
 }

@@ -234,6 +234,32 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: an API-format workflow keeps the node's values (${JSON.stringify(api)})`, api.format === "jpeg" && api.jpeg_quality === 60
         && api.jpeg_extension === ".jpeg" && api.jpeg_workflow === "none" && api.png_compression === 5 && api.webp_lossless === true && api.avif_quality === 33);
 
+    // round 20: a workflow saved before EXR (widget values by position, no exr fields): invert_mask's false used to
+    // land in exr_bit_depth ("Value not in list: exr_bit_depth: False") whatever the format
+    const pre = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const n = LG.createNode("Region-Genie_SaveImage"); n.pos = [100, 100]; app.graph.add(n);
+        await new Promise((r) => setTimeout(r, 500));
+        const cur = Object.fromEntries(n.widgets.map((w) => [w.name, w.value]));
+        const old = ["filename_prefix", "format", "png_compression", "png_bit_depth", "webp_lossless", "webp_quality", "jpeg_quality",
+                     "jpeg_extension", "jpeg_workflow", "avif_quality", "invert_mask"];
+        const out = {};
+        for (const props of [true, false]) {
+            const g = app.graph.serialize(), s = g.nodes.find((x) => x.type === "Region-Genie_SaveImage");
+            s.widgets_values = old.map((k) => (k === "format" ? "webp" : k === "invert_mask" ? true : cur[k]));
+            if (props) s.properties.rg_widget_values = Object.fromEntries(old.map((k, i) => [k, s.widgets_values[i]])); else delete s.properties.rg_widget_values;
+            await app.loadGraphData(g); await new Promise((r) => setTimeout(r, 1200));
+            const p = await app.graphToPrompt();
+            const inp = Object.values(p.output).find((x) => x.class_type === "Region-Genie_SaveImage").inputs;
+            out[props ? "with" : "without"] = inp;
+        }
+        return out;
+    });
+    check(`${M}: a workflow saved before EXR loads with valid EXR fields (${pre.with.exr_bit_depth}, ${pre.with.exr_color_space}; ${pre.without.exr_bit_depth})`,
+        pre.with.exr_bit_depth === "16-bit float" && pre.with.exr_color_space === "sRGB" && pre.with.format === "webp" && pre.with.invert_mask === true
+        && pre.without.exr_bit_depth === "16-bit float" && pre.without.format === "webp");
+
     await page.screenshot({ path: path.join(__dirname, "out", `real_save_${vue ? "vue" : "legacy"}.png`) });
     check(`${M}: no page errors` + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""), !errors.length);
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Save.PngLevel", 9); });
