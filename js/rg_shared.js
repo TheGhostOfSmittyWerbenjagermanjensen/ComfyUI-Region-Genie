@@ -341,7 +341,7 @@ export function openFileBrowser({ folders = ["loras"], title = "Choose a model f
 }
 // A model-file picker: a dropdown of the files ComfyUI lists for `folders` (plus the set value) and a Browse button.
 // onPick(value) gets the new value. Used in Settings (a custom setting type) and on the Edit row.
-export function modelFilePicker({ folders, none, noneLabel, value, onPick, title }) {
+export function modelFilePicker({ folders, none, noneLabel, value, onPick, title, browse }) {
     fbCss();
     const box = document.createElement("div"); box.className = "rg-file";
     const sel = document.createElement("select");
@@ -381,11 +381,50 @@ export function modelFilePicker({ folders, none, noneLabel, value, onPick, title
         fill(await listModelFiles(folders));
     });
     for (const ev of ["pointerdown", "mousedown", "keydown"]) box.addEventListener(ev, (e) => e.stopPropagation());
-    box.append(sel, btn);
+    // Browse… only with Settings > Region Genie > Model files > 'Browse… for model files' on
+    if (browse ?? filePickersOn()) box.append(sel, btn); else { box.append(sel); box.classList.add("plain"); }
     return box;
 }
 // a Settings type: the setting's own row control (ComfyUI calls it with the setting's name, a setter and the value)
 // (saved by its id too, so a pick still lands when the dialog re-rendered or closed while the browser was open)
+// Round 21 (owner's choice): ComfyUI's own dropdowns by default; Region Genie's pickers with Browse… only with
+// Settings > Region Genie > Model files > 'Browse… for model files'. The native dropdowns get the file names through the
+// dialog's translation library as option labels, where @ { } | % $ and \ are syntax: each is escaped as a literal
+// ({'@'}; the backslash too, or a Windows path like loras\@author\x.safetensors breaks the escape), so the label
+// shows the name exactly and the value is the real name (checked with every character through the frontend's $t).
+export const i18nLiteral = (s) => String(s).replace(/[{}@|%$\\]/g, (c) => (c === "\\" ? "{'\\\\'}" : `{'${c}'}`));
+const fileOptions = (names) => names.map((n) => ({ text: i18nLiteral(n), value: n }));
+export const filePickersOn = () => getSetting(SET.filePickers, false) === true;
+// a model-file setting in either form: { id, folders, none, native: { type, name?, options? } } -> switched by
+// applyFilePickers (the dialog reads a setting's type when it shows it; the frontend keeps our objects)
+const FILE_SETTINGS = [];
+function fileSetting(def, folders, none, native = "combo") {
+    const nativeDef = native === "text" ? { type: "text" } : {
+        type: "combo",
+        // the files ComfyUI lists (read when ComfyUI starts, refreshed by the node's pickers); the set value always listed
+        options: (value) => {
+            const list = folders.flatMap((f) => (f === "loras" ? knownLoras() : knownModels(f)) || []);
+            const cur = typeof value === "string" && value && value !== none && !list.includes(value) ? [value] : [];
+            return fileOptions([none, ...cur, ...new Set(list)]);
+        },
+    };
+    const entry = { id: def.id, def, folders, none, native: { ...nativeDef, name: def.nameNative || def.name }, pickerName: def.name };
+    delete def.nameNative;
+    FILE_SETTINGS.push(entry);
+    applyOne(entry, false);
+    return def;
+}
+function applyOne(e, on) {
+    const look = app.ui?.settings?.settingsParamLookup?.[e.id];
+    for (const p of new Set([e.def, look].filter(Boolean))) {
+        if (on) { p.type = fileSettingType(e.folders, e.none, e.id); delete p.options; p.name = e.pickerName; }
+        else { p.type = e.native.type; if (e.native.options) p.options = e.native.options; else delete p.options; p.name = e.native.name; }
+    }
+}
+function applyFilePickers(on) {
+    for (const e of FILE_SETTINGS) applyOne(e, !!on);
+    if (on) knownLoras() || getLoras();
+}
 const fileSettingType = (folders, none, id) => (name, setter, value) =>
     modelFilePicker({ folders, none, value: typeof value === "string" && value ? value : none, title: name,
                       onPick: (v) => { try { setter(v); } catch (e) { /* the dialog is gone */ } if (id) setSetting(id, v); } });
@@ -403,10 +442,10 @@ const SAMPLED = "\nUsed only while the preset's sampling is on (Generate Text hi
 export const LLM_FIELDS = [
     ["name", "Preset: name", "The preset's name. Press Enter (or leave the field) to rename it; the defaults above follow."],
     ["llm", "Preset: LLM", "The LLM that rewrites the prompts.\nThe connected clip: Used as it is (no extra memory).\n"
-        + "A file: From ComfyUI's text_encoders folders, or anywhere with the folder button (Browse…); loaded once and kept while in use."],
+        + "A file: From ComfyUI's text_encoders folders (or anywhere with 'Browse… for model files' on, Model files); loaded once and kept while in use."],
     ["llm_type", "Preset: LLM type", "As the 'type' of Load CLIP, for an LLM file. Auto works for plain Qwen3 / Qwen3.5 / Gemma files."],
     ["loras", "Preset: LLM LoRAs", "LoRAs applied to the LLM only (like Load LoRA (Text Encoder)); the image model and the clip "
-        + "used for conditioning are not changed. Each one: on / off, the file (dropdown or Browse…), strength, ✕ removes it."],
+        + "used for conditioning are not changed. Each one: on / off, the file (a dropdown; Browse… with 'Browse… for model files' on), strength, ✕ removes it."],
     ["system_prompt", "Preset: system prompt", "Sent as the system prompt (Generate Text's system_prompt). Ignored when the preset's default template is off."],
     ["max_length", "Preset: max_length", "Most tokens the LLM writes."],
     ["sampling", "Preset: sampling", "On: Sampling with the settings below.\nOff (default): Greedy decoding, always the same text for "
@@ -485,7 +524,7 @@ export function controlFileHelp(key, folder, model, tag) {
     const where = folder === "model_patches" ? "ComfyUI/models/model_patches (or models/controlnet)" : `ComfyUI/models/${folder}`;
     const get = d ? `\nGet ${d.file} into ${where}${d.note ? ` (${d.note[0].toUpperCase() + d.note.slice(1)})` : ""}: ${d.url}`
         : `\nFiles go in ${where}.`;
-    return what + use + get + "\nOr keep the file anywhere: The folder button (Browse…) picks it where it is.";
+    return what + use + get + "\nOr keep the file anywhere: With 'Browse… for model files' on (Model files, below), a folder button picks it where it is.";
 }
 // the folder types a Control setting's file is listed from and looked up in (Anima's LLLite patches: ComfyUI's own
 // loader reads model_patches, but they are often kept with the ControlNets)
@@ -1336,6 +1375,7 @@ export const SET = {
     toolFill: "RegionGenie.Tools.Fill",
     toolFillGap: "RegionGenie.Tools.FillGap",
     samModel: "RegionGenie.Select.Model",
+    filePickers: "RegionGenie.ModelFiles.Browse",
     samKeep: "RegionGenie.Select.KeepLoaded",
     samThreshold: "RegionGenie.Select.Threshold",
     llmCacheDisk: "RegionGenie.LLM.CacheOnDisk",
@@ -1437,6 +1477,16 @@ function postLlmCache(over) {
 const NEW_NODES = "Applies to nodes added from now on; nodes already in a workflow keep their own value.";
 const CAT = (section, key) => ["Region Genie", section, key];
 const SETTINGS = [
+        // first: the model-file settings below take their form from it when they are registered
+        {
+            id: SET.filePickers, name: "Browse… for model files", type: "boolean", defaultValue: false,
+            tooltip: "Off (default): ComfyUI's own dropdowns of the files in ComfyUI's model folders.\nOn: Region Genie's "
+                + "dropdowns with a folder button (Browse…) that picks a file anywhere on the ComfyUI machine (saved by its "
+                + "full path), in these Settings, on the node's Edit row and in the LLM settings. Files picked with it keep "
+                + "working when it is off.",
+            category: CAT("Model files", "1 browse"),
+            onChange: (v) => applyFilePickers(v === true),
+        },
         {
             id: AC_DEFAULT_SETTING, name: "Tag autocomplete on in new Region Genie nodes", type: "boolean", defaultValue: true,
             tooltip: "Default for the 'autocomplete' switch on the Region Genie and Regional LoRAs nodes (nodes where you set "
@@ -1550,11 +1600,11 @@ const SETTINGS = [
             onChange: (v) => toolChanged("fillGap", v),
         },
         {
-            id: SET.samModel, name: "Model", type: fileSettingType(["checkpoints"], "sam3.1_multiplex_fp16.safetensors", SET.samModel), defaultValue: "sam3.1_multiplex_fp16.safetensors",
+            id: SET.samModel, name: "Model", nameNative: "Model (in models/checkpoints)", type: "text", defaultValue: "sam3.1_multiplex_fp16.safetensors",
             tooltip: "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download "
                 + "sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. "
-                + "When this file isn't there, another SAM 3 checkpoint in that folder is used. The folder button (Browse…) "
-                + "picks a checkpoint anywhere on the ComfyUI machine.",
+                + "When this file isn't there, another SAM 3 checkpoint in that folder is used. With 'Browse… for model files' "
+                + "on (Model files), a folder button picks a checkpoint anywhere on the ComfyUI machine.",
             category: CAT("Select object", "1 model"),
         },
         {
@@ -1666,19 +1716,18 @@ const SETTINGS = [
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
         { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
-            // our own row control (a dropdown of the files ComfyUI lists, and Browse… for a file anywhere): file names
-            // never go through the dialog's translation of option labels, which broke on names with @ { } | % $ \\
-            id: SET.control + "." + key, name, type: fileSettingType(controlFolders(key), CONTROL_NONE, SET.control + "." + key), defaultValue: CONTROL_NONE,
+            // ComfyUI's dropdown, or Region Genie's picker with Browse… (fileSetting, below)
+            id: SET.control + "." + key, name, type: "combo", defaultValue: CONTROL_NONE,
             tooltip: controlFileHelp(key, folder, model, tag) + " The same for every Region Genie node.",
             category: CAT("Control", String(i).padStart(2, "0") + " " + key),
         })),
         ...EDIT_MODELS.map(([name, key], i) => ({
-            id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: fileSettingType(["loras"], NO_LORA, SET.editLora + "." + key), defaultValue: NO_LORA,
+            id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: "combo", defaultValue: NO_LORA,
             tooltip: `Switching a Region Genie node to Edit Mode adds this LoRA to its 'Whole image' LoRAs (marked 'edit '`
                 + `LoRA'), and switching back to generate removes it again. It is applied only when the model on 'model' is `
                 + `${name}, so one LoRA per model can be set here.`
                 + (key === "MOSS" ? " For MOSS-Image, e.g. the Moss-Image-Edit LoRA; its file decides the edit layout (see below)." : "")
-                + " The folder button (Browse…) picks a LoRA anywhere on the ComfyUI machine; the node's Edit row sets this too.",
+                + " The node's Edit row sets this too. With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine.",
             category: CAT("Edit Mode", "1 lora " + String(i).padStart(2, "0")),
         })),
         ...EDIT_MODELS.filter((m) => m[2]).map(([name, key], i) => ({
@@ -1753,6 +1802,12 @@ const SETTINGS = [
               + "linear ACEScg: Already scene-linear ACEScg.\n" + NEW_NODES, category: CAT("Save Image", "91 exr space") },
         { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
+// the model-file settings: ComfyUI's dropdowns, or Region Genie's pickers with Browse… (SET.filePickers)
+for (const d of SETTINGS) {
+    if (d.id === SET.samModel) fileSetting(d, ["checkpoints"], "sam3.1_multiplex_fp16.safetensors", "text");
+    else if (d.id.startsWith(SET.control + ".")) { const key = d.id.slice(SET.control.length + 1); fileSetting(d, controlFolders(key), CONTROL_NONE); }
+    else if (d.id.startsWith(SET.editLora + ".")) fileSetting(d, ["loras"], NO_LORA);
+}
 SETTINGS.forEach((x, i) => { x.sortOrder = 1000 - i; });         // listed in this order (higher sortOrder first)
 // The pack was called "Regional Mask Kit" before: on the first start after the rename, copy the values set under
 // the old setting IDs to the new ones (only where the new one isn't set yet). To be removed in a later version.

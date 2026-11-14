@@ -254,9 +254,15 @@ const STYLE = `
 .rg-btn.toggle:not(.on) { opacity:.55; }
 .rg-sep { width:1px; align-self:stretch; background:var(--border-color,#555); margin:2px 3px; }
 .rg-foot { display:flex; align-items:center; gap:4px; flex:0 0 auto; }
-.rg-settings { display:flex; align-items:center; gap:8px; flex:0 1 auto; min-width:0; flex-wrap:wrap; }
-.rg-settings label { display:flex; align-items:center; gap:3px; white-space:nowrap; }
-.rg-settings .rg-sel { max-width:96px; }
+/* one row at any width (round 21): the dropdowns narrow (their text cut short) before anything wraps; system fonts
+   that run wider (Windows, high DPR) used to push it onto a second row */
+.rg-settings { display:flex; align-items:center; gap:8px; flex:0 1 auto; min-width:0; flex-wrap:nowrap; }
+.rg-settings > * { flex:0 0 auto; }
+.rg-settings label { display:flex; align-items:center; gap:3px; white-space:nowrap; flex:0 1 auto; min-width:0; }
+.rg-settings .rg-sel { max-width:96px; min-width:44px; flex:0 1 auto; text-overflow:ellipsis; }
+/* the model dropdown and MOSS-Image's layout / standard button: centred on one line (inline, they sat on the text
+   baseline, the dropdown about 3 px lower than the button) */
+.rg-settings .rg-modelbox { display:inline-flex; align-items:center; gap:4px; flex:0 1 auto; min-width:0; }
 .rg-settings .rg-num { width:64px; }
 .rg-llmset svg { width:14px; height:14px; }
 .rg-seg { display:inline-flex; align-items:stretch; }
@@ -1276,7 +1282,7 @@ app.registerExtension({
                 const f = fileIn.files?.[0]; fileIn.value = "";
                 if (f) { try { await importLayoutText(await f.text(), true); } catch (e) { notify(`Import failed: ${e.message || e}`, true); } }
             });
-            // footer (bottom left): mode, change (Edit Mode), format, LLM Settings, tag autocomplete
+            // footer (bottom left): mode, edit_area (Edit Mode), model, LLM Settings, tag autocomplete, wildcard seed
             const settings = el("div", "rg-settings");
             const setSel = (w, label, opts, title) => {
                 const lab = el("label"); lab.title = title;
@@ -1331,7 +1337,7 @@ app.registerExtension({
                     + "Region Genie > Edit Mode), and the edit LoRA set there for the model is added to the 'Whole image' LoRAs "
                     + "(and removed again when you switch back)."],
             ], (v) => { if (editW?.value === v) return; setWidget(editW, v); onEditModeChanged(); syncSettings(); });
-            const areaCtl = setSel(areaW, "change", [["only the regions", "regions only"], ["whole image", "whole image"]],
+            const areaCtl = setSel(areaW, "", [["only the regions", "regions only"], ["whole image", "whole image"]],
                 "edit_area (Edit Mode): What the sampler may change.\nOnly the regions: The 'latent' output carries a mask of "
                 + "all regions, so the rest of the image is kept (like inpainting).\nWhole image: No mask; the regions still "
                 + "steer where each prompt goes.");
