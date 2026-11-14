@@ -176,10 +176,10 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         rg.__rgRefresh();
         await new Promise((r) => setTimeout(r, 300));
         return { lastInputs: rg.inputs.filter((i) => !i.widget).map((i) => i.name).slice(-3), setting: app.extensionManager.setting.get("RegionGenie.Control.MOSS"),
-                 row: !!document.querySelector(".rg-list .rg-row.ctrl") };
+                 row: !![...document.querySelectorAll(".rg-list .rg-row.scene button")].find((b) => b.textContent.trim() === "＋Control") && !document.querySelector(".rg-list .rg-row.ctrl:not(.edit)") };
     });
-    check(`${M}: 'control_image' just before width / height; Control row and Settings exist`, JSON.stringify(c10.lastInputs) === '["control_image","width_in","height_in"]' && c10.row && c10.setting === "(none)");
-    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
+    check(`${M}: 'control_image' just before width / height; ＋Control (no Control row yet) and Settings exist`, JSON.stringify(c10.lastInputs) === '["control_image","width_in","height_in"]' && c10.row && c10.setting === "(none)");
+    await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-row.scene button")].find((b) => b.textContent.trim() === "＋Control").click());
     await page.waitForTimeout(200);
     const c11 = await page.evaluate(async () => {
         const app = window.app, rg = window.__rg;
@@ -207,7 +207,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         return { enabled: before, shown: eye ? /Hide the control map/.test(document.querySelector(".rg-list .rg-row.ctrl .rg-btn.icon").title) : false };
     }, c11.img);
     check(`${M}: after a run the control map can be shown on the canvas`, ov.enabled && ov.shown);
-    await page.evaluate(() => { document.querySelector(".rg-list .rg-row.ctrl .rg-btn.mini")?.click(); });
+    await page.evaluate(() => { document.querySelector('.rg-list .rg-row.ctrl button[title^="Remove the Control row"]')?.click(); });
 
     // ---------------- the model guess and the missing-file message (round 10)
     const g10 = await page.evaluate(async () => {
@@ -223,13 +223,13 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         return { first: sel?.options[0]?.textContent };
     });
     check(`${M}: the model is guessed from the loader before any run (${g10.first})`, g10.first === "auto · MOSS-Image");
-    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
+    await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-row.scene button")].find((b) => b.textContent.trim() === "＋Control").click());
     await page.waitForTimeout(400);
     const mtxt = await page.locator(".rg-msg").first().textContent().catch(() => "");
     check(`${M}: control on with no MOSS LoRA set: the message gives the official link and folder`,
         /moss_image_color_depth_control\.safetensors/.test(mtxt) && /ComfyUI\/models\/loras/.test(mtxt)
         && await page.locator(".rg-msg a").first().getAttribute("href") === "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors");
-    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click();
+    await page.evaluate(() => document.querySelector('.rg-list .rg-row.ctrl button[title^="Remove the Control row"]').click());
     await page.waitForTimeout(200);
 
     // ---------------- round 11: the toolbar stays one row with every tool (default node width)

@@ -94,6 +94,7 @@ export const ICONS = {
     maskGrow: '<rect x="5.2" y="5.2" width="5.6" height="5.6" rx="1" fill="currentColor" stroke="none" opacity=".55"/><rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.5" stroke-dasharray="2 1.7"/><path d="M8 4.6V2.9M8 11.4v1.7M4.6 8H2.9M11.4 8h1.7"/>',
     mossLayout: '<rect x="1.5" y="2" width="13" height="12" rx="1.5"/><rect x="3.5" y="4" width="4.5" height="4" rx=".6"/><rect x="9" y="7.5" width="3.5" height="4.5" rx=".6"/>',
     mossStandard: '<rect x="1.5" y="2" width="13" height="12" rx="1.5"/><path d="M4 5.5h8M4 8h8M4 10.5h5"/>',
+    folder: '<path d="M1.8 4.2c0-.6.5-1.1 1.1-1.1h3.3l1.5 1.6h5.4c.6 0 1.1.5 1.1 1.1v6.7c0 .6-.5 1.1-1.1 1.1H2.9c-.6 0-1.1-.5-1.1-1.1z"/><path d="M1.8 6.4h12.4"/>',
     palette: '<path d="M8 1.8C4.4 1.8 1.8 4.4 1.8 7.7c0 3.4 2.7 6.3 6 6.3 1 0 1.6-.6 1.6-1.4 0-.8-.6-1.1-.6-1.8 0-.8.6-1.4 1.5-1.4h1.6c1.6 0 2.4-1.2 2.4-2.6 0-2.8-2.9-5-6.3-5z"/><circle cx="5" cy="7" r=".9" fill="currentColor"/><circle cx="7.4" cy="4.6" r=".9" fill="currentColor"/><circle cx="10.5" cy="5.1" r=".9" fill="currentColor"/><circle cx="4.9" cy="10.1" r=".9" fill="currentColor"/>',
 };
 export const svgIcon = (name) =>
@@ -166,6 +167,247 @@ export function knownModels(folder, refresh = false) {
     return modelLists[folder].list;
 }
 
+// ---------------------------------------------------------------- model files anywhere (round 18)
+// A model-file setting holds a name ComfyUI knows (relative to one of its folders for that type) or a full path the
+// user browsed to (Stability Matrix and other setups keep models outside ComfyUI/models). Python: model_paths.py.
+export const isFullPath = (v) => typeof v === "string" && (/^[a-zA-Z]:[\\/]/.test(v) || /^[\\/]/.test(v));
+export const fileBase = (v) => String(v || "").split(/[\\/]/).pop();
+// every file ComfyUI lists for these folder types: [{ name, folder }]
+const fileListCache = new Map();          // folders -> { t, p }: the lists are fetched at most every 5 s
+export function listModelFiles(folders, force = false) {
+    const k = folders.join(","), c = fileListCache.get(k);
+    if (c && !force && performance.now() - c.t < 5000) return c.p;
+    const p = fetchModelFiles(folders);
+    fileListCache.set(k, { t: performance.now(), p });
+    return p;
+}
+async function fetchModelFiles(folders) {
+    const out = [], seen = new Set();
+    for (const f of folders) {
+        let l = [];
+        try { const r = await api.fetchApi(`/models/${f}`); l = r.ok ? await r.json() : []; } catch (e) { l = []; }
+        for (const x of Array.isArray(l) ? l : []) {
+            const n = typeof x === "string" ? x : x?.name;
+            if (n && !seen.has(n)) { seen.add(n); out.push({ name: n, folder: f }); }
+        }
+        if (modelLists[f]) modelLists[f].list = (Array.isArray(l) ? l : []).map((x) => (typeof x === "string" ? x : x?.name)).filter(Boolean);
+    }
+    if (folders.includes("loras")) { loraList = out.filter((x) => x.folder === "loras").map((x) => x.name); loraTime = performance.now(); }
+    return out;
+}
+// whether the server finds a set file (a name in one of the folders, or a full path)
+export async function modelFileFound(folders, name) {
+    try {
+        const r = await api.fetchApi(`/region_genie/model_exists?folders=${encodeURIComponent(folders.join(","))}&name=${encodeURIComponent(name)}`);
+        return r.ok ? !!(await r.json()).found : true;
+    } catch (e) { return true; }
+}
+const FB_CSS = `
+.rg-fb-back { border:none; padding:0; background:transparent; overflow:visible; max-width:none; max-height:none; }
+.rg-fb-back::backdrop { background:rgba(0,0,0,.45); }
+.rg-fb { width:min(720px, 94vw); height:min(560px, 86vh); display:flex; flex-direction:column; gap:8px; padding:12px; box-sizing:border-box;
+  background:var(--comfy-menu-bg,#202020); color:var(--fg-color,#ddd); border:1px solid var(--border-color,#4a4a4a); border-radius:8px;
+  font:13px sans-serif; box-shadow:0 8px 32px rgba(0,0,0,.5); }
+.rg-fb-head { display:flex; flex-direction:column; gap:6px; align-items:stretch; }
+.rg-fb-head b { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rg-fb-head select { width:100%; min-width:0; }
+.rg-fb-path { display:flex; gap:6px; }
+.rg-fb-path input { flex:1 1 auto; min-width:0; }
+.rg-fb input, .rg-fb select, .rg-fb button { font:13px sans-serif; color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a);
+  border:1px solid var(--border-color,#4a4a4a); border-radius:5px; padding:4px 8px; }
+.rg-fb button { cursor:pointer; }
+.rg-fb button:disabled { opacity:.45; cursor:default; }
+.rg-fb button.primary { background:#2563c7; border-color:#2563c7; color:#fff; }
+.rg-fb-list { flex:1 1 auto; overflow:auto; border:1px solid var(--border-color,#4a4a4a); border-radius:5px; }
+.rg-fb-item { display:flex; gap:8px; align-items:center; padding:4px 8px; cursor:pointer; white-space:nowrap; }
+.rg-fb-item:hover { background:rgba(255,255,255,.07); }
+.rg-fb-item.sel { background:rgba(37,99,199,.45); }
+.rg-fb-item svg { width:16px; height:16px; flex:0 0 16px; opacity:.85; }
+.rg-fb-item .sz { margin-left:auto; opacity:.6; font-size:12px; }
+.rg-fb-msg { color:#d9a441; min-height:16px; }
+.rg-fb-foot { display:flex; gap:6px; justify-content:flex-end; align-items:center; }
+.rg-fb-foot span { flex:1 1 auto; opacity:.75; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rg-file { display:flex; gap:6px; align-items:center; width:360px; max-width:100%; }
+.rg-file select { flex:1 1 auto; min-width:0; font:inherit; color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a);
+  border:1px solid var(--border-color,#4a4a4a); border-radius:6px; padding:6px 8px; }
+.rg-file button { flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:34px; height:32px; padding:0; cursor:pointer;
+  color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a); border:1px solid var(--border-color,#4a4a4a); border-radius:6px; }
+.rg-file button svg { width:18px; height:18px; }
+`;
+function fbCss() {
+    if (document.getElementById("rg-fb-css")) return;
+    const st = document.createElement("style"); st.id = "rg-fb-css"; st.textContent = FB_CSS; document.head.appendChild(st);
+}
+const fmtMB = (n) => (n >= 1024 * 1024 * 1024 ? `${(n / 1024 / 1024 / 1024).toFixed(2)} GB` : `${Math.max(0.01, n / 1024 / 1024).toFixed(1)} MB`);
+// The folder browser: the ComfyUI machine's folders and model files. Resolves to the setting's value (the name
+// ComfyUI knows the file by when it is inside one of `folders`, else its full path), or null when cancelled.
+export function openFileBrowser({ folders = ["loras"], title = "Choose a model file", current = "" } = {}) {
+    fbCss();
+    return new Promise((resolve) => {
+        // a modal <dialog>: it goes on the browser's top layer, above ComfyUI's Settings dialog (also there), and takes
+        // the keyboard while open
+        const back = document.createElement("dialog"); back.className = "rg-fb-back";
+        const box = document.createElement("div"); box.className = "rg-fb"; back.appendChild(box);
+        const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+        const head = mk("div", "rg-fb-head"); head.appendChild(mk("b", "", title));
+        const roots = mk("select"); roots.title = "Go to: ComfyUI's folders for this kind of file, or a drive";
+        head.appendChild(roots);
+        const pathRow = mk("div", "rg-fb-path");
+        const up = mk("button", "", "⬆"); up.title = "Up one folder";
+        const pathIn = mk("input"); pathIn.title = "The folder shown. Type or paste a folder (or a file's full path) and press Enter";
+        pathRow.append(up, pathIn);
+        const list = mk("div", "rg-fb-list");
+        const msg = mk("div", "rg-fb-msg");
+        const foot = mk("div", "rg-fb-foot");
+        const chosen = mk("span", "", "");
+        const cancel = mk("button", "", "Cancel"), ok = mk("button", "primary", "Select");
+        ok.disabled = true;
+        foot.append(chosen, cancel, ok);
+        box.append(head, pathRow, list, msg, foot);
+        let pick = null, here = "";
+        const done = (v) => { if (back.open) back.close(); back.remove(); resolve(v); };
+        const choose = (f, row) => {
+            pick = f; ok.disabled = !f;
+            for (const r of list.querySelectorAll(".sel")) r.classList.remove("sel");
+            row?.classList.add("sel");
+            chosen.textContent = f ? (f.rel ? `${f.rel}  (in ComfyUI's ${folders[0]} folders)` : f.path) : "";
+            chosen.title = chosen.textContent;
+        };
+        async function go(path) {
+            msg.textContent = "Loading…";
+            let d;
+            try {
+                const r = await api.fetchApi(`/region_genie/browse?folders=${encodeURIComponent(folders.join(","))}&path=${encodeURIComponent(path || "")}`);
+                d = await r.json();
+            } catch (e) { msg.textContent = "The folder list couldn't be loaded (is ComfyUI running?)."; return; }
+            here = d.path || path || ""; pathIn.value = here; up.disabled = !d.parent;
+            up.onclick = () => d.parent && go(d.parent);
+            if (!roots.options.length) {
+                for (const r of d.roots || []) { const o = mk("option", "", r.label); o.value = r.path; roots.appendChild(o); }
+            }
+            roots.value = [...roots.options].some((o) => o.value === here) ? here : "";
+            list.replaceChildren(); choose(null);
+            msg.textContent = d.error || (!d.dirs.length && !d.files.length ? "No folders or model files here." : "");
+            for (const n of d.dirs || []) {
+                const row = mk("div", "rg-fb-item"); row.innerHTML = svgIcon("folder"); row.appendChild(mk("span", "", n));
+                row.title = "Open this folder";
+                row.addEventListener("click", () => go(here.replace(/[\\/]+$/, "") + (d.sep || "/") + n));
+                list.appendChild(row);
+            }
+            for (const f of d.files || []) {
+                const row = mk("div", "rg-fb-item"); row.appendChild(mk("span", "", f.name)); row.appendChild(mk("span", "sz", fmtMB(f.size || 0)));
+                row.title = f.path;
+                row.addEventListener("click", () => choose(f, row));
+                row.addEventListener("dblclick", () => { choose(f, row); ok.click(); });
+                if (current && (current === f.rel || current === f.path)) choose(f, row);
+                list.appendChild(row);
+            }
+        }
+        roots.addEventListener("change", () => roots.value && go(roots.value));
+        pathIn.addEventListener("keydown", (e) => {
+            e.stopPropagation();
+            if (e.key !== "Enter") return;
+            const v = pathIn.value.trim();
+            if (/\.(safetensors|sft|ckpt|pt2?|pth|bin|gguf)$/i.test(v)) go(v.replace(/[\\/][^\\/]*$/, "")); else go(v);
+        });
+        cancel.addEventListener("click", () => done(null));
+        ok.addEventListener("click", () => pick && done(pick.rel || pick.path));
+        back.addEventListener("pointerdown", (e) => { if (e.target === back) done(null); });   // the backdrop
+        back.addEventListener("cancel", (e) => { e.preventDefault(); done(null); });            // Esc
+        // nothing inside reaches the page: a click here must not count as a click outside ComfyUI's Settings dialog
+        // (which closes it), and keys must not reach the canvas
+        for (const ev of ["keydown", "keyup", "keypress", "pointerdown", "pointerup", "mousedown", "mouseup", "click", "dblclick"])
+            back.addEventListener(ev, (e) => e.stopPropagation());
+        document.body.appendChild(back);
+        back.showModal();
+        const start = isFullPath(current) ? current.replace(/[\\/][^\\/]*$/, "") : "";
+        go(start);
+    });
+}
+// A model-file picker: a dropdown of the files ComfyUI lists for `folders` (plus the set value) and a Browse button.
+// onPick(value) gets the new value. Used in Settings (a custom setting type) and on the Edit row.
+export function modelFilePicker({ folders, none, noneLabel, value, onPick, title }) {
+    fbCss();
+    const box = document.createElement("div"); box.className = "rg-file";
+    const sel = document.createElement("select");
+    const btn = document.createElement("button"); btn.type = "button"; btn.innerHTML = svgIcon("folder");
+    btn.title = `Browse…: Pick the file anywhere on the ComfyUI machine (a full path is saved when it isn't in ComfyUI's ${folders.join(" / ")} folders)`;
+    let cur = value || none;
+    const fill = (files) => {
+        sel.replaceChildren();
+        const add = (v, t, tip) => { const o = document.createElement("option"); o.value = v; o.textContent = t; if (tip) o.title = tip; sel.appendChild(o); };
+        add(none, noneLabel || none);
+        const names = files.map((f) => f.name);
+        if (cur && cur !== none && !names.includes(cur)) add(cur, isFullPath(cur) ? `${fileBase(cur)}  (${cur})` : `${cur}  (not found)`, cur);
+        const multi = new Set(files.map((f) => f.folder)).size > 1;
+        for (const f of files) if (f.name !== none) add(f.name, multi ? `${f.name}  (${f.folder})` : f.name);
+        sel.value = cur;
+    };
+    fill([]);
+    listModelFiles(folders).then(fill);
+    sel.title = title || "";
+    sel.addEventListener("change", () => { cur = sel.value; onPick(cur); });
+    // opening the dropdown reads the folders again (a file added since shows up)
+    // (on hover, before a click opens it; on focus only when that didn't just happen, so an open list isn't rebuilt)
+    let lastRead = 0;
+    const reread = () => {
+        if (performance.now() - lastRead < 2000) return;
+        lastRead = performance.now();
+        listModelFiles(folders, true).then(fill);
+    };
+    sel.addEventListener("pointerenter", reread);
+    sel.addEventListener("focus", reread);
+    btn.addEventListener("click", async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const v = await openFileBrowser({ folders, current: cur !== none ? cur : "", title: title ? `Choose: ${title.split("\n")[0]}` : undefined });
+        if (v == null) return;
+        cur = v; onPick(v);
+        fileListCache.delete(folders.join(","));
+        fill(await listModelFiles(folders));
+    });
+    for (const ev of ["pointerdown", "mousedown", "keydown"]) box.addEventListener(ev, (e) => e.stopPropagation());
+    box.append(sel, btn);
+    return box;
+}
+// a Settings type: the setting's own row control (ComfyUI calls it with the setting's name, a setter and the value)
+// (saved by its id too, so a pick still lands when the dialog re-rendered or closed while the browser was open)
+const fileSettingType = (folders, none, id) => (name, setter, value) =>
+    modelFilePicker({ folders, none, value: typeof value === "string" && value ? value : none, title: name,
+                      onPick: (v) => { try { setter(v); } catch (e) { /* the dialog is gone */ } if (id) setSetting(id, v); } });
+
+// ---------------------------------------------------------------- the LLM presets in Settings (round 19)
+// One Settings row per field of the LLM Prompt Enhancer's presets (the pop-up's library, in user data, not in
+// ComfyUI's settings): rg_llm.js fills in LLM_ROWS.render(key) when it loads.
+export const LLM_ROWS = { render: null };
+const llmRowType = (key) => () => {
+    if (LLM_ROWS.render) return LLM_ROWS.render(key);
+    const e = document.createElement("span"); e.textContent = "…"; return e;
+};
+const SAMPLED = "\nUsed only while the preset's sampling is on (Generate Text hides it otherwise).";
+// [key, name, tooltip]; each row edits the preset chosen in 'Preset to edit' and saves at once
+export const LLM_FIELDS = [
+    ["name", "Preset: name", "The preset's name. Press Enter (or leave the field) to rename it; the defaults above follow."],
+    ["llm", "Preset: LLM", "The LLM that rewrites the prompts.\nThe connected clip: Used as it is (no extra memory).\n"
+        + "A file: From ComfyUI's text_encoders folders, or anywhere with the folder button (Browse…); loaded once and kept while in use."],
+    ["llm_type", "Preset: LLM type", "As the 'type' of Load CLIP, for an LLM file. Auto works for plain Qwen3 / Qwen3.5 / Gemma files."],
+    ["loras", "Preset: LLM LoRAs", "LoRAs applied to the LLM only (like Load LoRA (Text Encoder)); the image model and the clip "
+        + "used for conditioning are not changed. Each one: on / off, the file (dropdown or Browse…), strength, ✕ removes it."],
+    ["system_prompt", "Preset: system prompt", "Sent as the system prompt (Generate Text's system_prompt). Ignored when the preset's default template is off."],
+    ["max_length", "Preset: max_length", "Most tokens the LLM writes."],
+    ["sampling", "Preset: sampling", "On: Sampling with the settings below.\nOff (default): Greedy decoding, always the same text for "
+        + "the same input; temperature, top_k, top_p, min_p, the penalties and the seed are not used."],
+    ["temperature", "Preset: temperature", "Sampling temperature." + SAMPLED],
+    ["top_k", "Preset: top_k", "Sample from the k most likely tokens (0 = all)." + SAMPLED],
+    ["top_p", "Preset: top_p", "Sample from the most likely tokens up to this total probability." + SAMPLED],
+    ["min_p", "Preset: min_p", "Leave out tokens less likely than this share of the most likely one." + SAMPLED],
+    ["repetition_penalty", "Preset: repetition_penalty", "Penalty for repeating tokens (1 = none)." + SAMPLED],
+    ["presence_penalty", "Preset: presence_penalty", "Penalty for tokens already used (0 = none)." + SAMPLED],
+    ["seed", "Preset: seed", "The seed (a region's right-click 'Run again with a new seed' adds to it for that region)." + SAMPLED],
+    ["thinking", "Preset: thinking", "Thinking mode, if the model supports it (the reasoning is shown in the sparkles button's tooltip, not used)."],
+    ["use_default_template", "Preset: default template", "Use the model's built-in chat template (needed for the system prompt)."],
+    ["mtp", "Preset: mtp", "Speculative decoding with the model's multi-token-prediction head (no effect without MTP weights)."],
+];
+
 // ---------------------------------------------------------------- Control (ControlNet / control LoRAs)
 // [Settings key, label, model folder, model (as ui.model_arch says), LoRA tag kind or null]. One file per model and kind;
 // the LoRA ones are added to 'Whole image' when control is on.
@@ -222,13 +464,17 @@ export function controlFileHelp(key, folder, model, tag) {
             + "row's strength and start / end (also Control-LoRA and union files)."
         : folder === "model_patches" ? "An Anima LLLite patch, a small control network on the model. It takes the region mask itself."
         : "ComfyUI's Depth Anything 3. It makes the depth map (near = white) from 'image' when no control_image is connected.";
-    const use = tag ? `\nTurning on a node's Control row adds it to 'Whole image' (marked 'Control') for ${model} models; turning it off removes it.`
+    const use = tag ? `\nAdding a node's Control row adds it to 'Whole image' (marked 'Control') for ${model} models; removing the row removes it.`
         : model ? `\nUsed by the Control row when the model is ${model}.` : "";
     const d = CONTROL_DOWNLOADS[key];
-    const get = d ? `\nGet ${d.file} into ComfyUI/models/${folder}${d.note ? ` (${d.note[0].toUpperCase() + d.note.slice(1)})` : ""}: ${d.url}`
-        : `\nFiles go in ComfyUI/models/${folder}.`;
-    return what + use + get;
+    const where = folder === "model_patches" ? "ComfyUI/models/model_patches (or models/controlnet)" : `ComfyUI/models/${folder}`;
+    const get = d ? `\nGet ${d.file} into ${where}${d.note ? ` (${d.note[0].toUpperCase() + d.note.slice(1)})` : ""}: ${d.url}`
+        : `\nFiles go in ${where}.`;
+    return what + use + get + "\nOr keep the file anywhere: The folder button (Browse…) picks it where it is.";
 }
+// the folder types a Control setting's file is listed from and looked up in (Anima's LLLite patches: ComfyUI's own
+// loader reads model_patches, but they are often kept with the ControlNets)
+export const controlFolders = (key) => (/^Anima\./.test(key) ? ["model_patches", "controlnet"] : [controlFolder(key)]);
 export const controlFolder = (key) => (CONTROL_FILES.find((x) => x[0] === key) || [])[2] || "";
 export const controlLabel = (key) => (CONTROL_FILES.find((x) => x[0] === key) || [])[1] || key;
 // what each kind does (tooltips and the Control details)
@@ -1041,6 +1287,7 @@ export const SET = {
     acDefault: AC_DEFAULT_SETTING,
     llmContext: "RegionGenie.LLM.Context",
     llmNewRegions: "RegionGenie.LLM.NewRegionsOn",
+    llmEdit: "RegionGenie.LLM.EditPreset",
     wcPerField: "RegionGenie.Wildcards.PerField",
     control: "RegionGenie.Control",
     // text size per kind of field, in the node and in the pop-up editors (0 in the node = as before)
@@ -1174,11 +1421,6 @@ function postLlmCache(over) {
 
 const NEW_NODES = "Applies to nodes added from now on; nodes already in a workflow keep their own value.";
 const CAT = (section, key) => ["Region Genie", section, key];
-// File names as options of a Settings dropdown. The dialog runs every option's label through its translation library
-// (vue-i18n) as a message, where @ { } | % $ are syntax: one LoRA named like 'char@v2' made the whole setting vanish
-// ("SyntaxError: 10"). The label escapes them as literals ({'@'}); the value stays the real file name.
-export const i18nLiteral = (s) => String(s).replace(/[{}@|%$]/g, (c) => `{'${c}'}`);
-const fileOptions = (names) => names.map((n) => ({ text: i18nLiteral(n), value: n }));
 const SETTINGS = [
         {
             id: AC_DEFAULT_SETTING, name: "Tag autocomplete on in new Region Genie nodes", type: "boolean", defaultValue: true,
@@ -1200,6 +1442,23 @@ const SETTINGS = [
             id: SET.llmNewRegions, name: "New regions start with the LLM Prompt Enhancer on", type: "boolean", defaultValue: false,
             category: CAT("LLM Prompt Enhancer", "2 new regions"),
         },
+        // round 19: the presets (as in the node's LLM settings pop-up), one row per field
+        ...[["character", "Character"], ["object", "Object"], ["text", "Text"], ["scene", "Scene"]].map(([t, label], i) => ({
+            id: `RegionGenie.LLM.Default.${t}`, name: `Default preset: ${label}`, type: llmRowType("default." + t), defaultValue: "",
+            tooltip: `The preset for ${label.toLowerCase()} prompts in every Region Genie node that hasn't chosen its own `
+                + "(a node's LLM settings can choose another for that node only).",
+            category: CAT("LLM Prompt Enhancer", "2a default " + i),
+        })),
+        {
+            id: SET.llmEdit, name: "Preset to edit", type: llmRowType("edit"), defaultValue: "",
+            tooltip: "The preset the rows below show and change (saved at once, for all your workflows).\n"
+                + "New: A copy of this preset under a new name.\nDelete: Removes it (not while it is a default above; click twice).",
+            category: CAT("LLM Prompt Enhancer", "2b edit"),
+        },
+        ...LLM_FIELDS.map(([key, name, tooltip], i) => ({
+            id: `RegionGenie.LLM.Preset.${key}`, name, type: llmRowType("field." + key), defaultValue: "", tooltip,
+            category: CAT("LLM Prompt Enhancer", "2c field " + String(i).padStart(2, "0")),
+        })),
         {
             id: SET.llmCacheDisk, name: "Keep LLM results on disk between ComfyUI restarts", type: "boolean", defaultValue: false,
             tooltip: "Off (default): Enhanced prompts are kept in memory for this session, and in each workflow that used "
@@ -1276,10 +1535,11 @@ const SETTINGS = [
             onChange: (v) => toolChanged("fillGap", v),
         },
         {
-            id: SET.samModel, name: "Model (in models/checkpoints)", type: "text", defaultValue: "sam3.1_multiplex_fp16.safetensors",
+            id: SET.samModel, name: "Model", type: fileSettingType(["checkpoints"], "sam3.1_multiplex_fp16.safetensors", SET.samModel), defaultValue: "sam3.1_multiplex_fp16.safetensors",
             tooltip: "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download "
                 + "sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. "
-                + "When this file isn't there, another SAM 3 checkpoint in that folder is used.",
+                + "When this file isn't there, another SAM 3 checkpoint in that folder is used. The folder button (Browse…) "
+                + "picks a checkpoint anywhere on the ComfyUI machine.",
             category: CAT("Select object", "1 model"),
         },
         {
@@ -1391,28 +1651,19 @@ const SETTINGS = [
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
         { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
-            id: SET.control + "." + key, name, type: "combo", defaultValue: CONTROL_NONE,
-            // the file list is read when ComfyUI starts; the set value is always listed
-            options: (value) => {
-                const list = (folder === "loras" ? knownLoras() : knownModels(folder)) || [];
-                const cur = typeof value === "string" && value && value !== CONTROL_NONE && !list.includes(value) ? [value] : [];
-                return fileOptions([CONTROL_NONE, ...cur, ...list]);
-            },
+            // our own row control (a dropdown of the files ComfyUI lists, and Browse… for a file anywhere): file names
+            // never go through the dialog's translation of option labels, which broke on names with @ { } | % $ \\
+            id: SET.control + "." + key, name, type: fileSettingType(controlFolders(key), CONTROL_NONE, SET.control + "." + key), defaultValue: CONTROL_NONE,
             tooltip: controlFileHelp(key, folder, model, tag) + " The same for every Region Genie node.",
             category: CAT("Control", String(i).padStart(2, "0") + " " + key),
         })),
         ...EDIT_MODELS.map(([name, key], i) => ({
-            id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: "combo", defaultValue: NO_LORA,
-            // the LoRA list is read when ComfyUI starts (and refreshed when a LoRA picker opens); the set value is always listed
-            options: (value) => {
-                const list = knownLoras() || [];
-                const cur = typeof value === "string" && value && value !== NO_LORA && !list.includes(value) ? [value] : [];
-                return fileOptions([NO_LORA, ...cur, ...list]);
-            },
+            id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: fileSettingType(["loras"], NO_LORA, SET.editLora + "." + key), defaultValue: NO_LORA,
             tooltip: `Switching a Region Genie node to Edit Mode adds this LoRA to its 'Whole image' LoRAs (marked 'edit '`
                 + `LoRA'), and switching back to generate removes it again. It is applied only when the model on 'model' is `
                 + `${name}, so one LoRA per model can be set here.`
-                + (key === "MOSS" ? " For MOSS-Image, e.g. the Moss-Image-Edit LoRA; its file decides the edit layout (see below)." : ""),
+                + (key === "MOSS" ? " For MOSS-Image, e.g. the Moss-Image-Edit LoRA; its file decides the edit layout (see below)." : "")
+                + " The folder button (Browse…) picks a LoRA anywhere on the ComfyUI machine; the node's Edit row sets this too.",
             category: CAT("Edit Mode", "1 lora " + String(i).padStart(2, "0")),
         })),
         ...EDIT_MODELS.filter((m) => m[2]).map(([name, key], i) => ({

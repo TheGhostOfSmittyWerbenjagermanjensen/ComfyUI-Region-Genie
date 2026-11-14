@@ -6,7 +6,7 @@ import { svgIcon, setHTML, escReverts, popFootText, naturalHeight, nodeOffCanvas
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
          ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
          wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles, OLD_MOSS, MOSS, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
-         controlLabel, knownModels, NO_LORA } from "./rg_shared.js";
+         controlLabel, knownModels, NO_LORA, controlFolders, modelFilePicker, isFullPath, EDIT_MODELS } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
 import { openColorPicker, inColorPicker } from "./rg_colorpicker.js";
@@ -441,6 +441,12 @@ textarea.rg-scene-ta { padding-right:20px !important; }
 .rg-pop .rg-wc-use svg, .rg-pop .rg-wc-pick svg { width:14px; height:14px; display:block; }
 .rg-pop .rg-wc-pick { line-height:0; padding:1px 3px; }
 .rg-row.ctrl.off .rg-pseudo { opacity:.6; }
+.rg-row.ctrl.edit { cursor:default; }
+.rg-row.ctrl.edit:hover { background:none; }
+.rg-row .rg-file { width:auto; min-width:0; max-width:none; flex:1 1 auto; gap:4px; }
+.rg-row .rg-file select { padding:1px 4px; border-radius:4px; font-size:11px; }
+.rg-row .rg-file button { width:22px; height:20px; border-radius:4px; }
+.rg-row .rg-file button svg { width:14px; height:14px; }
 .rg-row.ctrl .rg-num { width:44px; }
 .rg-row.ctrl .rg-sel { min-width:150px; max-width:190px; }
 .rg-settings .rg-sel.rg-model { max-width:150px; }
@@ -1566,9 +1572,11 @@ app.registerExtension({
             function missingControlFiles(keys) {
                 const files = controlFiles(), out = [];
                 for (const key of keys) {
-                    const folder = controlFolder(key), list = folder === "loras" ? (knownLoras() || []) : knownModels(folder) || [];
+                    const folder = controlFolder(key);
+                    const list = folder === "loras" ? (knownLoras() || []) : controlFolders(key).flatMap((f) => knownModels(f) || []);
                     if (!files[key]) out.push([key, "unset"]);
-                    else if (list.length && !list.includes(files[key])) out.push([key, "missing", files[key]]);
+                    // a full path (Browse…) is checked by the run, which notes a file it can't find
+                    else if (!isFullPath(files[key]) && list.length && !list.includes(files[key])) out.push([key, "missing", files[key]]);
                 }
                 return out;
             }
@@ -1578,7 +1586,8 @@ app.registerExtension({
                     const d = CONTROL_DOWNLOADS[key], folder = controlFolder(key);
                     const state = why === "missing" ? `'${name}' isn't in ComfyUI/models/${folder} (ComfyUI doesn't see it)` : "no file is set";
                     return `${controlLabel(key)}: ${state}. Download ${d?.file || "one"}${d ? ` (${d.url})` : ""}${d?.note ? ` — ${d.note}` : ""} `
-                        + `into ComfyUI/models/${folder}, refresh ComfyUI (R), then pick it in Settings > Region Genie > Control.`;
+                        + `into ComfyUI/models/${folder}, refresh ComfyUI (R), then pick it in Settings > Region Genie > Control (or keep it `
+                        + "anywhere and pick it there with the folder button, Browse…).";
                 });
                 showMsg(lines.join("\n"));
                 return true;
@@ -1636,18 +1645,42 @@ app.registerExtension({
                 change(() => { state.control = { ...ctl(), ...patch }; syncControlLoras(); });
                 if (state.control.on) checkControlFiles(true); else hideMsg();
             }
+            // Edit Mode's Edit row (round 18): always there in Edit Mode; the edit LoRA for the node's model, picked here
+            // (dropdown or Browse…) or in Settings > Region Genie > Edit Mode (the same setting)
+            function editRow() {
+                const row = el("div", "rg-row ctrl edit");
+                const pad = el("span", "rg-chev"); pad.style.visibility = "hidden"; pad.textContent = "▶";   // lines up with Control
+                const lbl = el("span", "rg-pseudo"); lbl.textContent = "Edit";
+                lbl.title = "Edit Mode adds the edit LoRA set for the node's model to Whole image (marked 'Edit'), and removes it "
+                    + "when the node is switched back to Generate.";
+                row.append(pad, lbl);
+                const arch = modelArch(), m = EDIT_MODELS.find(([name]) => name === arch);
+                const t = el("span", "rg-hint"); t.style.flex = "0 0 auto";
+                if (!m) {
+                    t.textContent = "The model isn't known yet: Pick it in the bottom bar to choose its edit LoRA here";
+                    t.title = "Until the model is known, the edit LoRAs set for every model in Settings > Region Genie > Edit Mode are added.";
+                    row.appendChild(t);
+                    return row;
+                }
+                const id = SET.editLora + "." + m[1], cur = getSetting(id, NO_LORA) || NO_LORA;
+                t.textContent = cur === NO_LORA ? `No edit LoRA for ${arch}:` : `LoRA for ${arch}:`;
+                const picker = modelFilePicker({
+                    folders: ["loras"], none: NO_LORA, value: cur,
+                    title: `The edit LoRA for ${arch} (the same as Settings > Region Genie > Edit Mode > '${arch}: edit LoRA')`,
+                    onPick: async (v) => { await setSetting(id, v); onModelChanged(true); renderRegions(); },
+                });
+                picker.classList.add("rg-edit-pick");
+                row.append(t, picker);
+                return row;
+            }
             function controlRow() {
                 const c = ctl();
-                const row = el("div", "rg-row ctrl" + (c.on ? "" : " off"));
-                const onBtn = el("button", "rg-btn mini" + (c.on ? " toggle on" : ""));
-                setHTML(onBtn, svgIcon(c.on ? "control" : "controlOff"));
-                onBtn.title = c.on ? "Control on: The model follows the control map (ControlNet / control LoRA for the connected model). Click to turn it off."
-                    : "Control off. Click to turn it on: The model follows a color map, depth, canny or your own control_image "
-                      + "(the files are set in Settings > Region Genie > Control).";
-                onBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
-                onBtn.addEventListener("click", (e) => { e.preventDefault(); setControl({ on: !c.on }); if (!c.on) expanded.add(CONTROL); });
+                // round 18: the row is there only while control is on (＋Control on Whole image adds it, its ✕ removes it)
+                const row = el("div", "rg-row ctrl");
                 const lbl = el("span", "rg-pseudo"); lbl.textContent = "Control";
-                row.append(chevron(CONTROL, c.on, "the control files for each model"), onBtn, lbl);
+                lbl.title = "Control: The model follows a map (ControlNet / control LoRA for the connected model). The files are set in "
+                    + "Settings > Region Genie > Control.";
+                row.append(chevron(CONTROL, c.on, "the control files for each model"), lbl);
                 if (c.on) {
                     const kind = el("select", "rg-sel");
                     kind.title = (CONTROL_KIND_HELP[c.kind] || "") + "\n\nWhat the model follows: The regions' color map and / or depth (MOSS-Image's "
@@ -1673,7 +1706,10 @@ app.registerExtension({
                     eye.addEventListener("pointerdown", (e) => e.stopPropagation());
                     for (const x of [kind, str, a, b]) x.addEventListener("pointerdown", (e) => e.stopPropagation());
                     const gap = el("span"); gap.style.flex = "1 1 auto";
-                    row.append(kind, str, a, dash, b, pct, gap, eye);
+                    const rm = iconBtn("close", "Remove the Control row (control off). Its settings are kept for the next ＋Control.",
+                        () => { setControl({ on: false }); expanded.delete(CONTROL); });
+                    rm.addEventListener("pointerdown", (e) => e.stopPropagation());
+                    row.append(kind, str, a, dash, b, pct, gap, eye, rm);
                 }
                 row.addEventListener("pointerdown", (e) => {
                     if (e.button !== 0 || e.target.closest?.("button, input, select, textarea") || !c.on) return;
@@ -5062,10 +5098,15 @@ app.registerExtension({
                 const sl = el("span", "rg-pseudo"); sl.textContent = "Whole image";
                 sl.title = "LoRAs here act on the whole picture (and all text), like a normal LoRA";
                 const sceneAdd = ico("＋LoRA", "Add a LoRA for the whole image", (e) => { state.sceneLoras = state.sceneLoras || []; addLoraTo(state.sceneLoras, e, () => expanded.add(SCENE)); }, "txt");
+                // round 18: Control is a row you add (and remove with its ✕), not an always-there switch
+                const ctlAdd = ico("＋Control", "Add the Control row: The model follows a color map, depth, canny or your own "
+                    + "control_image (ControlNet / control LoRA; the files are set in Settings > Region Genie > Control)",
+                    () => { expanded.add(CONTROL); setControl({ on: true }); }, "txt");
+                if (state.control?.on) ctlAdd.style.display = "none";
                 const nScene = (state.sceneLoras || []).length;
                 const sGap = el("span"); sGap.style.flex = "1 1 auto";
                 const sOpen = expanded.has(SCENE);
-                scene.append(chevron(SCENE, true, `the whole-image LoRAs (${nScene})`), sl, sGap, llmButton(LLM_SCENE), sceneAdd);
+                scene.append(chevron(SCENE, true, `the whole-image LoRAs (${nScene})`), sl, sGap, llmButton(LLM_SCENE), sceneAdd, ctlAdd);
                 // a click anywhere on the row (but its buttons) opens or closes it, like the chevron
                 scene.title = `${sOpen ? "Hide" : "Show"} the LoRAs that act on the whole image (${nScene})`;
                 scene.addEventListener("pointerdown", (e) => {
@@ -5089,8 +5130,11 @@ app.registerExtension({
                     regList.appendChild(empty);
                 }
 
-                regList.appendChild(controlRow());
-                if (state.control?.on && expanded.has(CONTROL)) regList.appendChild(controlDetails());
+                if (isEdit()) regList.appendChild(editRow());
+                if (state.control?.on) {
+                    regList.appendChild(controlRow());
+                    if (expanded.has(CONTROL)) regList.appendChild(controlDetails());
+                }
 
                 state.regions.forEach((r, i) => {
                     const lays = layersOf(r.id);

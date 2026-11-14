@@ -98,7 +98,11 @@ def model_names():
 def resolve_model(name):
     import folder_paths
     name = (name or "").strip() or DEFAULT_MODEL
-    path = folder_paths.get_full_path("checkpoints", name)
+    try:                                          # a full path set with Settings' Browse… works too
+        from .model_paths import full_path
+    except ImportError:                           # loaded on its own (tests)
+        from model_paths import full_path
+    path = full_path("checkpoints", name)
     if path:
         return name, path
     found = model_names()

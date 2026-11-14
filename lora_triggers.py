@@ -49,7 +49,11 @@ def _safetensors_meta(path):
 
 
 def lora_trigger_words(name):
-    path = folder_paths.get_full_path("loras", name)
+    try:                                          # a full path set with Settings' Browse… works too
+        from .model_paths import full_path
+    except ImportError:                           # loaded on its own (tests)
+        from model_paths import full_path
+    path = full_path("loras", name)
     if not path:
         return [], [], []
     base = os.path.splitext(path)[0]

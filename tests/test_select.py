@@ -16,6 +16,7 @@ import torch
 import comfy.model_management as mm
 
 import importlib.util
+sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # region_select imports model_paths next to it
 _spec = importlib.util.spec_from_file_location("region_select", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "region_select.py"))
 rs = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(rs)    # no server here: routes are skipped
 
@@ -42,6 +43,8 @@ for bad in ({"filename": "../../etc/passwd", "type": "input"}, {"filename": "rg_
         check(f"rejects {bad}: {e.code}", e.code == "no_image")
 check("model: named file", rs.resolve_model("")[0] == rs.DEFAULT_MODEL)
 check("model: missing name falls back to the SAM 3 file there", rs.resolve_model("nope.safetensors")[0] == rs.DEFAULT_MODEL)
+_full = os.path.join(MODELS, "checkpoints", rs.DEFAULT_MODEL)          # round 18: a full path (Settings' Browse…)
+check("model: a full path anywhere is used as it is", rs.resolve_model(_full)[1] == _full)
 
 # ---- busy: refuses while a workflow runs
 orig_busy = rs.queue_busy

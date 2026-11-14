@@ -4,7 +4,7 @@
 // - the sparkles button used on the region rows and on the Whole image row
 // Not an extension by itself.
 import { api } from "../../scripts/api.js";
-import { pickLora, getSetting, SET } from "./rg_shared.js";
+import { pickLora, getSetting, setSetting, SET, modelFilePicker, LLM_ROWS } from "./rg_shared.js";
 
 export const LLM_TYPES = ["character", "object", "text", "scene"];
 const TYPE_LABEL = { character: "Character", object: "Object", text: "Text", scene: "Scene" };
@@ -191,6 +191,27 @@ export const LLM_CSS = `
 .rg-llm-pop .lora .name { flex:1 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; }
 .rg-llm-pop .lora input[type=number] { width:calc(3.6ch + 30px); }
 body:has(.rg-llm-pop) .litecontextmenu, body:has(.rg-llm-pop) .litegraph.litecontextmenu.dark { z-index:100002 !important; }
+.rg-lset { display:flex; gap:6px; align-items:center; width:360px; max-width:100%; font:inherit; }
+.rg-lset.col { flex-direction:column; align-items:stretch; }
+.rg-lset select, .rg-lset input[type=text], .rg-lset input[type=number], .rg-lset textarea, .rg-lset button {
+  font:inherit; color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a); border:1px solid var(--border-color,#4a4a4a);
+  border-radius:6px; padding:6px 8px; box-sizing:border-box; }
+.rg-lset select, .rg-lset input[type=text], .rg-lset textarea { flex:1 1 auto; min-width:0; width:100%; }
+.rg-lset input[type=number] { width:140px; margin-left:auto; }
+.rg-lset input:disabled, .rg-lset select:disabled { opacity:.45; }
+.rg-lset button { cursor:pointer; flex:0 0 auto; }
+.rg-lset button:disabled { opacity:.45; cursor:default; }
+.rg-lset textarea { resize:vertical; min-height:90px; font-size:12px; }
+.rg-lset .rg-lset-check { margin-left:auto; width:18px; height:18px; }
+.rg-lset.col > button { align-self:flex-start; }
+.rg-lset-lora { display:flex; gap:6px; align-items:center; margin-top:4px; }
+.rg-lset-lora .rg-file { flex:1 1 auto; width:auto; min-width:0; }
+.rg-lset-lora input[type=number] { width:80px; margin-left:0; }
+.rg-llm-pop .lora .rg-file { width:auto; min-width:0; gap:3px; }
+.rg-llm-pop .lora .rg-file select, .rg-llm-pop .rg-file select { padding:2px 4px; border-radius:4px; }
+.rg-llm-pop .rg-file button { width:24px; height:22px; border-radius:4px; }
+.rg-llm-pop .rg-file button svg { width:14px; height:14px; }
+.rg-llm-pop .row > .rg-file { width:auto; }
 .rg-llm-pop .sep { border-top:1px solid var(--border-color, #555); margin:8px 0 2px; opacity:.6; }
 `;
 (function injectCss() {
@@ -199,17 +220,23 @@ body:has(.rg-llm-pop) .litecontextmenu, body:has(.rg-llm-pop) .litegraph.litecon
     document.head.appendChild(st);
 })();
 
+// ---------------------------------------------------------------- shared by the pop-up and Settings
+const CLIP_LABEL = "The connected clip (MOSS-Image: Qwen3.5 9B; Krea 2 / Ideogram 4: Qwen3-VL)";
+const LLM_TIP = "The connected clip is used as it is (no extra memory). A file from ComfyUI's text_encoders folders, or "
+    + "anywhere with the folder button (Browse…), is loaded once and kept while it is in use.";
+// an LLM LoRA's file: a dropdown of models/loras and Browse…
+function loraPicker(value, onPick) {
+    const p = modelFilePicker({ folders: ["loras"], none: "", noneLabel: "(choose a LoRA)", value, onPick, title: "An LLM LoRA" });
+    p.classList.add("name");
+    return p;
+}
+
 // ---------------------------------------------------------------- LLM Settings pop-up
 let openPop = null;
 export const inLlmSettings = (t) => !!t?.closest?.(".rg-llm-pop");
 export function closeLlmSettings() { openPop?.close(); }
 
-let fileList = null, typeList = null;
-async function llmFiles() {
-    if (fileList) return fileList;
-    try { const r = await api.fetchApi("/models/text_encoders"); fileList = r.ok ? await r.json() : []; } catch (e) { fileList = []; }
-    return fileList;
-}
+let typeList = null;
 async function llmTypes() {
     if (typeList) return typeList;
     try {
@@ -224,7 +251,7 @@ async function llmTypes() {
 export async function openLlmSettings(anchor, host) {
     closeLlmSettings();
     await loadLibrary();
-    const [files, types] = await Promise.all([llmFiles(), llmTypes()]);
+    const types = await llmTypes();
     const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const opt = (v, t) => { const o = mk("option"); o.value = v; o.textContent = t; return o; };
     const pop = mk("div", "rg-llm-pop");
@@ -336,19 +363,19 @@ export async function openLlmSettings(anchor, host) {
         };
         const touch = () => { dirty = true; saveBtn.textContent = "Save*"; saveBtn.disabled = false; };
 
-        const llmSel = mk("select", "grow");
-        llmSel.append(opt("", "The connected clip (MOSS-Image: Qwen3.5 9B; Krea 2 / Ideogram 4: Qwen3-VL)"));
-        for (const f of files) llmSel.append(opt(f, f));
-        if (draft.llm && !files.includes(draft.llm)) llmSel.append(opt(draft.llm, `${draft.llm} (not found)`));
-        llmSel.value = draft.llm;
-        field("LLM", llmSel, "The connected clip is used as it is (no extra memory). A file from models/text_encoders is loaded once and kept while it is in use.");
+        // round 19: a dropdown of models/text_encoders and Browse… (a file anywhere, saved by its full path)
+        const llmPick = modelFilePicker({
+            folders: ["text_encoders"], none: "", noneLabel: CLIP_LABEL, value: draft.llm, title: "The LLM",
+            onPick: (v) => { draft.llm = v; typeRow.style.display = draft.llm ? "" : "none"; touch(); },
+        });
+        llmPick.classList.add("grow");
+        field("LLM", llmPick, LLM_TIP);
         const typeSel = mk("select", "grow");
         typeSel.append(opt("auto", "auto (detect)"));
         for (const t of types) if (t !== "stable_diffusion") typeSel.append(opt(t, t));
         typeSel.value = draft.llm_type || "auto";
         const typeRow = field("LLM type", typeSel, "As the 'type' of Load CLIP. auto works for plain Qwen3 / Qwen3.5 / Gemma files.");
         typeRow.style.display = draft.llm ? "" : "none";
-        llmSel.addEventListener("change", () => { draft.llm = llmSel.value; typeRow.style.display = draft.llm ? "" : "none"; touch(); });
         typeSel.addEventListener("change", () => { draft.llm_type = typeSel.value; touch(); });
 
         // LLM-only LoRAs
@@ -363,8 +390,7 @@ export async function openLlmSettings(anchor, host) {
                 const r = mk("div", "lora");
                 const on = mk("input"); on.type = "checkbox"; on.checked = x.on !== false; on.title = "on/off";
                 on.addEventListener("change", () => { x.on = on.checked; touch(); });
-                const nm = mk("button", "name", x.lora); nm.title = x.lora + " (click to change)";
-                nm.addEventListener("click", (e) => pickLora(e, (name) => { x.lora = name; touch(); renderLoras(); }));
+                const nm = loraPicker(x.lora, (name) => { x.lora = name; touch(); });
                 const st = mk("input"); st.type = "number"; st.step = "0.05"; st.min = "-100"; st.max = "100"; st.value = String(x.strength); st.title = "Strength";
                 st.addEventListener("change", () => { const v = +st.value; if (Number.isFinite(v)) { x.strength = v; touch(); } });
                 const del = mk("button", null, "✕"); del.title = "Remove";
@@ -452,11 +478,13 @@ export async function openLlmSettings(anchor, host) {
         if (top < 8) top = Math.min(window.innerHeight - h - 8, r.bottom + 6);
         pop.style.left = `${left}px`; pop.style.top = `${Math.max(8, top)}px`;
     }
+    // (the folder browser opened from here, Browse…, is not "outside")
+    const inBrowser = (e) => !!e.target?.closest?.(".rg-fb-back") || !!document.querySelector(".rg-fb-back[open]");
     const outside = (e) => {
-        if (pop.contains(e.target) || e.target.closest?.(".litecontextmenu") || anchor.contains(e.target)) return;
+        if (pop.contains(e.target) || e.target.closest?.(".litecontextmenu") || anchor.contains(e.target) || inBrowser(e)) return;
         close();
     };
-    const esc = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
+    const esc = (e) => { if (e.key === "Escape" && !inBrowser(e)) { e.preventDefault(); e.stopPropagation(); close(); } };
     const offLib = onLibraryChange(() => { if (!dirty) render(); });
     function close() {
         window.removeEventListener("pointerdown", outside, true);
@@ -472,3 +500,152 @@ export async function openLlmSettings(anchor, host) {
     return openPop;
 }
 export const rerenderLlmSettings = () => openPop?.rerender();
+
+// ---------------------------------------------------------------- the presets in ComfyUI's Settings (round 19)
+// Settings > Region Genie > LLM Prompt Enhancer: one row per field (rg_shared.js LLM_FIELDS), each our own element.
+// They read and write the same library as the pop-up and save at once; the rows follow each other (and the pop-up)
+// through onLibraryChange and the 'Preset to edit' choice.
+const rowRefreshers = new Set();
+function refreshRows(except) {
+    for (const f of [...rowRefreshers]) {
+        if (!f.box.isConnected) { rowRefreshers.delete(f); continue; }
+        if (f.box === except || f.box.contains(document.activeElement)) continue;     // don't rebuild what is being typed in
+        f();
+    }
+}
+onLibraryChange(() => refreshRows());
+const editTarget = () => {
+    const n = getSetting(SET.llmEdit, "");
+    return lib && lib.presets[n] ? n : lib ? (lib.defaults.object || Object.keys(lib.presets)[0]) : "";
+};
+let saveTimer = 0;
+const saveSoon = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveLibrary(), 500); };
+const RS = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const ROPT = (v, t) => { const o = RS("option"); o.value = v; o.textContent = t; return o; };
+
+function renderRow(key) {
+    const box = RS("div", "rg-lset");
+    for (const ev of ["keydown", "keyup", "keypress", "pointerdown", "mousedown"]) box.addEventListener(ev, (e) => e.stopPropagation());
+    const draw = () => {
+        box.replaceChildren();
+        if (!lib) { box.append(RS("span", "hint", "Loading…")); loadLibrary().then(draw); return; }
+        build(key, box);
+    };
+    draw.box = box;
+    rowRefreshers.add(draw);
+    draw();
+    return box;
+}
+function build(key, box) {
+    const names = Object.keys(lib.presets);
+    if (key.startsWith("default.")) {
+        const t = key.slice(8), sel = RS("select");
+        for (const n of names) sel.append(ROPT(n, n));
+        sel.value = lib.defaults[t];
+        sel.addEventListener("change", async () => { lib.defaults[t] = sel.value; await saveLibrary(); refreshRows(box); });
+        box.append(sel);
+        return;
+    }
+    const name = editTarget();
+    if (key === "edit") {
+        const sel = RS("select");
+        for (const n of names) sel.append(ROPT(n, n));
+        sel.value = name;
+        sel.addEventListener("change", async () => { await setSetting(SET.llmEdit, sel.value); refreshRows(box); });
+        const newB = RS("button", "", "New"); newB.title = "A copy of this preset under a new name";
+        newB.addEventListener("click", async () => {
+            let i = 2, n = `${name} ${i}`;
+            while (lib.presets[n]) n = `${name} ${++i}`;
+            lib.presets[n] = normSettings(lib.presets[name]);
+            await setSetting(SET.llmEdit, n); await saveLibrary(); refreshRows();
+        });
+        const inUse = LLM_TYPES.filter((t) => lib.defaults[t] === name);
+        const del = RS("button", "", "Delete");
+        del.disabled = names.length < 2 || inUse.length > 0;
+        del.title = inUse.length ? `The default for ${inUse.join(", ")}: Choose another default first.` : "Delete this preset (click twice)";
+        del.addEventListener("click", async () => {
+            if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "Delete?"; return; }
+            delete lib.presets[name];
+            await setSetting(SET.llmEdit, ""); await saveLibrary(); refreshRows();
+        });
+        box.append(sel, newB, del);
+        return;
+    }
+    const f = key.slice(6), p = lib.presets[name];
+    if (!p) return;
+    const set = (v, now) => { p[f] = v; if (now) saveLibrary(); else saveSoon(); };
+    if (f === "name") {
+        const i = RS("input"); i.type = "text"; i.value = name;
+        const commit = async () => {
+            const n = i.value.trim();
+            if (!n || n === name || lib.presets[n]) { i.value = name; return; }
+            lib.presets[n] = p; delete lib.presets[name];
+            for (const t of LLM_TYPES) if (lib.defaults[t] === name) lib.defaults[t] = n;
+            await setSetting(SET.llmEdit, n); await saveLibrary(); refreshRows();
+        };
+        i.addEventListener("keydown", (e) => { if (e.key === "Enter") i.blur(); });
+        i.addEventListener("change", commit);
+        box.append(i);
+    } else if (f === "llm") {
+        box.append(modelFilePicker({ folders: ["text_encoders"], none: "", noneLabel: CLIP_LABEL, value: p.llm, title: "The LLM",
+            onPick: (v) => { p.llm = v; saveLibrary(); refreshRows(box); } }));
+    } else if (f === "llm_type") {
+        const sel = RS("select"); sel.append(ROPT("auto", "auto (detect)"));
+        sel.disabled = !p.llm; sel.title = p.llm ? "" : "Only for an LLM file (set in the row above)";
+        llmTypes().then((types) => {
+            for (const t of types) if (t !== "stable_diffusion") sel.append(ROPT(t, t));
+            sel.value = p.llm_type || "auto";
+        });
+        sel.addEventListener("change", () => set(sel.value, true));
+        box.append(sel);
+    } else if (f === "loras") {
+        const list = RS("div", "rg-lset-loras");
+        const add = RS("button", "", "＋LoRA"); add.title = "Add an LLM LoRA (choose its file in the new row)";
+        add.addEventListener("click", () => { p.loras.push({ lora: "", strength: 1, on: true }); drawLoras(); });
+        function drawLoras() {
+            list.replaceChildren();
+            p.loras.forEach((x, i) => {
+                const r = RS("div", "rg-lset-lora");
+                const on = RS("input"); on.type = "checkbox"; on.checked = x.on !== false; on.title = "On / off";
+                on.addEventListener("change", () => { x.on = on.checked; saveLibrary(); });
+                const pick = loraPicker(x.lora, (v) => { x.lora = v; saveLibrary(); });
+                const st = RS("input"); st.type = "number"; st.step = "0.05"; st.min = "-100"; st.max = "100"; st.value = String(x.strength); st.title = "Strength";
+                st.addEventListener("change", () => { const v = +st.value; if (Number.isFinite(v)) { x.strength = v; saveLibrary(); } });
+                const rm = RS("button", "", "✕"); rm.title = "Remove";
+                rm.addEventListener("click", () => { p.loras.splice(i, 1); saveLibrary(); drawLoras(); });
+                r.append(on, pick, st, rm); list.append(r);
+            });
+        }
+        drawLoras();
+        box.classList.add("col");
+        box.append(add, list);
+    } else if (f === "system_prompt") {
+        const ta = RS("textarea"); ta.rows = 6; ta.spellcheck = false; ta.value = p.system_prompt;
+        ta.addEventListener("input", () => set(ta.value));
+        box.append(ta);
+    } else if (f === "mtp") {
+        const sel = RS("select"); for (const m of MTP) sel.append(ROPT(m, m)); sel.value = p.mtp;
+        sel.addEventListener("change", () => set(sel.value, true));
+        box.append(sel);
+    } else if (["sampling", "thinking", "use_default_template"].includes(f)) {
+        const c = RS("input"); c.type = "checkbox"; c.className = "rg-lset-check"; c.checked = !!p[f];
+        c.addEventListener("change", async () => { p[f] = c.checked; await saveLibrary(); if (f === "sampling") refreshRows(box); });
+        box.append(c);
+    } else {
+        const lim = { max_length: [1, 1, 32768], temperature: [0.05, 0.01, 2], top_k: [1, 0, 1000], top_p: [0.01, 0, 1], min_p: [0.01, 0, 1],
+                      repetition_penalty: [0.01, 0, 5], presence_penalty: [0.01, 0, 5], seed: [1, 0, Number.MAX_SAFE_INTEGER] }[f];
+        if (!lim) return;
+        const i = RS("input"); i.type = "number"; i.step = String(lim[0]); i.min = String(lim[1]); i.max = String(lim[2]); i.value = String(p[f]);
+        const sampled = SAMPLING_KEYS.includes(f);
+        i.disabled = sampled && !p.sampling;
+        if (i.disabled) i.title = "Used only while the preset's sampling is on";
+        i.addEventListener("change", () => {
+            let v = Number(i.value);
+            if (!Number.isFinite(v)) { i.value = String(p[f]); return; }
+            v = Math.min(lim[2], Math.max(lim[1], v)); if (lim[0] >= 1) v = Math.round(v);
+            i.value = String(v); set(v, true);
+        });
+        box.append(i);
+    }
+}
+LLM_ROWS.render = renderRow;

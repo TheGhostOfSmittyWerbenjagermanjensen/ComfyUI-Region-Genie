@@ -192,11 +192,16 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("0: back to 12 px", await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-list textarea.rg-prompt")).fontSize)) === 12);
 
     // ---------------- Control row (round 10)
-    const crow = page.locator(".rg-list .rg-row.ctrl");
-    check("Control row under Whole image, off by default", await crow.count() === 1 && !(await st()).control?.on && await crow.locator("select").count() === 0);
+    // round 18: no Control row until ＋Control (on the Whole image row) adds it; its ✕ removes it
+    const crow = page.locator(".rg-list .rg-row.ctrl:not(.edit)");
+    const ctlAdd = () => page.locator(".rg-list .rg-row.scene button", { hasText: "＋Control" }).click();
+    const ctlRemove = () => page.locator('.rg-list .rg-row.ctrl button[title^="Remove the Control row"]').click();
+    check("no Control row by default; ＋Control on the Whole image row", await crow.count() === 0 && !(await st()).control?.on
+        && await page.locator(".rg-list .rg-row.scene button", { hasText: "＋Control" }).isVisible());
     await page.evaluate(() => { window.__settings["RegionGenie.Control.MOSS"] = "moss_ctrl.safetensors"; window.__settings["RegionGenie.Control.SDXL.canny"] = "cn_canny.safetensors"; });
-    await crow.locator(".rg-btn.mini").first().click(); await page.waitForTimeout(80);
+    await ctlAdd(); await page.waitForTimeout(80);
     s = await st();
+    check("＋Control: the row is there, ＋Control hidden" , await crow.count() === 1 && !(await page.locator(".rg-list .rg-row.scene button", { hasText: "＋Control" }).isVisible()));
     check("toggle: control on (depth), MOSS control LoRA added to Whole image (no run yet: every model)", s.control?.on === true && s.control.kind === "depth"
         && (s.sceneLoras || []).some((x) => x.lora === "moss_ctrl.safetensors" && x.control === "MOSS-Image" && x.ckind === "moss"));
     check("the LoRA row is marked 'Control'", await page.locator(".rg-list .rg-row.lora .rg-hint", { hasText: "Control" }).count() >= 1);
@@ -236,7 +241,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         && s.regions[1].hidden && s.regions[1].llm && s.sceneLlm && (s.sceneLoras || []).some((x) => x.control === "Flux.1" && x.ckind === "depth"));
     await page.evaluate(() => { const st = window.__node.__rgState(); delete st.regions[1].hidden; window.__node.__rgRefresh(); });
     // off: the control LoRAs go; undo brings them back
-    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(80);
+    await ctlRemove(); await page.waitForTimeout(80);
+    check("✕: the row goes", await crow.count() === 0);
     check("off: the control LoRAs leave Whole image", !(await st()).control.on && !((await st()).sceneLoras || []).some((x) => x.control));
     await page.keyboard.press("Control+z"); await page.waitForTimeout(80);
     check("undo: on again with its LoRA", (await st()).control.on && ((await st()).sceneLoras || []).some((x) => x.control));
@@ -263,7 +269,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.waitForTimeout(700);
     const msel = page.locator(".rg-settings select.rg-model");
     check("footer model select: auto · MOSS-Image, guessed through the LoRA loader", (await msel.locator("option").first().textContent()) === "auto · MOSS-Image");
-    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(150);
+    await ctlAdd(); await page.waitForTimeout(150);
     s = await st();
     check("control on before any run: only the guessed model's LoRA (MOSS)", (s.sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "moss_ctrl.safetensors");
     const msg = page.locator(".rg-msg");
@@ -294,7 +300,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.waitForTimeout(700);
     check("after rewiring, the new guess beats the old run", (await msel.locator("option").first().textContent()) === "auto · MOSS-Image");
     // Edit Mode: its edit LoRA follows the same model
-    await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(100);
+    await ctlRemove(); await page.waitForTimeout(100);
     await page.locator(".rg-settings .rg-seg button", { hasText: "Edit" }).click(); await page.waitForTimeout(150);
     s = await st();
     check("Edit Mode adds only the guessed model's edit LoRA", (s.sceneLoras || []).filter((x) => x.edit).map((x) => x.edit + ":" + x.lora).join() === "MOSS-Image:a.safetensors");

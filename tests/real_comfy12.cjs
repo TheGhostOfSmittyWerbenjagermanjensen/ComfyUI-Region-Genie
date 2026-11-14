@@ -154,6 +154,38 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     check(`${M}: Edit Mode's LoRA goes when switching to Generate, also after Ctrl+Z; a control LoRA goes with Control off (${JSON.stringify(managed)})`,
         managed.inEdit.includes("edit") && !managed.inGen.includes("edit") && !managed.afterUndo.includes("edit") && !managed.ctlOff.includes("control"));
+    // round 18: in Edit Mode the Edit row is always there; with no edit LoRA for the model it offers the picker, and a
+    // pick there sets the Setting and adds the LoRA to Whole image
+    const fsx = require("fs"), pathx = require("path");
+    const editFile = pathx.join(process.env.COMFY_DIR || "/tmp/comfy_src", "models", "loras", "rgtest_edit_row.safetensors");
+    fsx.writeFileSync(editFile, "");
+    const er = await page.evaluate(async () => {
+        const s = window.app.extensionManager.setting, rg = window.__rg, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        await s.set("RegionGenie.Edit.LoRA.MOSS", "(none)");
+        const seg = (t) => [...document.querySelectorAll(".rg-settings button")].find((b) => b.textContent.trim() === t)?.click();
+        const genRow = !!document.querySelector(".rg-row.ctrl.edit");
+        seg("Edit"); await wait(900);
+        const row = document.querySelector(".rg-row.ctrl.edit");
+        const text = row?.innerText.replace(/\s+/g, " ") || "";
+        const sel = row?.querySelector(".rg-file select"), btn = row?.querySelector(".rg-file button");
+        sel?.dispatchEvent(new FocusEvent("focus"));                 // opening the dropdown reads the folder again
+        for (let i = 0; i < 20 && sel && ![...sel.options].some((o) => o.value === "rgtest_edit_row.safetensors"); i++) await wait(250);
+        const listed = !!sel && [...sel.options].some((o) => o.value === "rgtest_edit_row.safetensors");
+        if (sel) { sel.value = "rgtest_edit_row.safetensors"; sel.dispatchEvent(new Event("change")); }
+        await wait(1200);
+        const setting = s.get("RegionGenie.Edit.LoRA.MOSS");
+        const tags = (rg.__rgState().sceneLoras || []).filter((x) => x.edit).map((x) => x.edit + ":" + x.lora).join();
+        const after = document.querySelector(".rg-row.ctrl.edit")?.innerText.replace(/\s+/g, " ") || "";
+        seg("Generate"); await wait(700);
+        const genAfter = !!document.querySelector(".rg-row.ctrl.edit");
+        await s.set("RegionGenie.Edit.LoRA.MOSS", "(none)");
+        return { genRow, text, picker: !!sel && !!btn, listed, setting, tags, after, genAfter };
+    });
+    fsx.unlinkSync(editFile);
+    check(`${M}: Edit row: only in Edit Mode, says there's no edit LoRA for the model, with a picker (${er.text.slice(0, 60)})`,
+        !er.genRow && /^Edit No edit LoRA for MOSS-Image:/.test(er.text) && er.picker && er.listed && !er.genAfter);
+    check(`${M}: Edit row: a pick sets the Setting and adds the LoRA to Whole image (${er.setting}; ${er.tags})`,
+        er.setting === "rgtest_edit_row.safetensors" && er.tags === "MOSS-Image:rgtest_edit_row.safetensors" && /LoRA for MOSS-Image:/.test(er.after));
     await page.evaluate(() => document.querySelector(".rg-layout").click()); await sleep(200);
     s1 = await ms();
     check(`${M}: the switch: standard mode, sent with the run`, !s1.layoutOn && s1.mossLayout === false);

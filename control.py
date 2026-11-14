@@ -19,6 +19,11 @@ import logging
 import numpy as np
 import torch
 
+try:
+    from . import model_paths
+except ImportError:                                   # loaded on its own (tests)
+    import model_paths
+
 LOG = "[Region Genie]"
 KINDS = ("color", "color+depth", "depth", "canny", "other")
 KIND_LABEL = {"color": "color map", "color+depth": "color map + depth", "depth": "depth", "canny": "canny", "other": "your control_image"}
@@ -79,7 +84,7 @@ def _depth(img, model_name, notes, missing=None):
     if not _have("DA3", model_name, missing):
         notes.append("NOTE: control: no depth map: connect 'control_image', or set the Depth Anything 3 model in Settings > "
                       "Region Genie > Control to make one from 'image'" if not model_name else
-                      f"NOTE: control: the Depth Anything 3 model '{model_name}' isn't in ComfyUI/models/geometry_estimation; "
+                      f"NOTE: control: the Depth Anything 3 model '{model_name}' isn't found (in ComfyUI's geometry_estimation folders or at that path); "
                       "control not used")
         return None
     key = _key(img, model_name)
@@ -88,7 +93,8 @@ def _depth(img, model_name, notes, missing=None):
     try:
         from comfy_extras.nodes_depth_anything_3 import LoadDA3Model, DA3Inference, DA3Render
         if _cache.get("da3_name") != model_name:
-            _cache["da3"] = LoadDA3Model.execute(model_name, "default").result[0]
+            with model_paths.absolute_names():          # a full path set with Settings' Browse…
+                _cache["da3"] = LoadDA3Model.execute(model_name, "default").result[0]
             _cache["da3_name"] = model_name
         geo = DA3Inference._execute_mono(_cache["da3"], img, 504, "upper_bound_resize").result[0]
         out = DA3Render._depth_to_image(geo["depth"], geo.get("sky"), "v2_style").float().cpu()
@@ -100,18 +106,25 @@ def _depth(img, model_name, notes, missing=None):
 
 
 FOLDER = {"MOSS": "loras", "Flux1Depth": "loras", "Flux1Canny": "loras", "DA3": "geometry_estimation"}
+# Anima LLLite patches: ComfyUI's own loader reads models/model_patches, but they are often kept with the ControlNets
+ANIMA_FOLDERS = ("model_patches", "controlnet")
+
+
+def folders_for(key):
+    """The model folder types a Control setting's file is looked up in (a full path works with any of them)."""
+    if key in FOLDER:
+        return (FOLDER[key],)
+    return ANIMA_FOLDERS if key.startswith("Anima.") else ("controlnet",)
 
 
 def _have(key, name, missing):
     """True when the file is set and ComfyUI finds it; else notes it in missing ([key, 'unset'] / [key, 'missing', name])."""
-    folder = FOLDER.get(key) or ("model_patches" if key.startswith("Anima.") else "controlnet")
     if not name:
         if missing is not None:
             missing.append([key, "unset"])
         return False
     try:
-        import folder_paths
-        found = folder_paths.get_full_path(folder, name) is not None
+        found = model_paths.full_path(folders_for(key), name) is not None
     except Exception:
         found = True                                  # can't tell: let the loader say
     if not found and missing is not None:
@@ -121,16 +134,22 @@ def _have(key, name, missing):
 
 def _load_controlnet(name):
     import comfy.controlnet
-    import folder_paths
     if _cache.get(("cn", name)) is None:
-        _cache[("cn", name)] = comfy.controlnet.load_controlnet(folder_paths.get_full_path_or_raise("controlnet", name))
+        path = model_paths.full_path("controlnet", name)
+        if path is None:
+            raise FileNotFoundError(f"ControlNet '{name}' not found")
+        _cache[("cn", name)] = comfy.controlnet.load_controlnet(path)
     return _cache[("cn", name)]
 
 
 def _load_patch(name):
     if _cache.get(("mp", name)) is None:
         from comfy_extras.nodes_model_patch import ModelPatchLoader
-        _cache[("mp", name)] = ModelPatchLoader().load_model_patch(name)[0]
+        path = model_paths.full_path(ANIMA_FOLDERS, name)
+        if path is None:
+            raise FileNotFoundError(f"LLLite patch '{name}' not found")
+        with model_paths.absolute_names():               # in models/controlnet or anywhere: load it by its full path
+            _cache[("mp", name)] = ModelPatchLoader().load_model_patch(path)[0]
     return _cache[("mp", name)]
 
 
@@ -231,7 +250,7 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         name = files.get(f"{CN_KEY[arch_name]}.{kind}")
         if not _have(f"{CN_KEY[arch_name]}.{kind}", name, missing):
             if name:
-                notes.append(f"NOTE: control: the {arch_name} ControlNet '{name}' isn't in ComfyUI/models/controlnet; control not used")
+                notes.append(f"NOTE: control: the {arch_name} ControlNet '{name}' isn't found (in ComfyUI's controlnet folders or at that path); control not used")
                 return model, positive, negative, img
             notes.append(f"NOTE: control: no {arch_name} ControlNet for {label} is set in Settings > Region Genie > Control; "
                          "control not used")
@@ -250,7 +269,7 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
     name = files.get(f"Anima.{kind}")
     if not _have(f"Anima.{kind}", name, missing):
         if name:
-            notes.append(f"NOTE: control: the Anima LLLite patch '{name}' isn't in ComfyUI/models/model_patches; control not used")
+            notes.append(f"NOTE: control: the Anima LLLite patch '{name}' isn't found (in ComfyUI's model_patches or controlnet folders, or at that path); control not used")
             return model, positive, negative, img
         notes.append(f"NOTE: control: no Anima LLLite patch for {label} is set in Settings > Region Genie > Control; control not used")
         return model, positive, negative, img

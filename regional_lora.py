@@ -1076,7 +1076,9 @@ def merge_loras(model, loras):
         _MERGE_LOADERS[name] = loader
         while len(_MERGE_LOADERS) > 8:
             _MERGE_LOADERS.popitem(last=False)
-        model = loader.load_lora_model_only(model, name, strength)[0]
+        from .model_paths import absolute_names
+        with absolute_names():                     # a full path (an edit / control LoRA set with Browse…) loads too
+            model = loader.load_lora_model_only(model, name, strength)[0]
     return model
 
 
@@ -1217,8 +1219,10 @@ class CreateHookLoRAQuantized:
 
 
 def load_runtime_lora(model, lora_name):
-    lora_path = folder_paths.get_full_path_or_raise("loras", lora_name) \
-        if hasattr(folder_paths, "get_full_path_or_raise") else folder_paths.get_full_path("loras", lora_name)
+    from .model_paths import full_path            # a name in models/loras, or a full path set with Settings' Browse…
+    lora_path = full_path("loras", lora_name)
+    if lora_path is None:
+        raise FileNotFoundError(f"LoRA '{lora_name}' not found in ComfyUI's loras folders")
     lora_sd = comfy.utils.load_torch_file(lora_path, safe_load=True)
     runtime_lora = build_runtime_lora(model, lora_sd, lora_name)
     del lora_sd
