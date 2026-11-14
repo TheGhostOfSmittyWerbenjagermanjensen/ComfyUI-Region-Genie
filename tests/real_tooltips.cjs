@@ -69,7 +69,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     for (const t of ["select", "shape", "brush", "lasso", "fill", "wand", "object", "erase", "lassoErase"]) {
         await page.evaluate((t) => window.__rg.__rgSetTool(t), t); await sleep(120); await harvest("tool " + t);
     }
-    for (const m of ["MOSS Image", "Ideogram 4", "Krea 2", ""]) { await page.selectOption("select.rg-model", m).catch(() => {}); await sleep(400); await harvest("model " + (m || "auto")); }
+    for (const m of ["MOSS-Image", "Ideogram 4", "Krea 2", ""]) { await page.selectOption("select.rg-model", m).catch(() => {}); await sleep(400); await harvest("model " + (m || "auto")); }
     // size row modes
     for (const re of [/presets list/, /typed in/, /aspect ratio/]) {
         await page.evaluate((src) => [...document.querySelectorAll(".rg-size button")].find((b) => new RegExp(src).test(b.title))?.click(), re.source); await sleep(300); await harvest("size row");

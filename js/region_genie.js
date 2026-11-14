@@ -5,7 +5,7 @@ import { svgIcon, setHTML, escReverts, popFootText, naturalHeight, nodeOffCanvas
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
          ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
-         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, dispModel, controlFiles, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
+         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles, OLD_MOSS, MOSS, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
          controlLabel, knownModels, NO_LORA } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
@@ -674,9 +674,9 @@ function emptyState() { return { v: 2, regions: [], layers: [] }; }
 function normLoras(a) {
     return (Array.isArray(a) ? a : []).filter((x) => x && typeof x.lora === "string")
         .map((x) => ({ lora: x.lora, strength: Number.isFinite(+x.strength) ? +x.strength : 1, on: x.on !== false,
-                       ...(typeof x.edit === "string" && x.edit ? { edit: x.edit } : {}),        // edit: added by Edit Mode, for that model
+                       ...(typeof x.edit === "string" && x.edit ? { edit: x.edit === OLD_MOSS ? MOSS : x.edit } : {}),        // edit: added by Edit Mode, for that model
                        // control: added by the Control row, for that model (ckind: moss / depth / canny)
-                       ...(typeof x.control === "string" && x.control ? { control: x.control, ckind: String(x.ckind || "") } : {}) }));
+                       ...(typeof x.control === "string" && x.control ? { control: x.control === OLD_MOSS ? MOSS : x.control, ckind: String(x.ckind || "") } : {}) }));
 }
 function normLoraOpts(o) {
     o = o && typeof o === "object" ? o : {};
@@ -1325,7 +1325,7 @@ app.registerExtension({
                 "edit_area (Edit Mode): What the sampler may change.\nOnly the regions: The 'latent' output carries a mask of "
                 + "all regions, so the rest of the image is kept (like inpainting).\nWhole image: No mask; the regions still "
                 + "steer where each prompt goes.");
-            // the model dropdown (and MOSS Image's layout / standard switch) go here; they also set the prompt format
+            // the model dropdown (and MOSS-Image's layout / standard switch) go here; they also set the prompt format
             // (the old 'format' select is gone: the hidden prompt_format widget stays "auto", see migrateFormat)
             const modelBox = el("span", "rg-modelbox");
             let lastFormat = null;                 // the format the last run used (in the model dropdown's tooltip)
@@ -1347,11 +1347,13 @@ app.registerExtension({
             }
             // a workflow saved with the old format select: its choice becomes a model pick (or MOSS's standard mode)
             function migrateFormat() {
+                // saved before the model was stored as MOSS-Image (its official name)
+                if (node.properties?.rg_model_pick === OLD_MOSS) node.properties.rg_model_pick = MOSS;
                 const v = fmtW?.value;
                 if (!fmtW || !v || v === "auto") return;
                 node.properties = node.properties || {};
                 if (!node.properties.rg_model_pick) {
-                    if (v === "MOSS JSON") node.properties.rg_model_pick = "MOSS Image";
+                    if (v === "MOSS JSON") node.properties.rg_model_pick = "MOSS-Image";
                     else if (v === "Ideogram JSON") node.properties.rg_model_pick = "Ideogram 4";
                 }
                 if (v === "text") node.properties.rg_moss_layout = false;
@@ -1418,10 +1420,10 @@ app.registerExtension({
             // Edit Mode: keep this region as it is in the source (lock) or let it change (pencil)
             // ---- the connected model: picked in the footer, else the last run's (while 'model' still comes from the same
             // loader), else a guess from the graph (the loader's file name / type, or the text encoder loader's type)
-            const MODEL_NAMES = ["MOSS Image", "Krea 2", "Ideogram 4", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5"];
+            const MODEL_NAMES = ["MOSS-Image", "Krea 2", "Ideogram 4", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5"];
             function archFromText(t) {
                 t = String(t || "");
-                if (/moss/i.test(t)) return "MOSS Image";
+                if (/moss/i.test(t)) return "MOSS-Image";
                 if (/krea/i.test(t)) return "Krea 2";
                 if (/ideogram/i.test(t)) return "Ideogram 4";
                 if (/flux[\s._-]*3(?!\d)/i.test(t)) return "Flux 3";
@@ -1501,7 +1503,7 @@ app.registerExtension({
             // the footer select: auto (with what it found) or a model picked to correct it
             const modelSel = el("select", "rg-sel rg-model");
             modelSel.addEventListener("pointerdown", (e) => e.stopPropagation());
-            // MOSS Image: layout (its layout JSON, with the region boxes) or standard (a plain text prompt)
+            // MOSS-Image: layout (its layout JSON, with the region boxes) or standard (a plain text prompt)
             const layoutBtn = iconBtn("mossLayout", "", () => {
                 node.properties = node.properties || {};
                 if (node.properties.rg_moss_layout === false) delete node.properties.rg_moss_layout;
@@ -1518,22 +1520,22 @@ app.registerExtension({
             });
             function syncModelSel() {
                 const info = modelInfo(), pick = node.properties?.rg_model_pick || "";
-                const auto = !pick && info.arch ? `auto · ${dispModel(info.arch)}` : pick && info.guess ? `auto (${dispModel(info.guess)})` : "auto · model?";
-                const opts = [["", auto], ...MODEL_NAMES.map((m) => [m, dispModel(m)])];
+                const auto = !pick && info.arch ? `auto · ${info.arch}` : pick && info.guess ? `auto (${info.guess})` : "auto · model?";
+                const opts = [["", auto], ...MODEL_NAMES.map((m) => [m, m])];
                 const sig = JSON.stringify(opts);
                 if (modelSel.dataset.sig !== sig) { modelSel.replaceChildren(...opts.map(([v, t]) => opt(v, t))); modelSel.dataset.sig = sig; }
                 if (document.activeElement !== modelSel) modelSel.value = pick;
                 modelSel.title = "The model this node works with. It sets the format of the 'prompt' and 'positive' outputs "
                     + "(MOSS-Image: MOSS layout JSON, Ideogram 4: Ideogram caption JSON, the others: Plain text), the LoRAs "
                     + "Control and Edit Mode add to Whole image, and the control files.\n"
-                    + (pick ? `Picked: ${dispModel(pick)}. ` : info.how === "last run" ? `Auto: ${dispModel(info.arch)}, from the last run. `
-                        : info.how === "guess" ? `Auto: ${dispModel(info.arch)}, guessed from the model loader's file / type (the run checks the model itself). `
+                    + (pick ? `Picked: ${pick}. ` : info.how === "last run" ? `Auto: ${info.arch}, from the last run. `
+                        : info.how === "guess" ? `Auto: ${info.arch}, guessed from the model loader's file / type (the run checks the model itself). `
                         : "Auto: Not known yet (no run, and nothing to guess from); the run checks the connected model. ")
                     + "Pick a model to correct a wrong guess; 'auto' follows the graph and the runs again."
-                    + (lastFormat ? `\nThe last run's prompt format: ${dispModel(lastFormat)}.` : "");
+                    + (lastFormat ? `\nThe last run's prompt format: ${lastFormat}.` : "");
                 modelSel.classList.toggle("picked", !!pick);
-                // MOSS Image's layout / standard switch
-                const moss = info.arch === "MOSS Image", layout = node.properties?.rg_moss_layout !== false;
+                // MOSS-Image's layout / standard switch
+                const moss = info.arch === "MOSS-Image", layout = node.properties?.rg_moss_layout !== false;
                 layoutBtn.style.display = moss ? "" : "none";
                 setHTML(layoutBtn, svgIcon(layout ? "mossLayout" : "mossStandard"));
                 layoutBtn.classList.toggle("on", layout);
@@ -1548,7 +1550,7 @@ app.registerExtension({
             function neededControlFiles(c, arch) {
                 const files = controlFiles(), need = [];
                 const mapMade = !isLinked("control_image") && ["depth", "color+depth"].includes(c.kind);
-                if (arch === "MOSS Image") {
+                if (arch === "MOSS-Image") {
                     if (["color", "color+depth", "depth"].includes(c.kind)) need.push("MOSS");
                 } else if (arch === "Flux.1") {
                     if (c.kind === "depth") need.push(files.Flux1Depth || !files["Flux1.depth"] ? "Flux1Depth" : "Flux1.depth");
@@ -1585,7 +1587,7 @@ app.registerExtension({
                 const c = ctl(), arch = modelArch();
                 if (!c.on) return;
                 if (refreshLists) for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f, true);
-                if (arch && !["MOSS Image", "Flux.1", "SDXL", "SD1.5", "Anima"].includes(arch)) {
+                if (arch && !["MOSS-Image", "Flux.1", "SDXL", "SD1.5", "Anima"].includes(arch)) {
                     showMsg(`Control: ComfyUI has no ControlNet support for ${arch} yet, so this node can't apply control with it. `
                         + "If the model was guessed wrong, pick the right one in the bottom bar.");
                     return;
@@ -1603,7 +1605,7 @@ app.registerExtension({
                 if (!c.on) return [];
                 const files = controlFiles(), arch = modelArch(), out = [];
                 const add = (key, model, ckind) => { if (files[key] && (!arch || arch === model)) out.push({ lora: files[key], control: model, ckind }); };
-                if (["color", "color+depth", "depth"].includes(c.kind)) add("MOSS", "MOSS Image", "moss");
+                if (["color", "color+depth", "depth"].includes(c.kind)) add("MOSS", "MOSS-Image", "moss");
                 if (c.kind === "depth") add("Flux1Depth", "Flux.1", "depth");
                 if (c.kind === "canny") add("Flux1Canny", "Flux.1", "canny");
                 return out;
@@ -1688,12 +1690,12 @@ app.registerExtension({
                 const info = modelInfo(), arch = info.arch;
                 const pick = (key) => files[key] || "—";
                 const per = c.kind === "color" || c.kind === "color+depth"
-                    ? [["MOSS Image", `LoRA ${pick("MOSS")}`]]
-                    : [["MOSS Image", c.kind === "depth" ? `LoRA ${pick("MOSS")}` : "— (color map / depth only)"],
+                    ? [["MOSS-Image", `LoRA ${pick("MOSS")}`]]
+                    : [["MOSS-Image", c.kind === "depth" ? `LoRA ${pick("MOSS")}` : "— (color map / depth only)"],
                        ["Flux.1", (c.kind === "depth" && files.Flux1Depth) ? `LoRA ${files.Flux1Depth}` : (c.kind === "canny" && files.Flux1Canny) ? `LoRA ${files.Flux1Canny}` : `ControlNet ${pick(`Flux1.${c.kind}`)}`],
                        ["SDXL", `ControlNet ${pick(`SDXL.${c.kind}`)}`], ["SD1.5", `ControlNet ${pick(`SD15.${c.kind}`)}`],
                        ["Anima", `LLLite ${pick(`Anima.${c.kind}`)}`]];
-                for (const [m, f] of per) line(`${m === arch ? "▸ " : ""}${dispModel(m)}: ${f}`, m === arch ? `The model this node works with (${info.how}; the bottom bar's model select)` : "");
+                for (const [m, f] of per) line(`${m === arch ? "▸ " : ""}${m}: ${f}`, m === arch ? `The model this node works with (${info.how}; the bottom bar's model select)` : "");
                 line("Krea 2, Flux.2, Flux 3, Ideogram 4: no ControlNet in ComfyUI yet");
                 const src = c.kind === "color" ? "the regions' colors (the color_map output)"
                     : c.kind === "other" ? "the control_image input"
@@ -1758,7 +1760,6 @@ app.registerExtension({
             // keep LiteGraph / Nodes 2.0 from treating a text selection as a node drag; the browser's own menu on right-click
             for (const ev of ["pointerdown", "mousedown", "dblclick", "contextmenu", "wheel"]) msgBar.addEventListener(ev, (e) => e.stopPropagation());
             function showMsg(text) {
-                text = dispModel(text);
                 msgText.replaceChildren();
                 msgUrl = "";
                 const re = /https?:\/\/[^\s()<>"']+/g;
@@ -2917,7 +2918,7 @@ app.registerExtension({
             }
             let hintTimer = 0, keepHintUntil = 0;
             function hint(text) {
-                statusLbl.textContent = text ? dispModel(text) : "";
+                statusLbl.textContent = text || "";
                 clearTimeout(hintTimer);
                 if (text) hintTimer = setTimeout(() => { statusLbl.textContent = ""; }, 3500);
             }
@@ -4656,7 +4657,7 @@ app.registerExtension({
                     const row = el("div", "rg-row lora");
                     const tag = el("span", "rg-hint"); tag.textContent = lo.control ? "Control" : lo.edit ? "Edit" : "LoRA";
                     if (lo.edit) {
-                        tag.title = `Edit LoRA for ${dispModel(lo.edit)}, added by Edit Mode: Used only in Edit Mode with a ${dispModel(lo.edit)} model, `
+                        tag.title = `Edit LoRA for ${lo.edit}, added by Edit Mode: Used only in Edit Mode with a ${lo.edit} model, `
                             + "and removed when the node is switched back to generate (Settings > Region Genie > Edit Mode).";
                         row.classList.add("edit");
                     }

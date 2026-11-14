@@ -23,7 +23,7 @@ LOG = "[Region Genie]"
 KINDS = ("color", "color+depth", "depth", "canny", "other")
 KIND_LABEL = {"color": "color map", "color+depth": "color map + depth", "depth": "depth", "canny": "canny", "other": "your control_image"}
 CN_KEY = {"Flux.1": "Flux1", "SDXL": "SDXL", "SD1.5": "SD15"}          # ControlNet files in Settings
-SUPPORTED = ("MOSS Image", "Flux.1", "SDXL", "SD1.5", "Anima")
+SUPPORTED = ("MOSS-Image", "Flux.1", "SDXL", "SD1.5", "Anima")
 _cache = {}                                                           # loaded control files and the last depth map
 
 
@@ -173,7 +173,7 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         return None
 
     s, a, b = cfg["strength"], cfg["start"], cfg["end"]
-    if arch_name == "MOSS Image":
+    if arch_name == "MOSS-Image":
         if kind not in ("color", "color+depth", "depth"):
             notes.append(f"NOTE: control: MOSS-Image's control LoRA reads a color map and / or a depth map, not {label}; "
                          "control not used")

@@ -169,11 +169,10 @@ export function knownModels(folder, refresh = false) {
 // ---------------------------------------------------------------- Control (ControlNet / control LoRAs)
 // [Settings key, label, model folder, model (as ui.model_arch says), LoRA tag kind or null]. One file per model and kind;
 // the LoRA ones are added to 'Whole image' when control is on.
-// the model's official name, for what the user reads: the stored / reported value stays 'MOSS Image' (saved workflows,
-// the Python side)
-export const dispModel = (s) => String(s ?? "").replace(/MOSS Image/g, "MOSS-Image");
+// the model's official name (also as stored and as the run reports it); workflows saved before used OLD_MOSS
+export const MOSS = "MOSS-Image", OLD_MOSS = "MOSS Image";
 export const CONTROL_FILES = [
-    ["MOSS", "MOSS-Image: color / depth control LoRA", "loras", "MOSS Image", "moss"],
+    ["MOSS", "MOSS-Image: color / depth control LoRA", "loras", "MOSS-Image", "moss"],
     ["Flux1Depth", "Flux.1: depth LoRA (e.g. flux1-depth-dev-lora)", "loras", "Flux.1", "depth"],
     ["Flux1Canny", "Flux.1: canny LoRA (e.g. flux1-canny-dev-lora)", "loras", "Flux.1", "canny"],
     ...[["Flux1", "Flux.1"], ["SDXL", "SDXL"], ["SD15", "SD1.5"]].flatMap(([k, name]) => [
@@ -1099,7 +1098,7 @@ export const SET = {
 };
 // models without a layout format of their own: [family name used by the Python side, settings ID suffix]
 // [the model family the run reports, Settings key, label]. MOSS-Image gets plain text in its standard mode and in Edit Mode
-export const AUTO_APART_MODELS = [["MOSS Image", "MOSS", "MOSS-Image (standard mode, Edit Mode)"], ["Krea 2", "Krea2"], ["Flux", "Flux"],
+export const AUTO_APART_MODELS = [["MOSS-Image", "MOSS", "MOSS-Image (standard mode, Edit Mode)"], ["Krea 2", "Krea2"], ["Flux", "Flux"],
     ["Flux 3", "Flux3"], ["Anima", "Anima"], ["SDXL / SD1.5", "SDXL"]];
 // the 'keep all regions apart automatically' settings, as sent to Python in paint_data
 export function autoApartSettings() {
@@ -1108,7 +1107,7 @@ export function autoApartSettings() {
     return out;
 }
 // Edit Mode: [model name as the Python side reports it (ui.model_arch), settings ID suffix, reads a reference image]
-export const EDIT_MODELS = [["MOSS Image", "MOSS", true], ["Krea 2", "Krea2", true], ["Ideogram 4", "Ideogram4", false],
+export const EDIT_MODELS = [["MOSS-Image", "MOSS", true], ["Krea 2", "Krea2", true], ["Ideogram 4", "Ideogram4", false],
     ["Flux.1", "Flux1", true], ["Flux.2", "Flux2", true], ["Flux 3", "Flux3", true], ["Anima", "Anima", false],
     ["SDXL", "SDXL", false], ["SD1.5", "SD15", false]];
 export const NO_LORA = "(none)";
@@ -1488,11 +1487,6 @@ const SETTINGS = [
               + "linear ACEScg: Already scene-linear ACEScg.\n" + NEW_NODES, category: CAT("Save Image", "91 exr space") },
         { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
-// the model's official name is MOSS-Image: what the user reads says so (dispModel); the stored / reported value stays 'MOSS Image'
-for (const d of SETTINGS) {
-    for (const k of ["name", "tooltip"]) if (typeof d[k] === "string") d[k] = dispModel(d[k]);
-    if (Array.isArray(d.options)) d.options = d.options.map((o) => (o && typeof o.text === "string" ? { ...o, text: dispModel(o.text) } : o));
-}
 SETTINGS.forEach((x, i) => { x.sortOrder = 1000 - i; });         // listed in this order (higher sortOrder first)
 // The pack was called "Regional Mask Kit" before: on the first start after the rename, copy the values set under
 // the old setting IDs to the new ones (only where the new one isn't set yet). To be removed in a later version.

@@ -132,9 +132,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     let s0 = await ms();
     check(`${M}: no format select; no layout switch and no background while the model isn't known`, s0.fmt === 0 && !s0.layout && s0.bgHidden && s0.sceneBoxes === 2);
-    await page.locator("select.rg-model").first().selectOption("MOSS Image"); await sleep(700);
+    await page.locator("select.rg-model").first().selectOption("MOSS-Image"); await sleep(700);
     let s1 = await ms();
-    check(`${M}: MOSS Image: layout switch shown (layout), background hidden, sent with the run`, s1.layout && s1.layoutOn && s1.bgHidden && s1.pick === "MOSS Image" && s1.mossLayout === undefined);
+    check(`${M}: MOSS-Image: layout switch shown (layout), background hidden, sent with the run`, s1.layout && s1.layoutOn && s1.bgHidden && s1.pick === "MOSS-Image" && s1.mossLayout === undefined);
     // round 14: Edit Mode's LoRAs never stay in Generate (also after Ctrl+Z), nor a control LoRA with Control off
     const managed = await page.evaluate(async () => {
         const s = window.app.extensionManager.setting, rg = window.__rg, wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -147,7 +147,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         document.querySelector(".rg-keysink")?.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true }));
         await wait(1200); const afterUndo = tags();
         // a control LoRA left in the list with Control off (e.g. an old workflow)
-        const st = rg.__rgState(); st.sceneLoras = [...(st.sceneLoras || []), { lora: "ctl.safetensors", strength: 1, on: true, control: "MOSS Image", ckind: "moss" }];
+        const st = rg.__rgState(); st.sceneLoras = [...(st.sceneLoras || []), { lora: "ctl.safetensors", strength: 1, on: true, control: "MOSS-Image", ckind: "moss" }];
         st.control = { ...(st.control || {}), on: false }; rg.__rgRefresh(); await wait(1200); const ctlOff = tags();
         await s.set("RegionGenie.Edit.LoRA.MOSS", "(none)");
         return { inEdit, inGen, afterUndo, ctlOff };
@@ -165,17 +165,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: Krea 2: background hidden again`, s3.bgHidden && s3.sceneBoxes === 2);
     const tip = await page.evaluate(() => document.querySelector("select.rg-model").title);
     check(`${M}: the model dropdown's tooltip says it sets the prompt format`, /format of the 'prompt' and 'positive'/.test(tip));
-    // round 13: MOSS Image's standard mode is plain text too, so it has its own 'keep all regions apart automatically'
+    // round 13: MOSS-Image's standard mode is plain text too, so it has its own 'keep all regions apart automatically'
     const mossApart = await page.evaluate(async () => {
         const s = window.app.extensionManager.setting, id = "RegionGenie.Main.AutoApart.MOSS";
         const def = window.app.ui.settings.settingsParamLookup?.[id] || s.settingsById?.[id];
         await s.set(id, "off");
         const pd = JSON.parse(window.__rg.widgets.find((w) => w.name === "paint_data").serializeValue());
         await s.set(id, "default");
-        return { name: def?.name || "", sent: pd.autoApart?.["MOSS Image"], keys: Object.keys(pd.autoApart || {}).join(",") };
+        return { name: def?.name || "", sent: pd.autoApart?.["MOSS-Image"], keys: Object.keys(pd.autoApart || {}).join(",") };
     });
-    // round 16: the node's own controls say MOSS-Image too (stored values stay 'MOSS Image', so workflows keep loading)
-    await page.locator("select.rg-model").first().selectOption("MOSS Image"); await sleep(600);
+    // round 16: the node says MOSS-Image everywhere, and stores it so (round 17)
+    await page.locator("select.rg-model").first().selectOption("MOSS-Image"); await sleep(600);
     const shown = await page.evaluate(async () => {
         const out = [];
         for (const r of document.querySelectorAll(".rg-wrap, .rg-size")) {
@@ -191,14 +191,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const sel = document.querySelector("select.rg-model");
         return { out, value: sel.value, text: sel.selectedOptions[0]?.textContent };
     });
-    check(`${M}: the node says MOSS-Image everywhere; the stored value stays 'MOSS Image' (${shown.text}; ${shown.out.slice(0, 3).join(" | ")})`,
-        !shown.out.length && shown.value === "MOSS Image" && shown.text === "MOSS-Image");
+    check(`${M}: the node says MOSS-Image everywhere and stores it so (${shown.text}; ${shown.value}; ${shown.out.slice(0, 3).join(" | ")})`,
+        !shown.out.length && shown.value === "MOSS-Image" && shown.text === "MOSS-Image");
     await page.locator("select.rg-model").first().selectOption(""); await sleep(400);
     const mossNames = await page.evaluate(() => Object.values(window.app.ui.settings.settingsParamLookup).filter((d) => /^RegionGenie/.test(d.id))
         .flatMap((d) => [d.name, d.tooltip || ""]).filter((t) => /MOSS[ -]Image/.test(t)));
     check(`${M}: Settings say MOSS-Image (the official name), never 'MOSS Image' (${mossNames.length} mentions)`,
         mossNames.length >= 6 && mossNames.every((t) => !/MOSS Image/.test(t)));
-    check(`${M}: Settings has 'MOSS Image: keep all regions apart automatically', sent with the run (${mossApart.name}; ${mossApart.keys}; ${mossApart.sent})`,
+    check(`${M}: Settings has 'MOSS-Image: keep all regions apart automatically', sent with the run (${mossApart.name}; ${mossApart.keys}; ${mossApart.sent})`,
         /^MOSS-Image/.test(mossApart.name) && mossApart.sent === "off");
     // an old workflow with the format select set
     const mig = await page.evaluate(async () => {
@@ -220,6 +220,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     check(`${M}: old workflow, format 'Ideogram JSON': Ideogram 4 picked`, mig.ideo.pick === "Ideogram 4" && mig.ideo.fmt === "auto");
     check(`${M}: old workflow, format 'text': MOSS standard mode`, mig.text.layout === false && mig.text.fmt === "auto");
+    // round 17: a workflow saved when the model was stored as 'MOSS Image' loads as MOSS-Image (pick, edit / control LoRA tags)
+    const old = await page.evaluate(async () => {
+        const app = window.app;
+        const g = app.graph.serialize();
+        const n = g.nodes.find((x) => x.type === "Region-Genie_Main");
+        n.properties.rg_model_pick = "MOSS Image";
+        const conv = (v) => { const d = JSON.parse(v); d.sceneLoras = [{ lora: "e.safetensors", strength: 1, on: true, edit: "MOSS Image" },
+            { lora: "c.safetensors", strength: 1, on: true, control: "MOSS Image", ckind: "moss" }]; return JSON.stringify(d); };
+        const isPd = (v) => typeof v === "string" && /^\{"v":/.test(v);
+        if (Array.isArray(n.widgets_values)) n.widgets_values = n.widgets_values.map((v) => (isPd(v) ? conv(v) : v));
+        if (isPd(n.properties.rg_widget_values?.paint_data)) n.properties.rg_widget_values.paint_data = conv(n.properties.rg_widget_values.paint_data);
+        await app.loadGraphData(g);
+        await new Promise((r) => setTimeout(r, 1500));
+        const rg = app.graph.nodes.find((x) => x.type === "Region-Genie_Main"); window.__rg = rg;
+        const pd = JSON.parse(rg.widgets.find((w) => w.name === "paint_data").serializeValue());
+        const sel = document.querySelector("select.rg-model");
+        return { pick: rg.properties.rg_model_pick, sel: sel?.value, sent: pd.modelPick, tags: JSON.stringify(rg.__rgState().sceneLoras || []) };
+    });
+    check(`${M}: an old workflow's 'MOSS Image' becomes MOSS-Image (pick, LoRA tags) (${JSON.stringify(old)})`,
+        old.pick === "MOSS-Image" && old.sel === "MOSS-Image" && old.sent === "MOSS-Image" && !/MOSS Image/.test(old.tags));
     await page.evaluate(async () => { window.__rg.properties.rg_model_pick = undefined; delete window.__rg.properties.rg_model_pick; delete window.__rg.properties.rg_moss_layout;
         window.app.canvas.ds.offset = [0, 0]; window.app.canvas.ds.scale = 0.72; window.app.canvas.setDirty(true, true); await new Promise((r) => setTimeout(r, 800)); });
 

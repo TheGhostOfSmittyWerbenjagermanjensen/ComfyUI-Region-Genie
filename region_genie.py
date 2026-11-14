@@ -584,8 +584,21 @@ FAMILY_LABEL = {"moss": "MOSS JSON", "ideogram": "Ideogram JSON", "plain": "text
 PLAIN_ENCODERS = ("Krea2", "Flux", "Flux2", "Flux3", "Anima", "SDXL", "SD1ClipModel", "SD2ClipModel")
 
 
-MODEL_FAMILY = {"MOSS Image": "moss", "Ideogram 4": "ideogram"}      # a model picked on the node -> its format (else text)
-MODEL_PICKS = ("MOSS Image", "Krea 2", "Ideogram 4", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5")
+# the paint data of workflows saved (or API prompts made) before MOSS-Image was stored by its official name said
+# "MOSS Image": as the model pick, the edit / control tag of a LoRA, and a key of autoApart
+_OLD_MOSS = re.compile(r'("(?:modelPick|edit|control)"\s*:\s*)"MOSS Image"|"MOSS Image"(\s*:)')
+
+
+def migrate_names(paint_data):
+    """paint_data with the old model name 'MOSS Image' changed to 'MOSS-Image' where it is a value the node reads
+    (not inside prompts)."""
+    if not isinstance(paint_data, str) or "MOSS Image" not in paint_data:
+        return paint_data
+    return _OLD_MOSS.sub(lambda m: (m.group(1) or "") + '"MOSS-Image"' + (m.group(2) or ""), paint_data)
+
+
+MODEL_FAMILY = {"MOSS-Image": "moss", "Ideogram 4": "ideogram"}      # a model picked on the node -> its format (else text)
+MODEL_PICKS = ("MOSS-Image", "Krea 2", "Ideogram 4", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5")
 
 
 def prompt_family(model, clip, choice="auto", hint=None, edit=False, pick=None, layout=True, regions=True):
@@ -641,7 +654,7 @@ def _prompt_family(model, clip, choice, hint, pick):
 MODES = ("generate", "edit")
 EDIT_AREAS = ("only the regions", "whole image")
 # models that can read the source as a reference image (an edit model, edit LoRA or edit node pack)
-REF_MODELS = ("MOSS Image", "Krea 2", "Flux.1", "Flux.2", "Flux 3")
+REF_MODELS = ("MOSS-Image", "Krea 2", "Flux.1", "Flux.2", "Flux 3")
 # MOSS-Image edit LoRA layouts, as in ComfyUI's Text Encode MOSS-Image Edit: the reference method and whether the
 # text encoder also sees the references
 MOSS_EDIT_FORMATS = {"Moss-Image-Edit": ("index_timestep_zero_text_start", False),
@@ -1044,6 +1057,7 @@ class RegionGenie:
             model=None, clip=None, scene_prompt_background="", prompt_format="auto", vae=None, mode=MODES[0],
             edit_area=EDIT_AREAS[0], width_in=None, height_in=None, wildcard_seed=0, control_image=None):
         from .bbox_masks import _resolve_size        # shared with BBoxes to Masks
+        paint_data = migrate_names(paint_data)
         # the width / height sockets override the size row (whose result is in the hidden width / height widgets)
         if width_in is not None:
             width = max(16, min(16384, int(width_in)))
@@ -1317,7 +1331,7 @@ class RegionGenie:
                     long_edge = int(edit_cfg.get("refSize", 1024) or 0)
                     ref_img = limit_image(src, long_edge)
                     refs = [vae.encode(ref_img)]
-                    if arch.name == "MOSS Image":
+                    if arch.name == "MOSS-Image":
                         moss_fmt = self._moss_edit_format(pdata, edit_cfg, edit_notes)
                     edit_notes.append(f"edit: the source goes to the model as a reference image "
                                       f"({int(ref_img.shape[2])}x{int(ref_img.shape[1])}"
@@ -1408,7 +1422,7 @@ class RegionGenie:
                 notes.append(f"NOTE: control could not be applied: {e}")
         lines += edit_notes
         lines += lora_lines
-        info = hl.disp_model("\n".join([f"{count} region(s) on {width}x{height} canvas"] + lines + notes))
+        info = "\n".join([f"{count} region(s) on {width}x{height} canvas"] + lines + notes)
         logging.info(f"{LOG} {info}")
         ui["region_info"] = [info]
         if ui_import is not None:
@@ -1425,7 +1439,7 @@ class RegionGenie:
         fmt = edit_cfg.get("mossFormat", "auto")
         if fmt in MOSS_EDIT_FORMATS:
             return fmt
-        rows = [x for x in (pdata.get("sceneLoras") or []) if isinstance(x, dict) and x.get("edit") == "MOSS Image"
+        rows = [x for x in (pdata.get("sceneLoras") or []) if isinstance(x, dict) and x.get("edit") == "MOSS-Image"
                 and x.get("on", True) and x.get("lora")]
         if not rows:
             notes.append("NOTE: MOSS-Image edit needs an edit LoRA (set one in Settings > Region Genie > Edit Mode, or "

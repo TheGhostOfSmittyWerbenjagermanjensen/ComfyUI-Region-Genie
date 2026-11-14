@@ -64,19 +64,19 @@ check("off: no config", ctl.config({"control": {"on": False}}) is None and ctl.c
 c = cfg("depth", strength=2.5, start=0.2, end=0.7)
 check("config: kind, strength, start, end", c["kind"] == "depth" and c["strength"] == 2.5 and c["start"] == 0.2 and c["end"] == 0.7)
 check("config: bad kind -> depth, numbers clamped", cfg("x", strength=99)["kind"] == "depth" and cfg("x", strength=99)["strength"] == 10)
-check("LoRA tag: MOSS row used for color / depth with MOSS", ctl.lora_tag_ok({"control": "MOSS Image", "ckind": "moss"}, cfg("color"), "MOSS Image"))
-check("LoRA tag: not with another model", not ctl.lora_tag_ok({"control": "MOSS Image", "ckind": "moss"}, cfg("color"), "Flux.1"))
+check("LoRA tag: MOSS row used for color / depth with MOSS", ctl.lora_tag_ok({"control": "MOSS-Image", "ckind": "moss"}, cfg("color"), "MOSS-Image"))
+check("LoRA tag: not with another model", not ctl.lora_tag_ok({"control": "MOSS-Image", "ckind": "moss"}, cfg("color"), "Flux.1"))
 check("LoRA tag: Flux depth LoRA not for canny", not ctl.lora_tag_ok({"control": "Flux.1", "ckind": "depth"}, cfg("canny"), "Flux.1"))
-check("LoRA tag: nothing while control is off", not ctl.lora_tag_ok({"control": "MOSS Image", "ckind": "moss"}, None, "MOSS Image"))
+check("LoRA tag: nothing while control is off", not ctl.lora_tag_ok({"control": "MOSS-Image", "ckind": "moss"}, None, "MOSS-Image"))
 regions = [{"id": 1}, {"id": 2, "noControl": True}]
 idx = np.zeros((H, W), np.uint8); idx[:, :32] = 1; idx[:, 32:] = 2
 check("region mask: everywhere while all regions are on", ctl.region_mask([{"id": 1}, {"id": 2}], {1: 1, 2: 2}, idx) is None)
 rm = ctl.region_mask(regions, {1: 1, 2: 2}, idx)
 check("region mask: only the regions still on", rm[:, :32].all() and not rm[:, 32:].any())
 
-# ---------------------------------------------------------------- MOSS Image: color / depth control LoRA
+# ---------------------------------------------------------------- MOSS-Image: color / depth control LoRA
 notes = []
-m, p, n, prev = ctl.apply(cfg("color", {"MOSS": "moss_ctrl.safetensors"}, strength=2, start=0.1, end=0.6), "MOSS Image", "M",
+m, p, n, prev = ctl.apply(cfg("color", {"MOSS": "moss_ctrl.safetensors"}, strength=2, start=0.1, end=0.6), "MOSS-Image", "M",
                           cond(), cond(), VAE(), None, None, cmap, None, W, H, notes)
 d = ce(p)
 lat = d.get("concat_latent_image")
@@ -85,21 +85,21 @@ check("MOSS color: color latent x strength, depth zeros", torch.allclose(lat[:, 
 check("MOSS color: start / end on the conditioning", abs(d.get("start_percent", -1) - 0.1) < 2e-5 and abs(d.get("end_percent", -1) - 0.6) < 2e-5)
 check("MOSS color: negative too, the color map as preview", "concat_latent_image" in ce(n) and prev is not None)
 notes = []
-_, p, _, _ = ctl.apply(cfg("color", {"MOSS": "x"}), "MOSS Image", "M", cond(), cond(), VAE(), None, None, cmap, half, W, H, notes)
+_, p, _, _ = ctl.apply(cfg("color", {"MOSS": "x"}), "MOSS-Image", "M", cond(), cond(), VAE(), None, None, cmap, half, W, H, notes)
 lat = ce(p)["concat_latent_image"]
 check("MOSS per region: zero latent (no control) outside the regions still on", lat[..., 4:].abs().sum() == 0 and lat[..., :4].abs().sum() > 0)
 dmap = torch.full((1, H, W, 3), 0.5)
-_, p, _, prev = ctl.apply(cfg("color+depth", {"MOSS": "x"}), "MOSS Image", "M", cond(), cond(), VAE(), None, dmap, cmap, None, W, H, [])
+_, p, _, prev = ctl.apply(cfg("color+depth", {"MOSS": "x"}), "MOSS-Image", "M", cond(), cond(), VAE(), None, dmap, cmap, None, W, H, [])
 lat = ce(p)["concat_latent_image"]
 check("MOSS color + depth: depth from control_image in the second half", torch.allclose(lat[:, 3:], VAE().encode(dmap)) and lat[:, :3].abs().sum() > 0)
 notes = []
-ctl.apply(cfg("canny", {"MOSS": "x"}), "MOSS Image", "M", cond(), cond(), VAE(), photo, None, cmap, None, W, H, notes)
+ctl.apply(cfg("canny", {"MOSS": "x"}), "MOSS-Image", "M", cond(), cond(), VAE(), photo, None, cmap, None, W, H, notes)
 check("MOSS canny: not supported, noted", any("not canny" in x or "canny" in x for x in notes))
 notes = []
-ctl.apply(cfg("color"), "MOSS Image", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes)
+ctl.apply(cfg("color"), "MOSS-Image", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes)
 check("MOSS without vae: noted, not used", any("needs 'vae'" in x for x in notes))
 notes = []
-ctl.apply(cfg("color"), "MOSS Image", "M", cond(), cond(), VAE(), None, None, cmap, None, W, H, notes)
+ctl.apply(cfg("color"), "MOSS-Image", "M", cond(), cond(), VAE(), None, None, cmap, None, W, H, notes)
 check("MOSS without the LoRA in Settings: noted", any("no MOSS-Image color / depth LoRA" in x for x in notes))
 
 # ---------------------------------------------------------------- ControlNet files (SDXL / SD1.5 / Flux.1)
@@ -156,7 +156,7 @@ ctl.apply(cfg("canny", {"SDXL.canny": "gone.safetensors"}), "SDXL", "M", cond(),
 check("missing: a set file ComfyUI doesn't find is reported, control not used", missing == [["SDXL.canny", "missing", "gone.safetensors"]]
       and any("isn't in ComfyUI/models/controlnet" in x for x in notes))
 missing = []
-ctl.apply(cfg("depth", {"MOSS": "nope.safetensors"}), "MOSS Image", "M", cond(), cond(), VAE(), photo, None, cmap, None, W, H, [], missing)
+ctl.apply(cfg("depth", {"MOSS": "nope.safetensors"}), "MOSS-Image", "M", cond(), cond(), VAE(), photo, None, cmap, None, W, H, [], missing)
 check("missing: MOSS LoRA not found and no Depth Anything 3 set", ["MOSS", "missing", "nope.safetensors"] in missing and ["DA3", "unset"] in missing)
 missing = []
 ctl.apply(cfg("depth", {"Anima.depth": "x"}), "Anima", "M", cond(), cond(), None, None, dmap, cmap, None, W, H, [], missing)

@@ -140,11 +140,6 @@ class ModelArch:
 
 ONE_PASS_MODELS = "MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5"
 
-
-def disp_model(text):
-    """The model's official name in what the user reads: MOSS-Image. ModelArch / the stored picks keep 'MOSS Image'
-    (saved workflows and the front end match on it), so model names put into notes are shown through this."""
-    return str(text).replace("MOSS Image", "MOSS-Image")
 # models without a layout format of their own: their regions are placed by keeping the regions apart in attention
 AUTO_APART_FAMILIES = ("Krea 2", "Flux", "Flux 3", "Anima", "SDXL / SD1.5")
 
@@ -156,7 +151,7 @@ def model_arch(model):
         return None
     cls, mod = type(dm).__name__, type(dm).__module__ or ""
     if cls == "MOSSImage" and hasattr(dm, "video_embedder"):
-        return ModelArch("MOSS Image", layout=True)
+        return ModelArch("MOSS-Image", layout=True)
     if cls == "SingleStreamDiT" and "krea2" in mod:
         return ModelArch("Krea 2", patch=getattr(dm, "patch", 2), order="txt_img", prefix=_krea2_prefix,
                          skip_lens=(int(getattr(dm, "txtlayers", 12)),))
@@ -904,7 +899,7 @@ class _ActivateRegionalLoRAsWrapper:
         self.entries = tuple(entries)                    # (lora, strength, TokenRegion or None)
         self.label = label
         self.separation = separation                     # RegionSeparation or None
-        self.arch = arch or ModelArch("MOSS Image")
+        self.arch = arch or ModelArch("MOSS-Image")
         self._last_run = None
 
     def __call__(self, executor, *args, **kwargs):
@@ -1158,7 +1153,7 @@ def regional_lora_patch(model, clip, text, regions, scene, separation, until, no
 
 def is_moss_image(model):
     a = model_arch(model)
-    return a is not None and a.name == "MOSS Image"
+    return a is not None and a.name == "MOSS-Image"
 
 
 def one_pass_ok(model):
@@ -1599,7 +1594,7 @@ class RegionalLoRAs:
                 lines.append(f'scene caption + "{global_extra}"')
             lines += [rl.summary.splitlines()[0] for rl in loaded.values()]
 
-        info = disp_model("\n".join(lines + warn))
+        info = "\n".join(lines + warn)
         _log(f"{LOG} Regional LoRAs:\n{info}")
         ui = {"lora_info": [info], "mask_count": [n]}
         if fill.mod is not None:
