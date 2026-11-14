@@ -5,7 +5,7 @@ import { svgIcon, setHTML, escReverts, popFootText, naturalHeight, nodeOffCanvas
          getSetting, setSetting, SET, migrateProps, autoApartSettings, editSettings, editLoras, editMaskDefaults, toolDefault,
          onToolDefault, toolNumber, TOOL_NUMBERS, llmCacheSettings, SIZE_ASPECTS, ratioSize, parseSizePresets, formatSizePresets,
          ratioLabel, SIZE_PRESETS_DEFAULT, wildcardSeedControl, pickWildcard, insertAtCursor, hasWildcards, WC_CSS,
-         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, controlFiles, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
+         wildcardsInstalled, onWildcardInfo, CONTROL_FILES, dispModel, controlFiles, CONTROL_DOWNLOADS, CONTROL_KIND_HELP, controlFolder,
          controlLabel, knownModels, NO_LORA } from "./rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings, inLlmSettings,
          closeLlmSettings } from "./rg_llm.js";
@@ -1518,19 +1518,19 @@ app.registerExtension({
             });
             function syncModelSel() {
                 const info = modelInfo(), pick = node.properties?.rg_model_pick || "";
-                const auto = !pick && info.arch ? `auto · ${info.arch}` : pick && info.guess ? `auto (${info.guess})` : "auto · model?";
-                const opts = [["", auto], ...MODEL_NAMES.map((m) => [m, m])];
+                const auto = !pick && info.arch ? `auto · ${dispModel(info.arch)}` : pick && info.guess ? `auto (${dispModel(info.guess)})` : "auto · model?";
+                const opts = [["", auto], ...MODEL_NAMES.map((m) => [m, dispModel(m)])];
                 const sig = JSON.stringify(opts);
                 if (modelSel.dataset.sig !== sig) { modelSel.replaceChildren(...opts.map(([v, t]) => opt(v, t))); modelSel.dataset.sig = sig; }
                 if (document.activeElement !== modelSel) modelSel.value = pick;
                 modelSel.title = "The model this node works with. It sets the format of the 'prompt' and 'positive' outputs "
-                    + "(MOSS Image: MOSS layout JSON, Ideogram 4: Ideogram caption JSON, the others: Plain text), the LoRAs "
+                    + "(MOSS-Image: MOSS layout JSON, Ideogram 4: Ideogram caption JSON, the others: Plain text), the LoRAs "
                     + "Control and Edit Mode add to Whole image, and the control files.\n"
-                    + (pick ? `Picked: ${pick}. ` : info.how === "last run" ? `Auto: ${info.arch}, from the last run. `
-                        : info.how === "guess" ? `Auto: ${info.arch}, guessed from the model loader's file / type (the run checks the model itself). `
+                    + (pick ? `Picked: ${dispModel(pick)}. ` : info.how === "last run" ? `Auto: ${dispModel(info.arch)}, from the last run. `
+                        : info.how === "guess" ? `Auto: ${dispModel(info.arch)}, guessed from the model loader's file / type (the run checks the model itself). `
                         : "Auto: Not known yet (no run, and nothing to guess from); the run checks the connected model. ")
                     + "Pick a model to correct a wrong guess; 'auto' follows the graph and the runs again."
-                    + (lastFormat ? `\nThe last run's prompt format: ${lastFormat}.` : "");
+                    + (lastFormat ? `\nThe last run's prompt format: ${dispModel(lastFormat)}.` : "");
                 modelSel.classList.toggle("picked", !!pick);
                 // MOSS Image's layout / standard switch
                 const moss = info.arch === "MOSS Image", layout = node.properties?.rg_moss_layout !== false;
@@ -1538,8 +1538,8 @@ app.registerExtension({
                 setHTML(layoutBtn, svgIcon(layout ? "mossLayout" : "mossStandard"));
                 layoutBtn.classList.toggle("on", layout);
                 layoutBtn.title = (layout
-                    ? "MOSS Image layout mode: The prompt is MOSS layout JSON, with each region's box. Click for standard mode"
-                    : "MOSS Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them). Click for layout mode")
+                    ? "MOSS-Image layout mode: The prompt is MOSS layout JSON, with each region's box. Click for standard mode"
+                    : "MOSS-Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them). Click for layout mode")
                     + ". With no region drawn or shown, the run uses standard mode by itself. Edit Mode always sends plain text (the edit LoRA takes an instruction).";
                 syncBackground();
             }
@@ -1648,7 +1648,7 @@ app.registerExtension({
                 row.append(chevron(CONTROL, c.on, "the control files for each model"), onBtn, lbl);
                 if (c.on) {
                     const kind = el("select", "rg-sel");
-                    kind.title = (CONTROL_KIND_HELP[c.kind] || "") + "\n\nWhat the model follows: The regions' color map and / or depth (MOSS Image's "
+                    kind.title = (CONTROL_KIND_HELP[c.kind] || "") + "\n\nWhat the model follows: The regions' color map and / or depth (MOSS-Image's "
                         + "control LoRA), depth, canny, or the map on 'control_image'. Depth and canny are made from 'image' when control_image isn't connected.";
                     for (const [v, t] of CONTROL_KIND_LABELS) kind.appendChild(opt(v, t));
                     kind.value = c.kind;
@@ -1693,7 +1693,7 @@ app.registerExtension({
                        ["Flux.1", (c.kind === "depth" && files.Flux1Depth) ? `LoRA ${files.Flux1Depth}` : (c.kind === "canny" && files.Flux1Canny) ? `LoRA ${files.Flux1Canny}` : `ControlNet ${pick(`Flux1.${c.kind}`)}`],
                        ["SDXL", `ControlNet ${pick(`SDXL.${c.kind}`)}`], ["SD1.5", `ControlNet ${pick(`SD15.${c.kind}`)}`],
                        ["Anima", `LLLite ${pick(`Anima.${c.kind}`)}`]];
-                for (const [m, f] of per) line(`${m === arch ? "▸ " : ""}${m}: ${f}`, m === arch ? `The model this node works with (${info.how}; the bottom bar's model select)` : "");
+                for (const [m, f] of per) line(`${m === arch ? "▸ " : ""}${dispModel(m)}: ${f}`, m === arch ? `The model this node works with (${info.how}; the bottom bar's model select)` : "");
                 line("Krea 2, Flux.2, Flux 3, Ideogram 4: no ControlNet in ComfyUI yet");
                 const src = c.kind === "color" ? "the regions' colors (the color_map output)"
                     : c.kind === "other" ? "the control_image input"
@@ -1758,6 +1758,7 @@ app.registerExtension({
             // keep LiteGraph / Nodes 2.0 from treating a text selection as a node drag; the browser's own menu on right-click
             for (const ev of ["pointerdown", "mousedown", "dblclick", "contextmenu", "wheel"]) msgBar.addEventListener(ev, (e) => e.stopPropagation());
             function showMsg(text) {
+                text = dispModel(text);
                 msgText.replaceChildren();
                 msgUrl = "";
                 const re = /https?:\/\/[^\s()<>"']+/g;
@@ -1898,7 +1899,7 @@ app.registerExtension({
             const loraOptsBox = el("span", "rg-loraopts");
             const sepIn = el("input", "rg-num"); sepIn.type = "number"; sepIn.min = "0"; sepIn.max = "1"; sepIn.step = "0.05";
             sepIn.title = "LoRA region separation: How much attention between the image of different LoRA regions is removed "
-                + "(MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5; model output). Higher keeps each LoRA's style in its region; 1 = fully separate.";
+                + "(MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5; model output). Higher keeps each LoRA's style in its region; 1 = fully separate.";
             const untilIn = el("input", "rg-num"); untilIn.type = "number"; untilIn.min = "0"; untilIn.max = "1"; untilIn.step = "0.05";
             untilIn.title = "Apply the separation for this fraction of the steps; the rest blends the seams. "
                 + "0.1-0.5 with separation 0.85-0.99 works well.";
@@ -1949,7 +1950,7 @@ app.registerExtension({
                     + "the first part of sampling ('until'), at the separation strength set here, and each region's caption "
                     + "speaks only to its own region.\nOff (default): Only regions with LoRAs are kept apart.\n"
                     + "With Krea 2, Flux, Anima or SDXL / SD1.5 (no layout format of their own) this is what places each "
-                    + "region's prompt in its region. Needs a MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 "
+                    + "region's prompt in its region. Needs a MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 "
                     + "model on the model input; while active, sampling is a "
                     + "little slower and uses more VRAM.\n\n"
                     + (shared ? "Share the background: ON. The regions are kept apart from each other only; the image around "
@@ -2916,7 +2917,7 @@ app.registerExtension({
             }
             let hintTimer = 0, keepHintUntil = 0;
             function hint(text) {
-                statusLbl.textContent = text || "";
+                statusLbl.textContent = text ? dispModel(text) : "";
                 clearTimeout(hintTimer);
                 if (text) hintTimer = setTimeout(() => { statusLbl.textContent = ""; }, 3500);
             }
@@ -4335,7 +4336,7 @@ app.registerExtension({
                             if (document.activeElement !== f.ta && f.ta.value !== (rr[key] || "")) f.ta.value = rr[key] || "";
                         }
                         const ctl = el("div", "rg-row pop-ctl");
-                        const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { rr.loras = rr.loras || []; addLoraTo(rr.loras, e, () => openSub(rr.id, "loras")); }, "txt");
+                        const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { rr.loras = rr.loras || []; addLoraTo(rr.loras, e, () => openSub(rr.id, "loras")); }, "txt");
                         ctl.append(llmButton(rr.id, "pop"), ...(isEdit() ? [keepToggle(rr)] : []), featherBox(rr), paletteToggle(rr), addL);
                         const loras = el("div", "rg-pop-loras");
                         if ((rr.loras || []).length) loras.appendChild(regionLoraRows(rr));
@@ -4655,7 +4656,7 @@ app.registerExtension({
                     const row = el("div", "rg-row lora");
                     const tag = el("span", "rg-hint"); tag.textContent = lo.control ? "Control" : lo.edit ? "Edit" : "LoRA";
                     if (lo.edit) {
-                        tag.title = `Edit LoRA for ${lo.edit}, added by Edit Mode: Used only in Edit Mode with a ${lo.edit} model, `
+                        tag.title = `Edit LoRA for ${dispModel(lo.edit)}, added by Edit Mode: Used only in Edit Mode with a ${dispModel(lo.edit)} model, `
                             + "and removed when the node is switched back to generate (Settings > Region Genie > Edit Mode).";
                         row.classList.add("edit");
                     }
@@ -5141,7 +5142,7 @@ app.registerExtension({
                         row.appendChild(txWrap);
                         addExpandButton(tx, "Open this region in the pop-up editor (its text to render)", openPop("text", tx));
                     }
-                    const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { r.loras = r.loras || []; addLoraTo(r.loras, e, () => openSub(r.id, "loras")); }, "txt");
+                    const addL = ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { r.loras = r.loras || []; addLoraTo(r.loras, e, () => openSub(r.id, "loras")); }, "txt");
                     const mergeAll = ico("⇊", "Merge all visible layers of this region into one layer", () => mergeRegion(r.id));
                     mergeAll.disabled = lays.filter((l) => l.visible !== false).length < 2;
                     const up = ico("↑", "Move up: Earlier in the output order, and its layers in front", () => change(() => {

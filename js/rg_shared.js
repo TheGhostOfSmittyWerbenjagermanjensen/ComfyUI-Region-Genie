@@ -169,8 +169,11 @@ export function knownModels(folder, refresh = false) {
 // ---------------------------------------------------------------- Control (ControlNet / control LoRAs)
 // [Settings key, label, model folder, model (as ui.model_arch says), LoRA tag kind or null]. One file per model and kind;
 // the LoRA ones are added to 'Whole image' when control is on.
+// the model's official name, for what the user reads: the stored / reported value stays 'MOSS Image' (saved workflows,
+// the Python side)
+export const dispModel = (s) => String(s ?? "").replace(/MOSS Image/g, "MOSS-Image");
 export const CONTROL_FILES = [
-    ["MOSS", "MOSS Image: color / depth control LoRA", "loras", "MOSS Image", "moss"],
+    ["MOSS", "MOSS-Image: color / depth control LoRA", "loras", "MOSS Image", "moss"],
     ["Flux1Depth", "Flux.1: depth LoRA (e.g. flux1-depth-dev-lora)", "loras", "Flux.1", "depth"],
     ["Flux1Canny", "Flux.1: canny LoRA (e.g. flux1-canny-dev-lora)", "loras", "Flux.1", "canny"],
     ...[["Flux1", "Flux.1"], ["SDXL", "SDXL"], ["SD15", "SD1.5"]].flatMap(([k, name]) => [
@@ -212,7 +215,7 @@ export const CONTROL_DOWNLOADS = {
 // a Setting's tooltip: what this kind of file does, how it is used, and where to get it
 export function controlFileHelp(key, folder, model, tag) {
     // three lines: what it is, how the Control row uses it, where to get it
-    const what = key === "MOSS" ? "MOSS Image's color / depth control adapter (a LoRA). It reads the regions' color map and / or a depth map, "
+    const what = key === "MOSS" ? "MOSS-Image's color / depth control adapter (a LoRA). It reads the regions' color map and / or a depth map, "
             + "VAE-encoded next to the image (needs 'vae')."
         : tag ? "Black Forest Labs' structural LoRA for Flux.1 [dev]. The map is VAE-encoded next to the image (needs 'vae'); the LoRA's "
             + "strength in Whole image is the control's strength."
@@ -231,11 +234,11 @@ export const controlFolder = (key) => (CONTROL_FILES.find((x) => x[0] === key) |
 export const controlLabel = (key) => (CONTROL_FILES.find((x) => x[0] === key) || [])[1] || key;
 // what each kind does (tooltips and the Control details)
 export const CONTROL_KIND_HELP = {
-    color: "Color map (MOSS Image): A shape map. Each flat color marks one region; the colors are only IDs, not the colors to paint "
+    color: "Color map (MOSS-Image): A shape map. Each flat color marks one region; the colors are only IDs, not the colors to paint "
         + "(the region's prompt says what it is and what color). The model follows the painted outlines, also rough ones: a "
         + "rectangle drawn for a person pushes towards a person filling that rectangle. End % below 100 (e.g. 30–50) keeps the "
         + "layout and lets the shapes loosen at the end; strength below 1 pulls less.",
-    "color+depth": "Color map + depth (MOSS Image): The regions' outlines (see color map) and how far away things are (near = white).",
+    "color+depth": "Color map + depth (MOSS-Image): The regions' outlines (see color map) and how far away things are (near = white).",
     depth: "Depth: A grey map of distances (near = white). The model keeps the 3D layout (what is in front, the shape of the room or "
         + "the land) but is free with textures, colors and details.",
     canny: "Canny: The edge lines of a picture. The model keeps the outlines and composition closely, so it's good for redrawing a "
@@ -1095,8 +1098,8 @@ export const SET = {
     hlUntil: "RegionGenie.RegionalLoRAs.SeparationUntil",
 };
 // models without a layout format of their own: [family name used by the Python side, settings ID suffix]
-// [the model family the run reports, Settings key, label]. MOSS Image gets plain text in its standard mode and in Edit Mode
-export const AUTO_APART_MODELS = [["MOSS Image", "MOSS", "MOSS Image (standard mode, Edit Mode)"], ["Krea 2", "Krea2"], ["Flux", "Flux"],
+// [the model family the run reports, Settings key, label]. MOSS-Image gets plain text in its standard mode and in Edit Mode
+export const AUTO_APART_MODELS = [["MOSS Image", "MOSS", "MOSS-Image (standard mode, Edit Mode)"], ["Krea 2", "Krea2"], ["Flux", "Flux"],
     ["Flux 3", "Flux3"], ["Anima", "Anima"], ["SDXL / SD1.5", "SDXL"]];
 // the 'keep all regions apart automatically' settings, as sent to Python in paint_data
 export function autoApartSettings() {
@@ -1371,7 +1374,7 @@ const SETTINGS = [
         },
         {
             id: SET.cmAutoApart, name: "Plain-text prompts: keep all regions apart automatically", type: "boolean", defaultValue: true,
-            tooltip: "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS Image in its standard mode and in Edit Mode) get "
+            tooltip: "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get "
                 + "the regions as plain sentences. The Region Genie node places each region by tying its sentence to its "
                 + "region in attention ('keep all regions apart').\n"
                 + "On: With such a model on 'model', clip connected and at least one region prompt, that switch is on for "
@@ -1410,14 +1413,14 @@ const SETTINGS = [
             tooltip: `Switching a Region Genie node to Edit Mode adds this LoRA to its 'Whole image' LoRAs (marked 'edit '`
                 + `LoRA'), and switching back to generate removes it again. It is applied only when the model on 'model' is `
                 + `${name}, so one LoRA per model can be set here.`
-                + (key === "MOSS" ? " For MOSS Image, e.g. the Moss-Image-Edit LoRA; its file decides the edit layout (see below)." : ""),
+                + (key === "MOSS" ? " For MOSS-Image, e.g. the Moss-Image-Edit LoRA; its file decides the edit layout (see below)." : ""),
             category: CAT("Edit Mode", "1 lora " + String(i).padStart(2, "0")),
         })),
         ...EDIT_MODELS.filter((m) => m[2]).map(([name, key], i) => ({
             id: SET.editRef + "." + key, name: `${name}: send the source image as a reference`, type: "boolean", defaultValue: true,
             tooltip: `On: In Edit Mode, the source image (on 'image') is also given to ${name} as a reference image `
                 + "(reference_latents on positive and negative), as edit models such as "
-                + ({ MOSS: "MOSS Image Edit", Krea2: "Krea 2 edit packs", Flux1: "Flux.1 Kontext", Flux2: "Flux.2 / Klein", Flux3: "Flux 3" }[key])
+                + ({ MOSS: "MOSS-Image Edit", Krea2: "Krea 2 edit packs", Flux1: "Flux.1 Kontext", Flux2: "Flux.2 / Klein", Flux3: "Flux 3" }[key])
                 + " expect.\nOff: Image-to-image from the latent only."
                 + (key === "Flux1" ? "\nFlux.1 dev and Kontext can't be told apart; turn this off for plain Flux.1 dev." : ""),
             category: CAT("Edit Mode", "2 ref " + i),
@@ -1429,9 +1432,9 @@ const SETTINGS = [
             category: CAT("Edit Mode", "3 ref size"),
         },
         {
-            id: SET.editMossFormat, name: "MOSS Image edit layout", type: "combo", defaultValue: "auto",
+            id: SET.editMossFormat, name: "MOSS-Image edit layout", type: "combo", defaultValue: "auto",
             options: [{ text: "Auto (from the edit LoRA file)", value: "auto" }, "Moss-Image-Edit", "ai-toolkit", "ai-toolkit (kv_cache off)"],
-            tooltip: "How the reference is given to MOSS Image (as in ComfyUI's TextEncodeMOSSImageEdit node). Auto: LoRAs "
+            tooltip: "How the reference is given to MOSS-Image (as in ComfyUI's TextEncodeMOSSImageEdit node). Auto: LoRAs "
                 + "trained with ai-toolkit (fused qkv weights) get 'ai-toolkit', others (e.g. the Moss-Image-Edit LoRA) get "
                 + "'Moss-Image-Edit'.",
             category: CAT("Edit Mode", "4 moss format"),
@@ -1485,10 +1488,10 @@ const SETTINGS = [
               + "linear ACEScg: Already scene-linear ACEScg.\n" + NEW_NODES, category: CAT("Save Image", "91 exr space") },
         { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
-// the model's official name in Settings is MOSS-Image (the node's own controls say MOSS Image)
+// the model's official name is MOSS-Image: what the user reads says so (dispModel); the stored / reported value stays 'MOSS Image'
 for (const d of SETTINGS) {
-    for (const k of ["name", "tooltip"]) if (typeof d[k] === "string") d[k] = d[k].replace(/MOSS Image/g, "MOSS-Image");
-    if (Array.isArray(d.options)) d.options = d.options.map((o) => (o && typeof o.text === "string" ? { ...o, text: o.text.replace(/MOSS Image/g, "MOSS-Image") } : o));
+    for (const k of ["name", "tooltip"]) if (typeof d[k] === "string") d[k] = dispModel(d[k]);
+    if (Array.isArray(d.options)) d.options = d.options.map((o) => (o && typeof o.text === "string" ? { ...o, text: dispModel(o.text) } : o));
 }
 SETTINGS.forEach((x, i) => { x.sortOrder = 1000 - i; });         // listed in this order (higher sortOrder first)
 // The pack was called "Regional Mask Kit" before: on the first start after the rename, copy the values set under

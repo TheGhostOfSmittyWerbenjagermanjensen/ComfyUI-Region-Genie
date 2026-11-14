@@ -100,7 +100,7 @@ ctl.apply(cfg("color"), "MOSS Image", "M", cond(), cond(), None, None, None, cma
 check("MOSS without vae: noted, not used", any("needs 'vae'" in x for x in notes))
 notes = []
 ctl.apply(cfg("color"), "MOSS Image", "M", cond(), cond(), VAE(), None, None, cmap, None, W, H, notes)
-check("MOSS without the LoRA in Settings: noted", any("no MOSS Image color / depth LoRA" in x for x in notes))
+check("MOSS without the LoRA in Settings: noted", any("no MOSS-Image color / depth LoRA" in x for x in notes))
 
 # ---------------------------------------------------------------- ControlNet files (SDXL / SD1.5 / Flux.1)
 fake = FakeCN()

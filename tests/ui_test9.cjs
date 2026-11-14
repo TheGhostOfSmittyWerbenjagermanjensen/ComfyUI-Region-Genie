@@ -211,7 +211,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // details: which file each model uses
     if (!await page.locator(".rg-subbody.ctrl").count()) await crow.locator(".rg-pseudo").click();
     await page.waitForTimeout(80);
-    check("details list the files and the map's source", /MOSS Image: LoRA moss_ctrl/.test(await page.locator(".rg-subbody.ctrl").textContent())
+    check("details list the files and the map's source", /MOSS-Image: LoRA moss_ctrl/.test(await page.locator(".rg-subbody.ctrl").textContent())
         && /regions' colors/.test(await page.locator(".rg-subbody.ctrl").textContent()));
     // per-region switch
     const rtog = page.locator('.rg-row.region .rg-btn.mini[title^="Control acts on this region"]');
@@ -262,7 +262,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     });
     await page.waitForTimeout(700);
     const msel = page.locator(".rg-settings select.rg-model");
-    check("footer model select: auto · MOSS Image, guessed through the LoRA loader", (await msel.locator("option").first().textContent()) === "auto · MOSS Image");
+    check("footer model select: auto · MOSS-Image, guessed through the LoRA loader", (await msel.locator("option").first().textContent()) === "auto · MOSS-Image");
     await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(150);
     s = await st();
     check("control on before any run: only the guessed model's LoRA (MOSS)", (s.sceneLoras || []).filter((x) => x.control).map((x) => x.lora).join() === "moss_ctrl.safetensors");
@@ -292,7 +292,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         && !((await st()).sceneLoras || []).some((x) => x.control));
     await page.evaluate(() => { window.__loader.widgets[0].value = "moss_image_base.safetensors"; });
     await page.waitForTimeout(700);
-    check("after rewiring, the new guess beats the old run", (await msel.locator("option").first().textContent()) === "auto · MOSS Image");
+    check("after rewiring, the new guess beats the old run", (await msel.locator("option").first().textContent()) === "auto · MOSS-Image");
     // Edit Mode: its edit LoRA follows the same model
     await page.locator(".rg-list .rg-row.ctrl .rg-btn.mini").first().click(); await page.waitForTimeout(100);
     await page.locator(".rg-settings .rg-seg button", { hasText: "Edit" }).click(); await page.waitForTimeout(150);

@@ -68,7 +68,7 @@ def _active():
 
 def _grid():
     """Token grid of the current model call: (h, w, (H, W, patch)) - h x w image tokens made from the H x W
-    latent in patch x patch pieces (MOSS Image and Ideogram 4: one token per latent pixel)."""
+    latent in patch x patch pieces (MOSS-Image and Ideogram 4: one token per latent pixel)."""
     return getattr(_state, "grid", None)
 
 
@@ -97,12 +97,12 @@ def _krea2_prefix(ids):
 class ModelArch:
     """Token layout of a model the one-pass engine supports.
 
-    Joint-attention models (MOSS Image, Krea 2, Ideogram 4, Flux, Flux 3) run image and text tokens as one
+    Joint-attention models (MOSS-Image, Krea 2, Ideogram 4, Flux, Flux 3) run image and text tokens as one
     sequence; cross-attention models (Anima, SDXL / SD1.5) keep the text apart and the image tokens read it in
     a separate cross-attention step.
 
     patch:      latent pixels per image token side (image tokens = ceil(H/patch) x ceil(W/patch), row-major)
-    order:      joint sequence order: "img_txt" [image, text, references] (MOSS Image), "txt_img" [text, image,
+    order:      joint sequence order: "img_txt" [image, text, references] (MOSS-Image), "txt_img" [text, image,
                 references] (Krea 2, Ideogram 4, Flux), "img_ref_txt" [image, references, text] (Flux 3)
     prefix:     tokens of the tokenized prompt the text encoder drops from the front (ids -> count)
     skip_lens:  sequence lengths that are not tokens (Krea 2's text fusion attends across its 12 encoder layers)
@@ -127,7 +127,7 @@ class ModelArch:
         self.multires = bool(multires)
         self.text_from = text_from
         self.family = family or name
-        self.layout = bool(layout)             # has a layout prompt format of its own (MOSS Image, Ideogram 4)
+        self.layout = bool(layout)             # has a layout prompt format of its own (MOSS-Image, Ideogram 4)
 
     @property
     def text_first(self):
@@ -138,7 +138,13 @@ class ModelArch:
         return (-(-H // p), -(-W // p), (H, W, p))
 
 
-ONE_PASS_MODELS = "MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5"
+ONE_PASS_MODELS = "MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5"
+
+
+def disp_model(text):
+    """The model's official name in what the user reads: MOSS-Image. ModelArch / the stored picks keep 'MOSS Image'
+    (saved workflows and the front end match on it), so model names put into notes are shown through this."""
+    return str(text).replace("MOSS Image", "MOSS-Image")
 # models without a layout format of their own: their regions are placed by keeping the regions apart in attention
 AUTO_APART_FAMILIES = ("Krea 2", "Flux", "Flux 3", "Anima", "SDXL / SD1.5")
 
@@ -229,7 +235,7 @@ def _layout(L, grid, text_len, arch):
 class TokenRegion:
     """A region mask turned into per-token LoRA weights inside the model.
 
-    The one-pass models run image and text tokens as one sequence (see ModelArch: MOSS Image puts the image
+    The one-pass models run image and text tokens as one sequence (see ModelArch: MOSS-Image puts the image
     tokens first, Krea 2 and Ideogram 4 the text tokens; reference tokens come last). A regional LoRA's change
     is multiplied by the mask at each image token and switched off for text/reference tokens and in the text-only layers, so the LoRA only acts on its region, within
     one model pass. Overlapping regions get both LoRAs.
@@ -831,7 +837,7 @@ def _ensure_hooks(base_model, lora):
 
 
 def _force_forward(base_model, loras):
-    """Fused paths (comfy.ops.linear_input_act, e.g. MOSS Image's ffn_down) skip a layer's forward (and so its
+    """Fused paths (comfy.ops.linear_input_act, e.g. MOSS-Image's ffn_down) skip a layer's forward (and so its
     hook) unless comfy_force_forward is set. Set it on the patched layers for this model call only, so the fast
     path is back as soon as the LoRAs are off. Returns what to undo."""
     hooked = getattr(base_model, _HOOKED_ATTR, None) or {}
@@ -1081,7 +1087,7 @@ def merge_loras(model, loras):
 
 def regional_lora_patch(model, clip, text, regions, scene, separation, until, notes, separate_all=False, tok_kw=None,
                         base=0, share_background=False):
-    """Regional LoRAs as one model patch (MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5), shared by the Region Genie and Regional
+    """Regional LoRAs as one model patch (MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5), shared by the Region Genie and Regional
     LoRAs nodes.
 
     text:    the prompt the sampler gets (encoded with `clip`), or None
@@ -1375,7 +1381,7 @@ class RegionalLoRAs:
         return {
             "required": {
                 "model": ("MODEL", {"tooltip": "The diffusion model (quantized models work). With lora_masking 'inside "
-                                               "the model' and a MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model, the LoRAs go "
+                                               "the model' and a MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model, the LoRAs go "
                                                "into the 'model' output, each acting only inside its mask. Otherwise "
                                                "they ride on 'positive' / 'negative' (one model pass per region)."}),
                 "clip": ("CLIP", {"tooltip": ("Text encoder. It encodes 'positive' and 'negative'. Inside the model, it also finds each "
@@ -1398,7 +1404,7 @@ class RegionalLoRAs:
                 "lora_masking": (MASKING_MODES, {"default": MASKING_MODES[0],
                                  "tooltip": ("inside the model (one pass): Each LoRA acts only on its mask's part of the image and on its "
                                              "region's caption, all in one model pass, like the LoRAs of the Region Genie node; index -1 LoRAs "
-                                             "are merged into the model like Load LoRA. Needs MOSS Image, Krea 2, Ideogram 4, Flux, Anima or "
+                                             "are merged into the model like Load LoRA. Needs MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or "
                                              "SDXL / SD1.5 (other models fall back to separate passes).\n"
                                              "separate passes (classic hooks): ComfyUI's hook method, one model pass per region with its "
                                              "LoRAs, blended by the masks. Works with any model, but strong styles can bleed across regions.")}),
@@ -1420,7 +1426,7 @@ class RegionalLoRAs:
                                                      "separation_until of the steps, at region_separation, with or without LoRAs, and each region's "
                                                      "caption speaks only to its own region.\n"
                                                      "Off: Only masks with LoRAs are kept apart.\n"
-                                                     "MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 with lora_masking 'inside the model' "
+                                                     "MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 with lora_masking 'inside the model' "
                                                      "only; a little slower and more VRAM while active.")}),
                 # added last, so saved workflows keep their widget values
                 "share_background": ("BOOLEAN", {"default": False,
@@ -1442,7 +1448,7 @@ class RegionalLoRAs:
     RETURN_TYPES = ("MODEL", "CONDITIONING", "CONDITIONING", "STRING")
     RETURN_NAMES = ("model", "positive", "negative", "lora_info")
     OUTPUT_TOOLTIPS = (("The model for the sampler.\n"
-                        "Inside the model (MOSS Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5): Carries the LoRAs, "
+                        "Inside the model (MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5): Carries the LoRAs, "
                         "each acting only inside its mask (index -1 LoRAs merged in everywhere).\n"
                         "Separate passes: The model unchanged (the LoRAs ride on 'positive' / 'negative')."),
                        ("The prompt with the rows' words added, encoded with clip (with separate passes, also with each "
@@ -1455,7 +1461,7 @@ class RegionalLoRAs:
     DESCRIPTION = ("Regional LoRAs from a batch of masks (int8 / fp8 / quantized models work). Each row applies a "
                    "LoRA inside one mask (index -1 for the whole image) and can add words, e.g. trigger words, to "
                    "that region's caption; rows with the same index stack on that region.\n"
-                   "MOSS Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5: All LoRAs act in one model pass, "
+                   "MOSS-Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5: All LoRAs act in one model pass, "
                    "each limited to its mask and its caption, like the LoRAs of the Region Genie node.\n"
                    "Other models: One model pass per region with ComfyUI's hooks.")
 
@@ -1593,7 +1599,7 @@ class RegionalLoRAs:
                 lines.append(f'scene caption + "{global_extra}"')
             lines += [rl.summary.splitlines()[0] for rl in loaded.values()]
 
-        info = "\n".join(lines + warn)
+        info = disp_model("\n".join(lines + warn))
         _log(f"{LOG} Regional LoRAs:\n{info}")
         ui = {"lora_info": [info], "mask_count": [n]}
         if fill.mod is not None:

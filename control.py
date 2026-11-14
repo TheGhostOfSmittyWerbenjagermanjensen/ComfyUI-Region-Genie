@@ -1,7 +1,7 @@
 """ControlNet for the Region Genie node: one control (color map / depth / canny / your own image) applied with what
 ComfyUI itself supports for the connected model.
 
-    MOSS Image   color / depth control LoRA (in 'Whole image'): the maps, VAE-encoded, as concat_latent_image
+    MOSS-Image   color / depth control LoRA (in 'Whole image'): the maps, VAE-encoded, as concat_latent_image
                  (what ComfyUI's 'MOSS-Image Color/Depth Control' node does); the color map is the node's own.
     Flux.1       the depth / canny dev LoRAs (in 'Whole image'): the map as concat_latent_image (like
                  InstructPixToPixConditioning); otherwise a ControlNet file (XLabs, InstantX, Union, Mistoline ...).
@@ -175,14 +175,14 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
     s, a, b = cfg["strength"], cfg["start"], cfg["end"]
     if arch_name == "MOSS Image":
         if kind not in ("color", "color+depth", "depth"):
-            notes.append(f"NOTE: control: MOSS Image's control LoRA reads a color map and / or a depth map, not {label}; "
+            notes.append(f"NOTE: control: MOSS-Image's control LoRA reads a color map and / or a depth map, not {label}; "
                          "control not used")
             return model, positive, negative, None
         if vae is None:
-            notes.append("NOTE: control: MOSS Image needs 'vae' connected to encode the maps; control not used")
+            notes.append("NOTE: control: MOSS-Image needs 'vae' connected to encode the maps; control not used")
             return model, positive, negative, None
         if not _have("MOSS", files.get("MOSS"), missing):
-            notes.append("NOTE: control: no MOSS Image color / depth LoRA is set in Settings > Region Genie > Control (or ComfyUI "
+            notes.append("NOTE: control: no MOSS-Image color / depth LoRA is set in Settings > Region Genie > Control (or ComfyUI "
                          "doesn't find it in models/loras), so the maps have nothing to read them")
         cm = _fit(color_map, width, height) if kind in ("color", "color+depth") else None
         dm = made("depth") if kind in ("color+depth", "depth") else None
@@ -201,12 +201,12 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         vals = {"concat_latent_image": control}
         positive = node_helpers.conditioning_set_values_with_timestep_range(positive, vals, a, b)
         negative = node_helpers.conditioning_set_values_with_timestep_range(negative, vals, a, b)
-        notes.append(f"control: MOSS Image {label}, strength {s:g}, {a:.0%}-{b:.0%}"
+        notes.append(f"control: MOSS-Image {label}, strength {s:g}, {a:.0%}-{b:.0%}"
                      + (" (inside the regions switched on for control)" if mask is not None else ""))
         return model, positive, negative, (dm if dm is not None else cm)
 
     if kind in ("color", "color+depth"):
-        notes.append(f"NOTE: control: the color map is for MOSS Image's control LoRA; with {arch_name} use depth, canny or "
+        notes.append(f"NOTE: control: the color map is for MOSS-Image's control LoRA; with {arch_name} use depth, canny or "
                      "your own control_image; control not used")
         return model, positive, negative, None
     img = made(kind)

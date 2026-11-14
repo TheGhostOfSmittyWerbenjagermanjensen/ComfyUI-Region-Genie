@@ -174,6 +174,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         await s.set(id, "default");
         return { name: def?.name || "", sent: pd.autoApart?.["MOSS Image"], keys: Object.keys(pd.autoApart || {}).join(",") };
     });
+    // round 16: the node's own controls say MOSS-Image too (stored values stay 'MOSS Image', so workflows keep loading)
+    await page.locator("select.rg-model").first().selectOption("MOSS Image"); await sleep(600);
+    const shown = await page.evaluate(async () => {
+        const out = [];
+        for (const r of document.querySelectorAll(".rg-wrap, .rg-size")) {
+            if (/MOSS Image/.test(r.innerText)) out.push("text: " + r.innerText.match(/.{0,30}MOSS Image.{0,20}/)[0]);
+            for (const e of r.querySelectorAll("[title]")) if (/MOSS Image/.test(e.title)) out.push("title: " + e.title.match(/.{0,30}MOSS Image.{0,20}/)[0]);
+            for (const o of r.querySelectorAll("option")) if (/MOSS Image/.test(o.textContent)) out.push("option: " + o.textContent);
+        }
+        const d = await (await fetch("/object_info")).json();
+        for (const [k, v] of Object.entries(d)) if (k.startsWith("Region-Genie_")) {
+            const tips = [...Object.values(v.input.required || {}), ...Object.values(v.input.optional || {})].map((x) => x[1]?.tooltip || "");
+            for (const t of [...tips, ...(v.output_tooltips || []), v.description || ""]) if (/MOSS Image/.test(t)) out.push(k + ": " + t.match(/.{0,30}MOSS Image.{0,20}/)[0]);
+        }
+        const sel = document.querySelector("select.rg-model");
+        return { out, value: sel.value, text: sel.selectedOptions[0]?.textContent };
+    });
+    check(`${M}: the node says MOSS-Image everywhere; the stored value stays 'MOSS Image' (${shown.text}; ${shown.out.slice(0, 3).join(" | ")})`,
+        !shown.out.length && shown.value === "MOSS Image" && shown.text === "MOSS-Image");
+    await page.locator("select.rg-model").first().selectOption(""); await sleep(400);
     const mossNames = await page.evaluate(() => Object.values(window.app.ui.settings.settingsParamLookup).filter((d) => /^RegionGenie/.test(d.id))
         .flatMap((d) => [d.name, d.tooltip || ""]).filter((t) => /MOSS[ -]Image/.test(t)));
     check(`${M}: Settings say MOSS-Image (the official name), never 'MOSS Image' (${mossNames.length} mentions)`,

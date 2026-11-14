@@ -596,17 +596,17 @@ def prompt_family(model, clip, choice="auto", hint=None, edit=False, pick=None, 
     hidden format value ("auto" or one of PROMPT_FORMATS; kept for API prompts). In auto: the connected model, else
     the connected clip's text encoder, else `hint` (the front end follows the 'prompt' output to the text encoder it
     feeds, and that encoder's loader), else MOSS.
-    MOSS Image takes plain text instead of its layout JSON in Edit Mode (the edit LoRA takes an instruction), in its
+    MOSS-Image takes plain text instead of its layout JSON in Edit Mode (the edit LoRA takes an instruction), in its
     standard mode (layout=False, the node's layout / standard switch) and when no region is drawn or shown
     (regions=False: no boxes to lay out)."""
     family, where = _prompt_family(model, clip, choice, hint, pick)
     if family == "moss":
         if edit:
-            return "plain", "MOSS Image edit: the edit LoRA takes an instruction"
+            return "plain", "MOSS-Image edit: the edit LoRA takes an instruction"
         if not layout:
-            return "plain", "MOSS Image standard mode (set on the node)"
+            return "plain", "MOSS-Image standard mode (set on the node)"
         if not regions:
-            return "plain", "MOSS Image without regions: standard mode"
+            return "plain", "MOSS-Image without regions: standard mode"
     return family, where
 
 
@@ -623,7 +623,7 @@ def _prompt_family(model, clip, choice, hint, pick):
     if te is not None:
         names = [c.__name__ for c in type(te).__mro__]
         if any(n.startswith("MOSSImage") for n in names):
-            return "moss", "MOSS Image text encoder"
+            return "moss", "MOSS-Image text encoder"
         if any(n.startswith("Ideogram4") for n in names):
             return "ideogram", "Ideogram 4 text encoder"
         # SD1ClipModel is the base of most encoders: only the class itself (or SD2's) means SD1.5 / SD2
@@ -926,7 +926,7 @@ class RegionGenie:
                 "paint_data": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
-                "model": ("MODEL", {"tooltip": ("MOSS Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model for the LoRAs set on the "
+                "model": ("MODEL", {"tooltip": ("MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model for the LoRAs set on the "
                                                 "regions (any model for 'Whole image'). The 'model' output is this model with each LoRA acting "
                                                 "only inside its region; connect it to the sampler. While the node's model dropdown is on auto, "
                                                 "it also picks the prompt format.")}),
@@ -941,7 +941,7 @@ class RegionGenie:
                 "size_from_image": ("IMAGE", {"tooltip": "Take width/height from this image. Takes priority over "
                                                          "size_from_latent and the width/height widgets."}),
                 "size_from_latent": ("LATENT", {"tooltip": "Take width/height from this latent (auto-detects 16x for "
-                                                           "MOSS Image / Flux 2 latents, 8x for SD/SDXL/Flux 1)."}),
+                                                           "MOSS-Image / Flux 2 latents, 8x for SD/SDXL/Flux 1)."}),
                 "import_mode": (IMPORT_MODES, {"default": IMPORT_MODES[0],
                                                "tooltip": ("What a new import_json does when the canvas already has layers.\n"
                                                            "ask before replacing: The node asks first (this run keeps the canvas).\n"
@@ -996,8 +996,8 @@ class RegionGenie:
     RETURN_NAMES = ("model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes", "elements",
                     "character_boxes", "region_info", "width", "height")
     OUTPUT_TOOLTIPS = (
-        ("The connected model with the regions' LoRAs, each acting only inside its region (one pass; MOSS "
-         "Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with "
+        ("The connected model with the regions' LoRAs, each acting only inside its region (one pass; MOSS-Image, "
+         "Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with "
          "'positive' as the prompt. Passed through unchanged when no LoRA is set and the regions aren't "
          "kept apart."),
         "'prompt' encoded with the connected clip. Empty when no clip is connected.",
@@ -1010,7 +1010,7 @@ class RegionGenie:
          "feathered as set in the region list header). Set the sampler's denoise below 1 to keep more of "
          "the source."),
         ("The prompt as text, in the format the model takes.\n"
-         "MOSS Image: MOSS-Image layout JSON (plain text in its standard mode, with no regions, and in "
+         "MOSS-Image: MOSS-Image layout JSON (plain text in its standard mode, with no regions, and in "
          "Edit Mode).\n"
          "Ideogram 4: Ideogram 4 caption JSON.\n"
          "Krea 2, Flux, Anima, SDXL / SD1.5 and other models: Plain text.\n"
@@ -1408,7 +1408,7 @@ class RegionGenie:
                 notes.append(f"NOTE: control could not be applied: {e}")
         lines += edit_notes
         lines += lora_lines
-        info = "\n".join([f"{count} region(s) on {width}x{height} canvas"] + lines + notes)
+        info = hl.disp_model("\n".join([f"{count} region(s) on {width}x{height} canvas"] + lines + notes))
         logging.info(f"{LOG} {info}")
         ui["region_info"] = [info]
         if ui_import is not None:
@@ -1428,7 +1428,7 @@ class RegionGenie:
         rows = [x for x in (pdata.get("sceneLoras") or []) if isinstance(x, dict) and x.get("edit") == "MOSS Image"
                 and x.get("on", True) and x.get("lora")]
         if not rows:
-            notes.append("NOTE: MOSS Image edit needs an edit LoRA (set one in Settings > Region Genie > Edit Mode, or "
+            notes.append("NOTE: MOSS-Image edit needs an edit LoRA (set one in Settings > Region Genie > Edit Mode, or "
                          "add it to Whole image); used the Moss-Image-Edit layout")
             return "Moss-Image-Edit"
         found = lora_edit_format(str(rows[0]["lora"]))

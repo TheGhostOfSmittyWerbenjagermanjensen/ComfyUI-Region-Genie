@@ -189,15 +189,15 @@ LATENT_SCALES = ["auto", "8", "16", "32"]
 
 
 def _latent_scale(latent, mode):
-    """Pixels per latent cell. MOSS Image / Flux 2 latents are 16x, SD/SDXL/Flux 1 are 8x."""
+    """Pixels per latent cell. MOSS-Image / Flux 2 latents are 16x, SD/SDXL/Flux 1 are 8x."""
     if mode != "auto":
         return int(mode), f"latent_scale set to {mode}"
     ratio = latent.get("downscale_ratio_spacial")
     if ratio:
         return int(ratio), f"latent reports {ratio}x"
     channels = int(latent["samples"].shape[1])
-    if channels == 128:  # Flux 2 / MOSS Image latent format
-        return 16, "128-channel latent (MOSS Image / Flux 2), assumed 16x"
+    if channels == 128:  # Flux 2 / MOSS-Image latent format
+        return 16, "128-channel latent (MOSS-Image / Flux 2), assumed 16x"
     return 8, f"{channels}-channel latent, assumed 8x"
 
 
@@ -235,7 +235,7 @@ def _common_inputs():
                                "tooltip": "On: The masks are inverted (everything except the box / region is white)."}),
         "latent_scale": (LATENT_SCALES, {"default": "auto",
                                          "tooltip": "Pixels per latent cell for size_from_latent. "
-                                                    "auto: 16 for MOSS Image / Flux 2 latents, 8 for SD/SDXL/Flux 1."}),
+                                                    "auto: 16 for MOSS-Image / Flux 2 latents, 8 for SD/SDXL/Flux 1."}),
     }
 
 
@@ -390,7 +390,7 @@ class MaskPicker:
                                               "any layout the BBoxes to Masks node reads."}),
                 "size_from_image": ("IMAGE", {"tooltip": "Resize the masks to this image's size."}),
                 "size_from_latent": ("LATENT", {"tooltip": "Resize the masks to this latent's image size "
-                                                           "(16x for MOSS Image / Flux 2 latents, 8x for SD/SDXL/Flux 1)."}),
+                                                           "(16x for MOSS-Image / Flux 2 latents, 8x for SD/SDXL/Flux 1)."}),
             },
         }
 
