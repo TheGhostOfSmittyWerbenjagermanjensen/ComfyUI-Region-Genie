@@ -4,7 +4,7 @@
 // - the sparkles button used on the region rows and on the Whole image row
 // Not an extension by itself.
 import { api } from "../../scripts/api.js";
-import { pickLora, getSetting, setSetting, SET, modelFilePicker, LLM_ROWS } from "./rg_shared.js";
+import { pickLora, getSetting, setSetting, SET, modelFilePicker, LLM_ROWS, filePickersOn } from "./rg_shared.js";
 
 export const LLM_TYPES = ["character", "object", "text", "scene"];
 const TYPE_LABEL = { character: "Character", object: "Object", text: "Text", scene: "Scene" };
@@ -222,8 +222,8 @@ body:has(.rg-llm-pop) .litecontextmenu, body:has(.rg-llm-pop) .litegraph.litecon
 
 // ---------------------------------------------------------------- shared by the pop-up and Settings
 const CLIP_LABEL = "The connected clip (MOSS-Image: Qwen3.5 9B; Krea 2 / Ideogram 4: Qwen3-VL)";
-const LLM_TIP = "The connected clip is used as it is (no extra memory). A file from ComfyUI's text_encoders folders, or "
-    + "anywhere with the folder button (Browse…), is loaded once and kept while it is in use.";
+const LLM_TIP = "The connected clip is used as it is (no extra memory). A file from ComfyUI's text_encoders folders (or "
+    + "anywhere with 'Browse… for model files' on in Settings > Region Genie > Model files) is loaded once and kept while in use.";
 // an LLM LoRA's file: a dropdown of models/loras and Browse…
 function loraPicker(value, onPick) {
     const p = modelFilePicker({ folders: ["loras"], none: "", noneLabel: "(choose a LoRA)", value, onPick, title: "An LLM LoRA" });
@@ -390,7 +390,12 @@ export async function openLlmSettings(anchor, host) {
                 const r = mk("div", "lora");
                 const on = mk("input"); on.type = "checkbox"; on.checked = x.on !== false; on.title = "on/off";
                 on.addEventListener("change", () => { x.on = on.checked; touch(); });
-                const nm = loraPicker(x.lora, (name) => { x.lora = name; touch(); });
+                let nm;
+                if (filePickersOn()) nm = loraPicker(x.lora, (name) => { x.lora = name; touch(); });
+                else {                                   // as before round 19: the LoRA menu
+                    nm = mk("button", "name", x.lora); nm.title = x.lora + " (click to change)";
+                    nm.addEventListener("click", (e) => pickLora(e, (name) => { x.lora = name; touch(); renderLoras(); }));
+                }
                 const st = mk("input"); st.type = "number"; st.step = "0.05"; st.min = "-100"; st.max = "100"; st.value = String(x.strength); st.title = "Strength";
                 st.addEventListener("change", () => { const v = +st.value; if (Number.isFinite(v)) { x.strength = v; touch(); } });
                 const del = mk("button", null, "✕"); del.title = "Remove";

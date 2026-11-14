@@ -33,7 +33,8 @@ for (const sub of ["loras", "controlnet"]) {
     const lists = await page.evaluate(async () => (await (await fetch("/models/loras")).json()).filter((x) => /rgtest_/.test(x)));
     check(`the odd file names are listed by ComfyUI (${lists.length})`, lists.length === ODD.length);
     // a set value with odd characters must show too
-    await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.Krea2", "rgtest_char@v2.safetensors"); });
+    await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.ModelFiles.Browse", false);
+        await s.set("RegionGenie.Edit.LoRA.Krea2", "rgtest_char@v2.safetensors"); });
     errors.length = 0;
     await page.keyboard.press("Control+,"); await sleep(1500);
     await page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); });
@@ -46,6 +47,39 @@ for (const sub of ["loras", "controlnet"]) {
     check(`every Region Genie setting shows in the dialog (${r.n}; missing: ${r.missing.slice(0, 6).join(" | ")})`, r.n > 80 && !r.missing.length);
     const i18n = errors.filter((e) => /SyntaxError|i18n|compile/i.test(e));
     check(`no translation errors while it shows (${i18n.slice(0, 2).join(" | ")})`, !i18n.length);
+    // round 21: by default ComfyUI's own dropdowns (no Browse…); their labels go through the dialog's translation, so
+    // every odd name must come back exactly (the dialog's own path: the setting's options through $t)
+    const nat = await page.evaluate(() => {
+        const look = window.app.ui.settings.settingsParamLookup;
+        const el = [...document.querySelectorAll("*")].find((e) => e.__vue_app__), t = el.__vue_app__.config.globalProperties.$t;
+        const ids = Object.keys(look).filter((id) => /^RegionGenie\.(Control|Edit\.LoRA)\./.test(id));
+        const bad = [];
+        for (const id of ids) {
+            const d = look[id];
+            if (d.type !== "combo" || typeof d.options !== "function") { bad.push(id + " is " + typeof d.type); continue; }
+            for (const o of d.options(d.defaultValue)) {
+                try { const r = t(`settings.${id.replace(/\./g, "_")}.options.${o.text.replace(/\./g, "_")}`, o.text); if (r !== o.value) bad.push(`${o.value} -> ${r}`); }
+                catch (e) { bad.push(`${o.value} (${e})`); }
+            }
+        }
+        const lora = look["RegionGenie.Edit.LoRA.MOSS"].options("(none)").map((o) => o.value);
+        return { n: ids.length, bad: bad.slice(0, 4), browse: document.querySelectorAll('[role="dialog"] .rg-file button').length,
+                 backslash: lora.includes("rgtest_sub\\@author\\x.safetensors"), sam: look["RegionGenie.Select.Model"].type };
+    });
+    check(`Browse… off (default): ComfyUI's dropdowns, every odd name shows exactly, no Browse buttons (${nat.n} settings; ${nat.bad.join(" | ")})`,
+        nat.n === 25 && !nat.bad.length && nat.browse === 0 && nat.backslash && nat.sam === "text");
+    const kreaLine = await page.evaluate(() => {
+        const lines = (document.querySelector('[role="dialog"]')?.innerText || "").split("\n").map((x) => x.trim()).filter(Boolean);
+        const i = lines.findIndex((l) => /^Krea 2: edit LoRA/.test(l));
+        return i < 0 ? "" : lines.slice(i, i + 2).join(" → ");
+    });
+    check(`a set value with '@' shows as it is in ComfyUI's dropdown (${kreaLine.slice(0, 80)})`, /rgtest_char@v2\.safetensors/.test(kreaLine));
+    // Browse… on: Region Genie's pickers (the dialog follows the switch)
+    await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.ModelFiles.Browse", true); });
+    await page.keyboard.press("Escape"); await sleep(800);
+    await page.keyboard.press("Control+,"); await sleep(1500);
+    await page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); });
+    await sleep(2500);
     // round 18: every model-file setting is Region Genie's own picker (dropdown + Browse…); names show as they are
     const pk = await page.evaluate(() => {
         const pickers = [...document.querySelectorAll('[role="dialog"] .rg-file')];
@@ -85,7 +119,8 @@ for (const sub of ["loras", "controlnet"]) {
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.MOSS", "(none)"); });
     fs.rmSync(path.join(DIR, "..", "rgtest_outside"), { recursive: true, force: true });
     await page.keyboard.press("Escape");
-    await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.Krea2", "(none)"); });
+    await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Edit.LoRA.Krea2", "(none)");
+        await s.set("RegionGenie.ModelFiles.Browse", false); });
     await browser.close();
     for (const f of made) try { fs.unlinkSync(f); } catch (e) { /* gone */ }
     console.log(fails.length ? `${fails.length} failed` : "all passed");

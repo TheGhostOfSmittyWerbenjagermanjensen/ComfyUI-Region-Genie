@@ -154,6 +154,81 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     check(`${M}: Edit Mode's LoRA goes when switching to Generate, also after Ctrl+Z; a control LoRA goes with Control off (${JSON.stringify(managed)})`,
         managed.inEdit.includes("edit") && !managed.inGen.includes("edit") && !managed.afterUndo.includes("edit") && !managed.ctlOff.includes("control"));
+    // round 21: the footer stays on one row (also narrower, and with wider fonts), the model dropdown is centred
+    // with the layout / standard button, and edit_area has no "change" label
+    const ft = await page.evaluate(async () => {
+        const rg = window.__rg, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        const seg = (t) => [...document.querySelectorAll(".rg-settings button")].find((b) => b.textContent.trim() === t)?.click();
+        const w0 = rg.size[0];
+        rg.properties.rg_model_pick = "MOSS-Image"; rg.__rgRefresh(); seg("Edit"); await wait(800);
+        const m = () => {
+            const f = document.querySelector(".rg-foot"), s = document.querySelector(".rg-settings");
+            const vis = [...f.querySelectorAll(":scope > *, .rg-settings > *")].filter((k) => k !== s && k.getBoundingClientRect().width > 0);
+            const first = vis[0].getBoundingClientRect();
+            const sel = document.querySelector(".rg-settings select.rg-model").getBoundingClientRect(), lay = document.querySelector(".rg-layout").getBoundingClientRect();
+            return { one: vis.every((k) => k.getBoundingClientRect().top < first.bottom), d: Math.abs((sel.top + sel.bottom) - (lay.top + lay.bottom)) / 2 };
+        };
+        const def = m();
+        const label = [...document.querySelectorAll(".rg-settings .rg-hint")].some((h) => h.textContent.trim() === "change");
+        rg.setSize([520, rg.size[1]]); window.app.canvas.setDirty(true, true); await wait(700);
+        const narrow = m();
+        const st = document.createElement("style"); st.textContent = ".rg-foot, .rg-foot select, .rg-foot button { font-size:15px !important; }"; document.head.appendChild(st);
+        rg.setSize([w0, rg.size[1]]); window.app.canvas.setDirty(true, true); await wait(700);
+        const big = m(); st.remove();
+        seg("Generate"); await wait(500);
+        return { def, narrow, big, label };
+    });
+    check(`${M}: the footer is one row (default width, 520 px, 15 px fonts) (${JSON.stringify(ft)})`, ft.def.one && ft.narrow.one && ft.big.one);
+    check(`${M}: the model dropdown is centred with the layout button (${ft.def.d} px); no "change" label`, ft.def.d <= 0.5 && !ft.label);
+    // round 20: holes are a ✂ switch on a layer (no 'Unspecified' row); the Layout icon shows Standard while no region
+    // is drawn and shown (holes don't count)
+    const hl = await page.evaluate(async () => {
+        const rg = window.__rg, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        const lay = () => { const b = document.querySelector(".rg-layout"); return { on: b.classList.contains("on"), title: b.title }; };
+        const st = rg.__rgState(), keep = JSON.parse(JSON.stringify({ regions: st.regions, layers: st.layers }));
+        st.regions = []; st.layers = []; rg.__rgRefresh(); await wait(900);
+        const empty = lay();
+        const unspecRow = [...document.querySelectorAll(".rg-list .rg-row")].some((r) => /Unspecified/.test(r.textContent));
+        st.regions = [{ id: 1, color: "#E6194B", prompt: "a red cat", type: "object", text: "" }];
+        st.layers = [{ id: 1, name: "Rect 1", region: 1, visible: true, shape: "rect", sides: 5, bw: 0.5, bh: 1, sx: 1, sy: 1, rot: 0, ox: -0.25, oy: 0, ops: [] }];
+        rg.__rgRefresh(); await wait(900);
+        const drawn = lay();
+        st.regions[0].hidden = true; rg.__rgRefresh(); await wait(900);
+        const hidden = lay();
+        delete st.regions[0].hidden; rg.__rgRefresh(); await wait(600);
+        rg.__rgSelectLayer(1); await wait(500);
+        const cut = [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.textContent === "✂");
+        const offTitle = cut?.title || "";
+        cut?.click(); await wait(900);
+        const L = rg.__rgState().layers[0];
+        const row = document.querySelector('.rg-list .rg-row.layer[data-lid="1"]');
+        const asHole = { region: L.region, owner: L.owner, listed: !!row, hatched: !!row?.classList.contains("hole"),
+                         on: !![...(row?.querySelectorAll("button") || [])].find((b) => b.textContent === "✂" && b.classList.contains("on")) };
+        const holeOnly = lay();
+        [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.textContent === "✂")?.click(); await wait(900);
+        const back = { region: rg.__rgState().layers[0].region, owner: rg.__rgState().layers[0].owner };
+        const again = lay();
+        // an old workflow's 'Unspecified' layer (region 0, no owner): listed under the region of the layer below it
+        st.regions = [{ id: 1, color: "#E6194B", prompt: "a", type: "object", text: "" }, { id: 2, color: "#3CB44B", prompt: "b", type: "object", text: "" }];
+        st.layers = [{ id: 1, name: "B", region: 2, visible: true, shape: "rect", sides: 5, bw: 0.5, bh: 1, sx: 1, sy: 1, rot: 0, ox: 0.25, oy: 0, ops: [] },
+                     { id: 2, name: "Unspecified 2", region: 0, visible: true, shape: "rect", sides: 5, bw: 0.2, bh: 0.2, sx: 1, sy: 1, rot: 0, ox: 0.25, oy: 0, ops: [] },
+                     { id: 3, name: "A", region: 1, visible: true, shape: "rect", sides: 5, bw: 0.5, bh: 1, sx: 1, sy: 1, rot: 0, ox: -0.25, oy: 0, ops: [] }];
+        rg.__rgRefresh(); await wait(400); rg.__rgSelectLayer(2); await wait(600);
+        const oldRow = document.querySelector('.rg-list .rg-row.layer[data-lid="2"]');
+        const rows = [...document.querySelectorAll(".rg-list .rg-row")];
+        const under = rows.slice(0, rows.indexOf(oldRow)).reverse().find((r) => r.classList.contains("region"))?.querySelector("textarea")?.value;
+        const oldHole = { listed: !!oldRow?.classList.contains("hole"), under: under === "b" };
+        st.regions = keep.regions; st.layers = keep.layers; rg.__rgRefresh(); await wait(600);
+        return { empty, unspecRow, drawn, hidden, offTitle, asHole, holeOnly, back, again, oldHole };
+    });
+    check(`${M}: no 'Unspecified' row; with no regions the Layout icon shows Standard and says why`,
+        !hl.unspecRow && !hl.empty.on && /Standard by itself: No region is drawn and shown/.test(hl.empty.title));
+    check(`${M}: a drawn region brings Layout back; hiding it shows Standard again`, hl.drawn.on && !hl.hidden.on);
+    check(`${M}: ✂ on a layer makes it a hole, still listed under its region (hatched, ✂ lit) (${JSON.stringify(hl.asHole)})`,
+        /^Hole: Off/.test(hl.offTitle) && hl.asHole.region === 0 && hl.asHole.owner === 1 && hl.asHole.listed && hl.asHole.hatched && hl.asHole.on);
+    check(`${M}: an old workflow's 'Unspecified' layer is listed as a hole under the region below it (${JSON.stringify(hl.oldHole)})`, hl.oldHole.listed && hl.oldHole.under);
+    check(`${M}: only a hole left: Standard; ✂ again paints the region again and Layout is back`,
+        !hl.holeOnly.on && hl.back.region === 1 && hl.back.owner === undefined && hl.again.on);
     // round 18: in Edit Mode the Edit row is always there; with no edit LoRA for the model it offers the picker, and a
     // pick there sets the Setting and adds the LoRA to Whole image
     const fsx = require("fs"), pathx = require("path");
@@ -179,10 +254,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         seg("Generate"); await wait(700);
         const genAfter = !!document.querySelector(".rg-row.ctrl.edit");
         await s.set("RegionGenie.Edit.LoRA.MOSS", "(none)");
-        return { genRow, text, picker: !!sel && !!btn, listed, setting, tags, after, genAfter };
+        return { genRow, text, picker: !!sel && !btn, listed, setting, tags, after, genAfter };
     });
     fsx.unlinkSync(editFile);
-    check(`${M}: Edit row: only in Edit Mode, says there's no edit LoRA for the model, with a picker (${er.text.slice(0, 60)})`,
+    check(`${M}: Edit row: only in Edit Mode, says there's no edit LoRA for the model, with a dropdown (no Browse… by default) (${er.text.slice(0, 60)})`,
         !er.genRow && /^Edit No edit LoRA for MOSS-Image:/.test(er.text) && er.picker && er.listed && !er.genAfter);
     check(`${M}: Edit row: a pick sets the Setting and adds the LoRA to Whole image (${er.setting}; ${er.tags})`,
         er.setting === "rgtest_edit_row.safetensors" && er.tags === "MOSS-Image:rgtest_edit_row.safetensors" && /LoRA for MOSS-Image:/.test(er.after));

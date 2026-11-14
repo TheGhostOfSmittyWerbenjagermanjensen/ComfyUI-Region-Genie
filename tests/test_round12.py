@@ -44,6 +44,14 @@ for r in hid["regions"]:
     r["hidden"] = True
 p, f = run({"modelPick": "MOSS-Image"}, pd=hid)
 check("MOSS-Image, every region hidden: plain text by itself", f == "text" and "a red cat" not in p)
+# round 20: hole layers (region 0, listed under a region with 'owner') don't count as regions either
+holes = {"v": 2, "regions": regions, "layers": [dict(rect(1, 0, -.25), owner=1), dict(rect(2, 0, .25), owner=2)]}
+p, f = run({"modelPick": "MOSS-Image"}, pd=holes)
+check("MOSS-Image, only hole layers: plain text by itself", f == "text" and "a red cat" not in p)
+hole_over = {"v": 2, "regions": regions, "layers": [rect(1, 1, -.25), rect(2, 2, .25), dict(rect(3, 0, .25), owner=2)]}
+p, f = run({"modelPick": "MOSS-Image"}, pd=hole_over)
+check("a hole over a region's only layer removes that region; the other stays (layout JSON)",
+      f == "MOSS JSON" and [x["caption"] for x in json.loads(p)["items"]] == ["a red cat"])
 p, f = run({"modelPick": "Ideogram 4"})
 j = json.loads(p)
 check("picked Ideogram 4: caption JSON with the background", f == "Ideogram JSON"

@@ -32,7 +32,9 @@ fs.writeFileSync(outLlm, "");
     for (let i = 0; i < 3; i++) { await page.keyboard.press("Escape"); await sleep(300); }
     const backup = await page.evaluate(async (f) => { const r = await fetch(`/userdata/${f}`); return r.status === 200 ? await r.text() : null; }, LIB);
     const readLib = () => page.evaluate(async (f) => { const r = await fetch(`/userdata/${f}`); return r.status === 200 ? await r.json() : null; }, LIB);
-    await page.evaluate(async (vue) => { const s = window.app.extensionManager.setting; await s.set("Comfy.VueNodes.Enabled", vue); await s.set("RegionGenie.LLM.EditPreset", ""); }, vue);
+    // round 21: Browse… is off by default; this test checks it with it on (and the default at the end)
+    await page.evaluate(async (vue) => { const s = window.app.extensionManager.setting; await s.set("Comfy.VueNodes.Enabled", vue); await s.set("RegionGenie.LLM.EditPreset", "");
+        await s.set("RegionGenie.ModelFiles.Browse", true); }, vue);
     await sleep(800);
     // a node, so the LLM module is loaded the way it is in use
     await page.evaluate(async () => {
@@ -160,6 +162,18 @@ fs.writeFileSync(outLlm, "");
         && await page.locator(".rg-llm-pop").count() === 1);
     await page.keyboard.press("Escape");
 
+    // Browse… off (the default): the pop-up's LLM is a plain dropdown, its LoRAs the LoRA-menu buttons, as before
+    await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.ModelFiles.Browse", false); });
+    await page.keyboard.press("Escape"); await sleep(400);
+    await page.evaluate(() => document.querySelector(".rg-llmset")?.click()); await sleep(1200);
+    const off = await page.evaluate(() => {
+        const p = document.querySelector(".rg-llm-pop");
+        return { browse: p.querySelectorAll(".rg-file button").length, llmSel: !!p.querySelector(".rg-file select"),
+                 loraBtn: [...p.querySelectorAll(".lora button.name")].length };
+    });
+    check(`${M}: with Browse… off: no Browse buttons, the LLM dropdown and the LoRA buttons as before (${JSON.stringify(off)})`,
+        off.browse === 0 && off.llmSel && off.loraBtn >= 1);
+    await page.keyboard.press("Escape");
     check(`${M}: no errors (${errors.slice(0, 2).join(" | ")})`, !errors.length);
     // restore the library and the setting
     await page.evaluate(async ([f, b]) => {
