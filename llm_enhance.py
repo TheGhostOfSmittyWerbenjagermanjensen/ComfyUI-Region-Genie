@@ -335,7 +335,11 @@ def load_llm(settings, connected_clip):
     import folder_paths
     if settings["llm"]:
         import comfy.sd
-        path = folder_paths.get_full_path_or_raise("text_encoders", settings["llm"])
+        from .model_paths import full_path       # a name in models/text_encoders, or a full path (Browse…)
+        path = full_path("text_encoders", settings["llm"])
+        if path is None:
+            raise FileNotFoundError(f"Region Genie: the LLM file '{settings['llm']}' isn't found (in ComfyUI's "
+                                    "text_encoders folders or at that path); choose it again in the LLM settings")
         t = settings["llm_type"]
         key = (path, t)
         base = _llm_files.get(key)
@@ -365,7 +369,11 @@ def load_llm(settings, connected_clip):
         import comfy.utils
         clip = base
         for name, strength in loras:
-            path = folder_paths.get_full_path_or_raise("loras", name)
+            from .model_paths import full_path   # a name in models/loras, or a full path (Browse…)
+            path = full_path("loras", name)
+            if path is None:
+                raise FileNotFoundError(f"Region Genie: the LLM LoRA '{name}' isn't found (in ComfyUI's loras folders "
+                                        "or at that path)")
             if path not in _lora_files:
                 if len(_lora_files) >= 4:
                     _lora_files.pop(next(iter(_lora_files)))

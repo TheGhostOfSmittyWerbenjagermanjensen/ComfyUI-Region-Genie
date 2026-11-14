@@ -55,7 +55,7 @@ for (const sub of ["loras", "controlnet"]) {
         return { n: pickers.length, krea: !!krea, backslash: sels.some((x) => [...x.options].some((o) => o.value === "rgtest_sub\\@author\\x.safetensors")),
                  buttons: pickers.filter((p) => p.querySelector("button svg")).length, first: opts.slice(0, 3).join(" | ") };
     });
-    check(`every model-file setting is a picker with a Browse… button (${pk.n} pickers, ${pk.buttons} buttons)`, pk.n === 26 && pk.buttons === 26);
+    check(`every model-file setting is a picker with a Browse… button (${pk.n} pickers, ${pk.buttons} buttons)`, pk.n === 27 && pk.buttons === 27);
     check(`a set value with '@' shows as it is; a 'sub\\@author' name is listed (${pk.first})`, pk.krea && pk.backslash);
     // Browse…: a file outside ComfyUI's folders is saved by its full path
     const outDir = path.join(DIR, "..", "rgtest_outside", "@author");

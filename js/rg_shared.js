@@ -326,7 +326,7 @@ export function openFileBrowser({ folders = ["loras"], title = "Choose a model f
 }
 // A model-file picker: a dropdown of the files ComfyUI lists for `folders` (plus the set value) and a Browse button.
 // onPick(value) gets the new value. Used in Settings (a custom setting type) and on the Edit row.
-export function modelFilePicker({ folders, none, value, onPick, title }) {
+export function modelFilePicker({ folders, none, noneLabel, value, onPick, title }) {
     fbCss();
     const box = document.createElement("div"); box.className = "rg-file";
     const sel = document.createElement("select");
@@ -336,9 +336,9 @@ export function modelFilePicker({ folders, none, value, onPick, title }) {
     const fill = (files) => {
         sel.replaceChildren();
         const add = (v, t, tip) => { const o = document.createElement("option"); o.value = v; o.textContent = t; if (tip) o.title = tip; sel.appendChild(o); };
-        add(none, none);
+        add(none, noneLabel || none);
         const names = files.map((f) => f.name);
-        if (cur && cur !== none && !names.includes(cur)) add(cur, isFullPath(cur) ? `${fileBase(cur)}  (${cur})` : cur, cur);
+        if (cur && cur !== none && !names.includes(cur)) add(cur, isFullPath(cur) ? `${fileBase(cur)}  (${cur})` : `${cur}  (not found)`, cur);
         const multi = new Set(files.map((f) => f.folder)).size > 1;
         for (const f of files) if (f.name !== none) add(f.name, multi ? `${f.name}  (${f.folder})` : f.name);
         sel.value = cur;
@@ -374,6 +374,39 @@ export function modelFilePicker({ folders, none, value, onPick, title }) {
 const fileSettingType = (folders, none, id) => (name, setter, value) =>
     modelFilePicker({ folders, none, value: typeof value === "string" && value ? value : none, title: name,
                       onPick: (v) => { try { setter(v); } catch (e) { /* the dialog is gone */ } if (id) setSetting(id, v); } });
+
+// ---------------------------------------------------------------- the LLM presets in Settings (round 19)
+// One Settings row per field of the LLM Prompt Enhancer's presets (the pop-up's library, in user data, not in
+// ComfyUI's settings): rg_llm.js fills in LLM_ROWS.render(key) when it loads.
+export const LLM_ROWS = { render: null };
+const llmRowType = (key) => () => {
+    if (LLM_ROWS.render) return LLM_ROWS.render(key);
+    const e = document.createElement("span"); e.textContent = "…"; return e;
+};
+const SAMPLED = "\nUsed only while the preset's sampling is on (Generate Text hides it otherwise).";
+// [key, name, tooltip]; each row edits the preset chosen in 'Preset to edit' and saves at once
+export const LLM_FIELDS = [
+    ["name", "Preset: name", "The preset's name. Press Enter (or leave the field) to rename it; the defaults above follow."],
+    ["llm", "Preset: LLM", "The LLM that rewrites the prompts.\nThe connected clip: Used as it is (no extra memory).\n"
+        + "A file: From ComfyUI's text_encoders folders, or anywhere with the folder button (Browse…); loaded once and kept while in use."],
+    ["llm_type", "Preset: LLM type", "As the 'type' of Load CLIP, for an LLM file. Auto works for plain Qwen3 / Qwen3.5 / Gemma files."],
+    ["loras", "Preset: LLM LoRAs", "LoRAs applied to the LLM only (like Load LoRA (Text Encoder)); the image model and the clip "
+        + "used for conditioning are not changed. Each one: on / off, the file (dropdown or Browse…), strength, ✕ removes it."],
+    ["system_prompt", "Preset: system prompt", "Sent as the system prompt (Generate Text's system_prompt). Ignored when the preset's default template is off."],
+    ["max_length", "Preset: max_length", "Most tokens the LLM writes."],
+    ["sampling", "Preset: sampling", "On: Sampling with the settings below.\nOff (default): Greedy decoding, always the same text for "
+        + "the same input; temperature, top_k, top_p, min_p, the penalties and the seed are not used."],
+    ["temperature", "Preset: temperature", "Sampling temperature." + SAMPLED],
+    ["top_k", "Preset: top_k", "Sample from the k most likely tokens (0 = all)." + SAMPLED],
+    ["top_p", "Preset: top_p", "Sample from the most likely tokens up to this total probability." + SAMPLED],
+    ["min_p", "Preset: min_p", "Leave out tokens less likely than this share of the most likely one." + SAMPLED],
+    ["repetition_penalty", "Preset: repetition_penalty", "Penalty for repeating tokens (1 = none)." + SAMPLED],
+    ["presence_penalty", "Preset: presence_penalty", "Penalty for tokens already used (0 = none)." + SAMPLED],
+    ["seed", "Preset: seed", "The seed (a region's right-click 'Run again with a new seed' adds to it for that region)." + SAMPLED],
+    ["thinking", "Preset: thinking", "Thinking mode, if the model supports it (the reasoning is shown in the sparkles button's tooltip, not used)."],
+    ["use_default_template", "Preset: default template", "Use the model's built-in chat template (needed for the system prompt)."],
+    ["mtp", "Preset: mtp", "Speculative decoding with the model's multi-token-prediction head (no effect without MTP weights)."],
+];
 
 // ---------------------------------------------------------------- Control (ControlNet / control LoRAs)
 // [Settings key, label, model folder, model (as ui.model_arch says), LoRA tag kind or null]. One file per model and kind;
@@ -1254,6 +1287,7 @@ export const SET = {
     acDefault: AC_DEFAULT_SETTING,
     llmContext: "RegionGenie.LLM.Context",
     llmNewRegions: "RegionGenie.LLM.NewRegionsOn",
+    llmEdit: "RegionGenie.LLM.EditPreset",
     wcPerField: "RegionGenie.Wildcards.PerField",
     control: "RegionGenie.Control",
     // text size per kind of field, in the node and in the pop-up editors (0 in the node = as before)
@@ -1408,6 +1442,23 @@ const SETTINGS = [
             id: SET.llmNewRegions, name: "New regions start with the LLM Prompt Enhancer on", type: "boolean", defaultValue: false,
             category: CAT("LLM Prompt Enhancer", "2 new regions"),
         },
+        // round 19: the presets (as in the node's LLM settings pop-up), one row per field
+        ...[["character", "Character"], ["object", "Object"], ["text", "Text"], ["scene", "Scene"]].map(([t, label], i) => ({
+            id: `RegionGenie.LLM.Default.${t}`, name: `Default preset: ${label}`, type: llmRowType("default." + t), defaultValue: "",
+            tooltip: `The preset for ${label.toLowerCase()} prompts in every Region Genie node that hasn't chosen its own `
+                + "(a node's LLM settings can choose another for that node only).",
+            category: CAT("LLM Prompt Enhancer", "2a default " + i),
+        })),
+        {
+            id: SET.llmEdit, name: "Preset to edit", type: llmRowType("edit"), defaultValue: "",
+            tooltip: "The preset the rows below show and change (saved at once, for all your workflows).\n"
+                + "New: A copy of this preset under a new name.\nDelete: Removes it (not while it is a default above; click twice).",
+            category: CAT("LLM Prompt Enhancer", "2b edit"),
+        },
+        ...LLM_FIELDS.map(([key, name, tooltip], i) => ({
+            id: `RegionGenie.LLM.Preset.${key}`, name, type: llmRowType("field." + key), defaultValue: "", tooltip,
+            category: CAT("LLM Prompt Enhancer", "2c field " + String(i).padStart(2, "0")),
+        })),
         {
             id: SET.llmCacheDisk, name: "Keep LLM results on disk between ComfyUI restarts", type: "boolean", defaultValue: false,
             tooltip: "Off (default): Enhanced prompts are kept in memory for this session, and in each workflow that used "
