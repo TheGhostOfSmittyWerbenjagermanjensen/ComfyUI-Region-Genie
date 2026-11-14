@@ -442,6 +442,8 @@ textarea.rg-scene-ta { padding-right:20px !important; }
 .rg-pop .rg-wc-pick { line-height:0; padding:1px 3px; }
 .rg-row.ctrl.off .rg-pseudo { opacity:.6; }
 .rg-row.ctrl.edit { cursor:default; }
+.rg-row.layer.hole .rg-sw { background:repeating-linear-gradient(135deg, #000 0 3px, #8a8a8a 3px 4px); }
+.rg-row.layer .ico.on { color:var(--p-primary-color, #4a9eff); border-color:var(--p-primary-color, #4a9eff); }
 .rg-row.ctrl.edit:hover { background:none; }
 .rg-row .rg-file { width:auto; min-width:0; max-width:none; flex:1 1 auto; gap:4px; }
 .rg-row .rg-file select { padding:1px 4px; border-radius:4px; font-size:11px; }
@@ -754,6 +756,8 @@ function parseState(text, W, H) {
         regions: (d.regions || []).filter((r) => r && r.id != null).map(normRegion),
         layers: d.layers.filter((l) => l && typeof l === "object").map((l) => ({
             id: l.id, name: l.name || "Layer", region: l.region ?? UNSPEC, visible: l.visible !== false,
+            // a hole (region 0) is listed under the region it was made in (round 20)
+            ...((l.region ?? UNSPEC) === UNSPEC && l.owner != null ? { owner: l.owner } : {}),
             shape: l.shape || null, sides: l.sides || 5, bw: +l.bw || 1, bh: +l.bh || 1, sx: +l.sx || 1, sy: +l.sy || 1,
             ...(l.shape === "roundrect" ? { radius: Math.max(0, Math.min(50, Number.isFinite(+l.radius) ? +l.radius : 20)) } : {}),
             rot: +l.rot || 0, ...layerCentre(l, W, H), ops: Array.isArray(l.ops) ? l.ops : [],
@@ -1541,15 +1545,29 @@ app.registerExtension({
                     + (lastFormat ? `\nThe last run's prompt format: ${lastFormat}.` : "");
                 modelSel.classList.toggle("picked", !!pick);
                 // MOSS-Image's layout / standard switch
-                const moss = info.arch === "MOSS-Image", layout = node.properties?.rg_moss_layout !== false;
-                layoutBtn.style.display = moss ? "" : "none";
+                layoutBtn.style.display = info.arch === "MOSS-Image" ? "" : "none";
+                syncLayoutBtn();
+                syncBackground();
+            }
+            // round 20: the icon shows the mode the run will use: standard by itself while no region is drawn and shown
+            // (holes don't count) and in Edit Mode, even when layout is chosen; layout comes back with a region
+            let layoutAuto = null;
+            function syncLayoutBtn(anyRegion) {
+                if (anyRegion === undefined) anyRegion = outputIndexMap().some((v) => v != null);
+                const want = node.properties?.rg_moss_layout !== false, edit = isEdit();
+                const layout = want && anyRegion && !edit;
+                const key = `${want}|${anyRegion}|${edit}`;
+                if (key === layoutAuto) return;
+                layoutAuto = key;
                 setHTML(layoutBtn, svgIcon(layout ? "mossLayout" : "mossStandard"));
                 layoutBtn.classList.toggle("on", layout);
+                const why = !want ? "" : edit ? "\nStandard by itself: Edit Mode always sends plain text (the edit LoRA takes an instruction)."
+                    : !anyRegion ? "\nStandard by itself: No region is drawn and shown. Layout comes back when one is." : "";
                 layoutBtn.title = (layout
-                    ? "MOSS-Image layout mode: The prompt is MOSS layout JSON, with each region's box. Click for standard mode"
-                    : "MOSS-Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them). Click for layout mode")
-                    + ". With no region drawn or shown, the run uses standard mode by itself. Edit Mode always sends plain text (the edit LoRA takes an instruction).";
-                syncBackground();
+                    ? "MOSS-Image layout mode: The prompt is MOSS layout JSON, with each region's box. Click for standard mode."
+                    : want ? "MOSS-Image standard mode (for now): The prompt is plain text. Click to choose standard mode for good."
+                    : "MOSS-Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them). Click for layout mode.")
+                    + why;
             }
             // the files the Control row needs for the model and kind, and the ones ComfyUI doesn't have: the message bar
             // shows where to get them (like Select object's missing-model message)
@@ -2724,6 +2742,29 @@ app.registerExtension({
                 revealRegion(curRegion);
                 return curRegion;
             }
+            // the region a hole is listed under: the one it was made in, else (old workflows, a deleted region) the
+            // region of the nearest layer below it, else above it, else the first region
+            function holeOwner(L) {
+                if (L.owner != null && regionById(L.owner)) return L.owner;
+                const i = state.layers.indexOf(L);
+                for (const dir of [-1, 1]) {
+                    for (let j = i + dir; j >= 0 && j < state.layers.length; j += dir) {
+                        const o = state.layers[j];
+                        if (o.region !== UNSPEC && regionById(o.region)) return o.region;
+                    }
+                }
+                return state.regions[0]?.id ?? null;
+            }
+            // ✂: a layer cuts a hole through the layers below it (region 0: no region there), or paints its region again
+            function toggleHole(L) {
+                if (L.region === UNSPEC) {
+                    const rid = holeOwner(L);
+                    if (rid == null) { hint("Add a region first"); return; }
+                    change(() => { L.region = rid; delete L.owner; sortLayersByRegions(); curRegion = rid; selId = L.id; });
+                } else {
+                    change(() => { L.owner = L.region; L.region = UNSPEC; selId = L.id; });
+                }
+            }
             // a layer is drawn and output when its own eye and its region's eye are both on
             const isShown = (L) => L.visible !== false && !(L.region !== UNSPEC && regionById(L.region)?.hidden);
             function revealRegion(rid) {                   // drawing into a hidden region shows it again
@@ -2786,7 +2827,7 @@ app.registerExtension({
             function selectLayer(L) {
                 selId = L ? L.id : null;
                 hiddenSel = null;
-                if (L) { curRegion = L.region; openSub(L.region, "layers"); }
+                if (L) { curRegion = L.region; openSub(L.region === UNSPEC ? holeOwner(L) : L.region, "layers"); }
                 refreshUI();
             }
             // "Ellipse 1 copy", then "Ellipse 1 copy (2)", "(3)", ... like pasting a file twice in a folder
@@ -2807,7 +2848,6 @@ app.registerExtension({
                     const short = p ? (p.length > 40 ? p.slice(0, 39) + "…" : p) : "(no prompt)";
                     out.push({ rid: rg.id, label: imap[k] == null ? `Region – (no pixels yet): ${short}` : `Region ${imap[k]}: ${short}` });
                 });
-                if (exceptRid !== UNSPEC) out.push({ rid: UNSPEC, label: "Unspecified (cuts holes)" });
                 return out;
             }
             // a copy in the same place, in this region (right above the original) or on top of another region's
@@ -2881,7 +2921,7 @@ app.registerExtension({
             function moveLayerToRegion(L, rid) {
                 if (L.region === rid) return;
                 change(() => {
-                    L.region = rid; curRegion = rid; selId = L.id; openSub(rid, "layers");
+                    L.region = rid; delete L.owner; curRegion = rid; selId = L.id; openSub(rid, "layers");
                     state.layers.splice(state.layers.indexOf(L), 1);
                     state.layers.splice(slotFor(rid), 0, L);
                 });
@@ -2998,7 +3038,20 @@ app.registerExtension({
                 paintLocal(c, L, extraOp ? [...L.ops, extraOp] : L.ops, color);
                 c.restore();
             }
-            function renderComposite(c, w, h, scr, sc, pre) {
+            let holePat = null, holePatDpr = 0;
+            function holePattern(c) {                      // the canvas's holes: black with grey stripes
+                const d = dprNow();
+                if (!holePat || holePatDpr !== d) {
+                    const s = Math.max(6, Math.round(8 * d)), t = document.createElement("canvas"); t.width = t.height = s;
+                    const p = t.getContext("2d");
+                    p.fillStyle = "#000"; p.fillRect(0, 0, s, s);
+                    p.lineWidth = 1.5 * d; p.strokeStyle = "rgba(150,150,150,.75)";
+                    p.beginPath(); for (const o of [-s, 0, s]) { p.moveTo(o, s); p.lineTo(o + s, 0); } p.stroke();
+                    holePat = c.createPattern(t, "repeat"); holePatDpr = d;
+                }
+                return holePat;
+            }
+            function renderComposite(c, w, h, scr, sc, pre, hatchHoles = false) {
                 c.setTransform(1, 0, 0, 1, 0, 0);
                 c.clearRect(0, 0, w, h);
                 const pending = drag?.mode === "paint" && !drag.target ? drag.layer : null;
@@ -3007,11 +3060,17 @@ app.registerExtension({
                 for (const L of list) {
                     if (!isShown(L)) continue;
                     const extra = drag?.mode === "paint" && (drag.target === L || L === pending) ? drag.op : null;
-                    const needsScratch = L.ops.some((o) => o.e) || extra?.e;
+                    const hatch = hatchHoles && L.region === UNSPEC;
+                    const needsScratch = L.ops.some((o) => o.e) || extra?.e || hatch;
                     if (!needsScratch) { drawLayerOn(c, L, extra, pre); continue; }
                     sc.setTransform(1, 0, 0, 1, 0, 0);
                     sc.clearRect(0, 0, w, h);
                     drawLayerOn(sc, L, extra, pre);
+                    if (hatch) {
+                        sc.setTransform(1, 0, 0, 1, 0, 0);
+                        sc.globalCompositeOperation = "source-atop"; sc.fillStyle = holePattern(sc); sc.fillRect(0, 0, w, h);
+                        sc.globalCompositeOperation = "source-over";
+                    }
                     c.setTransform(1, 0, 0, 1, 0, 0);
                     c.drawImage(scr, 0, 0);
                 }
@@ -3039,7 +3098,7 @@ app.registerExtension({
                     ctx.drawImage(backdrop, ix, iy, iw, ih);
                     ctx.globalAlpha = 1;
                 }
-                renderComposite(cctx, w, h, scratch, sctx);
+                renderComposite(cctx, w, h, scratch, sctx, undefined, true);
                 ctx.save();
                 ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
                 ctx.globalAlpha = backdrop ? Math.max(0.35, 1 - backdropOpacity * 0.6) : 1;
@@ -3262,6 +3321,7 @@ app.registerExtension({
             let idxKey = "";
             function updateRegionIndices(map) {
                 map = map || outputIndexMap();
+                syncLayoutBtn(map.some((v) => v != null));
                 const key = map.join(",") + "|" + state.regions.map((r) => r.id).join(",");
                 if (key === idxKey && regList.querySelector(".rg-idx[data-k]")) return;
                 idxKey = key;
@@ -3837,7 +3897,8 @@ app.registerExtension({
             }
             function newPaintLayer(rid) {
                 const [W, H] = dims(), s = Math.min(W, H), id = nextLayerId();
-                return { id, name: rid === UNSPEC ? `Unspecified ${id}` : `Paint ${id}`, region: rid,
+                const sel = selLayer(), owner = rid === UNSPEC ? (sel?.region === UNSPEC ? holeOwner(sel) : state.regions[0]?.id) : null;
+                return { id, name: rid === UNSPEC ? `Hole ${id}` : `Paint ${id}`, region: rid, ...(owner != null ? { owner } : {}),
                          visible: true, shape: null, sides: 5, bw: W / s, bh: H / s, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0, ops: [] };
             }
             const localBrush = (L) => brush / Math.sqrt(L.sx * L.sy);
@@ -3898,7 +3959,7 @@ app.registerExtension({
                         activateRegion(L.region); openSub?.(L.region, "layers");
                         const rg = regionById(L.region);
                         hint(`Active region: ${rg.prompt.trim().slice(0, 40) || "(no prompt)"}`);
-                    } else if (L) { activateRegion(UNSPEC); hint("Active region: unspecified"); }
+                    } else if (L) { activateRegion(UNSPEC); hint("A hole (✂ on its layer): Painting now adds holes"); }
                     else hint("No region here");
                     labelClick = null;
                     refreshUI();
@@ -4607,9 +4668,18 @@ app.registerExtension({
                 for (let i = state.layers.length - 1; i >= 0; i--) if (state.layers[i].region === rid) out.push(state.layers[i]);
                 return out;
             };
+            // the layers listed under a region: its own and its holes (region 0 layers listed there), top first
+            const listedOf = (rid) => {
+                const out = [];
+                for (let i = state.layers.length - 1; i >= 0; i--) {
+                    const L = state.layers[i];
+                    if (L.region === rid || (L.region === UNSPEC && holeOwner(L) === rid)) out.push(L);
+                }
+                return out;
+            };
             // what an open row / subsection shows; empty subsections are left out
             const subKinds = (r) => [
-                ...(layersOf(r.id).length ? ["layers"] : []),
+                ...(listedOf(r.id).length ? ["layers"] : []),
                 ...((r.loras || []).length ? ["loras"] : []),
                 ...(r.paletteOn ? ["palette"] : []),
             ];
@@ -4629,7 +4699,7 @@ app.registerExtension({
             // a subsection header inside an open region: ▶ Layers (3)
             function subHeader(r, kind) {
                 const key = `${r.id}:${kind}`, open = subOpen.has(key);
-                const n = kind === "layers" ? layersOf(r.id).length : kind === "loras" ? (r.loras || []).length : normPalette(r.palette).length;
+                const n = kind === "layers" ? listedOf(r.id).length : kind === "loras" ? (r.loras || []).length : normPalette(r.palette).length;
                 const label = { layers: "Layers", loras: "LoRAs", palette: "Color palette" }[kind];
                 const row = el("div", "rg-row sub");
                 const ch = el("span", "rg-chev"); ch.textContent = open ? "▼" : "▶";
@@ -4649,7 +4719,6 @@ app.registerExtension({
                 for (const r of state.regions) {
                     for (const k of subKinds(r)) if (kind === "all" || kind === k) out.push([r.id, `${r.id}:${k}`]);
                 }
-                if ((kind === "layers" || kind === "all") && layersOf(UNSPEC).length) out.push([UNSPEC, null]);
                 if ((kind === "loras" || kind === "all") && (state.sceneLoras || []).length) out.push([SCENE, null]);
                 return out;
             }
@@ -4731,19 +4800,25 @@ app.registerExtension({
             }
             function layerRows(rid) {
                 const frag = document.createDocumentFragment();
-                for (const L of layersOf(rid)) {
-                    const row = el("div", "rg-row lvl1 layer" + (L.id === selId ? " sel" : ""));
+                for (const L of listedOf(rid)) {
+                    const hole = L.region === UNSPEC;
+                    const row = el("div", "rg-row lvl1 layer" + (L.id === selId ? " sel" : "") + (hole ? " hole" : ""));
                     row.dataset.lid = String(L.id);
                     row.addEventListener("pointerdown", (e) => { if (e.target === row || e.target.classList.contains("rg-sw")) selectLayer(L); });
                     const eye = ico(L.visible === false ? "○" : "◉", "Show / hide (hidden layers are not output)", () => change(() => { L.visible = L.visible === false; }));
-                    const sw = el("div", "rg-sw"); sw.style.background = colorOf(L.region) || "transparent"; sw.title = "Select this layer";
+                    const sw = el("div", "rg-sw"); if (!hole) sw.style.background = colorOf(L.region) || "transparent";
+                    sw.title = hole ? "A hole: Select this layer" : "Select this layer";
+                    const cut = ico("✂", hole ? "Hole: On. This layer cuts its area out of every layer below it (no region there; black in "
+                        + "color_map). Click to paint this region again." : "Hole: Off. Click to make this layer cut a hole through every "
+                        + "layer below it (no region there).", () => toggleHole(L));
+                    cut.classList.toggle("on", hole);
                     const name = el("input"); name.type = "text"; name.value = L.name; name.title = "Layer name";
                     name.addEventListener("focus", () => { if (selId !== L.id || hiddenSel === L.id) { selId = L.id; hiddenSel = null; curRegion = L.region; markLayerRows(); requestDraw(); } });
                     name.addEventListener("change", () => change(() => { L.name = name.value; }));
                     name.addEventListener("keydown", (e) => e.stopPropagation());
-                    const up = ico("▲", L.region === UNSPEC ? "Move up one step in the stack" : "Move up (in front of this region's other layers)", () => moveLayer(L, +1));
+                    const up = ico("▲", L.region === UNSPEC ? "Move up one step in the stack (the hole then cuts through what it moved over)" : "Move up (in front of this region's other layers)", () => moveLayer(L, +1));
                     up.disabled = moveTarget(L, +1) < 0;
-                    const dn = ico("▼", L.region === UNSPEC ? "Move down one step in the stack" : "Move down (behind this region's other layers)", () => moveLayer(L, -1));
+                    const dn = ico("▼", L.region === UNSPEC ? "Move down one step in the stack (what it moved under is no longer cut)" : "Move down (behind this region's other layers)", () => moveLayer(L, -1));
                     dn.disabled = moveTarget(L, -1) < 0;
                     const dup = ico("⧉", "Duplicate (Ctrl+D).\nRight-click: Duplicate into another region.", () => duplicate(L));
                     dup.classList.add("variants");
@@ -4763,7 +4838,7 @@ app.registerExtension({
                     });
                     const er = ico("⌫", "Erase layer: Remove its shapes and paint, keep the empty layer", () => eraseLayer(L));
                     const del = ico("🗑", "Delete layer (Del)", () => deleteSelected(L));
-                    row.append(eye, sw, name, up, dn, dup, md, mv, er, del);
+                    row.append(eye, sw, name, cut, up, dn, dup, md, mv, er, del);
                     frag.appendChild(row);
                 }
                 return frag;
@@ -5137,7 +5212,7 @@ app.registerExtension({
                 }
 
                 state.regions.forEach((r, i) => {
-                    const lays = layersOf(r.id);
+                    const lays = listedOf(r.id);
                     const row = el("div", "rg-row region" + (curRegion === r.id ? " sel" : "") + (r.hidden ? " off" : ""));
                     const pick = () => { if (activateRegion(r.id)) { markRegionRows(); requestDraw(); } };
                     row.addEventListener("pointerdown", (e) => { if (e.target === row || e.target.classList.contains("rg-idx") || e.target.classList.contains("rg-cnt")) pick(); });
@@ -5217,16 +5292,6 @@ app.registerExtension({
                         }
                     }
                 });
-                const ul = layersOf(UNSPEC);
-                const un = el("div", "rg-row region" + (curRegion === UNSPEC ? " sel" : ""));
-                un.title = "Layers here make black, unspecified areas through the layers below";
-                un.addEventListener("pointerdown", (e) => { if (e.target === un || e.target.classList.contains("rg-pseudo") || e.target.classList.contains("rg-sw")) { if (activateRegion(UNSPEC)) { markRegionRows(); requestDraw(); } } });
-                const usw = el("div", "rg-sw"); usw.style.background = "#000000";
-                const ut = el("span", "rg-pseudo"); ut.textContent = "Unspecified (cuts holes)";
-                const ucnt = el("span", "rg-cnt"); ucnt.textContent = ul.length ? String(ul.length) : "";
-                un.append(chevron(UNSPEC, ul.length > 0, `the unspecified layers (${ul.length})`), el("span", "rg-idx"), usw, ut, ucnt);
-                regList.appendChild(un);
-                if (ul.length && expanded.has(UNSPEC)) regList.appendChild(layerRows(UNSPEC));
                 regList.scrollTop = scroll;
                 idxKey = "";
                 updateRegionIndices();
@@ -5239,7 +5304,7 @@ app.registerExtension({
             }
             function markRegionRows() {
                 const rows = [...regList.querySelectorAll(".rg-row.region")];
-                const ids = [...state.regions.map((r) => r.id), UNSPEC];
+                const ids = state.regions.map((r) => r.id);
                 rows.forEach((row, k) => row.classList.toggle("sel", ids[k] === curRegion));
             }
             function markLayerRows() {
@@ -5471,6 +5536,7 @@ app.registerExtension({
             node.__rgRefresh = () => { version++; save(); refreshUI(); };
             node.__rgActive = () => curRegion;
             node.__rgSetTool = (t) => setTool(t);
+            node.__rgSelectLayer = (id) => selectLayer(state.layers.find((l) => l.id === id) || null);    // tests
             node.__rgToolTips = () => Object.values(GROUPS).flatMap((g) => g.entries().map((e) => e[2]));   // tests: every tool version's tooltip
             node.__rgSetBackdrop = (img, ref) => { backdrop = img; backdropKey = "test:" + Math.random(); backdropRef = ref || null; requestDraw(); };
             // regions in output order (what Mask Picker / Regional LoRAs index into)
