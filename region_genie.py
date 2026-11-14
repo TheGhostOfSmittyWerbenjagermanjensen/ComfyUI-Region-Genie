@@ -766,8 +766,8 @@ def lora_edit_format(lora_name):
     """The MOSS-Image edit LoRA layout of a LoRA file, read from its safetensors header: ai-toolkit files fuse
     q/k/v, Moss-Image-Edit (chinoll) files keep them apart. None when the file can't be read."""
     try:
-        import folder_paths
-        path = folder_paths.get_full_path("loras", lora_name)
+        from .model_paths import full_path
+        path = full_path("loras", lora_name)
         if not path:
             return None
         with open(path, "rb") as f:

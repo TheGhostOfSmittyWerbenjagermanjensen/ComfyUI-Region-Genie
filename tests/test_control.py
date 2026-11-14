@@ -15,6 +15,7 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
 PACK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PACK)                      # control.py imports model_paths next to it
 _spec = importlib.util.spec_from_file_location("rg_control", os.path.join(PACK, "control.py"))
 ctl = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(ctl)
 
@@ -141,11 +142,28 @@ check("Flux.1 depth without the LoRA: the ControlNet file", ce(p).get("control")
 seen = {}
 from comfy_extras.nodes_model_patch import AnimaLLLiteApply  # noqa: E402
 AnimaLLLiteApply.apply_patch = lambda self, model, patch, image, s, a, b, mask=None: (seen.update(model=model, patch=patch, image=image, s=s, a=a, b=b, mask=mask) or ("PATCHED",))
+LOAD_PATCH = ctl._load_patch
 ctl._load_patch = lambda name: "PATCH:" + name
 notes = []
 m, p, _, _ = ctl.apply(cfg("canny", {"Anima.canny": "anima_canny.safetensors"}, strength=0.6), "Anima", "M", cond(), cond(), None, photo, None, cmap, half, W, H, notes)
 check("Anima: LLLite patch on the model, with the strength", m == "PATCHED" and seen["patch"] == "PATCH:anima_canny.safetensors" and seen["s"] == 0.6)
 check("Anima: the region mask goes to the patch", seen["mask"] is not None and float(seen["mask"][0, 0, 0]) == 1 and float(seen["mask"][0, 0, 40]) == 0)
+# round 18: an LLLite patch kept in models/controlnet (where the owner keeps them), and one anywhere (a full path)
+import tempfile  # noqa: E402
+_base = folder_paths.get_full_path
+folder_paths.get_full_path = lambda folder, name: (f"/models/controlnet/{name}" if folder == "controlnet" and name == "anima_in_cn.safetensors"
+                                                   else None if name == "anima_in_cn.safetensors" else _base(folder, name))
+notes = []
+ctl.apply(cfg("canny", {"Anima.canny": "anima_in_cn.safetensors"}), "Anima", "M", cond(), cond(), None, photo, None, cmap, half, W, H, notes)
+check("Anima: a patch in models/controlnet is found and used", seen["patch"] == "PATCH:anima_in_cn.safetensors" and not any("isn't found" in x for x in notes))
+tmp = tempfile.mkdtemp(prefix="rg_anima_"); full = os.path.join(tmp, "@author", "lllite.safetensors")
+os.makedirs(os.path.dirname(full)); open(full, "wb").write(b"x")
+from comfy_extras.nodes_model_patch import ModelPatchLoader  # noqa: E402
+_mpl = ModelPatchLoader.load_model_patch
+ModelPatchLoader.load_model_patch = lambda self, name: (folder_paths.get_full_path_or_raise("model_patches", name),)   # the loader's first step
+check("Anima: a full path loads through ComfyUI's patch loader (by its full path)", LOAD_PATCH(full) == full)
+ModelPatchLoader.load_model_patch = _mpl
+folder_paths.get_full_path = _base
 
 # ---------------------------------------------------------------- files that aren't set or that ComfyUI doesn't find
 missing = []
@@ -154,7 +172,7 @@ check("missing: an unset ControlNet is reported by its Settings key", missing ==
 missing, notes = [], []
 ctl.apply(cfg("canny", {"SDXL.canny": "gone.safetensors"}), "SDXL", "M", cond(), cond(), None, photo, None, cmap, None, W, H, notes, missing)
 check("missing: a set file ComfyUI doesn't find is reported, control not used", missing == [["SDXL.canny", "missing", "gone.safetensors"]]
-      and any("isn't in ComfyUI/models/controlnet" in x for x in notes))
+      and any("isn't found (in ComfyUI's controlnet folders" in x for x in notes))
 missing = []
 ctl.apply(cfg("depth", {"MOSS": "nope.safetensors"}), "MOSS-Image", "M", cond(), cond(), VAE(), photo, None, cmap, None, W, H, [], missing)
 check("missing: MOSS LoRA not found and no Depth Anything 3 set", ["MOSS", "missing", "nope.safetensors"] in missing and ["DA3", "unset"] in missing)

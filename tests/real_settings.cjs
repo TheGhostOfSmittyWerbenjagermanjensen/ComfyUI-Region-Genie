@@ -9,7 +9,10 @@ const DIR = process.env.COMFY_DIR || "/tmp/comfy_src";
 const fails = [];
 const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (!ok) fails.push(name); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const ODD = ["rgtest_char@v2.safetensors", "rgtest_mix {style}.safetensors", "rgtest_a|b.safetensors", "rgtest_100% detail.safetensors", "rgtest_$x.safetensors"];
+// round 18: on Windows a LoRA in a subfolder starting with '@' is listed as 'sub\\@x': the backslash escaped the escape
+// (the owner's 5 remaining "SyntaxError: 10"). Linux allows '\\' in a file name, so these stand in for such paths.
+const ODD = ["rgtest_char@v2.safetensors", "rgtest_mix {style}.safetensors", "rgtest_a|b.safetensors", "rgtest_100% detail.safetensors", "rgtest_$x.safetensors",
+    "rgtest_sub\\@author\\x.safetensors", "rgtest_sub\\{y}.safetensors", "rgtest_end\\.safetensors"];
 const made = [];
 for (const sub of ["loras", "controlnet"]) {
     const d = path.join(DIR, "models", sub);
@@ -28,7 +31,7 @@ for (const sub of ["loras", "controlnet"]) {
     await sleep(2500);
     for (let i = 0; i < 3; i++) { await page.keyboard.press("Escape"); await sleep(300); }
     const lists = await page.evaluate(async () => (await (await fetch("/models/loras")).json()).filter((x) => /rgtest_/.test(x)));
-    check(`the odd file names are listed by ComfyUI (${lists.length})`, lists.length === 5);
+    check(`the odd file names are listed by ComfyUI (${lists.length})`, lists.length === ODD.length);
     // a set value with odd characters must show too
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.Krea2", "rgtest_char@v2.safetensors"); });
     errors.length = 0;
@@ -43,14 +46,44 @@ for (const sub of ["loras", "controlnet"]) {
     check(`every Region Genie setting shows in the dialog (${r.n}; missing: ${r.missing.slice(0, 6).join(" | ")})`, r.n > 80 && !r.missing.length);
     const i18n = errors.filter((e) => /SyntaxError|i18n|compile/i.test(e));
     check(`no translation errors while it shows (${i18n.slice(0, 2).join(" | ")})`, !i18n.length);
-    // the dropdown shows the odd names as they are
-    const opts = await page.evaluate(async () => {
-        // the line after the setting's name in the dialog's text is its current value
-        const lines = (document.querySelector('[role="dialog"]')?.innerText || "").split("\n").map((x) => x.trim()).filter(Boolean);
-        const i = lines.findIndex((l) => /^Krea 2: edit LoRA/.test(l));
-        return i < 0 ? "" : lines.slice(i, i + 2).join(" → ");
+    // round 18: every model-file setting is Region Genie's own picker (dropdown + Browse…); names show as they are
+    const pk = await page.evaluate(() => {
+        const pickers = [...document.querySelectorAll('[role="dialog"] .rg-file')];
+        const sels = pickers.map((p) => p.querySelector("select"));
+        const krea = sels.find((x) => x.value === "rgtest_char@v2.safetensors");
+        const opts = sels[0] ? [...sels[0].options].map((o) => o.textContent) : [];
+        return { n: pickers.length, krea: !!krea, backslash: sels.some((x) => [...x.options].some((o) => o.value === "rgtest_sub\\@author\\x.safetensors")),
+                 buttons: pickers.filter((p) => p.querySelector("button svg")).length, first: opts.slice(0, 3).join(" | ") };
     });
-    check(`a set value with '@' shows as it is (${opts.replace(/\n/g, " ").slice(0, 80)})`, /rgtest_char@v2\.safetensors/.test(opts));
+    check(`every model-file setting is a picker with a Browse… button (${pk.n} pickers, ${pk.buttons} buttons)`, pk.n === 26 && pk.buttons === 26);
+    check(`a set value with '@' shows as it is; a 'sub\\@author' name is listed (${pk.first})`, pk.krea && pk.backslash);
+    // Browse…: a file outside ComfyUI's folders is saved by its full path
+    const outDir = path.join(DIR, "..", "rgtest_outside", "@author");
+    fs.mkdirSync(outDir, { recursive: true });
+    const outFile = path.join(outDir, "moss_edit_outside.safetensors");
+    fs.writeFileSync(outFile, "");
+    await page.evaluate(() => {
+        const row = [...document.querySelectorAll('[role="dialog"] span')].find((e) => e.textContent.trim() === "MOSS-Image: edit LoRA");
+        let p = row; while (p && !p.querySelector?.(".rg-file")) p = p.parentElement;
+        p.querySelector(".rg-file button").click();
+    });
+    await page.waitForSelector(".rg-fb", { state: "attached", timeout: 5000 });
+    await sleep(600);
+    const startPath = await page.locator(".rg-fb-path input").inputValue();
+    await page.locator(".rg-fb-path input").fill(outDir); await page.locator(".rg-fb-path input").press("Enter"); await sleep(700);
+    const listed = await page.locator(".rg-fb-item", { hasText: "moss_edit_outside.safetensors" }).count();
+    await page.locator(".rg-fb-item", { hasText: "moss_edit_outside.safetensors" }).click();
+    await page.locator(".rg-fb button.primary").click(); await sleep(800);
+    const saved = await page.evaluate(() => window.app.extensionManager.setting.get("RegionGenie.Edit.LoRA.MOSS"));
+    const still = await page.evaluate(() => !!document.querySelector('[role="dialog"] .rg-file') && !document.querySelector(".rg-fb")
+        && [...document.querySelectorAll('[role="dialog"] .rg-file select')].some((x) => x.value.endsWith("moss_edit_outside.safetensors")));
+    check("the Settings dialog stays open after Browse…, its dropdown shows the picked file", still);
+    check(`Browse…: starts in ComfyUI's loras folder (${startPath})`, /models[\\/]loras$/.test(startPath));
+    check(`Browse…: a file anywhere is listed, picked and saved by its full path (${listed}; ${saved})`, listed === 1 && saved === path.resolve(outFile));
+    const exists = await page.evaluate(async (n) => (await (await fetch(`/region_genie/model_exists?folders=loras&name=${encodeURIComponent(n)}`)).json()).found, saved);
+    check("the server finds the full path", exists === true);
+    await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.MOSS", "(none)"); });
+    fs.rmSync(path.join(DIR, "..", "rgtest_outside"), { recursive: true, force: true });
     await page.keyboard.press("Escape");
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.Krea2", "(none)"); });
     await browser.close();
