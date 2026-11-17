@@ -32,16 +32,18 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         window.__rg = rg;
         return { rg: !!rg.__rgState, slot, regs: Object.keys(LG.registered_node_types).filter((k) => k.startsWith("Region-Genie")).length };
     });
-    check(`${vue ? "Nodes 2.0" : "legacy"}: Region Genie node created with its editor`, ok.rg && ok.slot >= 0 && ok.regs === 5);
+    check(`${vue ? "Nodes 2.0" : "legacy"}: Region Genie node created with its editor`, ok.rg && ok.slot >= 0 && ok.regs === 6);
     await page.waitForTimeout(2500);
     const bd = await page.evaluate(() => !!window.__rg.__rgView && document.querySelectorAll(".rg-bar .rg-seg").length > 0);
     check("image-mode buttons show with Load Image connected", bd);
     // the tool row in the real frontend
     const btn = page.locator('.rg-bar .rg-btn[data-group="wand"]').first();
-    await page.keyboard.press("q").catch(() => {});
-    check("Select object button present", await btn.count() === 1);
-    await btn.click();
-    await page.waitForTimeout(300);
+    check("Magic wand / Select object button present", await btn.count() === 1);
+    // Select object shares the magic wand's button (round 11): pick it from the button's ▾ list
+    await btn.locator(".rg-grp-dd").click(); await page.waitForTimeout(400);
+    await page.locator(".litecontextmenu .litemenu-entry", { hasText: "Select object" }).first().click();
+    await page.waitForTimeout(400);
+    check("Select object picked from the ▾ list: the button shows it", /^Select object/.test(await btn.getAttribute("title")));
     await page.locator(".rg-toolopts").first().hover().catch(() => {});      // folded to an icon until hovered (round 12)
     const findVis = await page.locator(".rg-toolopts .rg-find").first().isVisible();
     check("find field visible", findVis);
