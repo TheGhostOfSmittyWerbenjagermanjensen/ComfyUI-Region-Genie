@@ -49,6 +49,21 @@ export function* render(E) {
         paintLocal(c, L, extraOp ? [...L.ops, extraOp] : L.ops, color);
         c.restore();
     }
+    // a gradient layer: what was just drawn on c (this layer alone) fades along its gradient
+    function fadeLayerOn(c, L, pre) {
+        const g = L.grad;
+        if (!g || L.region === UNSPEC) return;
+        c.save();
+        E.layerTransform(c, L, pre);
+        const len = Math.hypot(g.b[0] - g.a[0], g.b[1] - g.a[1]);
+        const gr = g.k === "radial" ? c.createRadialGradient(g.a[0], g.a[1], 0, g.a[0], g.a[1], len)
+            : c.createLinearGradient(g.a[0], g.a[1], g.b[0], g.b[1]);
+        gr.addColorStop(0, "rgba(0,0,0,1)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+        c.globalCompositeOperation = "destination-in";
+        c.fillStyle = gr;
+        c.fillRect(-100, -100, 200, 200);                  // layer units (1 = the image's shorter side)
+        c.restore();
+    }
     let holePat = null, holePatDpr = 0;
     function holePattern(c) {                      // the canvas's holes: black with grey stripes
         const d = E.dprNow();
@@ -72,11 +87,12 @@ export function* render(E) {
             if (!E.isShown(L)) continue;
             const extra = E.drag?.mode === "paint" && (E.drag.target === L || L === pending) ? E.drag.op : null;
             const hatch = hatchHoles && L.region === UNSPEC;
-            const needsScratch = L.ops.some((o) => o.e) || extra?.e || hatch;
+            const needsScratch = L.ops.some((o) => o.e) || extra?.e || hatch || !!L.grad;
             if (!needsScratch) { drawLayerOn(c, L, extra, pre); continue; }
             sc.setTransform(1, 0, 0, 1, 0, 0);
             sc.clearRect(0, 0, w, h);
             drawLayerOn(sc, L, extra, pre);
+            fadeLayerOn(sc, L, pre);
             if (hatch) {
                 sc.setTransform(1, 0, 0, 1, 0, 0);
                 sc.globalCompositeOperation = "source-atop"; sc.fillStyle = holePattern(sc); sc.fillRect(0, 0, w, h);
@@ -145,6 +161,18 @@ export function* render(E) {
         if (E.drag?.mode === "shape") {
             const t = E.shapeDragLayer();
             if (t) { E.ctx.save(); E.ctx.globalAlpha = 0.75; drawLayerOn(E.ctx, t); E.ctx.restore(); outline(E.boxCornersImg(t, [0, 0, t.bw, t.bh]), "#fff", true); }
+        }
+        if (E.drag?.mode === "grad") {                       // gradient fill: the line being dragged (radial: its circle)
+            const [ax, ay] = E.toScr(...E.drag.start), [bx, by] = E.toScr(...E.drag.cur), d = E.dprNow();
+            E.ctx.save();
+            for (const [col, lw] of [["rgba(0,0,0,.7)", 3 * d], ["#fff", 1.25 * d]]) {
+                E.ctx.strokeStyle = col; E.ctx.lineWidth = lw;
+                E.ctx.beginPath(); E.ctx.moveTo(ax, ay); E.ctx.lineTo(bx, by); E.ctx.stroke();
+                if (E.drag.kind === "radial") { E.ctx.beginPath(); E.ctx.arc(ax, ay, Math.hypot(bx - ax, by - ay), 0, Math.PI * 2); E.ctx.stroke(); }
+            }
+            E.ctx.fillStyle = "#fff"; E.ctx.strokeStyle = "rgba(0,0,0,.7)"; E.ctx.lineWidth = d;
+            E.ctx.beginPath(); E.ctx.arc(ax, ay, 3.5 * d, 0, Math.PI * 2); E.ctx.fill(); E.ctx.stroke();
+            E.ctx.restore();
         }
         if (E.pick || E.drag?.mode === "pickbox") E.drawPick(ix, iy, iw, ih);
         E.syncPickBtns();
@@ -313,6 +341,7 @@ export function* render(E) {
                 x.setTransform(1, 0, 0, 1, 0, 0);
                 x.clearRect(0, 0, w, h);
                 drawLayerOn(x, L, extra, undefined, "#ffffff");
+                fadeLayerOn(x, L);                         // a gradient layer counts where it is at least half strength
                 const d = x.getImageData(0, 0, w, h).data;
                 for (let i = 0, j = 3; i < lab.length; i++, j += 4) if (d[j] >= 128) lab[i] = k;
             }

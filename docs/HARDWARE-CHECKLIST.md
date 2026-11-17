@@ -69,6 +69,8 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] Select object with the real SAM 3.1 file: mask quality, speed, find-all by text
 - [ ] ComfyUI unloads and reloads SAM without trouble when memory is needed
 - [ ] Magnetic lasso and magic wand on real photos
+- [ ] Gradient fill (Fill button's list): a region with a LoRA or a distinct prompt fades across the filled area in the generated image
+- [ ] Typing in a pop-up editor: the tag autocomplete list (ComfyUI-Custom-Scripts or LoRA Manager) shows on top of the pop-up
 
 ## 8. LLM Prompt Enhancer and wildcards
 

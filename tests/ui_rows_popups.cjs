@@ -149,6 +149,20 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const wrapW = await page.evaluate(() => document.querySelector(".rg-wrap").clientWidth);
     let pb = await ppop.boundingBox();
     check("pop-up: wider by default (560 px or the node's width)", !!pb && Math.round(pb.width) === Math.min(560, wrapW - 12));
+    // round 26: a tag autocomplete list opened from a pop-up editor shows on top of it. The packs' lists sit at z-index 9999
+    // (ComfyUI-Custom-Scripts) / 10000 (LoRA Manager), the pop-up at 10000; the lists Region Genie opens carry 'rg-ac'.
+    const acTop = await page.evaluate(() => {
+        const r = document.querySelector(".rg-pop textarea").getBoundingClientRect(), out = {};
+        for (const [name, cls, z] of [["plain", "pysssss-autocomplete", 9999], ["pys", "pysssss-autocomplete rg-ac", 9999], ["lm", "comfy-autocomplete-dropdown rg-ac", 10000]]) {
+            const d = document.createElement("div"); d.className = cls;
+            d.style.cssText = `position:fixed;left:${r.left + 10}px;top:${r.top + 10}px;width:120px;height:60px;background:#123;z-index:${z}`;
+            document.body.appendChild(d);
+            out[name] = document.elementFromPoint(r.left + 40, r.top + 40) === d;
+            d.remove();
+        }
+        return out;
+    });
+    check(`an autocomplete list from a pop-up editor is on top of it (was behind: ${!acTop.plain})`, !acTop.plain && acTop.pys && acTop.lm);
     const fsOf = () => page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-pop textarea")).fontSize));
     check("pop-up: region prompt text 14 px by default", await fsOf() === 14);
     await ppop.locator(".rg-pop-font", { hasText: "A+" }).click(); await page.waitForTimeout(60);

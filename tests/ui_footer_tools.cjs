@@ -123,6 +123,38 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await clickImg(64, 128);
     f = await filled();
     check("normal fill leaks through the channel", f && f(192, 128) === 1);
+    // ---- gradient fill (round 26): the Fill button's linear and radial versions
+    await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = s.layers.filter((l) => !l.name.startsWith("Fill")); window.__node.__rgRefresh(); });
+    await fill.click({ button: "right" });
+    items = await page.evaluate(() => window.__lastMenu.items.map((i) => i.content));
+    check("fill right-click: fill, closing gaps, linear gradient, radial gradient", items.length === 4 && /linear gradient/.test(items[2]) && /radial gradient/.test(items[3]));
+    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[2]));
+    check("linear gradient picked: the button says so", /^Fill \(linear gradient\)/.test(await fill.getAttribute("title")));
+    await clickImg(64, 128);
+    check("a click without a drag fills nothing and says what to do", !(await st()).layers.some((l) => l.grad) && /drag a line/.test(await page.evaluate(() => [...document.querySelectorAll(".rg-wrap *")].filter((e) => e.childElementCount === 0).map((e) => e.textContent).join(" | "))));
+    await dragImg([[30, 128], [100, 128]]);
+    let gl = (await st()).layers.find((l) => l.grad);
+    check("drag: a layer of its own for the active region, with the line as its gradient", !!gl && /^Gradient/.test(gl.name) && gl.region === (await st()).regions[0].id
+        && gl.grad.k === "linear" && Math.abs(gl.grad.a[0] - 30 / 256) < 0.01 && Math.abs(gl.grad.b[0] - 100 / 256) < 0.01 && Math.abs(gl.grad.a[1] - 0.5) < 0.01);
+    const gpx = (x, y) => page.evaluate(async ([x, y]) => {
+        const img = new Image(); img.src = window.__node.__rgRender(256, 256); await img.decode();
+        const c = document.createElement("canvas"); c.width = 256; c.height = 256; const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+        const d = g.getImageData(x, y, 1, 1).data; return d[0] + d[1] + d[2];
+    }, [x, y]);
+    const [g0, g1, g2] = [await gpx(34, 128), await gpx(65, 128), await gpx(96, 128)];
+    check(`on the canvas the region fades along the line (${g0} > ${g1} > ${g2})`, g0 > g1 + 40 && g1 > g2 + 40);
+    const sentG = await page.evaluate(() => JSON.parse(window.__node.widgets.find((w) => w.name === "paint_data").serializeValue()).layers.find((l) => l.grad)?.grad);
+    check("the gradient goes to the run with the layer", sentG?.k === "linear" && sentG.a.length === 2);
+    await page.evaluate(() => window.__node.onConfigure?.({ properties: window.__node.properties })); await page.waitForTimeout(150);
+    check("reloading the workflow keeps the gradient", (await st()).layers.find((l) => l.grad)?.grad.k === "linear");
+    await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = s.layers.filter((l) => !l.grad); window.__node.__rgRefresh(); });
+    await fill.click({ button: "right" });
+    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[3]));
+    await dragImg([[64, 128], [64, 160]]);
+    gl = (await st()).layers.find((l) => l.grad);
+    check("radial gradient: from the point outward", gl?.grad.k === "radial" && Math.abs(gl.grad.b[1] - 160 / 256) < 0.01 && (await gpx(64, 128)) > (await gpx(64, 152)) + 60);
+    await fill.click({ button: "right" });
+    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[0]));
     await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = []; });
 
     // ---- magic wand on an image: left half red, right half blue

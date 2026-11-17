@@ -55,6 +55,14 @@ function normRegion(r) {
              ...(r.noControl ? { noControl: true } : {}) };        // Control: switched off for this region
 }
 // Edit Mode: the edit mask's own grow / feather (px); null = follow Settings > Region Genie > Edit Mode
+// a gradient layer (round 26): its region fades along a -> b (layer units). linear: full at a, nothing at b;
+// radial: full at a, nothing at the distance |b - a|
+function normGrad(g) {
+    const pt = (q) => (Array.isArray(q) && Number.isFinite(+q[0]) && Number.isFinite(+q[1]) ? [+q[0], +q[1]] : null);
+    const a = pt(g?.a), b = pt(g?.b);
+    if (!a || !b || Math.hypot(b[0] - a[0], b[1] - a[1]) < 1e-9) return null;
+    return { k: g.k === "radial" ? "radial" : "linear", a, b };
+}
 export function normEditMask(m) {
     if (!m || typeof m !== "object") return null;
     const g = Math.round(+m.grow), f = Math.round(+m.feather);
@@ -108,6 +116,7 @@ export function parseState(text, W, H) {
             shape: l.shape || null, sides: l.sides || 5, bw: +l.bw || 1, bh: +l.bh || 1, sx: +l.sx || 1, sy: +l.sy || 1,
             ...(l.shape === "roundrect" ? { radius: Math.max(0, Math.min(50, Number.isFinite(+l.radius) ? +l.radius : 20)) } : {}),
             rot: +l.rot || 0, ...layerCentre(l, W, H), ops: Array.isArray(l.ops) ? l.ops : [],
+            ...((l.region ?? UNSPEC) !== UNSPEC && normGrad(l.grad) ? { grad: normGrad(l.grad) } : {}),
         })),
         ...(d.importSig ? { importSig: String(d.importSig) } : {}),
         ...(normLoras(d.sceneLoras).length ? { sceneLoras: normLoras(d.sceneLoras) } : {}),

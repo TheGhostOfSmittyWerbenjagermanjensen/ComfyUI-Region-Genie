@@ -30,6 +30,35 @@ check("roundrect + strokes: same corners", not m2[1, 1] and m2[50, 1])
 L3 = dict(L, shape="rect")
 check("rect ignores radius", rg.layer_mask(L3, 100, 100)[0, 0])
 
+# ---------------------------------------------------------------- gradient fill: a layer whose strength fades
+full = {"t": "bitmap", "e": False, "w": 4, "h": 4, "runs": [0, 16], "x0": 0, "y0": 0, "x1": 1, "y1": 1}
+G = {"id": 5, "region": 2, "shape": None, "bw": 1, "bh": 1, "sx": 1, "sy": 1, "rot": 0, "ox": 0, "oy": 0, "ops": [full],
+     "grad": {"k": "linear", "a": [0, 0.5], "b": [1, 0.5]}}
+fd = rg.layer_fade(G, 64, 64)
+check("linear gradient: full at the start of the line, nothing at its end, even in between",
+      fd[32, 0] > 0.98 and fd[32, 63] < 0.02 and abs(fd[32, 31] - 0.5078) < 0.01 and abs(fd[0, 16] - fd[63, 16]) < 1e-6)
+check("an ordinary layer has no fade", rg.layer_fade(dict(G, grad=None), 64, 64) is None and rg.layer_fade({**G, "grad": {"k": "linear", "a": [0, 0], "b": [0, 0]}}, 64, 64) is None)
+rad = rg.layer_fade({**G, "grad": {"k": "radial", "a": [0.5, 0.5], "b": [0.5, 1.0]}}, 64, 64)
+check("radial gradient: full at the centre, nothing from the dragged distance on", rad[32, 32] > 0.97 and rad[32, 63] < 0.03 and rad[0, 0] == 0 and abs(rad[32, 48] - rad[48, 32]) < 1e-6)
+base = {"id": 4, "region": 1, "shape": "rect", "bw": 1, "bh": 1, "sx": 1, "sy": 1, "rot": 0, "ox": 0, "oy": 0, "ops": []}
+soft = {}
+ix = rg.render_layers(np.zeros((64, 64), np.uint8), [base, G], {1: 1, 2: 2}, soft)
+check("the gradient region owns the pixels where it is at least half strength; the rest stays with the region below",
+      (ix[:, :31] == 2).all() and (ix[:, 33:] == 1).all())
+m1, m2 = rg.soft_mask(ix, 1, soft), rg.soft_mask(ix, 2, soft)
+check("its mask fades across the whole area (also where the region below shows)", m2[32, 0] > 0.98 and 0.2 < m2[32, 48] < 0.3 and m2[32, 63] < 0.02)
+check("the region below: full where it shows, nothing under the strong half", m1[32, 48] == 1 and m1[32, 10] == 0)
+soft2 = {}
+ix2 = rg.render_layers(np.zeros((64, 64), np.uint8), [base, G, dict(base, id=6, region=1)], {1: 1, 2: 2}, soft2)
+check("a layer on top hides the gradient completely", (ix2 == 1).all() and rg.soft_mask(ix2, 2, soft2).max() == 0 and rg.soft_mask(ix2, 1, soft2).min() == 1)
+soft3 = {}
+rg.render_layers(np.zeros((64, 64), np.uint8), [base], {1: 1}, soft3)
+check("no gradient layer: nothing extra is kept", soft3 == {})
+hole = rg.render_layers(np.zeros((64, 64), np.uint8), [base, dict(G, region=0)], {1: 1}, {})
+check("a hole is always hard, also with a gradient on it", (hole == 0).all())
+turned = rg.layer_fade(dict(G, rot=90), 64, 64)
+check("the gradient turns with its layer", turned[0, 32] > 0.98 and turned[63, 32] < 0.02)
+
 # ---------------------------------------------------------------- min region pixels from paint_data
 node = rg.RegionGenie()
 arr = np.zeros((1, 64, 64, 3), np.float32)

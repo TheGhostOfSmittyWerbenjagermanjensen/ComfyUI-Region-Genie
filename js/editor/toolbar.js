@@ -65,7 +65,9 @@ export function* toolbar(E) {
                 .map(([m, icon, t]) => [m, icon, `${t} ${LASSO_TIP}Filled with the active region (L).`, () => { setLassoMode("lasso", m); E.setTool("lasso"); }]) },
         fill: { name: "Fill", tools: ["fill"], cur: () => LASSO_MODES.fill,
             entries: () => [["normal", "fill", "Fill: Fills the clicked area (blank space, or one color) with the active region (F)."],
-                ["gaps", "fillGaps", "Fill (closing small gaps): Fills the clicked area, but doesn't leak through small openings (the gap size is the field on the canvas) (F)."]]
+                ["gaps", "fillGaps", "Fill (closing small gaps): Fills the clicked area, but doesn't leak through small openings (the gap size is the field on the canvas) (F)."],
+                ["linear", "fillLinear", "Fill (linear gradient): Drag a line in the area to fill. The active region is at full strength where the line starts and fades to nothing where it ends (F)."],
+                ["radial", "fillRadial", "Fill (radial gradient): Drag outward from a point in the area to fill. The active region is at full strength at that point and fades to nothing at the distance you drag (F)."]]
                 .map(([m, icon, t]) => [m, icon, t, () => { LASSO_MODES.fill = m; E.setTool("fill"); }]) },
         wand: { name: "Magic wand / Select object", tools: ["wand", "object"], cur: () => (grpCur.wand === "object" ? "object" : LASSO_MODES.wand),
             entries: () => [
