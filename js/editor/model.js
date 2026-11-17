@@ -102,6 +102,10 @@ export function* model(E) {
     // MOSS-Image: layout (its layout JSON, with the region boxes) or standard (a plain text prompt)
     const layoutBtn = E.iconBtn("mossLayout", "", () => {
         E.node.properties = E.node.properties || {};
+        // standard by itself (no region, or Edit Mode): there is nothing to choose. A click here used to set
+        // standard 'for good' without the icon changing, and layout then never came back.
+        if (E.isEdit()) { E.hint("Edit Mode always sends plain text"); return; }
+        if (!E.outputIndexMap().some((v) => v != null)) { E.hint("Layout mode needs a region: it comes back by itself when one is drawn"); return; }
         if (E.node.properties.rg_moss_layout === false) delete E.node.properties.rg_moss_layout;
         else E.node.properties.rg_moss_layout = false;
         app.graph?.change?.();
@@ -138,8 +142,16 @@ export function* model(E) {
     // round 20: the icon shows the mode the run will use: standard by itself while no region is drawn and shown
     // (holes don't count) and in Edit Mode, even when layout is chosen; layout comes back with a region
     let layoutAuto = null;
+    E.layoutHad = null;            // whether a region was drawn and shown at the last look (null: just loaded)
     function syncLayoutBtn(anyRegion) {
         if (anyRegion === undefined) anyRegion = E.outputIndexMap().some((v) => v != null);
+        // the first region on an empty canvas (drawn, shown again or imported) brings layout mode back: a
+        // 'standard' choice lasts only while there are regions (not on load: a saved choice stays)
+        if (E.layoutHad === false && anyRegion && E.node.properties?.rg_moss_layout === false) {
+            delete E.node.properties.rg_moss_layout;
+            app.graph?.change?.();
+        }
+        E.layoutHad = anyRegion;
         const want = E.node.properties?.rg_moss_layout !== false, edit = E.isEdit();
         const layout = want && anyRegion && !edit;
         const key = `${want}|${anyRegion}|${edit}`;
@@ -151,9 +163,11 @@ export function* model(E) {
             : !anyRegion ? "\nStandard by itself: No region is drawn and shown. Layout comes back when one is." : "";
         layoutBtn.title = (layout
             ? "MOSS-Image layout mode: The prompt is MOSS layout JSON, with each region's box. Click for standard mode."
-            : want ? "MOSS-Image standard mode (for now): The prompt is plain text. Click to choose standard mode for good."
-            : "MOSS-Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them). Click for layout mode.")
-            + why;
+            : want ? "MOSS-Image standard mode (for now): The prompt is plain text."
+            : "MOSS-Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them)."
+                + (anyRegion && !edit ? " Click for layout mode." : ""))
+            + why
+            + (!want ? "\nLayout also comes back by itself when the first region is drawn on an empty canvas." : "");
     }
     // the files the Control row needs for the model and kind, and the ones ComfyUI doesn't have: the message bar
     // shows where to get them (like Select object's missing-model message)

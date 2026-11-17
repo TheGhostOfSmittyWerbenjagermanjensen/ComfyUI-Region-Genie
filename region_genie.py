@@ -1524,7 +1524,8 @@ class RegionGenie:
         # itself when a region has a prompt (Settings > Region Genie: one setting for all those models, and one per
         # model; the front end sends them in paint_data)
         plain_layout = arch is not None and (arch.family in hl.AUTO_APART_FAMILIES or family == "plain")
-        if (not all_apart and plain_layout
+        # autoOff: switched off on the node (its button), also where it would turn on by itself
+        if (not all_apart and plain_layout and not opts.get("autoOff")
                 and auto_apart_on(data, arch.family)
                 and any(str(row.get("prompt") or "").strip() for row in table if row.get("out_index") is not None)):
             if clip is None:

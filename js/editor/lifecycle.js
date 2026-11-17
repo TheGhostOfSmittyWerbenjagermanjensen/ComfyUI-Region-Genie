@@ -115,6 +115,7 @@ export function* lifecycle(E) {
 
     // ---------------- lifecycle ----------------
     function load() {
+        E.layoutHad = null;                                  // a saved layout / standard choice stays as it is
         const [W, H] = E.dims();
         const wasV1 = (() => { try { const d = JSON.parse(E.dataW?.value || ""); return d && !Array.isArray(d.layers) && Array.isArray(d.ops); } catch (e) { return false; } })();
         E.state = parseState(E.dataW?.value, W, H);
