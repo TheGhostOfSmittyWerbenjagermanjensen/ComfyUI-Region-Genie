@@ -7,7 +7,7 @@ Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the d
 ## Layout
 
 - Python nodes and server routes at the top level (`__init__.py` registers them); every `.js` file in `js/` (`WEB_DIRECTORY`).
-- `region_genie.py` / `js/region_genie.js`: the main node and its canvas editor. `regional_lora.py`: the regional LoRA engine. `region_select.py`: Select object (SAM 3.1). `llm_enhance.py`: LLM Prompt Enhancer. `wildcards.py`: Impact Pack wildcards. `control.py`: Control (ControlNet / control LoRAs). `save_image.py` / `js/save_image.js`: Save Image (Region Genie). `js/rg_shared.js`: icons, Settings, shared helpers.
+- `region_genie.py` / `js/region_genie.js` + `js/editor/*.js`: the main node and its canvas editor (the editor is split into parts that share one object, `E`: read the header of `js/editor/parts.js` first). `regional_lora.py`: the regional LoRA engine. `region_select.py`: Select object (SAM 3.1). `llm_enhance.py`: LLM Prompt Enhancer. `wildcards.py`: Impact Pack wildcards. `control.py`: Control (ControlNet / control LoRAs). `save_image.py` / `js/save_image.js`: Save Image (Region Genie). `js/rg_shared.js`: icons, Settings, shared helpers.
 - `tests/`: see `tests/README.md`. There is no GPU in cloud sessions; tests use stubs, CPU, and a random-weight SAM fixture.
 
 ## Working agreements with the owner
@@ -26,7 +26,7 @@ Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the d
 
 GitHub Actions (`.github/workflows/tests.yml`) runs the syntax checks, `tests/run_py.sh` and `tests/run_ui.sh` on every push; the real-ComfyUI tests are manual.
 
-- `node --check --input-type=module < js/<file>.js` for every changed JS file; `python3 -m py_compile` for Python.
+- `node --check --input-type=module < js/<file>.js` for every changed JS file (also in `js/editor/`); `python3 -m py_compile` for Python.
 - `tests/run_py.sh`; `tests/run_ui.sh` when the editor changed; `tests/test_select.py` when `region_select.py` changed; `tests/test_control.py` when `control.py` changed; `tests/real_save_image.cjs [vue]` when the save node changed; `tests/real_tooltips.cjs [vue]` when a tooltip changed; `tests/real_settings.cjs` when a Setting changed; `tests/real_llm_settings.cjs [vue]` when the LLM settings (pop-up or Settings rows) changed.
 
 ## Never commit

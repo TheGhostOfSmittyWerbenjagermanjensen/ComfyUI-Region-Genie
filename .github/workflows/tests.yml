@@ -32,7 +32,7 @@ jobs:
           python-version: "3.12"
       - name: Syntax
         run: |
-          for f in js/*.js; do node --check --input-type=module < "$f" || exit 1; done
+          for f in js/*.js js/editor/*.js; do node --check --input-type=module < "$f" || exit 1; done
           for f in tests/*.cjs; do node --check "$f" || exit 1; done
       - name: Playwright
         run: |
