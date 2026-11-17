@@ -10,6 +10,8 @@ For each model: connect `model`, `clip` and `vae`, draw two regions with prompts
 
 - [ ] MOSS-Image, layout mode (regions placed by the layout prompt)
 - [ ] MOSS-Image, standard mode (the layout / standard switch off, and with no regions drawn)
+- [ ] MOSS-Image: with an empty canvas the switch shows standard; drawing the first region brings layout back, and the run's `prompt` is layout JSON
+- [ ] Krea 2 (or MOSS-Image in standard mode): after a run the keep-all-regions-apart button is lit; one click turns it off, and the next run leaves it off
 - [ ] Krea 2 (regions kept apart automatically)
 - [ ] Ideogram 4
 - [ ] Flux.1

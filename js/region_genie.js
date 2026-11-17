@@ -696,7 +696,9 @@ function normLoras(a) {
 function normLoraOpts(o) {
     o = o && typeof o === "object" ? o : {};
     const clamp = (v, d) => (Number.isFinite(+v) ? Math.min(1, Math.max(0, +v)) : d);
+    // autoOff: 'keep all regions apart' is off for this node, also where a run would turn it on by itself
     return { separation: clamp(o.separation, 0.85), until: clamp(o.until, 0.25), ...(o.allRegions ? { allRegions: true } : {}),
+             ...(o.autoOff && !o.allRegions ? { autoOff: true } : {}),
              ...(o.shareBg ? { shareBg: true } : {}) };            // shareBg: kept-apart regions still share the background
 }
 function normRegion(r) {
@@ -1535,6 +1537,10 @@ app.registerExtension({
             // MOSS-Image: layout (its layout JSON, with the region boxes) or standard (a plain text prompt)
             const layoutBtn = iconBtn("mossLayout", "", () => {
                 node.properties = node.properties || {};
+                // standard by itself (no region, or Edit Mode): there is nothing to choose. A click here used to set
+                // standard 'for good' without the icon changing, and layout then never came back.
+                if (isEdit()) { hint("Edit Mode always sends plain text"); return; }
+                if (!outputIndexMap().some((v) => v != null)) { hint("Layout mode needs a region: it comes back by itself when one is drawn"); return; }
                 if (node.properties.rg_moss_layout === false) delete node.properties.rg_moss_layout;
                 else node.properties.rg_moss_layout = false;
                 app.graph?.change?.();
@@ -1571,8 +1577,16 @@ app.registerExtension({
             // round 20: the icon shows the mode the run will use: standard by itself while no region is drawn and shown
             // (holes don't count) and in Edit Mode, even when layout is chosen; layout comes back with a region
             let layoutAuto = null;
+            let layoutHad = null;            // whether a region was drawn and shown at the last look (null: just loaded)
             function syncLayoutBtn(anyRegion) {
                 if (anyRegion === undefined) anyRegion = outputIndexMap().some((v) => v != null);
+                // the first region on an empty canvas (drawn, shown again or imported) brings layout mode back: a
+                // 'standard' choice lasts only while there are regions (not on load: a saved choice stays)
+                if (layoutHad === false && anyRegion && node.properties?.rg_moss_layout === false) {
+                    delete node.properties.rg_moss_layout;
+                    app.graph?.change?.();
+                }
+                layoutHad = anyRegion;
                 const want = node.properties?.rg_moss_layout !== false, edit = isEdit();
                 const layout = want && anyRegion && !edit;
                 const key = `${want}|${anyRegion}|${edit}`;
@@ -1584,9 +1598,11 @@ app.registerExtension({
                     : !anyRegion ? "\nStandard by itself: No region is drawn and shown. Layout comes back when one is." : "";
                 layoutBtn.title = (layout
                     ? "MOSS-Image layout mode: The prompt is MOSS layout JSON, with each region's box. Click for standard mode."
-                    : want ? "MOSS-Image standard mode (for now): The prompt is plain text. Click to choose standard mode for good."
-                    : "MOSS-Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them). Click for layout mode.")
-                    + why;
+                    : want ? "MOSS-Image standard mode (for now): The prompt is plain text."
+                    : "MOSS-Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them)."
+                        + (anyRegion && !edit ? " Click for layout mode." : ""))
+                    + why
+                    + (!want ? "\nLayout also comes back by itself when the first region is drawn on an empty canvas." : "");
             }
             // the files the Control row needs for the model and kind, and the ones ComfyUI doesn't have: the message bar
             // shows where to get them (like Select object's missing-model message)
@@ -2025,7 +2041,12 @@ app.registerExtension({
             });
             // keep all regions apart (not only those with LoRAs)
             const allApartBtn = btn("", "", () => {
-                change(() => { const o = normLoraOpts(state.loraOpts); state.loraOpts = normLoraOpts({ ...o, allRegions: !o.allRegions }); });
+                // a real switch of what the button shows: on (set here, or by itself in the last run) -> off for this node,
+                // also where a run would turn it on by itself; off -> on
+                change(() => {
+                    const o = normLoraOpts(state.loraOpts), shown = !!o.allRegions || (autoApart && !o.autoOff);
+                    state.loraOpts = normLoraOpts({ ...o, allRegions: !shown, autoOff: shown });
+                });
                 refreshUI();
             });
             allApartBtn.classList.add("icon", "toggle", "variants");
@@ -2037,12 +2058,16 @@ app.registerExtension({
                 const mark = (on) => (on ? "✓ " : " ");
                 const items = [
                     { content: mark(o.allRegions) + "Keep all regions apart", v: "all" },
+                    { content: mark(!o.allRegions && !o.autoOff) + "Automatic (as set in Settings)", v: "auto" },
+                    { content: mark(o.autoOff) + "Off for this node", v: "off" },
                     { content: mark(o.shareBg) + "Share the background", v: "bg" },
                 ];
                 contextMenu(e, items, "Keep regions apart", (v) => {
-                    if (v?.v === "all" || v?.v === "bg") {
-                        const key = v.v === "all" ? "allRegions" : "shareBg";
-                        change(() => { const c = normLoraOpts(state.loraOpts); state.loraOpts = normLoraOpts({ ...c, [key]: !c[key] }); });
+                    const set = { all: (c) => ({ allRegions: !c.allRegions, autoOff: false }), auto: () => ({ allRegions: false, autoOff: false }),
+                                  off: () => ({ allRegions: false, autoOff: true }), bg: (c) => ({ shareBg: !c.shareBg }) }[v?.v];
+                    if (set) {
+                        change(() => { const c = normLoraOpts(state.loraOpts); state.loraOpts = normLoraOpts({ ...c, ...set(c) }); });
+                        refreshUI();
                     }
                     focusSink();
                 });
@@ -2051,17 +2076,19 @@ app.registerExtension({
             let autoApart = false;          // the last run turned it on by itself (a model without a layout format, region prompts)
             function setAllApartBtn() {
                 const opts = normLoraOpts(state.loraOpts);
-                const own = !!opts.allRegions, on = own || autoApart, shared = !!opts.shareBg;
-                const key = `${own}|${autoApart}|${shared}`;
+                const own = !!opts.allRegions, auto = autoApart && !opts.autoOff, on = own || auto, shared = !!opts.shareBg;
+                const key = `${own}|${auto}|${!!opts.autoOff}|${shared}`;
                 if (allApartShown === key) return;
                 allApartShown = key;
                 setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart"));
                 allApartBtn.classList.toggle("on", on);
                 allApartBtn.title = (own ? "Keep all regions apart: ON."
-                    : autoApart ? "Keep all regions apart: ON automatically in the last run (a model without a layout format, "
+                    : auto ? "Keep all regions apart: ON automatically in the last run (a model without a layout format, "
                         + "with region prompts; Settings > Region Genie > keep all regions apart automatically sets this for "
                         + "all such models or one model). "
-                        + "Clicking switches it on for this node in any case."
+                        + "Clicking switches it off for this node."
+                    : opts.autoOff ? "Keep all regions apart: OFF for this node, also where a run would turn it on by itself. "
+                        + "Right-click > Automatic lets it turn on by itself again."
                     : "Keep all regions apart: OFF.")
                     + "\nOn: Every region, with or without LoRAs, is kept apart from the others and from the background for "
                     + "the first part of sampling ('until'), at the separation strength set here, and each region's caption "
@@ -5226,7 +5253,7 @@ app.registerExtension({
                 sepIn.value = String(normLoraOpts(state.loraOpts).separation);
                 untilIn.value = String(normLoraOpts(state.loraOpts).until);
                 const anyLora = (state.sceneLoras || []).length || state.regions.some((r) => (r.loras || []).length);
-                const showSep = anyLora || normLoraOpts(state.loraOpts).allRegions || autoApart;
+                const showSep = anyLora || normLoraOpts(state.loraOpts).allRegions || (autoApart && !normLoraOpts(state.loraOpts).autoOff);
                 for (const e of [sepLbl, sepIn, untilLbl, untilIn]) e.style.display = showSep ? "" : "none";
                 setAllApartBtn();
                 syncEditMaskBox();
@@ -5476,6 +5503,7 @@ app.registerExtension({
 
             // ---------------- lifecycle ----------------
             function load() {
+                layoutHad = null;                                  // a saved layout / standard choice stays as it is
                 const [W, H] = dims();
                 const wasV1 = (() => { try { const d = JSON.parse(dataW?.value || ""); return d && !Array.isArray(d.layers) && Array.isArray(d.ops); } catch (e) { return false; } })();
                 state = parseState(dataW?.value, W, H);
