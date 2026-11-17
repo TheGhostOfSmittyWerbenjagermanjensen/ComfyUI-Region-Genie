@@ -1,10 +1,10 @@
 # The checks that need no ComfyUI and no GPU. The real-ComfyUI tests (tests/real_*.cjs, test_control.py,
 # test_select.py) need a ~5 GB setup and stay manual: see tests/README.md.
 name: tests
+# Every push to any branch (a pull request from a branch of this repository shows these results).
 on:
-  pull_request:
   push:
-    branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

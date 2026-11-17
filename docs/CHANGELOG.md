@@ -6,7 +6,7 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Asked for: the review's items 1-12 in a sensible order, code changes on new branches. Owner's choices: GPL-3.0; version 0.23.0; remove all old-name compatibility code; three branches (this one: no node code).
 - `LICENSE` (GPL-3.0, ComfyUI's own license), `pyproject.toml` (version 0.23.0; `PublisherId` empty until the owner registers one at registry.comfy.org).
 - README split: a short front page (nodes, install, quick start, screenshots) and one page per subject in `docs/`; the text itself is unchanged apart from cross-references becoming links. Screenshots in `docs/images/` (taken in the test ComfyUI at DPR 2), a starter workflow in `examples/` (built and reloaded in the real frontend; not run: no model files).
-- `.github/workflows/tests.yml`: syntax checks, `tests/run_py.sh` and `tests/run_ui.sh` on every pull request and push to main. The real-ComfyUI tests stay manual.
+- `.github/workflows/tests.yml`: syntax checks, `tests/run_py.sh` and `tests/run_ui.sh` on every push (so every pull request shows them). The real-ComfyUI tests stay manual.
 - Tests renamed by subject (see `tests/README.md`).
 - `docs/HARDWARE-CHECKLIST.md` replaces the handoff's growing 'not verified on real hardware' list; this changelog replaces the handoff's round-by-round section.
 
