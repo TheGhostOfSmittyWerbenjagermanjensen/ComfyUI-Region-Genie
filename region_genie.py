@@ -387,10 +387,45 @@ def layer_mask(layer, width, height):
     return np.asarray(warped) > 0
 
 
-def render_layers(base_idx, layers, id_to_index):
-    """Composite layers bottom to top over base_idx; region 0 / 'none' = unspecified."""
+def layer_fade(layer, width, height):
+    """A gradient layer's strength over the image, float32 (H, W) in 0..1, or None for an ordinary layer.
+
+    layer["grad"] = {"k": "linear" | "radial", "a": [lx, ly], "b": [lx, ly]} in the layer's own units (so it moves,
+    turns and scales with the layer). linear: 1 at a, fading to 0 at b along the line a -> b (1 before a, 0 past
+    b). radial: 1 at a, fading to 0 at the distance |b - a| from it."""
+    g = layer.get("grad")
+    if not isinstance(g, dict):
+        return None
+    a, b = _local_points([g.get("a")]), _local_points([g.get("b")])
+    if not a or not b:
+        return None
+    (ax, ay), (bx, by) = a[0], b[0]
+    length = math.hypot(bx - ax, by - ay)
+    if length < 1e-9:
+        return None
+    short, bw, bh, sx, sy, th, cx, cy = _layer_params(layer, width, height)
+    cos, sin = math.cos(th), math.sin(th)
+    ys, xs = np.mgrid[0:height, 0:width].astype(np.float32)
+    dx, dy = xs + 0.5 - cx, ys + 0.5 - cy                    # pixel centres -> the layer's units
+    lx = (cos * dx + sin * dy) / (sx * short) + bw / 2
+    ly = (-sin * dx + cos * dy) / (sy * short) + bh / 2
+    if g.get("k") == "radial":
+        tt = np.hypot(lx - ax, ly - ay) / length
+    else:
+        tt = ((lx - ax) * (bx - ax) + (ly - ay) * (by - ay)) / (length * length)
+    return (1.0 - np.clip(tt, 0.0, 1.0)).astype(np.float32)
+
+
+def render_layers(base_idx, layers, id_to_index, soft=None):
+    """Composite layers bottom to top over base_idx; region 0 / 'none' = unspecified.
+
+    A gradient layer (layer_fade) takes the pixels where it is at least half strength. soft: a dict that gets the
+    strengths for soft_mask(): "strength" (H, W: how strongly each pixel belongs to its region; missing when no
+    gradient layer is shown) and "faint" {region index: (H, W)}: a region's gradient where it is under half
+    strength, so the pixel stays with what is below it."""
     idx = np.array(base_idx, copy=True)
     h, w = idx.shape
+    strength, faint = None, {}
     for layer in layers:
         if layer.get("visible") is False:
             continue
@@ -402,8 +437,39 @@ def render_layers(base_idx, layers, id_to_index):
         else:
             continue                                  # region deleted
         m = layer_mask(layer, w, h)
-        idx[m] = value
+        fade = layer_fade(layer, w, h) if value else None       # holes are always hard
+        if fade is None:
+            idx[m] = value
+            if strength is not None:
+                strength[m] = 1.0
+            for g in faint.values():                         # an ordinary layer covers what was faint under it
+                g[m] = 0.0
+            continue
+        if strength is None:
+            strength = np.ones((h, w), np.float32)
+        strong = m & (fade >= 0.5)
+        weak = m & ~strong
+        idx[strong] = value
+        strength[strong] = fade[strong]
+        for g in faint.values():
+            g[strong] = 0.0
+        g = faint.setdefault(value, np.zeros((h, w), np.float32))
+        g[weak] = np.maximum(g[weak], fade[weak])
+    if soft is not None and strength is not None:
+        soft["strength"], soft["faint"] = strength, faint
     return idx
+
+
+def soft_mask(idx, k, soft):
+    """Region k's mask as float32 (H, W): 1 where the pixel is its own, a gradient layer's strength where one put it
+    there, and the faint end of its gradients over other regions."""
+    m = (idx == k).astype(np.float32)
+    if soft and soft.get("strength") is not None:
+        m *= soft["strength"]
+        g = soft["faint"].get(k)
+        if g is not None:
+            m = np.maximum(m, g)
+    return m
 
 
 def quantize_image(image_np, min_pixels, merge_dist=24, blend_tol=40):
@@ -1213,8 +1279,9 @@ class RegionGenie:
             ui["backdrop"] = self._save_preview(image)
         ui["detected"] = [json.dumps(detected)]
 
+        soft = {}                                      # gradient layers: the masks fade (color_map and boxes stay hard)
         if layers is not None:
-            idx = render_layers(np.asarray(index_img), layers, id_to_index)
+            idx = render_layers(np.asarray(index_img), layers, id_to_index, soft)
         else:                                          # paint_data v1 (before layers)
             render_ops(index_img, ops, id_to_index, width, height)
             idx = np.asarray(index_img)
@@ -1238,7 +1305,7 @@ class RegionGenie:
             xs = np.nonzero(m.any(axis=0))[0]
             x0, x1, y0, y1 = int(xs[0]), int(xs[-1]) + 1, int(ys[0]), int(ys[-1]) + 1
             f = _region_feather(row, feather_all)
-            mf = m.astype(np.float32)
+            mf = soft_mask(idx, k, soft)
             if f > 0:
                 mf = box_blur(mf[None], f, solid_border=not row.get("featherEdges"))[0]
             masks.append(torch.from_numpy(np.ascontiguousarray(mf)))

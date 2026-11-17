@@ -135,7 +135,11 @@ export function* pointer(E) {
             E.labelClick = null;
             return;
         }
-        if (E.tool === "fill") { E.fillAt(ix, iy); return; }
+        if (E.tool === "fill") {
+            if (LASSO_MODES.fill === "linear" || LASSO_MODES.fill === "radial") E.drag = { mode: "grad", kind: LASSO_MODES.fill, start: [ix, iy], cur: [ix, iy] };
+            else E.fillAt(ix, iy);
+            return;
+        }
         if (E.tool === "wand") { E.wandAt(ix, iy); return; }
         const erasing = E.tool === "erase" || E.tool === "lassoErase";
         const target = paintTarget(erasing);
@@ -204,6 +208,8 @@ export function* pointer(E) {
             L.oy = (K[1] - (Math.sin(th) * ox + Math.cos(th) * oy) - H / 2) / s;
         } else if (E.drag.mode === "pickbox") {
             E.drag.cur = [ix, iy]; E.drag.moved = Math.max(E.drag.moved, Math.hypot(dx - E.drag.sd[0], dy - E.drag.sd[1]));
+        } else if (E.drag.mode === "grad") {
+            E.drag.cur = [ix, iy];
         } else if (E.drag.mode === "shape") {
             E.drag.cur = [E.snapV(ix), E.snapV(iy)]; E.drag.square = e.shiftKey; E.drag.centre = e.altKey;
         } else if (E.drag.mode === "paint") {
@@ -227,6 +233,7 @@ export function* pointer(E) {
         E.drag = null;
         if (d.mode === "pan") { E.requestDraw(); return; }
         if (d.mode === "pickbox") { E.pickPointer(d); E.requestDraw(); return; }
+        if (d.mode === "grad") { E.gradFill(d); E.requestDraw(); return; }
         if (d.mode === "lasso" && d.moved < 5 * E.dprNow()) {     // a click: start a point-by-point lasso
             E.clickPoly = { erase: d.erase, spline: d.spline, magnetic: d.magnetic, target: d.target, region: d.region,
                           pts: [d.magnetic ? d.pts[0] : [E.snapV(d.pts[0][0]), E.snapV(d.pts[0][1])]] };

@@ -2,14 +2,14 @@
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { api } from "../../../scripts/api.js";
 import { getSetting, SET } from "../rg_shared.js";
-import { LASSO_MODES, TOOL_NUMS, RASTER_MAX } from "./shared.js";
+import { LASSO_MODES, TOOL_NUMS, UNSPEC, RASTER_MAX } from "./shared.js";
 import { distanceMap, growMask01, encodeRuns, decodeRuns, bitmapCache } from "./geometry.js";
 import { hexRgb } from "./colors.js";
 
 export function* selectTools(E) {
     Object.assign(E, {
-        fillAt, wandAt, edgeMap, pickPointer, pickSettle, pickFind, pickCancel, pickUndo, pickAccept, drawPick, flipLayer,
-        alignLayer, growLayer,
+        gradFill, fillAt, wandAt, edgeMap, pickPointer, pickSettle, pickFind, pickCancel, pickUndo, pickAccept, drawPick,
+        flipLayer, alignLayer, growLayer,
     });
     yield;
 
@@ -77,6 +77,31 @@ export function* selectTools(E) {
             else { const L = E.newPaintLayer(rid); L.name = `${name} ${L.id}`; L.ops.push(op); E.addLayer(L); }
         });
         return true;
+    }
+    // gradient fill (round 26): the area the normal Fill would fill from the drag's start, as a layer of its own
+    // whose region fades from the start of the drag to its end
+    function gradFill(d) {
+        const R = rasterSize(), { W, H, w, h, r } = R, [ix, iy] = d.start, s = Math.min(W, H);
+        if (ix < 0 || iy < 0 || ix >= W || iy >= H) { E.hint("Gradient fill starts inside the image"); return; }
+        if (Math.hypot(d.cur[0] - ix, d.cur[1] - iy) * E.view.z < 4 * E.dprNow()) {
+            E.hint(d.kind === "radial" ? "Gradient fill: drag outward from the point where the region is strongest"
+                : "Gradient fill: drag a line from where the region is strongest to where it ends");
+            return;
+        }
+        const lab = regionLabels(R);
+        const seed = Math.min(h - 1, Math.floor(iy * r)) * w + Math.min(w - 1, Math.floor(ix * r)), want = lab[seed];
+        const mask = flood(w, h, seed, (q) => lab[q] === want), m = mask.slice();
+        for (let p = 0; p < mask.length; p++) if (mask[p]) {         // 1 px wider, under anti-aliased edges (as commitMask)
+            const px = p % w;
+            if (px > 0) m[p - 1] = 1; if (px < w - 1) m[p + 1] = 1; if (p >= w) m[p - w] = 1; if (p + w < mask.length) m[p + w] = 1;
+        }
+        const op = { t: "bitmap", e: false, w, h, runs: encodeRuns(m), x0: 0, y0: 0, x1: W / s, y1: H / s };
+        E.change(() => {
+            const rid = E.ensureRegion(), L = E.newPaintLayer(rid);
+            L.ops.push(op);
+            if (rid !== UNSPEC) { L.name = `Gradient ${L.id}`; L.grad = { k: d.kind, a: [ix / s, iy / s], b: [d.cur[0] / s, d.cur[1] / s] }; }
+            E.addLayer(L);
+        });
     }
     function fillAt(ix, iy) {
         const R = rasterSize(), { W, H, w, h, r } = R;
@@ -353,6 +378,7 @@ export function* selectTools(E) {
     // ---------------- arrange: flip, align, grow / shrink ----------------
     function mirrorOps(L, axis, c) {                 // mirror the layer's ops in its own frame: x -> c - x (or y)
         const i = axis === "h" ? 0 : 1;
+        if (L.grad) for (const q of [L.grad.a, L.grad.b]) q[i] = c - q[i];
         for (const o of L.ops) {
             if (o.t === "bitmap") {
                 const { w, h } = o, src = decodeRuns(o.runs, w * h), out = new Uint8Array(w * h);
@@ -405,8 +431,11 @@ export function* selectTools(E) {
         const d = x.getImageData(0, 0, w, h).data, m = new Uint8Array(w * h);
         for (let i = 0; i < m.length; i++) m[i] = d[i * 4 + 3] >= 128 ? 1 : 0;
         const out = growMask01(m, w, h, px * r);
+        // a gradient stays where it is on the image (the layer's frame becomes the whole image below)
+        const grad = L.grad ? { k: L.grad.k, a: E.layerToImg(L, ...L.grad.a).map((v) => v / s), b: E.layerToImg(L, ...L.grad.b).map((v) => v / s) } : null;
         E.change(() => {
             E.boxCache.delete(L);
+            if (grad) L.grad = grad;
             Object.assign(L, { shape: null, sides: 5, bw: W / s, bh: H / s, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0,
                 ops: out.some((v) => v) ? [{ t: "bitmap", e: false, w, h, runs: encodeRuns(out), x0: 0, y0: 0, x1: W / s, y1: H / s }] : [] });
             delete L.radius;

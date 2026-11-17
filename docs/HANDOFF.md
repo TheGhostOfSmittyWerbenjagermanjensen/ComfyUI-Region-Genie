@@ -1,6 +1,6 @@
 # Region Genie (ComfyUI node pack): handoff summary
 
-**State (Nov 17, 2026):** version 0.24.1 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
+**State (Nov 17, 2026):** version 0.25.0 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
 
 The pack used to be called **Regional Mask Kit** (renamed Nov 10, 2026). The compatibility code for the old names was removed in round 24 (section 7).
 
@@ -149,6 +149,8 @@ The reasons behind the parts a new session is most likely to trip over. Each end
 - Pop-up editors open from the expand button (double-click selects words), can leave the node, and close only by ✕ / Esc. (Rounds 10, 12)
 - MOSS-Image's layout / standard switch: layout unless standard was chosen while there are regions (`rg_moss_layout === false`); standard by itself with no shown region or in Edit Mode, where a click does nothing; the first region on an empty canvas clears a standard choice (`layoutHad` in `syncLayoutBtn`, reset in `load()`). (Rounds 12, 20, 25)
 - 'Keep all regions apart' has three states in `loraOpts`: `allRegions` (on for this node), neither (automatic: a run turns it on for a model without a layout format, and reports `auto_apart`), `autoOff` (off for this node, also where it would turn on). The button shows on for the first, and for the second after such a run; a click always changes what it shows. (Rounds 3, 25)
+- Gradient fill: a layer with `grad: {k, a, b}` (layer units) whose region fades. JS draws it with `fadeLayerOn` (only on a canvas that holds that layer alone); Python: `layer_fade`, `render_layers(..., soft)`, `soft_mask`. The index map (color_map, boxes, prompt) takes the pixels from half strength; `masks` carries the strength. Keep the two sides in step. (Round 26)
+- Pop-up editors are at z-index 10000; anything that must show over them needs more (the autocomplete lists: `.rg-ac`, 10002; the wildcard list 10001; the color picker and LLM pop-up are far above). (Rounds 12, 26)
 - Holes are a ✂ switch per layer: `region: 0` plus `owner` for the region it is listed under. Layout mode shows as off when no region is visible. (Round 20)
 - Number fields size themselves through a page-wide observer in `rg_shared.js` (`autoNumber`). Rows that redraw on a timer must not replace an element under the mouse, or its tooltip never appears (`setHTML`). (Round 12)
 - The workflow loader keeps unknown keys (it once dropped new ones on reload). New node inputs go **after** existing ones: values are stored by position, and an input added in the middle shifted them (`keepWidgetValuesByName` now also resets invalid values). (Rounds 10, 20)
