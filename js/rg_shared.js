@@ -74,6 +74,8 @@ export const ICONS = {
     // magic wand (contiguous) and its 'all similar colors' variant
     wand: '<path d="M2.4 13.6l7.4-7.4"/><path d="M9.2 4.6l2.2 2.2"/><path d="M11.8 1.6v2M14.4 4.2h-2M13.6 2.4l-1.2 1.2M9.6 2.4l.9.9M13.6 6.4l-.9-.9"/>',
     wandGlobal: '<path d="M2.4 13.6l7.4-7.4"/><path d="M9.2 4.6l2.2 2.2"/><path d="M11.8 1.6v2M14.4 4.2h-2M13.6 2.4l-1.2 1.2M9.6 2.4l.9.9M13.6 6.4l-.9-.9"/><circle cx="3.2" cy="4" r="1.3" fill="currentColor" stroke="none"/><circle cx="12.6" cy="12.4" r="1.3" fill="currentColor" stroke="none"/>',
+    fillLinear: '<rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.2 2.5v11" stroke-width="2.4"/><path d="M8.4 2.5v11" stroke-width="1.5"/><path d="M11.2 2.5v11" stroke-width=".7"/>',
+    fillRadial: '<circle cx="8" cy="8" r="5.8"/><circle cx="8" cy="8" r="1.9" fill="currentColor"/><circle cx="8" cy="8" r="3.8" stroke-width=".8"/>',
     fillGaps: '<path d="M2.6 7.6L7.4 2.8l5 5-4.8 4.8a1.3 1.3 0 0 1-1.8 0L2.6 9.4a1.3 1.3 0 0 1 0-1.8z"/><path d="M2.8 8h9.4"/><path d="M12.6 10.4v1.4M12.6 13.2v1.4M14.6 12.4h-1.2M11.8 12.4h-1.2" stroke-width="1.2"/>',
     lassoMagnetic: '<ellipse cx="8.8" cy="6" rx="5.4" ry="3.6"/><path d="M5.2 8.7c-1.5.8-1.3 2.5.1 2.9"/><path d="M8.2 10.6h1.8v2.6a1 1 0 0 0 2 0v-2.6h1.8v2.6a2.8 2.8 0 0 1-5.6 0z" stroke-width="1.2"/>',
     lassoEraseMagnetic: '<ellipse cx="7.6" cy="6.4" rx="5.4" ry="3.7" stroke-dasharray="2.2 1.6"/><path d="M1.4 10.6h1.8v2.2a1 1 0 0 0 2 0v-2.2h1.8v2.2a2.8 2.8 0 0 1-5.6 0z" stroke-width="1.2"/><path d="M10.6 10.6l3.6 3.6M14.2 10.6l-3.6 3.6"/>',
@@ -1545,7 +1547,7 @@ export function editMaskDefaults() {
 // Canvas tools: which variant each tool with variants starts in (Settings > Region Genie > Canvas tools). The
 // right-click choice on a tool button still switches it for the rest of the session.
 export const TOOL_VARIANTS = { lasso: ["plain", "spline", "magnetic"], lassoErase: ["plain", "spline", "magnetic"],
-                               wand: ["contiguous", "global"], fill: ["normal", "gaps"] };
+                               wand: ["contiguous", "global"], fill: ["normal", "gaps", "linear", "radial"] };
 const TOOL_SETTING = { lasso: SET.toolLasso, lassoErase: SET.toolLassoErase, wand: SET.toolWand, fill: SET.toolFill };
 export function toolDefault(tool) {
     const v = getSetting(TOOL_SETTING[tool], TOOL_VARIANTS[tool][0]);
@@ -1692,7 +1694,8 @@ const SETTINGS = [
         },
         {
             id: SET.toolFill, name: "Fill: default", type: "combo", defaultValue: "normal",
-            options: [{ text: "Fill", value: "normal" }, { text: "Fill, closing small gaps", value: "gaps" }],
+            options: [{ text: "Fill", value: "normal" }, { text: "Fill, closing small gaps", value: "gaps" },
+                      { text: "Gradient fill, linear", value: "linear" }, { text: "Gradient fill, radial", value: "radial" }],
             tooltip: "Closing small gaps: The fill doesn't leak out through openings narrower than about twice the gap size "
                 + "(set next to the Fill button).\nRight-clicking the button still switches it for the session.",
             category: CAT("Canvas tools", "5 fill"),
@@ -1944,6 +1947,8 @@ app.registerExtension({
 });
 
 export const AC_CSS = `
+/* above the pop-up editors (.rg-pop / .rg-fpop, z-index 10000): the packs' own lists sit at or below that */
+.rg-ac.comfy-autocomplete-dropdown, .rg-ac.pysssss-autocomplete { z-index:10002 !important; }
 .rg-ac.comfy-autocomplete-dropdown .comfy-autocomplete-item { padding:2px 10px !important; }
 .rg-ac.pysssss-autocomplete .pysssss-autocomplete-item { padding:1px 7px; line-height:1.25; }
 .rg-ac.pysssss-autocomplete .pysssss-autocomplete-pill { padding-top:0; padding-bottom:0; }
