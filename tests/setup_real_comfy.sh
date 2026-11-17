@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sets up a real ComfyUI (CPU, no model files) with this pack and ComfyUI Impact Pack, for tests/real_comfy9.cjs.
+# Sets up a real ComfyUI (CPU, no model files) with this pack and ComfyUI Impact Pack, for tests/real_run_wildcards.cjs.
 #
 #   bash tests/setup_real_comfy.sh [DIR] [--start]
 #
@@ -34,7 +34,7 @@ grep -v -E "sam2|segment-anything" "$IMPACT/requirements.txt" > "$REQS" || true 
 rm -f "$REQS"
 ln -sfn "$PACK" "$DIR/custom_nodes/ComfyUI-Region-Genie"
 mkdir -p "$IMPACT/wildcards/rgtest"
-printf "red\ngreen\nblue\npurple\n" > "$IMPACT/wildcards/rgtest/color.txt"         # the test wildcard real_comfy9.cjs uses
+printf "red\ngreen\nblue\npurple\n" > "$IMPACT/wildcards/rgtest/color.txt"         # the test wildcard real_run_wildcards.cjs uses
 
 if [ "$START" = 1 ]; then
     echo "== starting ComfyUI on 127.0.0.1:$PORT (log: $DIR/comfy.log)"
@@ -51,4 +51,4 @@ if [ "$START" = 1 ]; then
 else
     echo "== done. Start it with: cd $DIR && python3 main.py --cpu --listen 127.0.0.1 --port $PORT"
 fi
-echo "Then: node tests/real_comfy9.cjs   and   node tests/real_comfy9.cjs vue   (and COMFY_DIR=$DIR python3 tests/test_control.py)"
+echo "Then: node tests/real_run_wildcards.cjs   and   node tests/real_run_wildcards.cjs vue   (and COMFY_DIR=$DIR python3 tests/test_control.py)"

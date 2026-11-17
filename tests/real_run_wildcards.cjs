@@ -1,5 +1,5 @@
 // Round 9 checks in the real ComfyUI frontend + server (CPU; no model files needed).
-// Usage: node real_comfy9.cjs [vue]   ("vue" = Nodes 2.0). Needs ComfyUI on 127.0.0.1:8188 with this pack (and Impact Pack
+// Usage: node real_run_wildcards.cjs [vue]   ("vue" = Nodes 2.0). Needs ComfyUI on 127.0.0.1:8188 with this pack (and Impact Pack
 // for the wildcard checks).
 const { chromium } = (() => { try { return require("playwright"); } catch (e) { return require("/opt/node-tools/node_modules/playwright"); } })();
 const vue = process.argv[2] === "vue";

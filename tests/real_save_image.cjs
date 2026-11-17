@@ -1,5 +1,5 @@
 // Save Image (Region Genie) in the real ComfyUI frontend + server (CPU; no model files needed).
-// Usage: COMFY_DIR=<ComfyUI folder> node real_comfy_save.cjs [vue]   ("vue" = Nodes 2.0).
+// Usage: COMFY_DIR=<ComfyUI folder> node real_save_image.cjs [vue]   ("vue" = Nodes 2.0).
 // Needs ComfyUI on 127.0.0.1:8188 with this pack (bash tests/setup_real_comfy.sh --start); COMFY_DIR for the output folder.
 const { chromium } = (() => { try { return require("playwright"); } catch (e) { return require("/opt/node-tools/node_modules/playwright"); } })();
 const fs = require("fs"), path = require("path");

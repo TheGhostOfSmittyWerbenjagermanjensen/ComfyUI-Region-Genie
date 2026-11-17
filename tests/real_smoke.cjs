@@ -1,5 +1,5 @@
 // Smoke test in the real ComfyUI frontend (1.58.5) + server (0.45, CPU, random-weight SAM 3.1 fixture).
-// Usage: node real_comfy.cjs [vue]   ("vue" = Nodes 2.0)
+// Usage: node real_smoke.cjs [vue]   ("vue" = Nodes 2.0)
 const { chromium } = (() => { try { return require("playwright"); } catch (e) { return require("/opt/npm-tools/node_modules/playwright"); } })();
 const vue = process.argv[2] === "vue";
 const fails = [];

@@ -1,0 +1,42 @@
+# The checks that need no ComfyUI and no GPU. The real-ComfyUI tests (tests/real_*.cjs, test_control.py,
+# test_select.py) need a ~5 GB setup and stay manual: see tests/README.md.
+name: tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install numpy Pillow scipy
+      - name: Syntax
+        run: python -m py_compile *.py tests/*.py
+      - name: Python tests (stubbed torch / comfy)
+        run: bash tests/run_py.sh
+  editor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax
+        run: |
+          for f in js/*.js; do node --check --input-type=module < "$f" || exit 1; done
+          for f in tests/*.cjs; do node --check "$f" || exit 1; done
+      - name: Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Editor tests (stub page)
+        run: bash tests/run_ui.sh
