@@ -182,7 +182,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const texts = ["x_%SolidMask.width%", "x_%SolidMask.value%", "x_%date:yyyy-MM-dd%", "x_%date:yy-M-d%", "x_%date:yyyyMMdd%", "x_%Nope.width%", "x_%width%", "x_%SolidMask.nope%"];
         const core = texts.map(viaCore);
         window.comfyAPI.utils.applyTextReplacements = undefined;
-        const own = texts.map((t) => { w.value = t; return w.serializeValue(); });
+        const own = [];
+        for (const t of texts) { w.value = t; own.push(await w.serializeValue()); }      // await: another pack may wrap it
         window.comfyAPI.utils.applyTextReplacements = keep.fn;
         img.title = keep.title; mv.value = keep.v; mw.value = keep.mw; w.value = keep.pre;
         return { core, own };
