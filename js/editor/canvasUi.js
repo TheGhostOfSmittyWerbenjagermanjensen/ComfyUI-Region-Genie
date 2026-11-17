@@ -115,7 +115,12 @@ export function* canvasUi(E) {
     });
     // keep all regions apart (not only those with LoRAs)
     const allApartBtn = E.btn("", "", () => {
-        E.change(() => { const o = normLoraOpts(E.state.loraOpts); E.state.loraOpts = normLoraOpts({ ...o, allRegions: !o.allRegions }); });
+        // a real switch of what the button shows: on (set here, or by itself in the last run) -> off for this node,
+        // also where a run would turn it on by itself; off -> on
+        E.change(() => {
+            const o = normLoraOpts(E.state.loraOpts), shown = !!o.allRegions || (E.autoApart && !o.autoOff);
+            E.state.loraOpts = normLoraOpts({ ...o, allRegions: !shown, autoOff: shown });
+        });
         E.refreshUI();
     });
     allApartBtn.classList.add("icon", "toggle", "variants");
@@ -127,12 +132,16 @@ export function* canvasUi(E) {
         const mark = (on) => (on ? "✓ " : " ");
         const items = [
             { content: mark(o.allRegions) + "Keep all regions apart", v: "all" },
+            { content: mark(!o.allRegions && !o.autoOff) + "Automatic (as set in Settings)", v: "auto" },
+            { content: mark(o.autoOff) + "Off for this node", v: "off" },
             { content: mark(o.shareBg) + "Share the background", v: "bg" },
         ];
         contextMenu(e, items, "Keep regions apart", (v) => {
-            if (v?.v === "all" || v?.v === "bg") {
-                const key = v.v === "all" ? "allRegions" : "shareBg";
-                E.change(() => { const c = normLoraOpts(E.state.loraOpts); E.state.loraOpts = normLoraOpts({ ...c, [key]: !c[key] }); });
+            const set = { all: (c) => ({ allRegions: !c.allRegions, autoOff: false }), auto: () => ({ allRegions: false, autoOff: false }),
+                          off: () => ({ allRegions: false, autoOff: true }), bg: (c) => ({ shareBg: !c.shareBg }) }[v?.v];
+            if (set) {
+                E.change(() => { const c = normLoraOpts(E.state.loraOpts); E.state.loraOpts = normLoraOpts({ ...c, ...set(c) }); });
+                E.refreshUI();
             }
             E.focusSink();
         });
@@ -141,17 +150,19 @@ export function* canvasUi(E) {
     E.autoApart = false;          // the last run turned it on by itself (a model without a layout format, region prompts)
     function setAllApartBtn() {
         const opts = normLoraOpts(E.state.loraOpts);
-        const own = !!opts.allRegions, on = own || E.autoApart, shared = !!opts.shareBg;
-        const key = `${own}|${E.autoApart}|${shared}`;
+        const own = !!opts.allRegions, auto = E.autoApart && !opts.autoOff, on = own || auto, shared = !!opts.shareBg;
+        const key = `${own}|${auto}|${!!opts.autoOff}|${shared}`;
         if (allApartShown === key) return;
         allApartShown = key;
         setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart"));
         allApartBtn.classList.toggle("on", on);
         allApartBtn.title = (own ? "Keep all regions apart: ON."
-            : E.autoApart ? "Keep all regions apart: ON automatically in the last run (a model without a layout format, "
+            : auto ? "Keep all regions apart: ON automatically in the last run (a model without a layout format, "
                 + "with region prompts; Settings > Region Genie > keep all regions apart automatically sets this for "
                 + "all such models or one model). "
-                + "Clicking switches it on for this node in any case."
+                + "Clicking switches it off for this node."
+            : opts.autoOff ? "Keep all regions apart: OFF for this node, also where a run would turn it on by itself. "
+                + "Right-click > Automatic lets it turn on by itself again."
             : "Keep all regions apart: OFF.")
             + "\nOn: Every region, with or without LoRAs, is kept apart from the others and from the background for "
             + "the first part of sampling ('until'), at the separation strength set here, and each region's caption "
