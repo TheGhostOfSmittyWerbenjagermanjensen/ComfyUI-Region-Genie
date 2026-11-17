@@ -1,5 +1,5 @@
 // Round 12 checks in the real ComfyUI frontend + server (CPU; no model files needed).
-// Usage: node real_comfy12.cjs [vue]   ("vue" = Nodes 2.0). Needs ComfyUI on 127.0.0.1:8188 with this pack
+// Usage: node real_fields_popups.cjs [vue]   ("vue" = Nodes 2.0). Needs ComfyUI on 127.0.0.1:8188 with this pack
 // (bash tests/setup_real_comfy.sh --start).
 const { chromium } = (() => { try { return require("playwright"); } catch (e) { return require("/opt/node-tools/node_modules/playwright"); } })();
 const vue = process.argv[2] === "vue";

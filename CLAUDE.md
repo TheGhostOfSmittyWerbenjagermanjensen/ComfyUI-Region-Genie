@@ -2,7 +2,7 @@
 
 Regional prompting and regional LoRAs for ComfyUI (MOSS Image first, then Krea 2; also Ideogram 4, Flux.1/2/3, Anima, SDXL / SD1.5). The repository root is the pack folder: it is installed as `ComfyUI/custom_nodes/ComfyUI-Region-Genie`.
 
-Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the data formats, past decisions and what is still untested. `README.md` is the user-facing manual; keep it current with every user-visible change.
+Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the data formats, past decisions and what is still untested. `README.md` is the front page and `docs/*.md` (one page per subject) the user-facing manual; keep them current with every user-visible change. `docs/CHANGELOG.md` has the history of every round.
 
 ## Layout
 
@@ -18,14 +18,16 @@ Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the d
 - UI: compact header controls; icons with tooltips over words, except these words the owner kept: "▼ LoRAs", "▼ All", "separation", "until", and every "LoRA"/"＋LoRA" label. Reuse existing icons.
 - Tooltips (node inputs / outputs, Settings, every editor control): concise but complete. A tooltip that explains several things (options, states, outputs) puts each on its own line (`name: Description.`). Every sentence starts with a capital letter, also after a ":", unless its first word is a lowercase field / option name (`sidecar .json: The workflow …`). `tests/tooltip_rules.cjs` has the rules; `tests/real_tooltips.cjs [vue]` checks every tooltip.
 - The owner often can't test right away: explain behavior changes clearly, and end every task with what was tested and what wasn't (real GPU runs never are).
-- After each round, update `docs/HANDOFF.md` (decisions, open items) and `README.md`.
+- After each round, update `docs/HANDOFF.md` (current design, open items), `docs/CHANGELOG.md` (the round: asked, decided, built, tested), the manual (`README.md`, `docs/*.md`) and, for anything a cloud session can't check, `docs/HARDWARE-CHECKLIST.md`. Raise the version in `pyproject.toml` with every user-visible change.
 - Before implementing anything (features, fixes, docs), fetch from GitHub and make sure the local copy matches the latest version of the branch the working branch is based on (its base branch: often `main`, but it depends on the situation), plus any newer commits on the working branch itself. If a PR from the working branch has been merged, start the new work from the current base branch.
 - When an instruction is unclear or could be read more than one way, ask the owner before acting on it.
 
 ## Checks before pushing
 
+GitHub Actions (`.github/workflows/tests.yml`) runs the syntax checks, `tests/run_py.sh` and `tests/run_ui.sh` on every push; the real-ComfyUI tests are manual.
+
 - `node --check --input-type=module < js/<file>.js` for every changed JS file; `python3 -m py_compile` for Python.
-- `tests/run_py.sh`; `tests/run_ui.sh` when the editor changed; `tests/test_select.py` when `region_select.py` changed; `tests/test_control.py` when `control.py` changed; `tests/real_comfy_save.cjs [vue]` when the save node changed; `tests/real_tooltips.cjs [vue]` when a tooltip changed; `tests/real_settings.cjs` when a Setting changed; `tests/real_llm_settings.cjs [vue]` when the LLM settings (pop-up or Settings rows) changed.
+- `tests/run_py.sh`; `tests/run_ui.sh` when the editor changed; `tests/test_select.py` when `region_select.py` changed; `tests/test_control.py` when `control.py` changed; `tests/real_save_image.cjs [vue]` when the save node changed; `tests/real_tooltips.cjs [vue]` when a tooltip changed; `tests/real_settings.cjs` when a Setting changed; `tests/real_llm_settings.cjs [vue]` when the LLM settings (pop-up or Settings rows) changed.
 
 ## Never commit
 

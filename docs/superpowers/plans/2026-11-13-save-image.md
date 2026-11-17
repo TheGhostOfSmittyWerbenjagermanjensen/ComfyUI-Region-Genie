@@ -47,7 +47,7 @@
   - `encode_avif(rgb, alpha, quality: int, exif: bytes | None) -> bytes` — raises `AvifUnavailable(RuntimeError)` with the message `"AVIF needs Pillow 11.3 or newer (pip install -U pillow), or a ComfyUI with AVIF support"` when neither route works
   - `mask_alpha(mask, index: int, h: int, w: int, invert: bool) -> np.ndarray | None`
 
-- [ ] **Step 1: Write the failing tests** in `tests/test_save_image.py` (style of `test_round12.py`: `from stubs import check, fails`, `from rgpack import save_image as si`), with a 32×24 test image (a gradient plus a red square) and a 16-bit-precise gradient:
+- [ ] **Step 1: Write the failing tests** in `tests/test_save_image.py` (style of `test_prompt_format.py`: `from stubs import check, fails`, `from rgpack import save_image as si`), with a 32×24 test image (a gradient plus a red square) and a 16-bit-precise gradient:
   - `png 8-bit lossless at every level`: for `level in 0..9`, decode with Pillow → equals `round(rgb*255)`; size at 9 <= size at 0.
   - `png 16-bit`: IHDR bit depth byte == 16 and color type 2; IDAT (zlib) decoded with numpy (filter type 0 rows) equals `round(rgb*65535)`.
   - `png with alpha`: 8-bit → Pillow mode `RGBA`, alpha == `round(alpha*255)`; 16-bit → color type 6.
@@ -147,7 +147,7 @@
 
 **Files:**
 - Create: `js/save_image.js`
-- Modify: `js/rg_shared.js` (SET ids and Settings entries, category `CAT("Save Image", …)`), `tests/real_comfy_save.cjs` (created in Task 5; this task is checked by it)
+- Modify: `js/rg_shared.js` (SET ids and Settings entries, category `CAT("Save Image", …)`), `tests/real_save_image.cjs` (created in Task 5; this task is checked by it)
 
 **Interfaces:**
 - Consumes: `getSetting`, `SET`, `keepWidgetValuesByName`, `NEW_NODES` text pattern from `rg_shared.js`; the run's `ui.rg_saved` from Task 3 (`node.onExecuted(message)` gets `message.rg_saved[0]`).
@@ -168,22 +168,22 @@
 ### Task 5: Real-frontend test (both modes), docs, all checks
 
 **Files:**
-- Create: `tests/real_comfy_save.cjs`
+- Create: `tests/real_save_image.cjs`
 - Modify: `README.md` (a *Save Image (Region Genie)* section: formats, the size comparison from the spec, workflow per format, JPEG choices and the EXIF fallback, transparency and `invert_mask`, the readout, Settings), `docs/HANDOFF.md` (round 13 entry: decisions from the spec's "Calls I made" and the builder check; open items: 4K check, AVIF on older Pillow untested), `tests/README.md` (the new files), `CLAUDE.md` layout line (`save_image.py` / `js/save_image.js`)
 
 **Interfaces:**
 - Consumes: everything above; ComfyUI from `bash tests/setup_real_comfy.sh --start` (output folder `$COMFY_DIR/output`).
 
-- [ ] **Step 1: Write `tests/real_comfy_save.cjs [vue]`** (pattern of `real_comfy12.cjs`; `COMFY_DIR` env for the output folder). Graph: `EmptyImage` (64×48, batch 2, a color) → `Region-Genie_SaveImage`; `SolidMask` (0.25, 64×48) → `mask`. Checks, each run in legacy and Nodes 2.0:
+- [ ] **Step 1: Write `tests/real_save_image.cjs [vue]`** (pattern of `real_fields_popups.cjs`; `COMFY_DIR` env for the output folder). Graph: `EmptyImage` (64×48, batch 2, a color) → `Region-Genie_SaveImage`; `SolidMask` (0.25, 64×48) → `mask`. Checks, each run in legacy and Nodes 2.0:
   - only the chosen format's fields show for each of the 4 formats; `webp_quality` hides with lossless; `invert_mask` shows only with `mask` linked and not for jpeg;
   - every visible widget has a tooltip (`widget.tooltip` or the input's `tooltip`); no page errors;
   - a new node takes Settings defaults (set `RegionGenie.Save.PngLevel` to 3 first → the new node's `png_compression` is 3);
   - a queued run per format (`app.queuePrompt(0)`, wait for `executed`): the files exist in `output/` with the expected names; the readout shows the label and a size; `filename_prefix` `rgtest/%date:yyyy%` lands in `output/rgtest/` with the year in the name;
   - drag-load: fetch the PNG, WebP and AVIF (`/view?filename=…&type=output&subfolder=…`) and the JPEG's sidecar `.json`, pass each as a `File` to `app.handleFile` → the graph again has a `Region-Genie_SaveImage` node; the PNG has alpha 191 (= round(0.75*255)) at a pixel (decode in the page with a canvas).
 - [ ] **Step 2: Run it in both modes**
-  Run: `node tests/real_comfy_save.cjs && node tests/real_comfy_save.cjs vue`  Expected: `all passed` twice.
+  Run: `node tests/real_save_image.cjs && node tests/real_save_image.cjs vue`  Expected: `all passed` twice.
 - [ ] **Step 3: Write the docs** listed above.
 - [ ] **Step 4: Run every check**
-  Run: `for f in js/*.js; do node --check --input-type=module < $f; done; python3 -m py_compile save_image.py __init__.py; bash tests/run_py.sh; bash tests/run_ui.sh; node tests/real_comfy9.cjs; node tests/real_comfy9.cjs vue; node tests/real_comfy12.cjs; node tests/real_comfy12.cjs vue`  Expected: no errors, every suite `all passed`.
+  Run: `for f in js/*.js; do node --check --input-type=module < $f; done; python3 -m py_compile save_image.py __init__.py; bash tests/run_py.sh; bash tests/run_ui.sh; node tests/real_run_wildcards.cjs; node tests/real_run_wildcards.cjs vue; node tests/real_fields_popups.cjs; node tests/real_fields_popups.cjs vue`  Expected: no errors, every suite `all passed`.
 - [ ] **Step 5: Commit and push**
   `git add -A && git commit -m "Save Image: real-frontend test, README, HANDOFF" && git push -u origin claude/sharp-tesla-1gt9qf`

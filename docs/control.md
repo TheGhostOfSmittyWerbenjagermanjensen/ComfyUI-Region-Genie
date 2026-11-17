@@ -1,0 +1,44 @@
+# Control (ControlNet)
+
+The **Control** rows under *Whole image* make the model follow a map, with what ComfyUI supports for the connected model. **＋Control** on the *Whole image* row adds a row, and a row's **✕** removes it (the first row you add again starts as the last one removed). Each row has what the model follows (its tooltip also names the file used for the node's model), the **strength** (1 = as trained) and the part of the steps (**start – end %**; ending early keeps the layout and lets the shapes loosen at the end), and an eye that shows that row's map of the last run on the canvas. **Several rows** combine where the model allows it: ControlNets (SD1.5, SDXL, Flux.1) chain and Anima's LLLite patches stack (e.g. depth + canny). MOSS-Image's control LoRA and Flux.1's depth / canny LoRAs feed their map through the model's one extra input, so only the first such row is used (its control LoRA reads color and depth together for MOSS-Image); `region_info` says when a row is left out. Each region's control switch turns all rows on or off for that region.
+
+**What each kind does**
+- **color map (MOSS):** a *shape map*. Each flat color marks one region; the colors are only IDs, not the colors to paint (the region's prompt says what it is and what color it has). Without it MOSS gets each region as a box plus its caption; with it the model also follows the exact painted outline. It follows rough outlines too: a rectangle drawn for a person pushes towards a person filling that rectangle. So it works best with regions painted roughly in the shape you want; with quick boxes, set **end** to about 30–50 % (the shapes guide the layout early, then loosen) or lower the strength. Region Genie's flat maps are exactly what it expects; no detail is needed.
+- **color map + depth (MOSS):** the outlines plus how far away things are.
+- **depth:** a grey map of distances (near = white). The model keeps the 3D layout (what is in front, the shape of a room or a landscape) but is free with textures, colors and details. Good for keeping a scene's composition while changing everything else.
+- **canny:** the edge lines of a picture. The model keeps outlines and composition closely; good for redrawing a picture in another style. It follows lines more strictly than depth.
+- **your control_image:** any map you make with other nodes (pose skeletons, lineart, scribble, segmentation …), on the `control_image` input. The file set for *other* must read that kind of map (a union ControlNet reads several).
+
+**Where the map comes from:** the `control_image` input when it's connected (used as it is, scaled to the image size); otherwise the node makes it from `image`: canny with ComfyUI's Canny node (no model), depth with ComfyUI's Depth Anything 3 (its model set in Settings).
+
+**What applies it, per model**
+- **MOSS-Image** reads the maps through its **color / depth control LoRA**: the maps are VAE-encoded and given next to the image (needs `vae`), the LoRA teaches the model to follow them.
+- **Flux.1** has Black Forest Labs' **depth / canny LoRAs** for Flux.1 [dev], which work the same way (the map next to the image, at the Control row's strength), or classic **ControlNet** files.
+- **SDXL / SD1.5** use **ControlNet** files: a separate network reads the map and steers the model at every step. **Control-LoRAs** are small SDXL ControlNets; **union** ControlNets read many kinds of map with one file.
+- **Anima** uses **LLLite** patches: a small control network on the model itself (the region switches go to it directly).
+- **Krea 2, Flux.2 / Klein, Flux 3, Ideogram 4:** ComfyUI has no ControlNet support for them yet; the node says so instead of failing.
+
+**The files** (set once in **Settings > Region Genie > Control**, for every node; each setting's tooltip has the link). When control needs one that isn't set, or that ComfyUI doesn't find, the red message bar under the canvas shows where to get it (when you turn control on, change the kind or the model, and after a run). After downloading, refresh ComfyUI (R) and pick the file in Settings. Anima's LLLite patches are listed from both `models/model_patches` and `models/controlnet`.
+
+| Setting | Suggested file (official / original upload) | Folder |
+|---|---|---|
+| MOSS-Image: color / depth control LoRA | [moss_image_color_depth_control](https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors) | `models/loras` |
+| Flux.1: depth LoRA | [flux1-depth-dev-lora](https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/split_files/loras/flux1-depth-dev-lora.safetensors) | `models/loras` |
+| Flux.1: canny LoRA | [flux1-canny-dev-lora](https://huggingface.co/black-forest-labs/FLUX.1-Canny-dev-lora) (accept the FLUX.1 [dev] license on the page first) | `models/loras` |
+| Flux.1: depth / canny ControlNet | XLabs [flux-depth-controlnet-v3](https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-depth-controlnet-v3.safetensors) / [flux-canny-controlnet-v3](https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors) | `models/controlnet` |
+| Flux.1: other | InstantX [union ControlNet](https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union) (rename it) | `models/controlnet` |
+| SDXL: depth / canny | Stability [control-lora-depth-rank128](https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors) / [canny-rank128](https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors) | `models/controlnet` |
+| SDXL: other | xinsir [controlnet-union-sdxl-1.0 promax](https://huggingface.co/xinsir/controlnet-union-sdxl-1.0) (rename it) | `models/controlnet` |
+| SD1.5: depth / canny / other | [control_v11f1p_sd15_depth](https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11f1p_sd15_depth_fp16.safetensors) / [control_v11p_sd15_canny](https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_canny_fp16.safetensors) / [openpose](https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors) (more in the same repository) | `models/controlnet` |
+| Anima: depth / other | [anima-lllite-depth-1](https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-depth-1.safetensors) / [pose-1](https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors) (lineart, scribble, a general one in the same repository) | `models/model_patches` |
+| Anima: canny | no canny LLLite exists; [lineart-1](https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-lineart-1.safetensors) reads edge lines (untested with canny maps) | `models/model_patches` |
+| Depth Anything 3 | [depth_anything_3_mono_large](https://huggingface.co/Comfy-Org/Depth-Anything-3/resolve/main/geometry_estimation/depth_anything_3_mono_large.safetensors) | `models/geometry_estimation` |
+
+**The model** (bottom bar, after Generate / Edit): which model the node works with: it sets the format of `prompt` and `positive` (see [Which format `prompt` uses](region-genie.md)) and the LoRAs Control and Edit Mode add. *auto* uses the last run's model while `model` still comes from the same loader, else a guess from the graph: it follows `model` through LoRA loaders and reroutes to the loader and reads its file name (e.g. `moss_image…`, `flux1-dev…`, `…sdxl…`) or the text encoder loader's type. A run always says for sure. If the guess is wrong (a renamed file, an unusual loader), pick the right model there; *auto* goes back to guessing. When nothing can be guessed, every configured LoRA is added until the first run.
+
+- The control **LoRAs** (MOSS, Flux.1 depth / canny) are used while a Control row needs them, only with their model, and aren't listed under *Whole image* (their Control row is where they're set). ControlNet files and LLLite patches are applied by the node (on `positive` / `negative`, or on `model` for Anima).
+- **Per region:** while control is on, each region row has a control button. Switch regions off and the control acts only inside the regions still on (the rest follows the prompt freely); with every region on, it acts on the whole image.
+- **Preview:** after a run, the eye button at the end of the Control row shows the map the model followed on the canvas.
+- Open the row (▶) to see which file each model uses for the chosen kind, where the map comes from and what the kind does; the node's model is marked ▸. If something is missing (no file, no `vae`, no `control_image`), the run still goes ahead without control and `region_info` says why.
+
+[← Back to the README](../README.md)
