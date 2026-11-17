@@ -122,11 +122,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.evaluate(() => window.app.extensionManager.setting.set("RegionGenie.Size.Presets", "1024x1024; 1152x896; 896x1152; 1216x832; 832x1216; 1344x768; 768x1344; 1536x640; 640x1536"));
 
     // ---------------- the model dropdown sets the format; MOSS layout switch; background only for Ideogram 4
-    const ms = () => page.evaluate(() => {
+    const ms = () => page.evaluate(async () => {
         const bg = window.__rg.widgets.find((w) => w.name === "scene_prompt_background");
         const tas = [...document.querySelectorAll(`[data-node-id="${window.__rg.id}"] textarea, .rg-scene-ta`)].filter((t) => t.offsetParent && !t.closest(".rg-wrap"));
         const lb = document.querySelector(".rg-layout");
-        const pd = JSON.parse(window.__rg.widgets.find((w) => w.name === "paint_data").serializeValue());
+        const pd = JSON.parse(await window.__rg.widgets.find((w) => w.name === "paint_data").serializeValue());      // await: another pack may wrap it (ComfyUI-Custom-Scripts does)
         return { fmt: document.querySelectorAll(".rg-fmt").length, layout: !!lb && lb.style.display !== "none", layoutOn: lb?.classList.contains("on"),
                  bgHidden: !!bg.hidden, sceneBoxes: tas.length, pick: pd.modelPick || "", mossLayout: pd.mossLayout };
     });
@@ -304,7 +304,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const s = window.app.extensionManager.setting, id = "RegionGenie.Main.AutoApart.MOSS";
         const def = window.app.ui.settings.settingsParamLookup?.[id] || s.settingsById?.[id];
         await s.set(id, "off");
-        const pd = JSON.parse(window.__rg.widgets.find((w) => w.name === "paint_data").serializeValue());
+        const pd = JSON.parse(await window.__rg.widgets.find((w) => w.name === "paint_data").serializeValue());      // await: another pack may wrap it (ComfyUI-Custom-Scripts does)
         await s.set(id, "default");
         return { name: def?.name || "", sent: pd.autoApart?.["MOSS-Image"], keys: Object.keys(pd.autoApart || {}).join(",") };
     });
@@ -368,7 +368,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         await app.loadGraphData(g);
         await new Promise((r) => setTimeout(r, 1500));
         const rg = app.graph.nodes.find((x) => x.type === "Region-Genie_Main"); window.__rg = rg;
-        const pd = JSON.parse(rg.widgets.find((w) => w.name === "paint_data").serializeValue());
+        const pd = JSON.parse(await rg.widgets.find((w) => w.name === "paint_data").serializeValue());
         const sel = document.querySelector("select.rg-model");
         return { pick: rg.properties.rg_model_pick, sel: sel?.value, sent: pd.modelPick, tags: JSON.stringify(rg.__rgState().sceneLoras || []) };
     });
