@@ -87,5 +87,20 @@ spaced = json.loads(rg.migrate_names(json.dumps(json.loads(old), indent=1)))
 check("migrate_names: also with spaces after ':'", spaced["modelPick"] == "MOSS-Image" and spaced["autoApart"] == {"MOSS-Image": "off"})
 check("migrate_names: leaves other data alone", rg.migrate_names('{"v": 2}') == '{"v": 2}' and rg.migrate_names(None) is None)
 
+# ---------------------------------------------------------------- keep all regions apart by itself, and switched off on the node
+import types  # noqa: E402
+from rgpack import regional_lora as hl  # noqa: E402
+_arch, _ok = hl.model_arch, hl.one_pass_ok
+hl.model_arch = lambda m: types.SimpleNamespace(name="Krea 2", family="Krea 2")
+hl.one_pass_ok = lambda m: False                       # stop right after the decision (no sampling code in this test)
+def auto_apart(opts):
+    st, notes = {}, []
+    pd = json.dumps({"loraOpts": opts, "autoApart": {"all": True}})
+    rg.RegionGenie._regional_loras(object(), object(), pd, [{"out_index": 0, "prompt": "a cat", "loras": []}], None, "", None, notes, status=st, family="plain")
+    return bool(st.get("auto_apart"))
+check("a model without a layout format: keep all regions apart turns on by itself", auto_apart({}) is True)
+check("switched off on the node (autoOff): it stays off", auto_apart({"autoOff": True}) is False)
+hl.model_arch, hl.one_pass_ok = _arch, _ok
+
 print("\nall passed" if not fails else f"\n{len(fails)} failed")
 sys.exit(1 if fails else 0)

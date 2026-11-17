@@ -229,6 +229,30 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: an old workflow's 'Unspecified' layer is listed as a hole under the region below it (${JSON.stringify(hl.oldHole)})`, hl.oldHole.listed && hl.oldHole.under);
     check(`${M}: only a hole left: Standard; ✂ again paints the region again and Layout is back`,
         !hl.holeOnly.on && hl.back.region === 1 && hl.back.owner === undefined && hl.again.on);
+    // layout comes back by itself with the first region; a click with no region chooses nothing (it used to set standard
+    // for good without showing it); a saved 'standard' choice stays on load
+    const la = await page.evaluate(async () => {
+        const rg = window.__rg, st = rg.__rgState(), wait = (ms) => new Promise((r) => setTimeout(r, ms)), btn = () => document.querySelector(".rg-layout");
+        const keep = { regions: st.regions, layers: st.layers };
+        const empty = async () => { const s = rg.__rgState(); s.regions = []; s.layers = []; rg.__rgRefresh(); await wait(800); };
+        const fill = async () => { const s = rg.__rgState(); s.regions = keep.regions; s.layers = keep.layers; rg.__rgRefresh(); await wait(900); };
+        await empty(); btn().click(); await wait(300);
+        const trap = rg.properties.rg_moss_layout;
+        await fill();
+        const back = btn().classList.contains("on");
+        btn().click(); await wait(300);
+        const chosen = rg.properties.rg_moss_layout === false && !btn().classList.contains("on");
+        await empty(); await fill();
+        const auto = { prop: rg.properties.rg_moss_layout, on: btn().classList.contains("on") };
+        btn().click(); await wait(300);                               // standard, chosen with regions: saved with the workflow
+        const ser = rg.serialize(); rg.configure(JSON.parse(JSON.stringify(ser))); await wait(1200);
+        const saved = { prop: rg.properties.rg_moss_layout, on: btn().classList.contains("on") };
+        btn().click(); await wait(300);
+        return { trap, back, chosen, auto, saved, end: btn().classList.contains("on") };
+    });
+    check(`${M}: a click on the layout switch with no region chooses nothing; the first region brings Layout (${JSON.stringify(la)})`, la.trap === undefined && la.back);
+    check(`${M}: standard chosen with regions lasts until the canvas was empty: the next first region brings Layout back`, la.chosen && la.auto.prop === undefined && la.auto.on);
+    check(`${M}: a workflow saved in standard mode loads in standard mode`, la.saved.prop === false && !la.saved.on && la.end);
     // round 18 / 23: in Edit Mode the Edit row is always there; its file opens ComfyUI's classic menu on the model folders
     // (no Browse… by default); a pick sets the Setting, adds the LoRA (not listed under Whole image) and shows at once
     const fsx = require("fs"), pathx = require("path");
