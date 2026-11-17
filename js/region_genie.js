@@ -717,6 +717,14 @@ function normRegion(r) {
              ...(r.noControl ? { noControl: true } : {}) };        // Control: switched off for this region
 }
 // Edit Mode: the edit mask's own grow / feather (px); null = follow Settings > Region Genie > Edit Mode
+// a gradient layer (round 26): its region fades along a -> b (layer units). linear: full at a, nothing at b;
+// radial: full at a, nothing at the distance |b - a|
+function normGrad(g) {
+    const pt = (q) => (Array.isArray(q) && Number.isFinite(+q[0]) && Number.isFinite(+q[1]) ? [+q[0], +q[1]] : null);
+    const a = pt(g?.a), b = pt(g?.b);
+    if (!a || !b || Math.hypot(b[0] - a[0], b[1] - a[1]) < 1e-9) return null;
+    return { k: g.k === "radial" ? "radial" : "linear", a, b };
+}
 function normEditMask(m) {
     if (!m || typeof m !== "object") return null;
     const g = Math.round(+m.grow), f = Math.round(+m.feather);
@@ -770,6 +778,7 @@ function parseState(text, W, H) {
             shape: l.shape || null, sides: l.sides || 5, bw: +l.bw || 1, bh: +l.bh || 1, sx: +l.sx || 1, sy: +l.sy || 1,
             ...(l.shape === "roundrect" ? { radius: Math.max(0, Math.min(50, Number.isFinite(+l.radius) ? +l.radius : 20)) } : {}),
             rot: +l.rot || 0, ...layerCentre(l, W, H), ops: Array.isArray(l.ops) ? l.ops : [],
+            ...((l.region ?? UNSPEC) !== UNSPEC && normGrad(l.grad) ? { grad: normGrad(l.grad) } : {}),
         })),
         ...(d.importSig ? { importSig: String(d.importSig) } : {}),
         ...(normLoras(d.sceneLoras).length ? { sceneLoras: normLoras(d.sceneLoras) } : {}),
@@ -1014,7 +1023,9 @@ app.registerExtension({
                         .map(([m, icon, t]) => [m, icon, `${t} ${LASSO_TIP}Filled with the active region (L).`, () => { setLassoMode("lasso", m); setTool("lasso"); }]) },
                 fill: { name: "Fill", tools: ["fill"], cur: () => LASSO_MODES.fill,
                     entries: () => [["normal", "fill", "Fill: Fills the clicked area (blank space, or one color) with the active region (F)."],
-                        ["gaps", "fillGaps", "Fill (closing small gaps): Fills the clicked area, but doesn't leak through small openings (the gap size is the field on the canvas) (F)."]]
+                        ["gaps", "fillGaps", "Fill (closing small gaps): Fills the clicked area, but doesn't leak through small openings (the gap size is the field on the canvas) (F)."],
+                        ["linear", "fillLinear", "Fill (linear gradient): Drag a line in the area to fill. The active region is at full strength where the line starts and fades to nothing where it ends (F)."],
+                        ["radial", "fillRadial", "Fill (radial gradient): Drag outward from a point in the area to fill. The active region is at full strength at that point and fades to nothing at the distance you drag (F)."]]
                         .map(([m, icon, t]) => [m, icon, t, () => { LASSO_MODES.fill = m; setTool("fill"); }]) },
                 wand: { name: "Magic wand / Select object", tools: ["wand", "object"], cur: () => (grpCur.wand === "object" ? "object" : LASSO_MODES.wand),
                     entries: () => [
@@ -3127,6 +3138,21 @@ app.registerExtension({
                 paintLocal(c, L, extraOp ? [...L.ops, extraOp] : L.ops, color);
                 c.restore();
             }
+            // a gradient layer: what was just drawn on c (this layer alone) fades along its gradient
+            function fadeLayerOn(c, L, pre) {
+                const g = L.grad;
+                if (!g || L.region === UNSPEC) return;
+                c.save();
+                layerTransform(c, L, pre);
+                const len = Math.hypot(g.b[0] - g.a[0], g.b[1] - g.a[1]);
+                const gr = g.k === "radial" ? c.createRadialGradient(g.a[0], g.a[1], 0, g.a[0], g.a[1], len)
+                    : c.createLinearGradient(g.a[0], g.a[1], g.b[0], g.b[1]);
+                gr.addColorStop(0, "rgba(0,0,0,1)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+                c.globalCompositeOperation = "destination-in";
+                c.fillStyle = gr;
+                c.fillRect(-100, -100, 200, 200);                  // layer units (1 = the image's shorter side)
+                c.restore();
+            }
             let holePat = null, holePatDpr = 0;
             function holePattern(c) {                      // the canvas's holes: black with grey stripes
                 const d = dprNow();
@@ -3150,11 +3176,12 @@ app.registerExtension({
                     if (!isShown(L)) continue;
                     const extra = drag?.mode === "paint" && (drag.target === L || L === pending) ? drag.op : null;
                     const hatch = hatchHoles && L.region === UNSPEC;
-                    const needsScratch = L.ops.some((o) => o.e) || extra?.e || hatch;
+                    const needsScratch = L.ops.some((o) => o.e) || extra?.e || hatch || !!L.grad;
                     if (!needsScratch) { drawLayerOn(c, L, extra, pre); continue; }
                     sc.setTransform(1, 0, 0, 1, 0, 0);
                     sc.clearRect(0, 0, w, h);
                     drawLayerOn(sc, L, extra, pre);
+                    fadeLayerOn(sc, L, pre);
                     if (hatch) {
                         sc.setTransform(1, 0, 0, 1, 0, 0);
                         sc.globalCompositeOperation = "source-atop"; sc.fillStyle = holePattern(sc); sc.fillRect(0, 0, w, h);
@@ -3223,6 +3250,18 @@ app.registerExtension({
                 if (drag?.mode === "shape") {
                     const t = shapeDragLayer();
                     if (t) { ctx.save(); ctx.globalAlpha = 0.75; drawLayerOn(ctx, t); ctx.restore(); outline(boxCornersImg(t, [0, 0, t.bw, t.bh]), "#fff", true); }
+                }
+                if (drag?.mode === "grad") {                       // gradient fill: the line being dragged (radial: its circle)
+                    const [ax, ay] = toScr(...drag.start), [bx, by] = toScr(...drag.cur), d = dprNow();
+                    ctx.save();
+                    for (const [col, lw] of [["rgba(0,0,0,.7)", 3 * d], ["#fff", 1.25 * d]]) {
+                        ctx.strokeStyle = col; ctx.lineWidth = lw;
+                        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+                        if (drag.kind === "radial") { ctx.beginPath(); ctx.arc(ax, ay, Math.hypot(bx - ax, by - ay), 0, Math.PI * 2); ctx.stroke(); }
+                    }
+                    ctx.fillStyle = "#fff"; ctx.strokeStyle = "rgba(0,0,0,.7)"; ctx.lineWidth = d;
+                    ctx.beginPath(); ctx.arc(ax, ay, 3.5 * d, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                    ctx.restore();
                 }
                 if (pick || drag?.mode === "pickbox") drawPick(ix, iy, iw, ih);
                 syncPickBtns();
@@ -3391,6 +3430,7 @@ app.registerExtension({
                         x.setTransform(1, 0, 0, 1, 0, 0);
                         x.clearRect(0, 0, w, h);
                         drawLayerOn(x, L, extra, undefined, "#ffffff");
+                        fadeLayerOn(x, L);                         // a gradient layer counts where it is at least half strength
                         const d = x.getImageData(0, 0, w, h).data;
                         for (let i = 0, j = 3; i < lab.length; i++, j += 4) if (d[j] >= 128) lab[i] = k;
                     }
@@ -3627,6 +3667,31 @@ app.registerExtension({
                     else { const L = newPaintLayer(rid); L.name = `${name} ${L.id}`; L.ops.push(op); addLayer(L); }
                 });
                 return true;
+            }
+            // gradient fill (round 26): the area the normal Fill would fill from the drag's start, as a layer of its own
+            // whose region fades from the start of the drag to its end
+            function gradFill(d) {
+                const R = rasterSize(), { W, H, w, h, r } = R, [ix, iy] = d.start, s = Math.min(W, H);
+                if (ix < 0 || iy < 0 || ix >= W || iy >= H) { hint("Gradient fill starts inside the image"); return; }
+                if (Math.hypot(d.cur[0] - ix, d.cur[1] - iy) * view.z < 4 * dprNow()) {
+                    hint(d.kind === "radial" ? "Gradient fill: drag outward from the point where the region is strongest"
+                        : "Gradient fill: drag a line from where the region is strongest to where it ends");
+                    return;
+                }
+                const lab = regionLabels(R);
+                const seed = Math.min(h - 1, Math.floor(iy * r)) * w + Math.min(w - 1, Math.floor(ix * r)), want = lab[seed];
+                const mask = flood(w, h, seed, (q) => lab[q] === want), m = mask.slice();
+                for (let p = 0; p < mask.length; p++) if (mask[p]) {         // 1 px wider, under anti-aliased edges (as commitMask)
+                    const px = p % w;
+                    if (px > 0) m[p - 1] = 1; if (px < w - 1) m[p + 1] = 1; if (p >= w) m[p - w] = 1; if (p + w < mask.length) m[p + w] = 1;
+                }
+                const op = { t: "bitmap", e: false, w, h, runs: encodeRuns(m), x0: 0, y0: 0, x1: W / s, y1: H / s };
+                change(() => {
+                    const rid = ensureRegion(), L = newPaintLayer(rid);
+                    L.ops.push(op);
+                    if (rid !== UNSPEC) { L.name = `Gradient ${L.id}`; L.grad = { k: d.kind, a: [ix / s, iy / s], b: [d.cur[0] / s, d.cur[1] / s] }; }
+                    addLayer(L);
+                });
             }
             function fillAt(ix, iy) {
                 const R = rasterSize(), { W, H, w, h, r } = R;
@@ -3903,6 +3968,7 @@ app.registerExtension({
             // ---------------- arrange: flip, align, grow / shrink ----------------
             function mirrorOps(L, axis, c) {                 // mirror the layer's ops in its own frame: x -> c - x (or y)
                 const i = axis === "h" ? 0 : 1;
+                if (L.grad) for (const q of [L.grad.a, L.grad.b]) q[i] = c - q[i];
                 for (const o of L.ops) {
                     if (o.t === "bitmap") {
                         const { w, h } = o, src = decodeRuns(o.runs, w * h), out = new Uint8Array(w * h);
@@ -3955,8 +4021,11 @@ app.registerExtension({
                 const d = x.getImageData(0, 0, w, h).data, m = new Uint8Array(w * h);
                 for (let i = 0; i < m.length; i++) m[i] = d[i * 4 + 3] >= 128 ? 1 : 0;
                 const out = growMask01(m, w, h, px * r);
+                // a gradient stays where it is on the image (the layer's frame becomes the whole image below)
+                const grad = L.grad ? { k: L.grad.k, a: layerToImg(L, ...L.grad.a).map((v) => v / s), b: layerToImg(L, ...L.grad.b).map((v) => v / s) } : null;
                 change(() => {
                     boxCache.delete(L);
+                    if (grad) L.grad = grad;
                     Object.assign(L, { shape: null, sides: 5, bw: W / s, bh: H / s, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0,
                         ops: out.some((v) => v) ? [{ t: "bitmap", e: false, w, h, runs: encodeRuns(out), x0: 0, y0: 0, x1: W / s, y1: H / s }] : [] });
                     delete L.radius;
@@ -4089,7 +4158,11 @@ app.registerExtension({
                     labelClick = null;
                     return;
                 }
-                if (tool === "fill") { fillAt(ix, iy); return; }
+                if (tool === "fill") {
+                    if (LASSO_MODES.fill === "linear" || LASSO_MODES.fill === "radial") drag = { mode: "grad", kind: LASSO_MODES.fill, start: [ix, iy], cur: [ix, iy] };
+                    else fillAt(ix, iy);
+                    return;
+                }
                 if (tool === "wand") { wandAt(ix, iy); return; }
                 const erasing = tool === "erase" || tool === "lassoErase";
                 const target = paintTarget(erasing);
@@ -4158,6 +4231,8 @@ app.registerExtension({
                     L.oy = (K[1] - (Math.sin(th) * ox + Math.cos(th) * oy) - H / 2) / s;
                 } else if (drag.mode === "pickbox") {
                     drag.cur = [ix, iy]; drag.moved = Math.max(drag.moved, Math.hypot(dx - drag.sd[0], dy - drag.sd[1]));
+                } else if (drag.mode === "grad") {
+                    drag.cur = [ix, iy];
                 } else if (drag.mode === "shape") {
                     drag.cur = [snapV(ix), snapV(iy)]; drag.square = e.shiftKey; drag.centre = e.altKey;
                 } else if (drag.mode === "paint") {
@@ -4181,6 +4256,7 @@ app.registerExtension({
                 drag = null;
                 if (d.mode === "pan") { requestDraw(); return; }
                 if (d.mode === "pickbox") { pickPointer(d); requestDraw(); return; }
+                if (d.mode === "grad") { gradFill(d); requestDraw(); return; }
                 if (d.mode === "lasso" && d.moved < 5 * dprNow()) {     // a click: start a point-by-point lasso
                     clickPoly = { erase: d.erase, spline: d.spline, magnetic: d.magnetic, target: d.target, region: d.region,
                                   pts: [d.magnetic ? d.pts[0] : [snapV(d.pts[0][0]), snapV(d.pts[0][1])]] };
