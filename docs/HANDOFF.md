@@ -1,8 +1,8 @@
 # Region Genie (ComfyUI node pack): handoff summary
 
-**State (Nov 17, 2026):** version 0.23.0 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
+**State (Nov 17, 2026):** version 0.24.0 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
 
-The pack used to be called **Regional Mask Kit** (folder `ComfyUI-RegionalMaskKit`, main node "Color Map to Layout"). It was renamed on Nov 10, 2026. Section 7 lists the compatibility code that still mentions the old names.
+The pack used to be called **Regional Mask Kit** (renamed Nov 10, 2026). The compatibility code for the old names was removed in round 24 (section 7).
 
 ## 1. Goals and working agreements
 
@@ -135,11 +135,13 @@ The reasons behind the parts a new session is most likely to trip over. Each end
 - Every model-file field is a button showing the file's name; a click opens ComfyUI's classic menu (`LiteGraph.ContextMenu`) through `fileField()` / `openModelMenu()` in `rg_shared.js`, in legacy mode and Nodes 2.0 alike. Reasons: rgthree's Auto Nest only wraps that menu, and the Nodes 2.0 dropdown isn't open to extensions. Region Genie adds a search across the whole tree, and its own filter box when ComfyUI leaves it out. (Round 23)
 - **Do not use ComfyUI's native Settings combo for file lists.** It builds a component per option and froze the tab with a large LoRA library (1000 files × 25 settings). `tests/real_settings.cjs` guards this with 10 000 LoRAs. (Rounds 21, 22)
 - **Do not pass file names through vue-i18n.** A backslash or `@` in a name is message syntax there and made settings disappear on Windows. (Rounds 15, 18)
+- 'Check model files' (Settings > Model files): `checkModelFiles()` in `rg_shared.js` looks up every set file with the same `fileKnown` the fields use for their red state; `rg_llm.js` adds the LLM presets' files through `LLM_FILES.list`. `fetchModelFiles` keeps one entry per folder and name (a name in two model folders used to be listed only under the first, so a field could show red wrongly). (Round 24)
 - Values: a plain name in the setting's home folder, `folder:name` from another model folder, or a full path from Browse… (`model_paths.py`: `split_folder`, `full_path`, `absolute_names()` so core loaders accept a full path). Browse… is behind the 'Browse… for model files' switch. Inside the Settings dialog a menu must live in the dialog element (`keepMenusIn`). (Rounds 18, 19, 23)
 
 **Control and Edit rows (under Whole image)**
 - `state.controls` is a list of rows (kind, strength, start, end); ＋Control is always there. ControlNets chain and LLLite patches stack; MOSS-Image's control LoRA and Flux.1's depth / canny LoRAs share one model input, so Python uses only the first such row and says so in `region_info`. A region's control switch applies to every row. (Rounds 10, 18, 23)
 - Edit rows show only in Edit Mode: the Settings edit LoRA for the model (its ✕ sets `editOff` for this node), plus the node's own `editLoras` from ＋Edit. Edit / control LoRAs are tagged entries in `sceneLoras`, managed by `syncEditLoras` / `syncControlLoras` / `pruneManagedLoras`, and not listed under Whole image. (Rounds 15, 18, 23)
+- A Control row that won't be used (a second row needing the model's one extra input) is marked in the editor: `usesConcat` / `controlUnused` in `js/editor/rows.js` mirror `control.uses_concat`; keep the two in step. (Round 24)
 - The model is the last run's, else a guess from the graph, else the footer pick (`rg_model_pick`); it decides the prompt format and which files the rows use. The stored name is "MOSS-Image" (older "MOSS Image" converts on load). (Rounds 10, 12, 17)
 
 **Editor**
@@ -191,12 +193,8 @@ The reasons behind the parts a new session is most likely to trip over. Each end
   - `real_smoke.cjs`: smoke test in the real frontend, legacy and Nodes 2.0 (`Comfy.VueNodes.Enabled`); dismiss the template dialog with Escape first.
 - **Lint:** no ESLint installed this time; `node --check` on every JS file.
 
-## 7. Compatibility code that still uses the old names (to remove later)
+## 7. Old names (Regional Mask Kit): compatibility removed in round 24
 
-- Old node IDs `RegionalMaskKit_*` (`LEGACY_IDS`, each JS file's `NODE_NAMES`); search aliases for old names.
-- `rg_shared.js`: `migrateOldSettings` / `OLD_PREFIX`, `RENAMED_PROPS` / `migrateProps`.
-- `auto_apart_on`: the `krea2AutoApart` fallback.
-- `region_genie.js`: `OLD_OUTPUT_NAMES` / `remapOutputs`.
-- `rg_llm.js`: `OLD_LIB_FILE`; `llm_enhance.py`: `OLD_CACHE_FOLDER` (its files are deleted when disk caching is off).
-- `__init__.py`: `_OBSOLETE` cleanup; README "Renamed from Regional Mask Kit".
-- Left as they are: DOM widget name `color_map_canvas` / type `ColorMapCanvas`, the `color_map` output.
+Removed at the owner's request (version 0.24.0): the old node IDs `RegionalMaskKit_*` (`LEGACY_IDS`, each JS file's second `NODE_NAMES` entry) and the search aliases for old names; `migrateOldSettings` / `OLD_PREFIX` and `RENAMED_PROPS` / `migrateProps` (rg_shared.js); the `krea2AutoApart` fallback (`auto_apart_on`) and the `Krea2AllRegionsApart` setting id; `OLD_OUTPUT_NAMES` (links of `moss_layout_json` / `ideogram_json` / `text_prompt` no longer move to `prompt`; `remapOutputs` itself stays: it moves links to the output of the same name); `OLD_LIB_FILE` (rg_llm.js) and `OLD_CACHE_FOLDER` (llm_enhance.py); the `_OBSOLETE` file cleanup in `__init__.py`.
+
+Still there, on purpose: the DOM widget name `color_map_canvas` / type `ColorMapCanvas` and the `color_map` output (current names, not compatibility); conversions of older Region Genie data (`OLD_MOSS` "MOSS Image", `migrateFormat`, `migrateV1`, the old single `control`, the size row, `positive_prompt` in Regional LoRAs): those are Region Genie's own history, not the rename.

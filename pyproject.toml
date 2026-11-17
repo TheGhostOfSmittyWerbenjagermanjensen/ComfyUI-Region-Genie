@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-region-genie"
 description = "Regional prompting and regional LoRAs for ComfyUI: paint regions on a layered canvas and get masks, bboxes, layout prompts and per-region LoRAs (MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)."
-version = "0.23.0"
+version = "0.24.0"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"

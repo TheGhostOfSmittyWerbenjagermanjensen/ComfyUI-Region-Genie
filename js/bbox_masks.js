@@ -5,8 +5,7 @@ import { padWidgets } from "./rg_shared.js";
 // widget's label (e.g. "index (0-2)") and list every bbox on the node.
 // The index itself is never capped, so bboxes added later can be selected
 // before the next run. Values past the last known bbox are flagged in the label.
-const NODE_NAMES = ["Region-Genie_BBoxToMasks", "Region-Genie_MaskPicker",
-                    "RegionalMaskKit_BBoxesToMasks", "RegionalMaskKit_MaskPicker"];      // new IDs, old IDs (old workflows)
+const NODE_NAMES = ["Region-Genie_BBoxToMasks", "Region-Genie_MaskPicker"];
 const INFO_WIDGET = "bbox_list";
 const HARD_MAX = 255;
 

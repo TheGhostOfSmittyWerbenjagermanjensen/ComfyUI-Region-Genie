@@ -37,6 +37,7 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] A model-file field opens ComfyUI's menu on the right folders; with rgthree-comfy's Auto Nest on, subfolders show as folders
 - [ ] Typing in the menu finds a file in any subfolder
 - [ ] The Region Genie tab in Settings opens quickly with your full library
+- [ ] Check model files (Settings > Region Genie > Model files) reports nothing missing when everything is in place, and names a file after you move it away
 - [ ] Browse… (with its switch on) picks a file outside ComfyUI's model folders, and a run loads it (Windows / Stability Matrix paths)
 
 ## 4. Control
@@ -46,6 +47,7 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] Anima: one LLLite row, then two
 - [ ] MOSS-Image color map + depth control LoRA, including a region with its control switch off
 - [ ] Flux.1 depth / canny LoRA, and that its row's strength changes the effect
+- [ ] A second MOSS-Image or Flux.1 LoRA control row shows ⚠, and the run really ignores it
 - [ ] Depth Anything 3 making the depth map (no `control_image` connected)
 - [ ] Control together with LoRAs per region; memory use is acceptable
 

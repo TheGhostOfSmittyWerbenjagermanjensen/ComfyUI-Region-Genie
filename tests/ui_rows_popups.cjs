@@ -240,6 +240,21 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await cs.fill("0.6"); await cs.press("Enter"); await page.waitForTimeout(80);
     check("the row's strength drives the Flux.1 LoRA", ((await st()).sceneLoras || []).find((x) => x.control)?.strength === 0.6);
     check("the kind's tooltip names the Flux.1 LoRA", /File for Flux\.1: flux-depth-lora\.safetensors \(depth LoRA/.test(await crow.locator("select").getAttribute("title")));
+    // round 24: a second row that needs the model's one extra input (MOSS-Image's control LoRA, Flux.1's depth / canny LoRA) is marked
+    await ctlAdd(); await page.waitForTimeout(80);
+    await crow.nth(1).locator("select").selectOption("depth"); await page.waitForTimeout(80);
+    check("two Flux.1 depth-LoRA rows: the second is marked as not used, the first isn't", await crow.nth(1).locator(".rg-warn").count() === 1 && await crow.nth(0).locator(".rg-warn").count() === 0
+        && /rg-row ctrl unused/.test(await crow.nth(1).getAttribute("class")) && /^Not used in a run: Flux\.1's depth \/ canny LoRAs take one map per run/.test(await crow.nth(1).locator(".rg-warn").getAttribute("title")));
+    await crow.nth(1).locator("select").selectOption("canny"); await page.waitForTimeout(80);
+    check("canny with no canny LoRA set is a ControlNet: no mark", await page.locator(".rg-list .rg-warn").count() === 0);
+    await page.evaluate(() => { window.__node.properties.rg_model_arch = "MOSS-Image"; window.__node.__rgState().controls = [{ kind: "color", strength: 1, start: 0, end: 1 }, { kind: "canny", strength: 1, start: 0, end: 1 }, { kind: "depth", strength: 1, start: 0, end: 1 }]; window.__node.__rgRefresh(); });
+    await page.waitForTimeout(80);
+    check("MOSS-Image: color then depth: the depth row is marked, a canny row between them isn't", await crow.nth(2).locator(".rg-warn").count() === 1 && await page.locator(".rg-list .rg-warn").count() === 1
+        && /MOSS-Image's control LoRA takes one map/.test(await crow.nth(2).locator(".rg-warn").getAttribute("title")));
+    await page.evaluate(() => { window.__node.properties.rg_model_arch = "Flux.1"; const st = window.__node.__rgState(); st.controls = [{ ...st.controls[0], kind: "depth", strength: 0.6, start: 0.1, end: 0.7 }]; window.__node.__rgRefresh(); });
+    await page.waitForTimeout(80);
+    await crow.locator("select").selectOption("canny"); await page.waitForTimeout(80);
+    await crow.locator("select").selectOption("depth"); await page.waitForTimeout(80);      // through the row, so the control LoRAs follow
     // reloading the workflow keeps control, the region switches, the region eye and the LLM switches (loader fix)
     await page.evaluate(() => { const st = window.__node.__rgState(); st.regions[1].hidden = true; st.regions[1].llm = true; st.sceneLlm = true; window.__node.__rgRefresh(); });
     await page.evaluate(() => window.__node.onConfigure?.({ properties: window.__node.properties }));

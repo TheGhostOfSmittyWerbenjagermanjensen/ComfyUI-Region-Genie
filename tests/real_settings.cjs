@@ -117,6 +117,15 @@ for (const sub of ["loras", "controlnet"]) {
     check(`Browse…: a file anywhere is listed, picked and saved by its full path (${listed}; ${saved})`, listed === 1 && saved === path.resolve(outFile));
     const exists = await page.evaluate(async (n) => (await (await fetch(`/region_genie/model_exists?folders=loras&name=${encodeURIComponent(n)}`)).json()).found, saved);
     check("the server finds the full path", exists === true);
+    // round 24: Model files > Check model files lists the files that are set but can't be found
+    await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.Flux1", "rgtest_missing_file.safetensors"); });
+    const chk = page.locator('[role="dialog"] .rg-chk');
+    await chk.locator("button").scrollIntoViewIfNeeded(); await chk.locator("button").click();
+    await page.waitForFunction(() => { const o = document.querySelector('[role="dialog"] .rg-chk-out'); return o && o.textContent && o.textContent !== "Checking…"; }, null, { timeout: 15000 });
+    const chkText = await chk.locator(".rg-chk-out").innerText();
+    check(`Check model files: the missing edit LoRA is listed, the files that exist aren't (${chkText.replace(/\n/g, " | ").slice(0, 200)})`,
+        /not found:/.test(chkText) && /Edit Mode > Flux\.1: edit LoRA: rgtest_missing_file\.safetensors/.test(chkText) && !/Krea 2/.test(chkText) && !/MOSS-Image: edit LoRA/.test(chkText));
+    await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.Flux1", "(none)"); });
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.MOSS", "(none)"); });
     fs.rmSync(path.join(DIR, "..", "rgtest_outside"), { recursive: true, force: true });
     await page.keyboard.press("Escape");

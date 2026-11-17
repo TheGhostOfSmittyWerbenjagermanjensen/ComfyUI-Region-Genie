@@ -4,12 +4,11 @@
 // - the sparkles button used on the region rows and on the Whole image row
 // Not an extension by itself.
 import { api } from "../../scripts/api.js";
-import { pickLora, getSetting, setSetting, SET, fileField, LLM_ROWS } from "./rg_shared.js";
+import { pickLora, getSetting, setSetting, SET, fileField, LLM_ROWS, LLM_FILES } from "./rg_shared.js";
 
 export const LLM_TYPES = ["character", "object", "text", "scene"];
 const TYPE_LABEL = { character: "Character", object: "Object", text: "Text", scene: "Scene" };
 const LIB_FILE = "region_genie/llm_presets.json";
-const OLD_LIB_FILE = "regional_mask_kit/llm_presets.json";     // the pack's old name: read once (remove later)
 const REGION_PRESET = "Region (default)", SCENE_PRESET = "Scene (default)";
 const MTP = ["auto", "off", "2", "3", "4", "5", "tree2s1", "tree2s2", "tree3s1", "tree4s1m8"];
 
@@ -106,19 +105,13 @@ export function loadLibrary() {
                 SCENE_SYS = d?.scene_system_prompt || SCENE_SYS;
             }
         } catch (e) { /* older server: built-in fallback */ }
-        let data = null, fromOld = false;
+        let data = null;
         try {
             const r = await api.getUserData(LIB_FILE);
             if (r.status === 200) data = await r.json();
         } catch (e) { data = null; }
-        if (!data) {                         // first start after the rename: the presets saved under the old name
-            try {
-                const r = await api.getUserData(OLD_LIB_FILE);
-                if (r.status === 200) { data = await r.json(); fromOld = !!data; }
-            } catch (e) { /* none */ }
-        }
         lib = normLibrary(data);
-        const migrated = lib.migrated || fromOld;
+        const migrated = lib.migrated;
         delete lib.migrated;
         if (migrated) await saveLibrary();
         notify();
@@ -645,3 +638,12 @@ function build(key, box) {
     }
 }
 LLM_ROWS.render = renderRow;
+// for Settings > Region Genie > Model files > Check model files: the files the LLM presets use
+LLM_FILES.list = () => {
+    const out = [];
+    for (const [name, s] of Object.entries(lib?.presets || {})) {
+        if (s.llm) out.push({ what: `LLM preset '${name}' > LLM`, value: s.llm, roots: ["text_encoders"], home: "text_encoders" });
+        for (const l of s.loras || []) if (l.lora) out.push({ what: `LLM preset '${name}' > LoRA`, value: l.lora, roots: ["loras"], home: "loras" });
+    }
+    return out;
+};

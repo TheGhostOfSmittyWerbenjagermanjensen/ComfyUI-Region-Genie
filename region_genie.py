@@ -1,5 +1,5 @@
 """
-Region Genie: the Region Genie node (formerly "Color Map to Layout")
+Region Genie: the Region Genie node
 
 Draw regions on the node's layered canvas (shapes and paint; each layer belongs to a region
 with a color, type and prompt), or feed in a color map image, and get:
@@ -785,8 +785,7 @@ def lora_edit_format(lora_name):
 
 def auto_apart_on(data, family):
     """Whether 'keep all regions apart' turns on by itself for `family` (regional_lora.AUTO_APART_FAMILIES): the
-    per-model setting sent by the front end ("on" / "off" / "default"), else the setting for all of them, else on.
-    Workflows queued by older front ends send krea2AutoApart (Krea 2 only)."""
+    per-model setting sent by the front end ("on" / "off" / "default"), else the setting for all of them, else on."""
     m = data.get("autoApart") if isinstance(data.get("autoApart"), dict) else None
     if m is not None:
         v = m.get(family, "default")
@@ -795,8 +794,6 @@ def auto_apart_on(data, family):
         if v in (False, "off"):
             return False
         return m.get("all", True) is not False
-    if family == "Krea 2":
-        return data.get("krea2AutoApart", True) is not False
     return True
 
 

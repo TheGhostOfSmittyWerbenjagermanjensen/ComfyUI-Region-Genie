@@ -6,7 +6,7 @@ import { getLoras, knownLoras, pickLora, fillTriggerChips, CHIP_CSS, keepWidgetV
 // Editor of the "Regional LoRAs" node: one row per LoRA (on, mask index, LoRA, strength, words for
 // that region's caption with the LoRA's trigger words as chips), stored as JSON in the hidden "loras_data" widget.
 // When the masks come from the Region Genie node, each row shows the region its index points to.
-const NODE_NAMES = ["Region-Genie_RegionalLoRAs", "RegionalMaskKit_CreateHookLoRAs"];   // new ID, old ID
+const NODE_NAMES = ["Region-Genie_RegionalLoRAs"];
 const DATA = "loras_data";
 
 const CSS = `
