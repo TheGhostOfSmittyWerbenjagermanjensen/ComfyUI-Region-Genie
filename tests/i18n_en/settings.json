@@ -1,0 +1,614 @@
+{
+  "RegionGenie_ModelFiles_Browse": {
+    "name": "Browse… for model files",
+    "tooltip": "Off (default): A model-file field opens ComfyUI's menu of the files in ComfyUI's model folders.\nOn: Each field also gets a folder button (Browse…) that picks a file anywhere on the ComfyUI machine (saved by its full path), in these Settings (once the dialog is opened again), on the node's Edit rows and in the LLM settings. Files picked with it keep working when it is off."
+  },
+  "RegionGenie_ModelFiles_Check": {
+    "name": "Check model files",
+    "tooltip": "Looks up every model file set in these Settings (Control, Edit Mode, Select object) and in the LLM presets, and lists the ones ComfyUI can't find (moved, renamed or deleted)."
+  },
+  "RegionGenie_Autocomplete_DefaultOn": {
+    "name": "Tag autocomplete on in new Region Genie nodes",
+    "tooltip": "Default for the 'autocomplete' switch on the Region Genie and Regional LoRAs nodes (nodes where you set the switch yourself keep their own choice). The autocomplete itself comes from ComfyUI-Custom-Scripts (preferred when enabled) or ComfyUI-Lora-Manager and follows that pack's settings."
+  },
+  "RegionGenie_LLM_Context": {
+    "name": "What the LLM Prompt Enhancer sees",
+    "tooltip": "Default for Region Genie nodes whose LLM Settings say 'Settings default'. With context, the LLM also gets scene_prompt_positive and the other regions' prompts (to keep them consistent) but only rewrites the one prompt.",
+    "options": {
+      "Only the prompt": "Only the prompt",
+      "The prompt + the scene and the other regions": "The prompt + the scene and the other regions"
+    }
+  },
+  "RegionGenie_LLM_NewRegionsOn": {
+    "name": "New regions start with the LLM Prompt Enhancer on"
+  },
+  "RegionGenie_LLM_Default_character": {
+    "name": "Default preset: Character",
+    "tooltip": "The preset for character prompts in every Region Genie node whose LLM settings don't choose another."
+  },
+  "RegionGenie_LLM_Default_object": {
+    "name": "Default preset: Object",
+    "tooltip": "The preset for object prompts in every Region Genie node whose LLM settings don't choose another."
+  },
+  "RegionGenie_LLM_Default_text": {
+    "name": "Default preset: Text",
+    "tooltip": "The preset for text prompts in every Region Genie node whose LLM settings don't choose another."
+  },
+  "RegionGenie_LLM_Default_scene": {
+    "name": "Default preset: Scene",
+    "tooltip": "The preset for scene prompts in every Region Genie node whose LLM settings don't choose another."
+  },
+  "RegionGenie_LLM_EditPreset": {
+    "name": "Preset to edit",
+    "tooltip": "The preset the rows below show and change (saved at once, for all your workflows).\nNew: A copy of this preset under a new name.\nDelete: Removes it (not while it is a default above; click twice)."
+  },
+  "RegionGenie_LLM_Preset_name": {
+    "name": "Preset: name",
+    "tooltip": "The preset's name. Press Enter (or leave the field) to rename it; the defaults above follow."
+  },
+  "RegionGenie_LLM_Preset_llm": {
+    "name": "Preset: LLM",
+    "tooltip": "The LLM that rewrites the prompts.\nThe connected clip: Used as it is (no extra memory).\nA file: From ComfyUI's text_encoders folders (or anywhere with 'Browse… for model files' on, Model files); loaded once and kept while in use."
+  },
+  "RegionGenie_LLM_Preset_llm_type": {
+    "name": "Preset: LLM type",
+    "tooltip": "As the 'type' of Load CLIP, for an LLM file. Auto works for plain Qwen3 / Qwen3.5 / Gemma files."
+  },
+  "RegionGenie_LLM_Preset_loras": {
+    "name": "Preset: LLM LoRAs",
+    "tooltip": "LoRAs applied to the LLM only (like Load LoRA (Text Encoder)); the image model and the clip used for conditioning are not changed. \nEach row: On / off, the file (a click opens ComfyUI's menu; a folder button with 'Browse… for model files' on), strength, ✕ removes it."
+  },
+  "RegionGenie_LLM_Preset_system_prompt": {
+    "name": "Preset: system prompt",
+    "tooltip": "Sent as the system prompt (Generate Text's system_prompt). Ignored when the preset's default template is off."
+  },
+  "RegionGenie_LLM_Preset_max_length": {
+    "name": "Preset: max_length",
+    "tooltip": "Most tokens the LLM writes."
+  },
+  "RegionGenie_LLM_Preset_sampling": {
+    "name": "Preset: sampling",
+    "tooltip": "On: Sampling with the settings below.\nOff (default): Greedy decoding, always the same text for the same input; temperature, top_k, top_p, min_p, the penalties and the seed are not used."
+  },
+  "RegionGenie_LLM_Preset_temperature": {
+    "name": "Preset: temperature",
+    "tooltip": "Sampling temperature.\nUsed only while the preset's sampling is on (greyed otherwise)."
+  },
+  "RegionGenie_LLM_Preset_top_k": {
+    "name": "Preset: top_k",
+    "tooltip": "Sample from the k most likely tokens (0 = all).\nUsed only while the preset's sampling is on (greyed otherwise)."
+  },
+  "RegionGenie_LLM_Preset_top_p": {
+    "name": "Preset: top_p",
+    "tooltip": "Sample from the most likely tokens up to this total probability.\nUsed only while the preset's sampling is on (greyed otherwise)."
+  },
+  "RegionGenie_LLM_Preset_min_p": {
+    "name": "Preset: min_p",
+    "tooltip": "Leave out tokens less likely than this share of the most likely one.\nUsed only while the preset's sampling is on (greyed otherwise)."
+  },
+  "RegionGenie_LLM_Preset_repetition_penalty": {
+    "name": "Preset: repetition_penalty",
+    "tooltip": "Penalty for repeating tokens (1 = none).\nUsed only while the preset's sampling is on (greyed otherwise)."
+  },
+  "RegionGenie_LLM_Preset_presence_penalty": {
+    "name": "Preset: presence_penalty",
+    "tooltip": "Penalty for tokens already used (0 = none).\nUsed only while the preset's sampling is on (greyed otherwise)."
+  },
+  "RegionGenie_LLM_Preset_seed": {
+    "name": "Preset: seed",
+    "tooltip": "The seed (a region's right-click 'Run again with a new seed' adds to it for that region).\nUsed only while the preset's sampling is on (greyed otherwise)."
+  },
+  "RegionGenie_LLM_Preset_thinking": {
+    "name": "Preset: thinking",
+    "tooltip": "Thinking mode, if the model supports it (the reasoning is shown in the sparkles button's tooltip, not used)."
+  },
+  "RegionGenie_LLM_Preset_use_default_template": {
+    "name": "Preset: default template",
+    "tooltip": "Use the model's built-in chat template (needed for the system prompt)."
+  },
+  "RegionGenie_LLM_Preset_mtp": {
+    "name": "Preset: mtp",
+    "tooltip": "Speculative decoding with the model's multi-token-prediction head (no effect without MTP weights)."
+  },
+  "RegionGenie_LLM_CacheOnDisk": {
+    "name": "Keep LLM results on disk between ComfyUI restarts",
+    "tooltip": "Off (default): Enhanced prompts are kept in memory for this session, and in each workflow that used them (a saved workflow brings its own results back when it is opened), so re-running a workflow never needs the LLM again.\nOn: They are also saved to <ComfyUI user dir>/region_genie/llm_cache.json, which only helps workflows queued through the API without opening them. Turning this off deletes that file."
+  },
+  "RegionGenie_LLM_CacheDays": {
+    "name": "Forget LLM results after (days; 0 = never)",
+    "tooltip": "Results older than this are dropped from the cache (memory and disk)."
+  },
+  "RegionGenie_LLM_CacheMaxEntries": {
+    "name": "Most LLM results to keep",
+    "tooltip": "Beyond this, the oldest results are dropped first (memory and disk)."
+  },
+  "RegionGenie_Tools_Lasso": {
+    "name": "Lasso: default",
+    "tooltip": "Which lasso the Lasso button starts as in every Region Genie node. Right-clicking the button still switches it for the rest of the session.",
+    "options": {
+      "Lasso (straight lines)": "Lasso (straight lines)",
+      "Spline lasso (smooth curve)": "Spline lasso (smooth curve)",
+      "Magnetic lasso (follows edges in the image)": "Magnetic lasso (follows edges in the image)"
+    }
+  },
+  "RegionGenie_Tools_LassoErase": {
+    "name": "Lasso erase: default",
+    "tooltip": "Which lasso erase the Eraser button's list starts with in every Region Genie node. Right-clicking the button still switches it for the rest of the session.",
+    "options": {
+      "Lasso erase (straight lines)": "Lasso erase (straight lines)",
+      "Spline lasso erase (smooth curve)": "Spline lasso erase (smooth curve)",
+      "Magnetic lasso erase (follows edges in the image)": "Magnetic lasso erase (follows edges in the image)"
+    }
+  },
+  "RegionGenie_Tools_Wand": {
+    "name": "Magic wand: default",
+    "tooltip": "What a click with the magic wand selects in the image.\nConnected area of similar color: Only the area around the click.\nEvery similar color in the image: All pixels of that color, connected or not.\nRight-clicking the button still switches it for the session.",
+    "options": {
+      "Connected area of similar color": "Connected area of similar color",
+      "Every similar color in the image": "Every similar color in the image"
+    }
+  },
+  "RegionGenie_Tools_WandTolerance": {
+    "name": "Magic wand: tolerance",
+    "tooltip": "How different a color may be from the clicked one (0-255 per channel) and still be selected. The field on the canvas (top left, while the wand is active) changes it for the session."
+  },
+  "RegionGenie_Tools_Fill": {
+    "name": "Fill: default",
+    "tooltip": "Closing small gaps: The fill doesn't leak out through openings narrower than about twice the gap size (the field on the canvas while Fill is active).\nRight-clicking the button still switches it for the session.",
+    "options": {
+      "Fill": "Fill",
+      "Fill, closing small gaps": "Fill, closing small gaps",
+      "Gradient fill, linear": "Gradient fill, linear",
+      "Gradient fill, radial": "Gradient fill, radial"
+    }
+  },
+  "RegionGenie_Tools_FillGap": {
+    "name": "Fill: gap size (px)",
+    "tooltip": "Fill, closing small gaps: Openings narrower than about twice this many pixels are closed."
+  },
+  "RegionGenie_Select_Model": {
+    "name": "Model",
+    "tooltip": "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. When this file isn't there, another SAM 3 checkpoint in that folder is used. With 'Browse… for model files' on (Model files), a folder button picks a checkpoint anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Select_KeepLoaded": {
+    "name": "After a selection",
+    "tooltip": "Keep loaded: The model stays in memory for the session (about 1.7 GB). ComfyUI still moves it out of VRAM into system RAM when a workflow needs the room, and back on the next click.\nUnload: The model is freed when you accept or cancel a selection (and after 3 idle minutes), so each new selection loads it from disk again.",
+    "options": {
+      "Keep the model loaded (faster next time)": "Keep the model loaded (faster next time)",
+      "Unload the model after each selection": "Unload the model after each selection"
+    }
+  },
+  "RegionGenie_Select_Threshold": {
+    "name": "Find all: confidence",
+    "tooltip": "Find all (typed text): How sure SAM must be that something matches to select it. Lower finds more (and more wrong things), higher finds fewer."
+  },
+  "RegionGenie_Text_NodeScene": {
+    "name": "In the node: scene prompts",
+    "tooltip": "Text size in px for the three scene_prompt boxes (0 = ComfyUI's own size); also the Regional LoRAs node's positive / negative boxes. Applies to every node."
+  },
+  "RegionGenie_Text_NodeRegion": {
+    "name": "In the node: region prompts",
+    "tooltip": "Text size in px for the prompt fields in the region list (0 = the usual 12 px); also the Regional LoRAs node's row prompts. Applies to every node."
+  },
+  "RegionGenie_Text_NodeText": {
+    "name": "In the node: text to render",
+    "tooltip": "Text size in px for the text-to-render fields in the region list (0 = the usual 12 px). Applies to every node."
+  },
+  "RegionGenie_Text_PopupScene": {
+    "name": "Pop-up editor: scene prompts",
+    "tooltip": "Text size in px for the text box of the scene prompts' pop-up editor (A− / A+ in its header change it too); also the Regional LoRAs node's pop-up for its positive / negative boxes. Applies to every node."
+  },
+  "RegionGenie_Text_PopupRegion": {
+    "name": "Pop-up editor: region prompts",
+    "tooltip": "Text size in px for the Prompt box of the region pop-up editor (A− / A+ in its header change it too); also the Regional LoRAs node's pop-up for its row prompts. Applies to every node."
+  },
+  "RegionGenie_Text_PopupText": {
+    "name": "Pop-up editor: text to render",
+    "tooltip": "Text size in px for the Text box of the region pop-up editor (A− / A+ in its header, with the Text box in use). Applies to every node."
+  },
+  "RegionGenie_Popup_PrevKey": {
+    "name": "Pop-up editor: key for the previous text field",
+    "tooltip": "Steps to the previous / next text field of the node while you type in a pop-up editor, like its ◀ / ▶ buttons. Default: Page Up.\nWrite a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\nEmpty: No key. Applies to every Region Genie and Regional LoRAs node."
+  },
+  "RegionGenie_Popup_NextKey": {
+    "name": "Pop-up editor: key for the next text field",
+    "tooltip": "Steps to the previous / next text field of the node while you type in a pop-up editor, like its ◀ / ▶ buttons. Default: Page Down.\nWrite a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\nEmpty: No key. Applies to every Region Genie and Regional LoRAs node."
+  },
+  "RegionGenie_Popup_EscKeeps": {
+    "name": "Esc in a pop-up editor",
+    "tooltip": "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node).\nPut the text back: Esc closes it and the text is as it was when it opened (Enter and ✕ keep the edits).\nKeep the edits: Esc, Enter and ✕ all close it and keep the text.",
+    "options": {
+      "put the text back": "put the text back",
+      "keep the edits": "keep the edits"
+    }
+  },
+  "RegionGenie_Wildcards_PerField": {
+    "name": "A seed per field",
+    "tooltip": "Off: Every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing one seed), so the same wildcard in two fields usually picks the same value.\nOn: Each field gets its own seed, derived from the wildcard seed and the field, so they pick independently (still the same result for the same seed)."
+  },
+  "RegionGenie_Size_Mode": {
+    "name": "Image size: mode",
+    "tooltip": "How a new node's image size is set.\naspect ratio: An aspect ratio and megapixels (like ComfyUI's Resolution Selector).\npresets: A size from the presets list.\nmanual: Width and height typed in.\nApplies to nodes added from now on; nodes already in a workflow keep their own value.",
+    "options": {
+      "aspect ratio": "aspect ratio",
+      "presets": "presets",
+      "manual": "manual"
+    }
+  },
+  "RegionGenie_Size_Aspect": {
+    "name": "Aspect ratio",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value.",
+    "options": {
+      "1:1 (Square)": "1:1 (Square)",
+      "2:3 (Portrait Photo)": "2:3 (Portrait Photo)",
+      "3:2 (Photo)": "3:2 (Photo)",
+      "3:4 (Portrait Standard)": "3:4 (Portrait Standard)",
+      "4:3 (Standard)": "4:3 (Standard)",
+      "9:16 (Portrait Widescreen)": "9:16 (Portrait Widescreen)",
+      "16:9 (Widescreen)": "16:9 (Widescreen)",
+      "21:9 (Ultrawide)": "21:9 (Ultrawide)"
+    }
+  },
+  "RegionGenie_Size_Megapixels": {
+    "name": "Megapixels",
+    "tooltip": "Target total megapixels (1.0 MP = 1024 x 1024 for square). Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Size_Multiple": {
+    "name": "Multiple",
+    "tooltip": "Width and height are rounded to a multiple of this. Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Size_Presets": {
+    "name": "Presets",
+    "tooltip": "The sizes in the presets list of every Region Genie node, separated by ';', each as WIDTHxHEIGHT and an optional name (e.g. '1216x832 landscape'). It's easier to edit from the node, with the last entry of its presets list, 'Edit list…'."
+  },
+  "RegionGenie_Main_Width": {
+    "name": "Manual: width",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Main_Height": {
+    "name": "Manual: height",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Main_ImageMode": {
+    "name": "image_mode",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value.",
+    "options": {
+      "backdrop (trace over)": "backdrop (trace over)",
+      "use as color map": "use as color map"
+    }
+  },
+  "RegionGenie_Main_MinRegionPixels": {
+    "name": "Color map: min region pixels",
+    "tooltip": "With the image used as a color map, a color becomes a region when it has at least this many flat pixels (blended edges go to the nearest region, specks of other colors become unspecified). Applies to every Region Genie node at its next run; the node's image control shows it too while 'color map' is chosen."
+  },
+  "RegionGenie_Main_ImportMode": {
+    "name": "import_json when the canvas isn't empty",
+    "tooltip": "Ask before replacing: The run keeps the canvas and the node asks (Replace canvas / Keep canvas).\nAlways replace: The new layout replaces the canvas right away.\nAn empty canvas is always filled. Applies to every Region Genie node at its next run.",
+    "options": {
+      "ask before replacing": "ask before replacing",
+      "always replace": "always replace"
+    }
+  },
+  "RegionGenie_Main_Feather": {
+    "name": "Feather (px, linked regions)",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Main_RegionSeparation": {
+    "name": "LoRA region separation",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Main_SeparationUntil": {
+    "name": "LoRA separation until",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Main_AllRegionsApart": {
+    "name": "Keep all regions apart (not only those with LoRAs)",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Main_ShareBackground": {
+    "name": "Keep regions apart: share the background",
+    "tooltip": "Regions that are kept apart stay apart from each other, but not from the image around them, so lighting and setting stay one picture. Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Main_AutoApart": {
+    "name": "Plain-text prompts: keep all regions apart automatically",
+    "tooltip": "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get the regions as plain sentences. The Region Genie node places each region by tying its sentence to its region in attention ('keep all regions apart').\nOn: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, unless the node's button is set to 'Off for this node'.\nOff: Only a node whose button is on keeps them apart.\nThe settings below change it for one model. Applies to every Region Genie node at its next run."
+  },
+  "RegionGenie_Main_AutoApart_MOSS": {
+    "name": "MOSS-Image (standard mode, Edit Mode): keep all regions apart automatically",
+    "tooltip": "For MOSS-Image models only. 'As set for all models' follows the setting above.",
+    "options": {
+      "As set for all models (above)": "As set for all models (above)",
+      "On": "On",
+      "Off": "Off"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Krea2": {
+    "name": "Krea 2: keep all regions apart automatically",
+    "tooltip": "For Krea 2 models only. 'As set for all models' follows the setting above.",
+    "options": {
+      "As set for all models (above)": "As set for all models (above)",
+      "On": "On",
+      "Off": "Off"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux": {
+    "name": "Flux: keep all regions apart automatically",
+    "tooltip": "For Flux models only. 'As set for all models' follows the setting above.",
+    "options": {
+      "As set for all models (above)": "As set for all models (above)",
+      "On": "On",
+      "Off": "Off"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux3": {
+    "name": "Flux 3: keep all regions apart automatically",
+    "tooltip": "For Flux 3 models only. 'As set for all models' follows the setting above.",
+    "options": {
+      "As set for all models (above)": "As set for all models (above)",
+      "On": "On",
+      "Off": "Off"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Anima": {
+    "name": "Anima: keep all regions apart automatically",
+    "tooltip": "For Anima models only. 'As set for all models' follows the setting above.",
+    "options": {
+      "As set for all models (above)": "As set for all models (above)",
+      "On": "On",
+      "Off": "Off"
+    }
+  },
+  "RegionGenie_Main_AutoApart_SDXL": {
+    "name": "SDXL / SD1.5: keep all regions apart automatically",
+    "tooltip": "For SDXL / SD1.5 models only. 'As set for all models' follows the setting above.",
+    "options": {
+      "As set for all models (above)": "As set for all models (above)",
+      "On": "On",
+      "Off": "Off"
+    }
+  },
+  "RegionGenie_Main_Snap": {
+    "name": "Snap to grid on",
+    "tooltip": "When a Region Genie node is added or a workflow is opened."
+  },
+  "RegionGenie_Main_Grid": {
+    "name": "Grid size (image px)",
+    "tooltip": "When a Region Genie node is added or a workflow is opened."
+  },
+  "RegionGenie_Control_MOSS": {
+    "name": "MOSS-Image: color / depth control LoRA",
+    "tooltip": "MOSS-Image's color / depth control adapter (a LoRA). It reads the regions' color map and / or a depth map, VAE-encoded next to the image (needs 'vae').\nA node's Control row uses it (as a LoRA on the model) for MOSS-Image models.\nGet moss_image_color_depth_control.safetensors into ComfyUI/models/loras: https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_Flux1Depth": {
+    "name": "Flux.1: depth LoRA (e.g. flux1-depth-dev-lora)",
+    "tooltip": "Black Forest Labs' structural LoRA for Flux.1 [dev]. The map is VAE-encoded next to the image (needs 'vae').\nA node's Control row uses it (as a LoRA on the model) for Flux.1 models, at the row's strength.\nGet flux1-depth-dev-lora.safetensors into ComfyUI/models/loras: https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/split_files/loras/flux1-depth-dev-lora.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_Flux1Canny": {
+    "name": "Flux.1: canny LoRA (e.g. flux1-canny-dev-lora)",
+    "tooltip": "Black Forest Labs' structural LoRA for Flux.1 [dev]. The map is VAE-encoded next to the image (needs 'vae').\nA node's Control row uses it (as a LoRA on the model) for Flux.1 models, at the row's strength.\nGet flux1-canny-dev-lora.safetensors into ComfyUI/models/loras (Black Forest Labs' page asks you to accept the FLUX.1 [dev] license first): https://huggingface.co/black-forest-labs/FLUX.1-Canny-dev-lora/resolve/main/flux1-canny-dev-lora.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_Flux1_depth": {
+    "name": "Flux.1: depth ControlNet",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is Flux.1 and no Flux.1 depth LoRA is set (the LoRA comes first).\nGet flux-depth-controlnet-v3.safetensors into ComfyUI/models/controlnet: https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-depth-controlnet-v3.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_Flux1_canny": {
+    "name": "Flux.1: canny ControlNet",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is Flux.1 and no Flux.1 canny LoRA is set (the LoRA comes first).\nGet flux-canny-controlnet-v3.safetensors into ComfyUI/models/controlnet: https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_Flux1_other": {
+    "name": "Flux.1: ControlNet for your control_image (pose, lineart, union …)",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is Flux.1.\nGet diffusion_pytorch_model.safetensors into ComfyUI/models/controlnet (InstantX's union ControlNet (pose, depth, canny, tile …); rename it, e.g. instantx-flux-union.safetensors): https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_SDXL_depth": {
+    "name": "SDXL: depth ControlNet",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is SDXL.\nGet control-lora-depth-rank128.safetensors into ComfyUI/models/controlnet: https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_SDXL_canny": {
+    "name": "SDXL: canny ControlNet",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is SDXL.\nGet control-lora-canny-rank128.safetensors into ComfyUI/models/controlnet: https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_SDXL_other": {
+    "name": "SDXL: ControlNet for your control_image (pose, lineart, union …)",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is SDXL.\nGet diffusion_pytorch_model_promax.safetensors into ComfyUI/models/controlnet (Xinsir's union ControlNet (pose, depth, canny, lineart …); rename it, e.g. controlnet-union-sdxl-promax.safetensors): https://huggingface.co/xinsir/controlnet-union-sdxl-1.0/resolve/main/diffusion_pytorch_model_promax.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_SD15_depth": {
+    "name": "SD1.5: depth ControlNet",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is SD1.5.\nGet control_v11f1p_sd15_depth_fp16.safetensors into ComfyUI/models/controlnet: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11f1p_sd15_depth_fp16.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_SD15_canny": {
+    "name": "SD1.5: canny ControlNet",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is SD1.5.\nGet control_v11p_sd15_canny_fp16.safetensors into ComfyUI/models/controlnet: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_canny_fp16.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_SD15_other": {
+    "name": "SD1.5: ControlNet for your control_image (pose, lineart, union …)",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is SD1.5.\nGet control_v11p_sd15_openpose_fp16.safetensors into ComfyUI/models/controlnet (The pose one; lineart, scribble, softedge … are in the same repository): https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_Anima_depth": {
+    "name": "Anima: depth LLLite patch",
+    "tooltip": "An Anima LLLite patch, a small control network on the model, with the Control row's strength and start / end.\nUsed by the Control row when the model is Anima.\nGet anima-lllite-depth-1.safetensors into ComfyUI/models/model_patches (or models/controlnet): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-depth-1.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_Anima_canny": {
+    "name": "Anima: canny LLLite patch",
+    "tooltip": "An Anima LLLite patch, a small control network on the model, with the Control row's strength and start / end.\nUsed by the Control row when the model is Anima.\nGet anima-lllite-lineart-1.safetensors into ComfyUI/models/model_patches (or models/controlnet) (There is no canny LLLite; the lineart one reads edge lines like canny's (untested with canny maps)): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-lineart-1.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_Anima_other": {
+    "name": "Anima: LLLite patch for your control_image",
+    "tooltip": "An Anima LLLite patch, a small control network on the model, with the Control row's strength and start / end.\nUsed by the Control row when the model is Anima.\nGet anima-lllite-pose-1.safetensors into ComfyUI/models/model_patches (or models/controlnet) (The pose one; lineart, scribble and a general 'any-test-like' patch are in the same repository): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_DA3": {
+    "name": "Depth Anything 3 model (makes depth maps from 'image')",
+    "tooltip": "ComfyUI's Depth Anything 3. It makes the depth map (near = white) from 'image' when no control_image is connected.\nGet depth_anything_3_mono_large.safetensors into ComfyUI/models/geometry_estimation: https://huggingface.co/Comfy-Org/Depth-Anything-3/resolve/main/geometry_estimation/depth_anything_3_mono_large.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Edit_LoRA_MOSS": {
+    "name": "MOSS-Image: edit LoRA",
+    "tooltip": "The edit LoRA a Region Genie node uses in Edit Mode when its model is MOSS-Image.\nEdit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node.\nMOSS-Image: The Moss-Image-Edit LoRA, for example; its file decides the edit layout (see below).\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Edit_LoRA_Krea2": {
+    "name": "Krea 2: edit LoRA",
+    "tooltip": "The edit LoRA a Region Genie node uses in Edit Mode when its model is Krea 2.\nEdit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node.\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Edit_LoRA_Ideogram4": {
+    "name": "Ideogram 4: edit LoRA",
+    "tooltip": "The edit LoRA a Region Genie node uses in Edit Mode when its model is Ideogram 4.\nEdit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node.\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Edit_LoRA_Flux1": {
+    "name": "Flux.1: edit LoRA",
+    "tooltip": "The edit LoRA a Region Genie node uses in Edit Mode when its model is Flux.1.\nEdit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node.\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Edit_LoRA_Flux2": {
+    "name": "Flux.2: edit LoRA",
+    "tooltip": "The edit LoRA a Region Genie node uses in Edit Mode when its model is Flux.2.\nEdit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node.\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Edit_LoRA_Flux3": {
+    "name": "Flux 3: edit LoRA",
+    "tooltip": "The edit LoRA a Region Genie node uses in Edit Mode when its model is Flux 3.\nEdit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node.\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Edit_LoRA_Anima": {
+    "name": "Anima: edit LoRA",
+    "tooltip": "The edit LoRA a Region Genie node uses in Edit Mode when its model is Anima.\nEdit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node.\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Edit_LoRA_SDXL": {
+    "name": "SDXL: edit LoRA",
+    "tooltip": "The edit LoRA a Region Genie node uses in Edit Mode when its model is SDXL.\nEdit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node.\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Edit_LoRA_SD15": {
+    "name": "SD1.5: edit LoRA",
+    "tooltip": "The edit LoRA a Region Genie node uses in Edit Mode when its model is SD1.5.\nEdit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node.\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine."
+  },
+  "RegionGenie_Edit_Reference_MOSS": {
+    "name": "MOSS-Image: send the source image as a reference",
+    "tooltip": "On: In Edit Mode, the source image (on 'image') is also given to MOSS-Image as a reference image (reference_latents on positive and negative), as edit models such as MOSS-Image Edit expect.\nOff: Image-to-image from the latent only."
+  },
+  "RegionGenie_Edit_Reference_Krea2": {
+    "name": "Krea 2: send the source image as a reference",
+    "tooltip": "On: In Edit Mode, the source image (on 'image') is also given to Krea 2 as a reference image (reference_latents on positive and negative), as edit models such as Krea 2 edit packs expect.\nOff: Image-to-image from the latent only."
+  },
+  "RegionGenie_Edit_Reference_Flux1": {
+    "name": "Flux.1: send the source image as a reference",
+    "tooltip": "On: In Edit Mode, the source image (on 'image') is also given to Flux.1 as a reference image (reference_latents on positive and negative), as edit models such as Flux.1 Kontext expect.\nOff: Image-to-image from the latent only.\nFlux.1 dev and Kontext can't be told apart; turn this off for plain Flux.1 dev."
+  },
+  "RegionGenie_Edit_Reference_Flux2": {
+    "name": "Flux.2: send the source image as a reference",
+    "tooltip": "On: In Edit Mode, the source image (on 'image') is also given to Flux.2 as a reference image (reference_latents on positive and negative), as edit models such as Flux.2 / Klein expect.\nOff: Image-to-image from the latent only."
+  },
+  "RegionGenie_Edit_Reference_Flux3": {
+    "name": "Flux 3: send the source image as a reference",
+    "tooltip": "On: In Edit Mode, the source image (on 'image') is also given to Flux 3 as a reference image (reference_latents on positive and negative), as edit models such as Flux 3 expect.\nOff: Image-to-image from the latent only."
+  },
+  "RegionGenie_Edit_ReferenceSize": {
+    "name": "Reference image size (long edge, px; 0 = output size)",
+    "tooltip": "The reference image is scaled down to this long edge before it is encoded (never up). Larger is slower."
+  },
+  "RegionGenie_Edit_MossFormat": {
+    "name": "MOSS-Image edit layout",
+    "tooltip": "How the reference is given to MOSS-Image (as in ComfyUI's TextEncodeMOSSImageEdit node). Auto: LoRAs trained with ai-toolkit (fused qkv weights) get 'ai-toolkit', others (e.g. the Moss-Image-Edit LoRA) get 'Moss-Image-Edit'.",
+    "options": {
+      "Auto (from the edit LoRA file)": "Auto (from the edit LoRA file)",
+      "Moss-Image-Edit": "Moss-Image-Edit",
+      "ai-toolkit": "ai-toolkit",
+      "ai-toolkit (kv_cache off)": "ai-toolkit (kv_cache off)"
+    }
+  },
+  "RegionGenie_Edit_MaskGrow": {
+    "name": "Edit mask: grow (px; negative shrinks)",
+    "tooltip": "The edit mask (what the sampler may change in Edit Mode) grows by this many pixels past the regions, so edits blend into their surroundings; negative values shrink it. Kept regions are never grown into. For nodes whose list header doesn't set their own value."
+  },
+  "RegionGenie_Edit_MaskFeather": {
+    "name": "Edit mask: feather (px)",
+    "tooltip": "Softens the edit mask's edge by this many pixels (after growing), independent of the regions' own feather. For nodes whose list header doesn't set their own value."
+  },
+  "RegionGenie_RegionalLoRAs_Feather": {
+    "name": "feather",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_RegionalLoRAs_LoraMasking": {
+    "name": "lora_masking",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value.",
+    "options": {
+      "inside the model (one pass)": "inside the model (one pass)",
+      "separate passes (classic hooks)": "separate passes (classic hooks)"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_RegionSeparation": {
+    "name": "region_separation",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_RegionalLoRAs_SeparateAllRegions": {
+    "name": "separate_all_regions",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_RegionalLoRAs_ShareBackground": {
+    "name": "share_background",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Save_Format": {
+    "name": "format",
+    "tooltip": "png: Lossless.\nwebp: Lossless or a quality, much smaller.\njpeg: A quality, small.\navif: A quality, smallest.\nexr: 16 / 32-bit float, scene-linear (for compositing and HDR; not smaller).\nApplies to nodes added from now on; nodes already in a workflow keep their own value.",
+    "options": {
+      "png": "png",
+      "webp": "webp",
+      "jpeg": "jpeg",
+      "avif": "avif",
+      "exr": "exr"
+    }
+  },
+  "RegionGenie_Save_PngLevel": {
+    "name": "PNG compression",
+    "tooltip": "0-9, lossless at every level. Higher = smaller file, slower save. Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Save_WebpLossless": {
+    "name": "WebP lossless",
+    "tooltip": "The exact pixels, usually 25-35% smaller than PNG; off: WebP quality decides. Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Save_WebpQuality": {
+    "name": "WebP quality",
+    "tooltip": "1-100. Lower = smaller file, more detail lost. Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Save_JpegQuality": {
+    "name": "JPEG quality",
+    "tooltip": "1-100. Lower = smaller file, more detail lost. Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Save_JpegExtension": {
+    "name": "JPEG extension",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value.",
+    "options": {
+      "_jpg": ".jpg",
+      "_jpeg": ".jpeg"
+    }
+  },
+  "RegionGenie_Save_JpegWorkflow": {
+    "name": "JPEG workflow",
+    "tooltip": "ComfyUI can't load a workflow from a JPEG.\nsidecar .json: The workflow in a small .json file next to each JPEG (drag that file into ComfyUI to load it).\nnone: No workflow.\ninside the JPEG (EXIF): Readable by other tools, not by ComfyUI.\nApplies to nodes added from now on; nodes already in a workflow keep their own value.",
+    "options": {
+      "sidecar _json": "sidecar .json",
+      "none": "none",
+      "inside the JPEG (EXIF)": "inside the JPEG (EXIF)"
+    }
+  },
+  "RegionGenie_Save_AvifQuality": {
+    "name": "AVIF quality",
+    "tooltip": "1-100. Lower = smaller file, more detail lost. Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Save_ExrBitDepth": {
+    "name": "EXR bit depth",
+    "tooltip": "16-bit float: Half precision, about half the size.\n32-bit float: Full precision.\nApplies to nodes added from now on; nodes already in a workflow keep their own value.",
+    "options": {
+      "16-bit float": "16-bit float",
+      "32-bit float": "32-bit float"
+    }
+  },
+  "RegionGenie_Save_ExrColorSpace": {
+    "name": "EXR color space",
+    "tooltip": "The color space of the images coming in (the EXR is always scene-linear).\nsRGB: sRGB-encoded Rec.709, the usual.\nHDR: HLG-encoded Rec.2020.\nlinear: Already scene-linear Rec.709.\nlinear ACEScg: Already scene-linear ACEScg.\nApplies to nodes added from now on; nodes already in a workflow keep their own value.",
+    "options": {
+      "sRGB": "sRGB",
+      "HDR": "HDR",
+      "linear": "linear",
+      "linear ACEScg": "linear ACEScg"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_SeparationUntil": {
+    "name": "separation_until",
+    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  }
+}

@@ -13,14 +13,17 @@ function updateLabel(node) {
     const w = node.widgets?.find((w) => w.name === "index");
     if (!w) return;
     const count = node.__bboxCount;
+    // the widget's own label: ComfyUI's translation of "index" in another language, nothing in English
+    if (!("__rgBaseLabel" in w)) w.__rgBaseLabel = w.label;
+    const index = w.__rgBaseLabel || "index";
     if (typeof count !== "number") {
-        w.label = undefined;
+        w.label = w.__rgBaseLabel;
     } else if (count === 0) {
-        w.label = "index (none found)";
+        w.label = `${index} (none found)`;
     } else {
         const last = count - 1;
         const range = last === 0 ? "0" : `0-${last}`;
-        w.label = w.value > last ? `index (${range}) - not found yet` : `index (${range})`;
+        w.label = w.value > last ? `${index} (${range}) - not found yet` : `${index} (${range})`;
     }
     node.setDirtyCanvas?.(true, true);
 }
