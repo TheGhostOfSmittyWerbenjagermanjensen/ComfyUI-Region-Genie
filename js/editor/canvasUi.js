@@ -91,7 +91,7 @@ export function* canvasUi(E) {
     const addLayerBtn = E.btn("", "Add an empty layer on top of the active region's layers; brush, lasso and fill then go into it", () => {
         const rid = E.curRegion;
         if (rid == null || (rid !== UNSPEC && !E.regionById(rid))) { E.hint("Select a region first"); return; }
-        E.change(() => { const L = E.newPaintLayer(rid); L.name = `${rid === UNSPEC ? "Unspecified" : "Layer"} ${L.id}`; E.addLayer(L); });
+        E.change(() => { const L = E.newPaintLayer(rid); L.name = `${rid === UNSPEC ? "Hole" : "Layer"} ${L.id}`; E.addLayer(L); });
         openSub(rid, "layers");
         E.refreshUI();
     });
@@ -157,25 +157,21 @@ export function* canvasUi(E) {
         setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart"));
         allApartBtn.classList.toggle("on", on);
         allApartBtn.title = (own ? "Keep all regions apart: ON."
-            : auto ? "Keep all regions apart: ON automatically in the last run (a model without a layout format, "
-                + "with region prompts; Settings > Region Genie > keep all regions apart automatically sets this for "
-                + "all such models or one model). "
-                + "Clicking switches it off for this node."
-            : opts.autoOff ? "Keep all regions apart: OFF for this node, also where a run would turn it on by itself. "
-                + "Right-click > Automatic lets it turn on by itself again."
+            : auto ? "Keep all regions apart: ON automatically in the last run."
+            : opts.autoOff ? "Keep all regions apart: OFF for this node."
             : "Keep all regions apart: OFF.")
             + "\nOn: Every region, with or without LoRAs, is kept apart from the others and from the background for "
-            + "the first part of sampling ('until'), at the separation strength set here, and each region's caption "
-            + "speaks only to its own region.\nOff (default): Only regions with LoRAs are kept apart.\n"
-            + "With Krea 2, Flux, Anima or SDXL / SD1.5 (no layout format of their own) this is what places each "
-            + "region's prompt in its region. Needs a MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 "
-            + "model on the model input; while active, sampling is a "
-            + "little slower and uses more VRAM.\n\n"
-            + (shared ? "Share the background: ON. The regions are kept apart from each other only; the image around "
-                + "them stays shared, so lighting, perspective and setting stay one picture (captions still reach only "
-                + "their own region). "
-                : "Share the background: OFF (the regions are kept apart from the background too). ")
-            + "Right-click for both choices.";
+            + "the first part of sampling ('until', at 'separation'), and each region's prompt reaches only its region. "
+            + "This is what places region prompts with Krea 2, Flux, Anima and SDXL / SD1.5. Needs the model on 'model'; "
+            + "sampling is a little slower and uses more VRAM.\n"
+            + "Off: Only regions with LoRAs are kept apart.\n"
+            + "Automatic (default): A run turns it on for a model without a layout format when a region has a prompt "
+            + "(Settings > Region Genie > Region Genie node > '… keep all regions apart automatically').\n"
+            + (shared ? "Share the background: ON. The regions are kept apart from each other only, so lighting, "
+                + "perspective and setting stay one picture.\n"
+                : "Share the background: OFF. The regions are kept apart from the background too.\n")
+            + "Click: Switch what the button shows, for this node.\n"
+            + "Right-click: Keep all regions apart, Automatic, Off for this node, Share the background.";
     }
     sepIn.addEventListener("change", optChange); untilIn.addEventListener("change", optChange);
     for (const i of [sepIn, untilIn]) i.addEventListener("keydown", (e) => e.stopPropagation());

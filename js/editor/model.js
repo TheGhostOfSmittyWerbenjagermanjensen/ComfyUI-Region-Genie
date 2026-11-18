@@ -105,7 +105,7 @@ export function* model(E) {
         // standard by itself (no region, or Edit Mode): there is nothing to choose. A click here used to set
         // standard 'for good' without the icon changing, and layout then never came back.
         if (E.isEdit()) { E.hint("Edit Mode always sends plain text"); return; }
-        if (!E.outputIndexMap().some((v) => v != null)) { E.hint("Layout mode needs a region: it comes back by itself when one is drawn"); return; }
+        if (!E.outputIndexMap().some((v) => v != null)) { E.hint("Layout mode needs a region: It comes back by itself when one is drawn"); return; }
         if (E.node.properties.rg_moss_layout === false) delete E.node.properties.rg_moss_layout;
         else E.node.properties.rg_moss_layout = false;
         app.graph?.change?.();
@@ -126,7 +126,7 @@ export function* model(E) {
         if (modelSel.dataset.sig !== sig) { modelSel.replaceChildren(...opts.map(([v, t]) => E.opt(v, t))); modelSel.dataset.sig = sig; }
         if (document.activeElement !== modelSel) modelSel.value = pick;
         modelSel.title = "The model this node works with. It sets the format of the 'prompt' and 'positive' outputs "
-            + "(MOSS-Image: MOSS layout JSON, Ideogram 4: Ideogram caption JSON, the others: Plain text), the LoRAs "
+            + "(MOSS-Image: Layout JSON, Ideogram 4: Caption JSON, the others: Plain text), the LoRAs "
             + "Control and Edit Mode add to Whole image, and the control files.\n"
             + (pick ? `Picked: ${pick}. ` : info.how === "last run" ? `Auto: ${info.arch}, from the last run. `
                 : info.how === "guess" ? `Auto: ${info.arch}, guessed from the model loader's file / type (the run checks the model itself). `
@@ -162,7 +162,7 @@ export function* model(E) {
         const why = !want ? "" : edit ? "\nStandard by itself: Edit Mode always sends plain text (the edit LoRA takes an instruction)."
             : !anyRegion ? "\nStandard by itself: No region is drawn and shown. Layout comes back when one is." : "";
         layoutBtn.title = (layout
-            ? "MOSS-Image layout mode: The prompt is MOSS layout JSON, with each region's box. Click for standard mode."
+            ? "MOSS-Image layout mode: The prompt is layout JSON, with each region's box. Click for standard mode."
             : want ? "MOSS-Image standard mode (for now): The prompt is plain text."
             : "MOSS-Image standard mode: The prompt is plain text (the regions as sentences; masks still steer them)."
                 + (anyRegion && !edit ? " Click for layout mode." : ""))

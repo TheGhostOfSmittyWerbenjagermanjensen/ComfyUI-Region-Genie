@@ -372,7 +372,7 @@ export function* render(E) {
             sp.classList.toggle("none", v == null);
             sp.title = v == null ? (E.state.regions[Number(sp.dataset.k)]?.hidden ? "Hidden, so this region is not in the outputs"
                 : "No visible pixels yet, so this region is not in the outputs")
-                : `Output index ${v}: masks, bboxes, elements, layouts and Mask Picker / BBoxes to Masks 'index'`;
+                : `Output index ${v}: Its place in masks, bboxes, elements and the layout JSON in 'prompt'; also the 'index' of Mask Picker / BBoxes to Masks.`;
         }
     }
     let labelCache = { t: 0, key: "", boxes: [] };

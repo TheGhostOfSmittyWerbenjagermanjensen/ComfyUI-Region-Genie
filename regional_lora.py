@@ -1396,7 +1396,7 @@ class RegionalLoRAs:
                 "positive_prompt": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
                                       "tooltip": ("The positive prompt. Connect 'prompt' of the Region Genie node (MOSS JSON, Ideogram JSON or "
                                                   "text, in the model's format), or type one. Each row's words are added to its region's caption "
-                                                  "(index -1: to the scene caption).\n"
+                                                  "(for index -1, to the scene caption).\n"
                                                   "Plain-text prompt: Region words are added as their own sentence, index -1 words after a comma.")}),
                 "negative_prompt": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
                                                "tooltip": "Negative prompt, encoded as 'negative' (like CLIP Text "

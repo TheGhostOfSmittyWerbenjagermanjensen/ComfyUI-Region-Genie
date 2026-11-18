@@ -22,7 +22,7 @@ export function* regions(E) {
         return effCache.map;
     };
     const colorOf = (rid) => rid === UNSPEC ? "#000000" : (effMap().get(rid) || regionById(rid)?.color); E.colorOf = colorOf;
-    const regionLabel = (rid) => rid === UNSPEC ? "Unspecified" : (regionById(rid)?.prompt || `region ${E.state.regions.findIndex((r) => r.id === rid)}`);
+    const regionLabel = (rid) => rid === UNSPEC ? "Hole" : (regionById(rid)?.prompt || `region ${E.state.regions.findIndex((r) => r.id === rid)}`);
     // a new region's color: the one that looks most different from the colors already on the canvas
     // (perceptual distance, CIELAB), from the built-in list first, then from a wider set of hues
     function nextColor() {
@@ -107,7 +107,7 @@ export function* regions(E) {
         if (!r?.hidden) return;
         delete r.hidden;
         keepHintUntil = performance.now() + 3000;
-        hint(`'${String(regionLabel(rid)).slice(0, 40)}' was hidden: shown again so you can see what you add`);
+        hint(`'${String(regionLabel(rid)).slice(0, 40)}' was hidden: Shown again so you can see what you add`);
         E.refreshUI();
     }
     const selLayer = () => E.state.layers.find((l) => l.id === E.selId) || null; E.selLayer = selLayer;

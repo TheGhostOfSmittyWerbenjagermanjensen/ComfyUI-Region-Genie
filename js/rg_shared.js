@@ -246,7 +246,7 @@ export function openFileBrowser({ folders = ["loras"], home, title = "Choose a m
         const box = document.createElement("div"); box.className = "rg-fb"; back.appendChild(box);
         const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
         const head = mk("div", "rg-fb-head"); head.appendChild(mk("b", "", title));
-        const roots = mk("select"); roots.title = "Go to: ComfyUI's folders for this kind of file, or a drive";
+        const roots = mk("select"); roots.title = "Go to: One of ComfyUI's model folders, a drive or the home folder";
         head.appendChild(roots);
         const pathRow = mk("div", "rg-fb-path");
         const up = mk("button", "", "⬆"); up.title = "Up one folder";
@@ -266,7 +266,7 @@ export function openFileBrowser({ folders = ["loras"], home, title = "Choose a m
             pick = f; ok.disabled = !f;
             for (const r of list.querySelectorAll(".sel")) r.classList.remove("sel");
             row?.classList.add("sel");
-            chosen.textContent = f ? (f.rel ? `${f.rel}  (in ComfyUI's ${folders[0]} folders)` : f.path) : "";
+            chosen.textContent = f ? (f.rel ? `${f.rel}  (in ComfyUI's ${f.folder || folders[0]} folders)` : f.path) : "";
             chosen.title = chosen.textContent;
         };
         async function go(path) {
@@ -491,7 +491,7 @@ export function fileField({ roots, home, none, noneLabel, emptyLabel, value, onP
         if (!empty) fileKnown(cur, roots, home).then((ok) => {
             if (cur !== undefined && !ok) {
                 name.classList.add("missing");
-                name.title += "\nIn red: It isn't in ComfyUI's model folders (moved, renamed or deleted, or added since ComfyUI started; R reloads them).";
+                name.title += "\nIn red: ComfyUI doesn't find it in its model folders (moved, renamed or deleted).";
             }
         }).catch(() => {});
     };
@@ -592,7 +592,7 @@ const llmRowType = (key) => () => {
     if (LLM_ROWS.render) return LLM_ROWS.render(key);
     const e = document.createElement("span"); e.textContent = "…"; return e;
 };
-const SAMPLED = "\nUsed only while the preset's sampling is on (Generate Text hides it otherwise).";
+const SAMPLED = "\nUsed only while the preset's sampling is on (greyed otherwise).";
 // [key, name, tooltip]; each row edits the preset chosen in 'Preset to edit' and saves at once
 export const LLM_FIELDS = [
     ["name", "Preset: name", "The preset's name. Press Enter (or leave the field) to rename it; the defaults above follow."],
@@ -600,7 +600,7 @@ export const LLM_FIELDS = [
         + "A file: From ComfyUI's text_encoders folders (or anywhere with 'Browse… for model files' on, Model files); loaded once and kept while in use."],
     ["llm_type", "Preset: LLM type", "As the 'type' of Load CLIP, for an LLM file. Auto works for plain Qwen3 / Qwen3.5 / Gemma files."],
     ["loras", "Preset: LLM LoRAs", "LoRAs applied to the LLM only (like Load LoRA (Text Encoder)); the image model and the clip "
-        + "used for conditioning are not changed. Each one: on / off, the file (a dropdown; Browse… with 'Browse… for model files' on), strength, ✕ removes it."],
+        + "used for conditioning are not changed. \nEach row: On / off, the file (a click opens ComfyUI's menu; a folder button with 'Browse… for model files' on), strength, ✕ removes it."],
     ["system_prompt", "Preset: system prompt", "Sent as the system prompt (Generate Text's system_prompt). Ignored when the preset's default template is off."],
     ["max_length", "Preset: max_length", "Most tokens the LLM writes."],
     ["sampling", "Preset: sampling", "On: Sampling with the settings below.\nOff (default): Greedy decoding, always the same text for "
@@ -668,19 +668,19 @@ export function controlFileHelp(key, folder, model, tag) {
     // three lines: what it is, how the Control row uses it, where to get it
     const what = key === "MOSS" ? "MOSS-Image's color / depth control adapter (a LoRA). It reads the regions' color map and / or a depth map, "
             + "VAE-encoded next to the image (needs 'vae')."
-        : tag ? "Black Forest Labs' structural LoRA for Flux.1 [dev]. The map is VAE-encoded next to the image (needs 'vae'); the LoRA's "
-            + "strength in Whole image is the control's strength."
+        : tag ? "Black Forest Labs' structural LoRA for Flux.1 [dev]. The map is VAE-encoded next to the image (needs 'vae')."
         : folder === "controlnet" ? "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control "
             + "row's strength and start / end (also Control-LoRA and union files)."
-        : folder === "model_patches" ? "An Anima LLLite patch, a small control network on the model. It takes the region mask itself."
+        : folder === "model_patches" ? "An Anima LLLite patch, a small control network on the model, with the Control row's strength and start / end."
         : "ComfyUI's Depth Anything 3. It makes the depth map (near = white) from 'image' when no control_image is connected.";
     const use = tag ? `\nA node's Control row uses it (as a LoRA on the model) for ${model} models${tag !== "moss" ? ", at the row's strength" : ""}.`
+        : /^Flux1\.(depth|canny)$/.test(key) ? `\nUsed by the Control row when the model is Flux.1 and no Flux.1 ${key.slice(6)} LoRA is set (the LoRA comes first).`
         : model ? `\nUsed by the Control row when the model is ${model}.` : "";
     const d = CONTROL_DOWNLOADS[key];
     const where = folder === "model_patches" ? "ComfyUI/models/model_patches (or models/controlnet)" : `ComfyUI/models/${folder}`;
     const get = d ? `\nGet ${d.file} into ${where}${d.note ? ` (${d.note[0].toUpperCase() + d.note.slice(1)})` : ""}: ${d.url}`
         : `\nFiles go in ${where}.`;
-    return what + use + get + "\nOr keep the file anywhere: With 'Browse… for model files' on (Model files, below), a folder button picks it where it is.";
+    return what + use + get + "\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is.";
 }
 // the folder types a Control setting's file is listed from and looked up in (Anima's LLLite patches: ComfyUI's own
 // loader reads model_patches, but they are often kept with the ControlNets)
@@ -699,7 +699,7 @@ export const CONTROL_KIND_HELP = {
     canny: "Canny: The edge lines of a picture. The model keeps the outlines and composition closely, so it's good for redrawing a "
         + "picture in another style; it follows the lines more strictly than depth.",
     other: "Your control_image: Any map made with other nodes (pose skeletons, lineart, scribble, segmentation …). The file set for "
-        + "'other' must read that kind of map (a union ControlNet reads several).",
+        + "your control_image (Settings > Region Genie > Control) must read that kind of map (a union ControlNet reads several).",
 };
 setTimeout(() => { for (const f of new Set(CONTROL_FILES.map((x) => x[2]))) if (f !== "loras") knownModels(f); }, 0);
 // the files set in Settings: { key: file } (unset ones left out)
@@ -1115,8 +1115,8 @@ export function keyLabel(text) {
 // the tooltip of a pop-up's ◀ / ▶: what it does, and its key
 export function popNavTip(dir, what) {
     const k = keyLabel(popKeyText(dir));
-    return (dir < 0 ? `The previous text field of this node (${what}), in this place and size (from the first one, the last one).`
-                    : `The next text field of this node (${what}), in this place and size (from the last one, the first one).`)
+    return (dir < 0 ? `The previous text field of this node (${what}), opened in this place and size; from the first it goes to the last.`
+                    : `The next text field of this node (${what}), opened in this place and size; from the last it goes to the first.`)
         + (k ? `\nKey: ${k} (Settings > Region Genie > Text size).` : "");
 }
 // the owner node is gone, or not on the canvas any more (another workflow tab, or into / out of a subgraph)
@@ -1156,7 +1156,7 @@ export function openFloatPopup(o) {
     const use = btn("icon", svgIcon("useFilled"), "", () => { const f = o.filled?.(ta.value); if (f != null) { ta.value = f; o.onInput(f); syncUse(); } });
     const syncUse = () => { const f = o.filled?.(ta.value); use.style.display = f != null ? "" : "none";
         use.title = f != null ? `Use the filled text: Replace the wildcards with what they produced (last run or preview):\n${f}` : ""; };
-    const x = btn("rg-x", "✕", "Close (Enter / Esc)", () => close(true));
+    const x = btn("rg-x", "✕", "Close, keeping the edits (Enter).", () => close(true));
     const geom = () => ({ left: box.offsetLeft, top: box.offsetTop, width: box.offsetWidth, height: box.offsetHeight });
     const prev = btn("rg-nav", "◀", popNavTip(-1, o.navWhat || "in order"), () => o.nav(-1, geom()));
     const next = btn("rg-nav", "▶", popNavTip(1, o.navWhat || "in order"), () => o.nav(1, geom()));
@@ -1677,8 +1677,7 @@ const SETTINGS = [
         // round 19: the presets (as in the node's LLM settings pop-up), one row per field
         ...[["character", "Character"], ["object", "Object"], ["text", "Text"], ["scene", "Scene"]].map(([t, label], i) => ({
             id: `RegionGenie.LLM.Default.${t}`, name: `Default preset: ${label}`, type: llmRowType("default." + t), defaultValue: "",
-            tooltip: `The preset for ${label.toLowerCase()} prompts in every Region Genie node that hasn't chosen its own `
-                + "(a node's LLM settings can choose another for that node only).",
+            tooltip: `The preset for ${label.toLowerCase()} prompts in every Region Genie node whose LLM settings don't choose another.`,
             category: CAT("LLM Prompt Enhancer", "2a default " + i),
         })),
         {
@@ -1728,7 +1727,7 @@ const SETTINGS = [
             id: SET.toolLassoErase, name: "Lasso erase: default", type: "combo", defaultValue: "plain",
             options: [{ text: "Lasso erase (straight lines)", value: "plain" }, { text: "Spline lasso erase (smooth curve)", value: "spline" },
                       { text: "Magnetic lasso erase (follows edges in the image)", value: "magnetic" }],
-            tooltip: "Which lasso the Lasso erase button starts as in every Region Genie node. Right-clicking the button "
+            tooltip: "Which lasso erase the Eraser button's list starts with in every Region Genie node. Right-clicking the button "
                 + "still switches it for the rest of the session.",
             category: CAT("Canvas tools", "2 lasso erase"),
             onChange: (v) => toolChanged("lassoErase", v),
@@ -1737,8 +1736,8 @@ const SETTINGS = [
             id: SET.toolWand, name: "Magic wand: default", type: "combo", defaultValue: "contiguous",
             options: [{ text: "Connected area of similar color", value: "contiguous" }, { text: "Every similar color in the image", value: "global" }],
             tooltip: "What a click with the magic wand selects in the image.\n"
-                + "Connected area: The area of similar color around the click.\n"
-                + "All similar colors: Every pixel of similar color.\n"
+                + "Connected area of similar color: Only the area around the click.\n"
+                + "Every similar color in the image: All pixels of that color, connected or not.\n"
                 + "Right-clicking the button still switches it for the session.",
             category: CAT("Canvas tools", "3 wand"),
             onChange: (v) => toolChanged("wand", v),
@@ -1747,7 +1746,7 @@ const SETTINGS = [
             id: SET.toolWandTolerance, name: "Magic wand: tolerance", type: "number", defaultValue: 32,
             attrs: { min: 0, max: 255, step: 1 },
             tooltip: "How different a color may be from the clicked one (0-255 per channel) and still be selected. The field "
-                + "next to the wand changes it for the session.",
+                + "on the canvas (top left, while the wand is active) changes it for the session.",
             category: CAT("Canvas tools", "4 wand tolerance"),
             onChange: (v) => toolChanged("wandTol", v),
         },
@@ -1756,7 +1755,7 @@ const SETTINGS = [
             options: [{ text: "Fill", value: "normal" }, { text: "Fill, closing small gaps", value: "gaps" },
                       { text: "Gradient fill, linear", value: "linear" }, { text: "Gradient fill, radial", value: "radial" }],
             tooltip: "Closing small gaps: The fill doesn't leak out through openings narrower than about twice the gap size "
-                + "(set next to the Fill button).\nRight-clicking the button still switches it for the session.",
+                + "(the field on the canvas while Fill is active).\nRight-clicking the button still switches it for the session.",
             category: CAT("Canvas tools", "5 fill"),
             onChange: (v) => toolChanged("fill", v),
         },
@@ -1792,14 +1791,14 @@ const SETTINGS = [
                 + "(and more wrong things), higher finds fewer.",
             category: CAT("Select object", "3 threshold"),
         },
-        ...[["fsNodeScene", "In the node: scene prompts", "1", 0, "the three scene_prompt boxes (0 = ComfyUI's own size)"],
-            ["fsNodeRegion", "In the node: region prompts", "2", 0, "the prompt fields in the region list (0 = the usual 12 px)"],
+        ...[["fsNodeScene", "In the node: scene prompts", "1", 0, "the three scene_prompt boxes (0 = ComfyUI's own size); also the Regional LoRAs node's positive / negative boxes"],
+            ["fsNodeRegion", "In the node: region prompts", "2", 0, "the prompt fields in the region list (0 = the usual 12 px); also the Regional LoRAs node's row prompts"],
             ["fsNodeText", "In the node: text to render", "3", 0, "the text-to-render fields in the region list (0 = the usual 12 px)"],
-            ["fsPopScene", "Pop-up editor: scene prompts", "4", 14, "the text box of the scene prompts' pop-up editor (A− / A+ in its header change it too)"],
-            ["fsPopRegion", "Pop-up editor: region prompts", "5", 14, "the Prompt box of the region pop-up editor (A− / A+ in its header change it too)"],
+            ["fsPopScene", "Pop-up editor: scene prompts", "4", 14, "the text box of the scene prompts' pop-up editor (A− / A+ in its header change it too); also the Regional LoRAs node's pop-up for its positive / negative boxes"],
+            ["fsPopRegion", "Pop-up editor: region prompts", "5", 14, "the Prompt box of the region pop-up editor (A− / A+ in its header change it too); also the Regional LoRAs node's pop-up for its row prompts"],
             ["fsPopText", "Pop-up editor: text to render", "6", 14, "the Text box of the region pop-up editor (A− / A+ in its header, with the Text box in use)"]]
             .map(([k, name, ord, dflt, what]) => ({ id: SET[k], name, type: "number", defaultValue: dflt, attrs: { min: k.startsWith("fsNode") ? 0 : 8, max: 40, step: 1 },
-                tooltip: `Text size in px for ${what}. Applies to every Region Genie node.`, category: CAT("Text size", `${ord} ${k}`) })),
+                tooltip: `Text size in px for ${what}. Applies to every node.`, category: CAT("Text size", `${ord} ${k}`) })),
         { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
         ...[[SET.popPrevKey, "Pop-up editor: key for the previous text field", "PageUp", "8 prev key"],
             [SET.popNextKey, "Pop-up editor: key for the next text field", "PageDown", "9 next key"]].map(([id, name, dflt, ord]) => ({
@@ -1842,7 +1841,7 @@ const SETTINGS = [
         {
             id: SET.cmMinPixels, name: "Color map: min region pixels", type: "number", defaultValue: 64, attrs: { min: 1, max: 1000000, step: 1 },
             tooltip: "With the image used as a color map, a color becomes a region when it has at least this many flat pixels "
-                + "(blended edges and specks go to the nearest region). Applies to every Region Genie node at its next run; "
+                + "(blended edges go to the nearest region, specks of other colors become unspecified). Applies to every Region Genie node at its next run; "
                 + "the node's image control shows it too while 'color map' is chosen.",
             category: CAT("Region Genie node", "04 min"),
         },
@@ -1869,9 +1868,9 @@ const SETTINGS = [
             tooltip: "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get "
                 + "the regions as plain sentences. The Region Genie node places each region by tying its sentence to its "
                 + "region in attention ('keep all regions apart').\n"
-                + "On: With such a model on 'model', clip connected and at least one region prompt, that switch is on for "
-                + "the run even when the node's own switch is off.\n"
-                + "Off: Only the node's switch counts.\n"
+                + "On: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, "
+                + "unless the node's button is set to 'Off for this node'.\n"
+                + "Off: Only a node whose button is on keeps them apart.\n"
                 + "The settings below change it for one model. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "086 auto apart"),
         },
@@ -1891,10 +1890,10 @@ const SETTINGS = [
         })),
         ...EDIT_MODELS.map(([name, key], i) => ({
             id: SET.editLora + "." + key, name: `${name}: edit LoRA`, type: fileSettingType(MODEL_ROOTS, NO_LORA, SET.editLora + "." + key, "loras"), defaultValue: NO_LORA,
-            tooltip: `A Region Genie node in Edit Mode uses this LoRA (its Edit row, under Whole image), only when the model on `
-                + `'model' is ${name}, so one LoRA per model can be set here; the Edit row's ✕ leaves it out for that node.`
-                + (key === "MOSS" ? " For MOSS-Image, e.g. the Moss-Image-Edit LoRA; its file decides the edit layout (see below)." : "")
-                + " The node's Edit row sets this too. With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine.",
+            tooltip: `The edit LoRA a Region Genie node uses in Edit Mode when its model is ${name}.\n`
+                + "Edit row (on the node, under Whole image): Shows and sets this same file; its ✕ leaves it out for that node."
+                + (key === "MOSS" ? "\nMOSS-Image: The Moss-Image-Edit LoRA, for example; its file decides the edit layout (see below)." : "")
+                + "\nBrowse…: With 'Browse… for model files' on (Model files), a folder button picks a LoRA anywhere on the ComfyUI machine.",
             category: CAT("Edit Mode", "1 lora " + String(i).padStart(2, "0")),
         })),
         ...EDIT_MODELS.filter((m) => m[2]).map(([name, key], i) => ({
@@ -1957,7 +1956,8 @@ const SETTINGS = [
           tooltip: NEW_NODES, category: CAT("Save Image", "6 jpeg extension") },
         { id: SET.saveJpegWorkflow, name: "JPEG workflow", type: "combo", defaultValue: "sidecar .json",
           options: ["sidecar .json", "none", "inside the JPEG (EXIF)"],
-          tooltip: "ComfyUI can't load a workflow from a JPEG: sidecar .json puts it in a file next to the JPEG (drag that in). " + NEW_NODES,
+          tooltip: "ComfyUI can't load a workflow from a JPEG.\nsidecar .json: The workflow in a small .json file next to each JPEG (drag that file into ComfyUI to load it).\n"
+              + "none: No workflow.\ninside the JPEG (EXIF): Readable by other tools, not by ComfyUI.\n" + NEW_NODES,
           category: CAT("Save Image", "7 jpeg workflow") },
         { id: SET.saveAvifQuality, name: "AVIF quality", type: "slider", defaultValue: 80, attrs: { min: 1, max: 100, step: 1 },
           tooltip: "1-100. Lower = smaller file, more detail lost. " + NEW_NODES, category: CAT("Save Image", "8 avif quality") },

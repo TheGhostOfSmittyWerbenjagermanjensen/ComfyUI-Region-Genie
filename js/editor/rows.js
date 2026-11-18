@@ -14,7 +14,7 @@ export function* rows(E) {
     yield;
 
     // ---- Control (ControlNet / control LoRAs): the row under Whole image, the per-region switch, the LoRAs it adds
-    const CONTROL_KIND_LABELS = [["color", "color map (MOSS)"], ["color+depth", "color map + depth (MOSS)"], ["depth", "depth"],
+    const CONTROL_KIND_LABELS = [["color", "color map (MOSS-Image)"], ["color+depth", "color map + depth (MOSS-Image)"], ["depth", "depth"],
                                  ["canny", "canny"], ["other", "your control_image"]];
     const CONTROL_DEFAULT = { kind: "depth", strength: 1, start: 0, end: 1 };
     const controls = () => E.state.controls || []; E.controls = controls;           // the Control rows (round 23: several)
@@ -211,7 +211,7 @@ export function* rows(E) {
                 + " one map per run, and a Control row above this one already gives it.\nRemove one of the two rows, or change this row's kind.";
             row.append(warn);
         }
-        row.append(kind, str, a, dash, b, pct, gap, eye, rowX("Remove this Control row (its settings are kept for the next ＋Control)", () => removeControl(k)));
+        row.append(kind, str, a, dash, b, pct, gap, eye, rowX("Remove this Control row.\nThe last row removed: Its settings come back with the next ＋Control.", () => removeControl(k)));
         return row;
     }
     function controlToggle(r) {
@@ -228,8 +228,8 @@ export function* rows(E) {
         const b = E.el("button", "rg-btn mini" + (r.keep ? " toggle on" : ""));
         setHTML(b, svgIcon(r.keep ? "lock" : "pencil"));
         b.title = r.keep
-            ? "Keep (Edit Mode): This region stays as it is in the source image, also with change = whole image, and "
-                + "the edit mask never grows into it. Its prompt is still part of the prompt. Click to let it change."
+            ? "Keep (Edit Mode): This region stays as it is in the source image, also with edit_area 'whole image'; "
+                + "the edit mask never grows into it. Its prompt is still sent.\nClick: Let it change."
             : "Change (Edit Mode): The sampler may change this region. Click to keep it as it is in the source image "
                 + "(it is hatched on the canvas then).";
         b.addEventListener("pointerdown", (e) => e.stopPropagation());

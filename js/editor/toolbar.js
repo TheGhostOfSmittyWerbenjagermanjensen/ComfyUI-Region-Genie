@@ -154,10 +154,11 @@ export function* toolbar(E) {
     tolIn.addEventListener("change", () => { TOOL_NUMS.wandTol = Math.max(0, Math.min(255, parseInt(tolIn.value) || 0)); tolIn.value = String(TOOL_NUMS.wandTol); });
     const findIn = E.el("input", "rg-find"); E.findIn = findIn;
     findIn.type = "text"; findIn.placeholder = "find all…"; findIn.style.display = "none";
-    findIn.title = "Find all: Type what to select and press Enter, e.g. 'person' or 'red car, dog' (commas separate several "
-        + "things). Every match is selected; Ctrl+click one to leave it out (click again to bring it back). Drag a box "
-        + "first to search only inside it. Enter adds them all to the active region, Shift+Enter makes each one its "
-        + "own region with the text as its prompt.";
+    findIn.title = "Find all: Type what to select, e.g. 'person' or 'red car, dog' (commas separate things), then press Enter.\n"
+        + "Drag a box first: Search only inside it.\n"
+        + "Ctrl+click a match: Leave it out / bring it back.\n"
+        + "Enter: Add all matches to the active region.\n"
+        + "Shift+Enter: With several matches, each becomes its own region, with what it matched as its prompt.";
     findIn.addEventListener("keydown", (e) => {
         e.stopPropagation();
         if (e.key === "Enter") { e.preventDefault(); if (findIn.value.trim()) E.pickFind(findIn.value.trim()); else if (E.pick?.masks?.length) E.pickAccept(e.shiftKey); }
@@ -295,8 +296,8 @@ export function* toolbar(E) {
     const O_TOP = 14 / 160, O_BOT = 146 / 160;
     function syncOpacity() {
         bdHandle.style.top = `${(O_BOT - E.backdropOpacity * (O_BOT - O_TOP)) * 100}%`;
-        bdBox.title = `Image opacity: ${Math.round(E.backdropOpacity * 100)}% — how strongly the image on the 'image' input shows `
-            + "under the regions (drag, or the mouse wheel)";
+        bdBox.title = `Image opacity: ${Math.round(E.backdropOpacity * 100)}%.\n`
+            + "How strongly the image under the canvas shows through the regions.\nDrag or wheel: Change it.";
     }
     const opacityFromY = (y) => {
         const r = bdBox.getBoundingClientRect(), f = (y - r.top) / Math.max(1, r.height);

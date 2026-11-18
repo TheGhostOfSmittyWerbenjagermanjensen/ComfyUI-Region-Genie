@@ -54,8 +54,8 @@ export function* lifecycle(E) {
         const before = E.snapshot();
         if (E.syncEditLoras() && JSON.stringify(E.state.sceneLoras || []) !== probe) { E.pushUndo(before); E.save(); }
         if (E.isEdit()) {
-            if (!all.length) E.hint("Edit Mode: no edit LoRA is set in Settings > Region Genie > Edit Mode");
-            else if (arch && !all.some(([m]) => m === arch)) E.hint(`Edit Mode: no edit LoRA is set for ${arch} in Settings > Region Genie > Edit Mode`);
+            if (!all.length) E.hint("Edit Mode: No edit LoRA is set in Settings > Region Genie > Edit Mode");
+            else if (arch && !all.some(([m]) => m === arch)) E.hint(`Edit Mode: No edit LoRA is set for ${arch} in Settings > Region Genie > Edit Mode`);
         }
         E.syncSettings(); E.onDimsChanged(); E.refreshUI();
     }

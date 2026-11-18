@@ -185,7 +185,7 @@ export function* popups(E) {
         const num = E.el("span", "rg-idx");
         const title = E.el("span"); title.textContent = "Edit region";
         const sw = E.el("span", "rg-sw"); sw.dataset.swatch = String(r.id);
-        const x = E.el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close (Enter / Esc)";
+        const x = E.el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close, keeping the edits (Enter).";
         x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
         let lastTa = null;                         // the field the picker inserts into
         const wcPick = E.el("button", "rg-btn ico rg-wc-pick"); wcPick.innerHTML = svgIcon("wildcard");
@@ -198,8 +198,8 @@ export function* popups(E) {
         const typeBtns = {};
         for (const [t, label] of [["object", "Object"], ["character", "Character"], ["text", "Text"]]) {
             const b = E.el("button", "rg-btn"); b.textContent = label;
-            b.title = { object: "MOSS 'object' item", character: "MOSS 'character' item (a person / character)",
-                        text: "MOSS 'text' item: The Text below is rendered in the image" }[t];
+            b.title = { object: "Object: A thing or area.", character: "Character: A person or character (also listed in character_boxes).",
+                        text: "Text: The Text below is rendered in the image." }[t];
             b.addEventListener("click", (e) => { e.preventDefault(); if (r.type !== t) E.change(() => { r.type = t; }); });
             typeBtns[t] = b; types.appendChild(b);
         }
@@ -330,7 +330,7 @@ export function* popups(E) {
         const title = E.el("span");
         title.textContent = { positive: "Scene prompt (scene_prompt_positive)", negative: "Negative scene prompt (scene_prompt_negative)",
                               background: "Background (scene_prompt_background)" }[which];
-        const x = E.el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close (Enter / Esc)";
+        const x = E.el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close, keeping the edits (Enter).";
         x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
         const wcPickS = E.el("button", "rg-btn ico rg-wc-pick"); wcPickS.innerHTML = svgIcon("wildcard");
         wcPickS.title = "Insert a wildcard (ComfyUI Impact Pack) at the cursor";
