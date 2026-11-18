@@ -1,0 +1,476 @@
+{
+  "Region-Genie_Main": {
+    "display_name": "Region Genie ✨",
+    "inputs": {
+      "width": {
+        "name": "width",
+        "tooltip": "Output size. The canvas follows it, also when connected to another node."
+      },
+      "height": {
+        "name": "height"
+      },
+      "scene_prompt_positive": {
+        "name": "scene_prompt_positive",
+        "tooltip": "The whole-scene description.\nMOSS JSON: The summary caption.\nIdeogram JSON: The high_level_description.\ntext: The first sentence."
+      },
+      "scene_prompt_negative": {
+        "name": "scene_prompt_negative",
+        "tooltip": "The negative prompt, encoded with the connected clip as the 'negative' output (like CLIP Text Encode)."
+      },
+      "image_mode": {
+        "name": "image_mode",
+        "tooltip": "What a connected image does.\nbackdrop (trace over): Shown under the canvas to trace over.\nuse as color map: Used as the color map itself (its colors become regions; painting goes on top)."
+      },
+      "min_region_pixels": {
+        "name": "min_region_pixels",
+        "tooltip": "'use as color map' only. A color becomes a region when it has at least this many flat pixels (pixels matching all 4 neighbours, at the image's own size). Blended edges go to the nearest region; specks of other colors become unspecified. Set in Settings > Region Genie > Region Genie node (the editor sends it with each run); this hidden value is only a fallback."
+      },
+      "paint_data": {
+        "name": "paint_data"
+      },
+      "model": {
+        "name": "model",
+        "tooltip": "MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model for the LoRAs set on the regions (any model for 'Whole image'). The 'model' output is this model with each LoRA acting only inside its region; connect it to the sampler. While the node's model dropdown is on auto, it also picks the prompt format."
+      },
+      "clip": {
+        "name": "clip",
+        "tooltip": "Optional. The model's text encoder. It encodes 'positive' and 'negative', and lets each regional LoRA also act on its own region's caption (trigger words)."
+      },
+      "vae": {
+        "name": "vae",
+        "tooltip": "Edit mode: Encodes the source image (the 'image' input) for the 'latent' output, and as a reference image for models that read one.\nControl: Encodes the maps for MOSS-Image's control LoRA and Flux.1's depth / canny LoRAs.\nIt also sets the 'latent' format when no model is connected."
+      },
+      "image": {
+        "name": "image",
+        "tooltip": "Optional.\nGenerate mode: A backdrop to trace over, or the color map itself (see image_mode).\nEdit mode: The picture to change.\nControl: Depth and canny maps are made from it when control_image isn't connected."
+      },
+      "size_from_image": {
+        "name": "size_from_image",
+        "tooltip": "Take width/height from this image. Takes priority over size_from_latent and the width/height widgets."
+      },
+      "size_from_latent": {
+        "name": "size_from_latent",
+        "tooltip": "Take width/height from this latent (auto-detects 16x for MOSS-Image / Flux.2 latents, 8x for SD/SDXL/Flux.1)."
+      },
+      "import_mode": {
+        "name": "import_mode",
+        "tooltip": "What a new import_json does when the canvas already has layers.\nask before replacing: The node asks first (this run keeps the canvas).\nalways replace: The new layout replaces the canvas right away.\nAn empty canvas is always filled. Set in Settings > Region Genie > Region Genie node (the editor sends it with each run); this hidden value is only a fallback."
+      },
+      "scene_prompt_background": {
+        "name": "scene_prompt_background",
+        "tooltip": "Ideogram 4 only. The background / setting behind the regions (ground, floor, sky, room ...), the 'background' its caption JSON requires. Shown only while the model is Ideogram 4; other models don't use it."
+      },
+      "prompt_format": {
+        "name": "prompt_format",
+        "tooltip": "Hidden (kept for API prompts and old workflows). The node's model dropdown sets the format of 'prompt' and 'positive'.\nauto: Follows the connected model, else the clip, else the text encoder 'prompt' is connected to."
+      },
+      "mode": {
+        "name": "mode",
+        "tooltip": "generate: A new image.\nedit: The image on the 'image' input is the source to change (image-to-image). 'latent' is that image (connect vae), models that read a reference image get it on 'positive' / 'negative', and the Edit rows' LoRAs are used (the one set for the model in Settings, and those added with ＋Edit)."
+      },
+      "edit_area": {
+        "name": "edit_area",
+        "tooltip": "Edit mode: What may change.\nonly the regions: 'latent' carries a mask of the regions set to change (like inpainting); the rest stays as it is.\nwhole image: Everything except the regions set to keep (no mask when none is kept); the sampler's denoise decides how much.\nThe mask's grow / feather are set in the region list header."
+      },
+      "import_json": {
+        "name": "import_json",
+        "tooltip": "A layout to load into the editor when the workflow runs. It can be a file saved with Export (e.g. through a Load Text node), MOSS-Image layout JSON, Ideogram caption JSON / elements, or bboxes. Each new import_json is used once; edits made afterwards are kept."
+      },
+      "control_image": {
+        "name": "control_image",
+        "tooltip": "Optional. A control map (depth, canny, pose, lineart ... from any preprocessor) for the Control rows; every row except 'color map' uses it. Without it, canny and depth maps are made from 'image' (depth: With the Depth Anything 3 model set in Settings > Region Genie > Control)."
+      },
+      "width_in": {
+        "name": "width_in",
+        "tooltip": "Optional. The image width from another node. It overrides the size row at the top (size_from_image and size_from_latent still come first)."
+      },
+      "height_in": {
+        "name": "height_in",
+        "tooltip": "Optional. The image height from another node. It overrides the size row at the top (size_from_image and size_from_latent still come first)."
+      },
+      "wildcard_seed": {
+        "name": "wildcard_seed",
+        "tooltip": "Seed for the wildcards in the prompt fields (ComfyUI Impact Pack's __name__ and {a|b} syntax)."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "model",
+        "tooltip": "The connected model with the LoRAs: Whole image's merged in, each region's acting only inside its region (one pass; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with 'positive' as the prompt. Unchanged when no LoRA is set, the regions aren't kept apart and no Anima Control row is used."
+      },
+      "1": {
+        "name": "positive",
+        "tooltip": "'prompt' encoded with the connected clip, with the Edit Mode reference image and the Control rows on it. Empty when no clip is connected."
+      },
+      "2": {
+        "name": "negative",
+        "tooltip": "scene_prompt_negative encoded with the connected clip (like CLIP Text Encode), the negative prompt for the sampler. Empty when no clip is connected."
+      },
+      "3": {
+        "name": "latent",
+        "tooltip": "The latent for the sampler.\ngenerate: An empty latent of the canvas size (the connected model's format).\nedit: The source image (the 'image' input, encoded with vae) at the canvas size, with a mask of what may change (the regions set to change, or everything but the kept regions; grown and feathered as set in the region list header). Set the sampler's denoise below 1 to keep more of the source."
+      },
+      "4": {
+        "name": "prompt",
+        "tooltip": "The prompt as text, in the model's format.\nMOSS-Image: Layout JSON (plain text instead in standard mode, when there are no regions, and in Edit Mode).\nIdeogram 4: Caption JSON.\nOther models: Plain text (the scene, then each region's prompt).\nThe node's model dropdown picks the format; on auto: The connected model, else the clip, else the text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director.\nPlain text doesn't say where the regions are: The node's keep-all-regions-apart button (needs model and clip) ties each region's sentence to its region."
+      },
+      "5": {
+        "name": "color_map",
+        "tooltip": "Flat color region map (black = unspecified), e.g. for MOSS-Image Color/Depth Control. A region with a color palette is shown in its first palette color."
+      },
+      "6": {
+        "name": "masks",
+        "tooltip": "One mask per region that has pixels, in region order, as a batch. Feathered as set on each region; a gradient fill fades it."
+      },
+      "7": {
+        "name": "bboxes",
+        "tooltip": "Tight pixel bbox per region: MOSS-Image Prompt Builder KJ, Create Bounding Boxes, BBoxes to Masks."
+      },
+      "8": {
+        "name": "elements",
+        "tooltip": "Elements with each region's prompt and type: MOSS-Image Layout Prompt (element), Create Bounding Boxes, BBoxes to Masks."
+      },
+      "9": {
+        "name": "character_boxes",
+        "tooltip": "Numbers of the character regions (e.g. \"1, 3\"): MOSS-Image Layout Prompt character_boxes."
+      },
+      "10": {
+        "name": "region_info",
+        "tooltip": "The regions (index, color, bbox, prompt), the prompt format, and what Edit Mode, the LoRAs and Control did. Lines starting with NOTE say what was left out and why."
+      },
+      "11": {
+        "name": "width",
+        "tooltip": "Output width."
+      },
+      "12": {
+        "name": "height",
+        "tooltip": "Output height."
+      }
+    }
+  },
+  "Region-Genie_MaskPicker": {
+    "display_name": "Mask Picker ✨",
+    "inputs": {
+      "masks": {
+        "name": "masks",
+        "tooltip": "A batch of masks, e.g. the 'masks' output of the Region Genie node."
+      },
+      "index": {
+        "name": "index",
+        "tooltip": "Which mask goes to the 'mask' and 'prompt' outputs. After a run, the label shows the valid range; higher values stay selectable."
+      },
+      "feather": {
+        "name": "feather",
+        "tooltip": "Soften mask edges by this many pixels (a linear ramp of 2x this width, centred on the edge). Edges on the canvas border stay solid unless feather_canvas_edges is on."
+      },
+      "invert": {
+        "name": "invert",
+        "tooltip": "On: The masks are inverted (everything except the box / region is white)."
+      },
+      "feather_canvas_edges": {
+        "name": "feather_canvas_edges",
+        "tooltip": "Off: Mask edges touching the image border stay solid.\nOn: They fade toward the border like every other edge."
+      },
+      "elements": {
+        "name": "elements",
+        "tooltip": "Prompts for the masks, in the same order: 'elements' of the Region Genie node (or its 'prompt' when that is MOSS or Ideogram JSON), or any layout the BBoxes to Masks node reads."
+      },
+      "size_from_image": {
+        "name": "size_from_image",
+        "tooltip": "Resize the masks to this image's size. Comes before size_from_latent."
+      },
+      "size_from_latent": {
+        "name": "size_from_latent",
+        "tooltip": "Resize the masks to this latent's image size (16x for MOSS-Image / Flux.2 latents, 8x for SD/SDXL/Flux.1)."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "mask",
+        "tooltip": "The mask chosen by 'index'."
+      },
+      "1": {
+        "name": "combined_mask",
+        "tooltip": "Union of all masks in one mask."
+      },
+      "2": {
+        "name": "mask_batch",
+        "tooltip": "All masks (resized / feathered / inverted as set), as a batch."
+      },
+      "3": {
+        "name": "width",
+        "tooltip": "Mask width."
+      },
+      "4": {
+        "name": "height",
+        "tooltip": "Mask height."
+      },
+      "5": {
+        "name": "mask_info",
+        "tooltip": "Text list of every mask: Its index, bounding box (x, y, size) and prompt."
+      },
+      "6": {
+        "name": "prompt",
+        "tooltip": "Prompt of the mask chosen by 'index'. Empty when no elements are connected."
+      }
+    }
+  },
+  "Region-Genie_BBoxToMasks": {
+    "display_name": "BBoxes to Masks ✨",
+    "inputs": {
+      "index": {
+        "name": "index",
+        "tooltip": "Which bbox goes to the 'mask' and 'prompt' outputs. After a run, the label shows the valid range; higher values stay selectable for bboxes you add later."
+      },
+      "width": {
+        "name": "width",
+        "tooltip": "Canvas width. Ignored when size_from_image or size_from_latent is connected."
+      },
+      "height": {
+        "name": "height",
+        "tooltip": "Canvas height. Ignored when size_from_image or size_from_latent is connected."
+      },
+      "feather": {
+        "name": "feather",
+        "tooltip": "Soften mask edges by this many pixels (a linear ramp of 2x this width, centred on the edge). Edges on the canvas border stay solid unless feather_canvas_edges is on."
+      },
+      "invert": {
+        "name": "invert",
+        "tooltip": "On: The masks are inverted (everything except the box / region is white)."
+      },
+      "latent_scale": {
+        "name": "latent_scale",
+        "tooltip": "Pixels per latent cell for size_from_latent. auto: 16 for MOSS-Image / Flux.2 latents, 8 for SD/SDXL/Flux.1."
+      },
+      "feather_canvas_edges": {
+        "name": "feather_canvas_edges",
+        "tooltip": "Off: Box edges touching the canvas border stay solid.\nOn: They fade toward the border like every other edge."
+      },
+      "bboxes": {
+        "name": "bboxes",
+        "tooltip": "Pixel bboxes, or elements / prompt JSON (those carry the prompts too)."
+      },
+      "size_from_image": {
+        "name": "size_from_image",
+        "tooltip": "Take width / height from this image. Comes before size_from_latent."
+      },
+      "size_from_latent": {
+        "name": "size_from_latent",
+        "tooltip": "Take width / height from this latent (its size times latent_scale). size_from_image comes first."
+      },
+      "elements": {
+        "name": "elements",
+        "tooltip": "The prompt of each box: 'prompt' of MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director, or 'elements' of Create Bounding Boxes or the Region Genie node. Its own boxes are used when 'bboxes' isn't connected or has a different number of boxes.\nMOSS layouts: Measured from the canvas centre, so width / height must match the builder's."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "mask",
+        "tooltip": "Mask of the bbox chosen by 'index'."
+      },
+      "1": {
+        "name": "combined_mask",
+        "tooltip": "Union of all bboxes in one mask."
+      },
+      "2": {
+        "name": "mask_batch",
+        "tooltip": "One mask per bbox, stacked as a batch (e.g. for Impact Pack 'MASK to SEGS')."
+      },
+      "3": {
+        "name": "width",
+        "tooltip": "Canvas width actually used."
+      },
+      "4": {
+        "name": "height",
+        "tooltip": "Canvas height actually used."
+      },
+      "5": {
+        "name": "bbox_info",
+        "tooltip": "Text list of every bbox, its index and its prompt."
+      },
+      "6": {
+        "name": "prompt",
+        "tooltip": "Prompt (desc) of the bbox chosen by 'index'. Empty when no elements are available."
+      }
+    }
+  },
+  "Region-Genie_RegionalLoRAs": {
+    "display_name": "Regional LoRAs ✨",
+    "description": "Regional LoRAs from a batch of masks (int8 / fp8 / quantized models work). Each row applies a LoRA inside one mask (index -1 for the whole image) and can add words, e.g. trigger words, to that region's caption; rows with the same index stack on that region.\nMOSS-Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5: All LoRAs act in one model pass, each limited to its mask and its caption, like the LoRAs of the Region Genie node.\nOther models: One model pass per region with ComfyUI's hooks.",
+    "inputs": {
+      "model": {
+        "name": "model",
+        "tooltip": "The diffusion model (quantized models work). With lora_masking 'inside the model' and a MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model, the LoRAs go into the 'model' output, each acting only inside its mask. Otherwise they ride on 'positive' / 'negative' (one model pass per region)."
+      },
+      "clip": {
+        "name": "clip",
+        "tooltip": "Text encoder. It encodes 'positive' and 'negative'. Inside the model, it also finds each region's caption in the prompt, so a LoRA acts on its own region's caption (and trigger words) too."
+      },
+      "masks": {
+        "name": "masks",
+        "tooltip": "Region masks, e.g. the 'masks' output of the Region Genie node. Each row picks one by index (the region numbers shown in the Region Genie node)."
+      },
+      "positive_prompt": {
+        "name": "positive_prompt",
+        "tooltip": "The positive prompt. Connect 'prompt' of the Region Genie node (MOSS JSON, Ideogram JSON or text, in the model's format), or type one. Each row's words are added to its region's caption (for index -1, to the scene caption).\nPlain-text prompt: Region words are added as their own sentence, index -1 words after a comma."
+      },
+      "negative_prompt": {
+        "name": "negative_prompt",
+        "tooltip": "Negative prompt, encoded as 'negative' (like CLIP Text Encode)."
+      },
+      "feather": {
+        "name": "feather",
+        "tooltip": "Soften the mask edges by this many pixels, so each LoRA fades into its surroundings."
+      },
+      "lora_masking": {
+        "name": "lora_masking",
+        "tooltip": "inside the model (one pass): Each LoRA acts only on its mask's part of the image and on its region's caption, all in one model pass, like the LoRAs of the Region Genie node; index -1 LoRAs are merged into the model like Load LoRA. Needs MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 (other models fall back to separate passes).\nseparate passes (classic hooks): ComfyUI's hook method, one model pass per region with its LoRAs, blended by the masks. Works with any model, but strong styles can bleed across regions."
+      },
+      "region_separation": {
+        "name": "region_separation",
+        "tooltip": "inside the model only. How strongly regions are kept apart in attention. It applies to the image of different LoRA regions (every mask with separate_all_regions) for the first separation_until of the steps, and to each LoRA region's caption against the other regions at every step. Higher keeps each LoRA's style in its region.\n1: Fully separate (may look like a collage at the seams).\n0: Off."
+      },
+      "separation_until": {
+        "name": "separation_until",
+        "tooltip": "inside the model only. Keep the image of the regions apart for this fraction of the steps (1 = all steps). Early steps set the layout and style of each region; letting the later steps see across regions blends the seams (0.1-0.5 works well with region_separation 0.85-0.99)."
+      },
+      "loras_data": {
+        "name": "loras_data"
+      },
+      "separate_all_regions": {
+        "name": "separate_all_regions",
+        "tooltip": "On: Every mask is kept apart from the others (and from the background) for the first separation_until of the steps, at region_separation, with or without LoRAs, and each region's caption speaks only to its own region.\nOff: Only masks with LoRAs are kept apart.\nMOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 with lora_masking 'inside the model' only; a little slower and more VRAM while active."
+      },
+      "share_background": {
+        "name": "share_background",
+        "tooltip": "inside the model only.\nOn: The regions that are kept apart (masks with LoRAs, or every mask with separate_all_regions) stay apart from each other, but not from the rest of the image, so lighting, perspective and setting stay one picture. Each region's caption still speaks only to its own region.\nOff: They are kept apart from the rest of the image too."
+      },
+      "wildcard_seed": {
+        "name": "wildcard_seed",
+        "tooltip": "Seed for the wildcards in positive_prompt, negative_prompt and the rows' words (ComfyUI Impact Pack's __name__ and {a|b} syntax). A prompt that comes as MOSS / Ideogram JSON is left as it is."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "model",
+        "tooltip": "The model for the sampler.\nInside the model (MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5): Carries the LoRAs, each acting only inside its mask (index -1 LoRAs merged in everywhere).\nSeparate passes: The model unchanged (the LoRAs ride on 'positive' / 'negative')."
+      },
+      "1": {
+        "name": "positive",
+        "tooltip": "The prompt with the rows' words added, encoded with clip (with separate passes, also with each region's LoRA hooks and mask). Connect it to the sampler."
+      },
+      "2": {
+        "name": "negative",
+        "tooltip": "negative_prompt encoded with clip (with separate passes, also with the same hooks). Connect it to the sampler."
+      },
+      "3": {
+        "name": "lora_info",
+        "tooltip": "What was set up for each region (also printed in the console)."
+      }
+    }
+  },
+  "Region-Genie_CreateHookLoRA": {
+    "display_name": "Create Hook LoRA (Quantized) ✨",
+    "description": "Like core 'Create Hook LoRA', but the LoRA is applied while the model runs instead of being baked into the weights, so it works with int8 / fp8 / quantized models. Supports LoRA, LoCon, LoKr, LoHa and DoRA. Model only (no CLIP strength). Attach the HOOKS to a conditioning, e.g. through the hooks input of 'Cond Pair Set Props' (with a mask for a regional LoRA); that conditioning then gets its own model pass with the LoRA on.",
+    "inputs": {
+      "model": {
+        "name": "model",
+        "tooltip": "The (quantized) diffusion model the LoRA is for. Only used to match LoRA keys to layers; the model is not modified."
+      },
+      "lora_name": {
+        "name": "lora_name",
+        "tooltip": "The LoRA file (models/loras)."
+      },
+      "strength_model": {
+        "name": "strength_model",
+        "tooltip": "LoRA strength on the diffusion model (0 = off). There is no CLIP strength; the LoRA's text-encoder weights are not used."
+      },
+      "prev_hooks": {
+        "name": "prev_hooks",
+        "tooltip": "Hooks from another hook node, combined with this one. Chain nodes here to stack several LoRAs on the same conditioning."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "HOOKS",
+        "tooltip": "This LoRA (plus prev_hooks) as hooks. Attach them to a conditioning, e.g. the hooks input of 'Cond Pair Set Props'. The LoRA is on only while the model computes that conditioning."
+      },
+      "1": {
+        "name": "lora_info",
+        "tooltip": "What was applied and skipped, and the LoRA's trigger words (also shown on the node)."
+      }
+    }
+  },
+  "Region-Genie_SaveImage": {
+    "display_name": "Save Image (Region Genie) ✨",
+    "description": "Saves images as PNG (compression 0-9, 8 / 16-bit), WebP (lossless or a quality), JPEG (a quality), AVIF (a quality) or EXR (16 / 32-bit float), with optional transparency from a mask, and shows the saved file sizes.",
+    "inputs": {
+      "images": {
+        "name": "images",
+        "tooltip": "The images to save (one file per image)."
+      },
+      "filename_prefix": {
+        "name": "filename_prefix",
+        "tooltip": "The file name before the number, e.g. ComfyUI → ComfyUI_00001.png. Can include a subfolder (portraits/ComfyUI) and tokens such as %date:yyyy-MM-dd% or %Empty Latent Image.width%."
+      },
+      "format": {
+        "name": "format",
+        "tooltip": "png: Lossless, keeps the workflow.\nwebp: Lossless or a quality, much smaller, keeps the workflow.\njpeg: A quality, small. The workflow goes in a .json next to it (see jpeg_workflow).\navif: A quality, smallest, keeps the workflow.\nexr: 16 / 32-bit float, scene-linear (for compositing and HDR; not smaller). The workflow is in its header, which ComfyUI can't load from yet."
+      },
+      "png_compression": {
+        "name": "png_compression",
+        "tooltip": "0-9, lossless at every level (always the same pixels). Higher = smaller file, slower save; 9 = smallest (ComfyUI's own Save Image uses 4)."
+      },
+      "png_bit_depth": {
+        "name": "png_bit_depth",
+        "tooltip": "8-bit: The usual.\n16-bit: Finer gradients for editing later, about twice the size."
+      },
+      "webp_lossless": {
+        "name": "webp_lossless",
+        "tooltip": "On: The exact pixels, usually 25-35% smaller than PNG.\nOff: webp_quality decides (much smaller files, a little detail lost)."
+      },
+      "webp_quality": {
+        "name": "webp_quality",
+        "tooltip": "1-100. Lower = smaller file, more detail lost. 80-90 looks the same as the original for most images."
+      },
+      "jpeg_quality": {
+        "name": "jpeg_quality",
+        "tooltip": "1-100. Lower = smaller file, more detail lost. 90 and up keeps the full color detail; below 90 colors are stored at half resolution (smaller)."
+      },
+      "jpeg_extension": {
+        "name": "jpeg_extension",
+        "tooltip": "The file extension; the same format either way."
+      },
+      "jpeg_workflow": {
+        "name": "jpeg_workflow",
+        "tooltip": "ComfyUI can't load a workflow from a JPEG.\nsidecar .json: The workflow in a small .json file next to each JPEG (drag that file into ComfyUI to load it).\nnone: No workflow.\ninside the JPEG (EXIF): Readable by other tools, not by ComfyUI; a workflow too big for it (about 64 KB) goes into the .json instead."
+      },
+      "avif_quality": {
+        "name": "avif_quality",
+        "tooltip": "1-100. Lower = smaller file, more detail lost. AVIF needs Pillow 11.3+ or a ComfyUI with AVIF support."
+      },
+      "exr_bit_depth": {
+        "name": "exr_bit_depth",
+        "tooltip": "16-bit float: Half precision, about half the size; plenty for most edits.\n32-bit float: Full precision."
+      },
+      "exr_color_space": {
+        "name": "exr_color_space",
+        "tooltip": "The color space of the images coming in. The EXR is always written as scene-linear light in the matching gamut, as ComfyUI's Save Image (Advanced) does.\nsRGB: sRGB-encoded Rec.709 (the usual); the inverse sRGB curve is applied.\nHDR: HLG-encoded Rec.2020 (BT.2100); the inverse HLG curve is applied.\nlinear: Already scene-linear (Rec.709 primaries), written unchanged; for renderer / compositor output.\nlinear ACEScg: Already scene-linear ACEScg (AP1 / D60), written unchanged with ACEScg chromaticities."
+      },
+      "mask": {
+        "name": "mask",
+        "tooltip": "Transparency (PNG, WebP, AVIF, EXR; JPEG has none). As ComfyUI's Load Image mask: 1 = transparent. A mask of another size is resized. One mask applies to every image; a batch goes image by image. Without a mask, an RGBA image keeps its own alpha."
+      },
+      "invert_mask": {
+        "name": "invert_mask",
+        "tooltip": "On: Mask 1 = opaque instead. Use it for a region mask from Region Genie or Mask Picker, to keep the region and clear the rest."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "images",
+        "tooltip": "The same images, passed through."
+      }
+    }
+  }
+}

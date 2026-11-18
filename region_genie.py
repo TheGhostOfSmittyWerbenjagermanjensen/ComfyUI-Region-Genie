@@ -985,7 +985,7 @@ class RegionGenie:
                                                      "tooltip": ("The whole-scene description.\n"
                                                                  "MOSS JSON: The summary caption.\n"
                                                                  "Ideogram JSON: The high_level_description.\n"
-                                                                 "Text prompt: The first sentence.")}),
+                                                                 "text: The first sentence.")}),
                 "scene_prompt_negative": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
                                                      "tooltip": ("The negative prompt, encoded with the connected clip as the 'negative' output (like CLIP Text "
                                                                  "Encode).")}),
@@ -997,7 +997,7 @@ class RegionGenie:
                 "min_region_pixels": ("INT", {"default": 64, "min": 1, "max": 1000000,
                                               "tooltip": ("'use as color map' only. A color becomes a region when it has at least this many flat pixels "
                                                           "(pixels matching all 4 neighbours, at the image's own size). Blended edges go to the nearest region; specks of "
-                                                          "other colors become unspecified. Set in Settings > Region Genie (the editor sends it with each run); this hidden "
+                                                          "other colors become unspecified. Set in Settings > Region Genie > Region Genie node (the editor sends it with each run); this hidden "
                                                           "value is only a fallback.")}),
                 "paint_data": ("STRING", {"default": "", "multiline": False}),
             },
@@ -1019,12 +1019,12 @@ class RegionGenie:
                 "size_from_image": ("IMAGE", {"tooltip": "Take width/height from this image. Takes priority over "
                                                          "size_from_latent and the width/height widgets."}),
                 "size_from_latent": ("LATENT", {"tooltip": "Take width/height from this latent (auto-detects 16x for "
-                                                           "MOSS-Image / Flux 2 latents, 8x for SD/SDXL/Flux 1)."}),
+                                                           "MOSS-Image / Flux.2 latents, 8x for SD/SDXL/Flux.1)."}),
                 "import_mode": (IMPORT_MODES, {"default": IMPORT_MODES[0],
                                                "tooltip": ("What a new import_json does when the canvas already has layers.\n"
                                                            "ask before replacing: The node asks first (this run keeps the canvas).\n"
                                                            "always replace: The new layout replaces the canvas right away.\n"
-                                                           "An empty canvas is always filled. Set in Settings > Region Genie (the editor sends it with each "
+                                                           "An empty canvas is always filled. Set in Settings > Region Genie > Region Genie node (the editor sends it with each "
                                                            "run); this hidden value is only a fallback.")}),
                 "scene_prompt_background": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
                                                        "tooltip": ("Ideogram 4 only. The background / setting behind the regions (ground, floor, sky, room ...), the "
@@ -1091,13 +1091,13 @@ class RegionGenie:
          "feathered as set in the region list header). Set the sampler's denoise below 1 to keep more of "
          "the source."),
         ("The prompt as text, in the model's format.\n"
-         "MOSS-Image: Layout JSON (plain text in standard mode, without regions and in Edit Mode).\n"
+         "MOSS-Image: Layout JSON (plain text instead in standard mode, when there are no regions, and in Edit Mode).\n"
          "Ideogram 4: Caption JSON.\n"
          "Other models: Plain text (the scene, then each region's prompt).\n"
          "The node's model dropdown picks the format; on auto: The connected model, else the clip, else the "
          "text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ "
          "or (Deno) Ideogram Director.\n"
-         "Plain text doesn't say where the regions are: 'keep all regions apart' (needs model and clip) ties "
+         "Plain text doesn't say where the regions are: The node's keep-all-regions-apart button (needs model and clip) ties "
          "each region's sentence to its region."),
         "Flat color region map (black = unspecified), e.g. for MOSS-Image Color/Depth Control. A region with a color "
         "palette is shown in its first palette color.",

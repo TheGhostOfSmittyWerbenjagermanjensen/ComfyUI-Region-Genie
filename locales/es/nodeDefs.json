@@ -1,0 +1,476 @@
+{
+  "Region-Genie_Main": {
+    "display_name": "Region Genie ✨",
+    "inputs": {
+      "width": {
+        "name": "ancho",
+        "tooltip": "Tamaño de salida. El lienzo lo sigue, también cuando está conectado a otro nodo."
+      },
+      "height": {
+        "name": "alto"
+      },
+      "scene_prompt_positive": {
+        "name": "prompt_escena_positivo",
+        "tooltip": "La descripción de toda la escena.\nMOSS JSON: La descripción resumida.\nIdeogram JSON: El campo high_level_description.\ntexto: La primera frase."
+      },
+      "scene_prompt_negative": {
+        "name": "prompt_escena_negativo",
+        "tooltip": "El prompt negativo, codificado con el clip conectado como la salida 'negativo' (como Codificar texto CLIP)."
+      },
+      "image_mode": {
+        "name": "modo_de_imagen",
+        "tooltip": "Qué hace una imagen conectada.\nplantilla (para calcar): Se muestra bajo el lienzo para calcarla.\nusar como mapa de color: Se usa como el propio mapa de color (sus colores se convierten en regiones; lo que pintes va encima)."
+      },
+      "min_region_pixels": {
+        "name": "píxeles_mín_región",
+        "tooltip": "Solo con 'usar como mapa de color'. Un color se convierte en región cuando tiene al menos esta cantidad de píxeles planos (píxeles iguales a sus 4 vecinos, al tamaño propio de la imagen). Los bordes mezclados van a la región más cercana; las motas de otros colores quedan sin especificar. Se ajusta en Configuración > Region Genie > Nodo Region Genie (el editor lo envía en cada ejecución); este valor oculto es solo un respaldo."
+      },
+      "paint_data": {
+        "name": "datos_de_pintura"
+      },
+      "model": {
+        "name": "modelo",
+        "tooltip": "Modelo MOSS-Image, Krea 2, Ideogram 4, Flux, Anima o SDXL / SD1.5 para las LoRAs asignadas a las regiones (cualquier modelo para 'Whole image'). La salida 'modelo' es este modelo con cada LoRA actuando solo dentro de su región; conéctala al muestreador. Mientras el desplegable de modelo del nodo está en auto, también elige el formato del prompt."
+      },
+      "clip": {
+        "name": "clip",
+        "tooltip": "Opcional. El codificador de texto del modelo. Codifica 'positivo' y 'negativo', y permite que cada LoRA regional actúe también sobre la descripción de su propia región (palabras de activación)."
+      },
+      "vae": {
+        "name": "vae",
+        "tooltip": "Modo edición: Codifica la imagen de origen (la entrada 'imagen') para la salida 'latente', y como imagen de referencia para los modelos que leen una.\nControl: Codifica los mapas para la LoRA de control de MOSS-Image y las LoRAs de profundidad / canny de Flux.1.\nTambién fija el formato de 'latente' cuando no hay ningún modelo conectado."
+      },
+      "image": {
+        "name": "imagen",
+        "tooltip": "Opcional.\nModo generar: Una plantilla para calcar, o el propio mapa de color (ver modo_de_imagen).\nModo edición: La imagen que se va a cambiar.\nControl: Los mapas de profundidad y canny se crean a partir de ella cuando imagen_de_control no está conectada."
+      },
+      "size_from_image": {
+        "name": "tamaño_desde_imagen",
+        "tooltip": "Toma ancho/alto de esta imagen. Tiene prioridad sobre tamaño_desde_latente y los widgets ancho/alto."
+      },
+      "size_from_latent": {
+        "name": "tamaño_desde_latente",
+        "tooltip": "Toma ancho/alto de este latente (detecta automáticamente 16x para latentes de MOSS-Image / Flux.2, 8x para SD/SDXL/Flux.1)."
+      },
+      "import_mode": {
+        "name": "modo_de_importación",
+        "tooltip": "Qué hace un nuevo importar_json cuando el lienzo ya tiene capas.\npreguntar antes de reemplazar: El nodo pregunta primero (esta ejecución conserva el lienzo).\nreemplazar siempre: El nuevo diseño reemplaza el lienzo de inmediato.\nUn lienzo vacío siempre se rellena. Se ajusta en Configuración > Region Genie > Nodo Region Genie (el editor lo envía en cada ejecución); este valor oculto es solo un respaldo."
+      },
+      "scene_prompt_background": {
+        "name": "prompt_escena_fondo",
+        "tooltip": "Solo Ideogram 4. El fondo / entorno que hay detrás de las regiones (terreno, suelo, cielo, habitación ...), el 'background' que exige su JSON de descripción. Solo se muestra mientras el modelo es Ideogram 4; los demás modelos no lo usan."
+      },
+      "prompt_format": {
+        "name": "formato_de_prompt",
+        "tooltip": "Oculto (se conserva para prompts de API y flujos de trabajo antiguos). El desplegable de modelo del nodo fija el formato de 'prompt' y 'positivo'.\nauto: Sigue al modelo conectado; si no lo hay, al clip; si tampoco, al codificador de texto al que está conectado 'prompt'."
+      },
+      "mode": {
+        "name": "modo",
+        "tooltip": "generar: Una imagen nueva.\neditar: La imagen de la entrada 'imagen' es el origen que se va a cambiar (imagen a imagen). 'latente' es esa imagen (conecta vae), los modelos que leen una imagen de referencia la reciben en 'positivo' / 'negativo', y se usan las LoRAs de las filas Edit (la definida para el modelo en Configuración y las añadidas con ＋Edit)."
+      },
+      "edit_area": {
+        "name": "área_de_edición",
+        "tooltip": "Modo edición: Qué puede cambiar.\nsolo las regiones: 'latente' lleva una máscara de las regiones marcadas para cambiar (como en inpainting); el resto queda como está.\ntoda la imagen: Todo excepto las regiones marcadas para conservar (sin máscara si no se conserva ninguna); la reducción_de_ruido del muestreador decide cuánto.\nLa expansión / el difuminado de la máscara se ajustan en la cabecera de la lista de regiones."
+      },
+      "import_json": {
+        "name": "importar_json",
+        "tooltip": "Un diseño que se carga en el editor cuando se ejecuta el flujo de trabajo. Puede ser un archivo guardado con Export (p. ej. a través de un nodo Load Text), JSON de diseño de MOSS-Image, JSON de descripción / elementos de Ideogram, o bboxes. Cada nuevo importar_json se usa una sola vez; los cambios hechos después se conservan."
+      },
+      "control_image": {
+        "name": "imagen_de_control",
+        "tooltip": "Opcional. Un mapa de control (profundidad, canny, pose, lineart ... de cualquier preprocesador) para las filas Control; lo usan todas las filas excepto 'color map'. Sin él, los mapas canny y de profundidad se crean a partir de 'imagen' (profundidad: Con el modelo Depth Anything 3 definido en Configuración > Region Genie > Control)."
+      },
+      "width_in": {
+        "name": "ancho_entrada",
+        "tooltip": "Opcional. El ancho de la imagen procedente de otro nodo. Sustituye a la fila de tamaño de la parte superior (tamaño_desde_imagen y tamaño_desde_latente siguen teniendo prioridad)."
+      },
+      "height_in": {
+        "name": "alto_entrada",
+        "tooltip": "Opcional. El alto de la imagen procedente de otro nodo. Sustituye a la fila de tamaño de la parte superior (tamaño_desde_imagen y tamaño_desde_latente siguen teniendo prioridad)."
+      },
+      "wildcard_seed": {
+        "name": "semilla_de_comodines",
+        "tooltip": "Semilla para los comodines de los campos de prompt (sintaxis __name__ y {'{'}a{'|'}b{'}'} de ComfyUI Impact Pack)."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "modelo",
+        "tooltip": "El modelo conectado con las LoRAs: Las de Whole image fusionadas en él, las de cada región actuando solo dentro de su región (una pasada; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima o SDXL / SD1.5). Conéctalo al muestreador, con 'positivo' como prompt. Sin cambios cuando no hay ninguna LoRA definida, las regiones no se mantienen separadas y no se usa ninguna fila Control de Anima."
+      },
+      "1": {
+        "name": "positivo",
+        "tooltip": "'prompt' codificado con el clip conectado, con la imagen de referencia del Modo edición y las filas Control aplicadas. Vacío cuando no hay ningún clip conectado."
+      },
+      "2": {
+        "name": "negativo",
+        "tooltip": "prompt_escena_negativo codificado con el clip conectado (como Codificar texto CLIP), el prompt negativo para el muestreador. Vacío cuando no hay ningún clip conectado."
+      },
+      "3": {
+        "name": "latente",
+        "tooltip": "El latente para el muestreador.\ngenerar: Un latente vacío del tamaño del lienzo (en el formato del modelo conectado).\neditar: La imagen de origen (la entrada 'imagen', codificada con vae) al tamaño del lienzo, con una máscara de lo que puede cambiar (las regiones marcadas para cambiar, o todo salvo las regiones conservadas; expandida y difuminada según lo ajustado en la cabecera de la lista de regiones). Pon la reducción_de_ruido del muestreador por debajo de 1 para conservar más del origen."
+      },
+      "4": {
+        "name": "prompt",
+        "tooltip": "El prompt como texto, en el formato del modelo.\nMOSS-Image: JSON de diseño (texto plano en su lugar en modo estándar, cuando no hay regiones y en Modo edición).\nIdeogram 4: JSON de descripción.\nOtros modelos: Texto plano (la escena y, después, el prompt de cada región).\nEl desplegable de modelo del nodo elige el formato; en auto: El modelo conectado; si no lo hay, el clip; si tampoco, el codificador de texto al que va esta salida. El JSON también sirve como import_json para MOSS-Image Prompt Builder KJ o (Deno) Ideogram Director.\nEl texto plano no indica dónde están las regiones: El botón del nodo para mantener todas las regiones separadas (necesita modelo y clip) vincula la frase de cada región a su región."
+      },
+      "5": {
+        "name": "mapa_de_color",
+        "tooltip": "Mapa de regiones en colores planos (negro = sin especificar), p. ej. para Control de color/profundidad de MOSS-Image. Una región con paleta de colores se muestra con el primer color de su paleta."
+      },
+      "6": {
+        "name": "máscaras",
+        "tooltip": "Una máscara por cada región que tiene píxeles, en el orden de las regiones, como lote. Difuminada según lo ajustado en cada región; un relleno degradado la desvanece."
+      },
+      "7": {
+        "name": "bboxes",
+        "tooltip": "Bbox ajustada en píxeles por región: MOSS-Image Prompt Builder KJ, Crear Cajas Delimitadoras, BBoxes a máscaras."
+      },
+      "8": {
+        "name": "elementos",
+        "tooltip": "Elementos con el prompt y el tipo de cada región: Prompt de diseño de MOSS-Image (elemento), Crear Cajas Delimitadoras, BBoxes a máscaras."
+      },
+      "9": {
+        "name": "cajas_de_personajes",
+        "tooltip": "Números de las regiones de personaje (p. ej. \"1, 3\"): character_boxes de Prompt de diseño de MOSS-Image."
+      },
+      "10": {
+        "name": "info_regiones",
+        "tooltip": "Las regiones (índice, color, bbox, prompt), el formato del prompt y lo que hicieron el Modo edición, las LoRAs y Control. Las líneas que empiezan por NOTE indican qué se omitió y por qué."
+      },
+      "11": {
+        "name": "ancho",
+        "tooltip": "Ancho de salida."
+      },
+      "12": {
+        "name": "alto",
+        "tooltip": "Alto de salida."
+      }
+    }
+  },
+  "Region-Genie_MaskPicker": {
+    "display_name": "Selector de máscaras ✨",
+    "inputs": {
+      "masks": {
+        "name": "máscaras",
+        "tooltip": "Un lote de máscaras, p. ej. la salida 'máscaras' del nodo Region Genie."
+      },
+      "index": {
+        "name": "índice",
+        "tooltip": "Qué máscara va a las salidas 'máscara' y 'prompt'. Tras una ejecución, la etiqueta muestra el rango válido; los valores más altos siguen pudiendo seleccionarse."
+      },
+      "feather": {
+        "name": "difuminado",
+        "tooltip": "Suaviza los bordes de la máscara esta cantidad de píxeles (una rampa lineal de 2x este ancho, centrada en el borde). Los bordes que tocan el límite del lienzo quedan nítidos salvo que difuminar_bordes_lienzo esté activado."
+      },
+      "invert": {
+        "name": "invertir",
+        "tooltip": "Activado: Las máscaras se invierten (todo excepto la caja / región es blanco)."
+      },
+      "feather_canvas_edges": {
+        "name": "difuminar_bordes_lienzo",
+        "tooltip": "Desactivado: Los bordes de la máscara que tocan el límite de la imagen quedan nítidos.\nActivado: Se desvanecen hacia el límite como cualquier otro borde."
+      },
+      "elements": {
+        "name": "elementos",
+        "tooltip": "Prompts para las máscaras, en el mismo orden: 'elementos' del nodo Region Genie (o su 'prompt' cuando es MOSS JSON o Ideogram JSON), o cualquier diseño que lea el nodo BBoxes a máscaras."
+      },
+      "size_from_image": {
+        "name": "tamaño_desde_imagen",
+        "tooltip": "Redimensiona las máscaras al tamaño de esta imagen. Tiene prioridad sobre tamaño_desde_latente."
+      },
+      "size_from_latent": {
+        "name": "tamaño_desde_latente",
+        "tooltip": "Redimensiona las máscaras al tamaño de imagen de este latente (16x para latentes de MOSS-Image / Flux.2, 8x para SD/SDXL/Flux.1)."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "máscara",
+        "tooltip": "La máscara elegida con 'índice'."
+      },
+      "1": {
+        "name": "máscara_combinada",
+        "tooltip": "Unión de todas las máscaras en una sola máscara."
+      },
+      "2": {
+        "name": "lote_de_máscaras",
+        "tooltip": "Todas las máscaras (redimensionadas / difuminadas / invertidas según lo ajustado), como lote."
+      },
+      "3": {
+        "name": "ancho",
+        "tooltip": "Ancho de la máscara."
+      },
+      "4": {
+        "name": "alto",
+        "tooltip": "Alto de la máscara."
+      },
+      "5": {
+        "name": "info_máscaras",
+        "tooltip": "Lista en texto de todas las máscaras: Su índice, caja delimitadora (x, y, tamaño) y prompt."
+      },
+      "6": {
+        "name": "prompt",
+        "tooltip": "Prompt de la máscara elegida con 'índice'. Vacío cuando no hay elementos conectados."
+      }
+    }
+  },
+  "Region-Genie_BBoxToMasks": {
+    "display_name": "BBoxes a máscaras ✨",
+    "inputs": {
+      "index": {
+        "name": "índice",
+        "tooltip": "Qué bbox va a las salidas 'máscara' y 'prompt'. Tras una ejecución, la etiqueta muestra el rango válido; los valores más altos siguen pudiendo seleccionarse para las bboxes que añadas después."
+      },
+      "width": {
+        "name": "ancho",
+        "tooltip": "Ancho del lienzo. Se ignora cuando tamaño_desde_imagen o tamaño_desde_latente está conectado."
+      },
+      "height": {
+        "name": "alto",
+        "tooltip": "Alto del lienzo. Se ignora cuando tamaño_desde_imagen o tamaño_desde_latente está conectado."
+      },
+      "feather": {
+        "name": "difuminado",
+        "tooltip": "Suaviza los bordes de la máscara esta cantidad de píxeles (una rampa lineal de 2x este ancho, centrada en el borde). Los bordes que tocan el límite del lienzo quedan nítidos salvo que difuminar_bordes_lienzo esté activado."
+      },
+      "invert": {
+        "name": "invertir",
+        "tooltip": "Activado: Las máscaras se invierten (todo excepto la caja / región es blanco)."
+      },
+      "latent_scale": {
+        "name": "escala_latente",
+        "tooltip": "Píxeles por celda del latente para tamaño_desde_latente. auto: 16 para latentes de MOSS-Image / Flux.2, 8 para SD/SDXL/Flux.1."
+      },
+      "feather_canvas_edges": {
+        "name": "difuminar_bordes_lienzo",
+        "tooltip": "Desactivado: Los bordes de la caja que tocan el límite del lienzo quedan nítidos.\nActivado: Se desvanecen hacia el límite como cualquier otro borde."
+      },
+      "bboxes": {
+        "name": "bboxes",
+        "tooltip": "Bboxes en píxeles, o JSON de elementos / prompt (estos también llevan los prompts)."
+      },
+      "size_from_image": {
+        "name": "tamaño_desde_imagen",
+        "tooltip": "Toma ancho / alto de esta imagen. Tiene prioridad sobre tamaño_desde_latente."
+      },
+      "size_from_latent": {
+        "name": "tamaño_desde_latente",
+        "tooltip": "Toma ancho / alto de este latente (su tamaño multiplicado por escala_latente). tamaño_desde_imagen tiene prioridad."
+      },
+      "elements": {
+        "name": "elementos",
+        "tooltip": "El prompt de cada caja: 'prompt' de MOSS-Image Prompt Builder KJ o (Deno) Ideogram Director, o 'elementos' de Crear Cajas Delimitadoras o del nodo Region Genie. Se usan sus propias cajas cuando 'bboxes' no está conectado o tiene un número distinto de cajas.\nDiseños MOSS: Se miden desde el centro del lienzo, así que ancho / alto deben coincidir con los del constructor."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "máscara",
+        "tooltip": "Máscara de la bbox elegida con 'índice'."
+      },
+      "1": {
+        "name": "máscara_combinada",
+        "tooltip": "Unión de todas las bboxes en una sola máscara."
+      },
+      "2": {
+        "name": "lote_de_máscaras",
+        "tooltip": "Una máscara por bbox, apiladas como lote (p. ej. para 'MASK to SEGS' de Impact Pack)."
+      },
+      "3": {
+        "name": "ancho",
+        "tooltip": "Ancho del lienzo realmente usado."
+      },
+      "4": {
+        "name": "alto",
+        "tooltip": "Alto del lienzo realmente usado."
+      },
+      "5": {
+        "name": "info_bboxes",
+        "tooltip": "Lista en texto de todas las bboxes, con su índice y su prompt."
+      },
+      "6": {
+        "name": "prompt",
+        "tooltip": "Prompt (desc) de la bbox elegida con 'índice'. Vacío cuando no hay elementos disponibles."
+      }
+    }
+  },
+  "Region-Genie_RegionalLoRAs": {
+    "display_name": "LoRAs regionales ✨",
+    "description": "LoRAs regionales a partir de un lote de máscaras (funcionan los modelos int8 / fp8 / cuantizados). Cada fila aplica una LoRA dentro de una máscara (índice -1 para toda la imagen) y puede añadir palabras, p. ej. palabras de activación, a la descripción de esa región; las filas con el mismo índice se acumulan en esa región.\nMOSS-Image, Krea 2, Ideogram 4, Flux, Anima y SDXL / SD1.5: Todas las LoRAs actúan en una sola pasada del modelo, cada una limitada a su máscara y a su descripción, como las LoRAs del nodo Region Genie.\nOtros modelos: Una pasada del modelo por región con los ganchos de ComfyUI.",
+    "inputs": {
+      "model": {
+        "name": "modelo",
+        "tooltip": "El modelo de difusión (funcionan los modelos cuantizados). Con enmascarado_lora 'dentro del modelo' y un modelo MOSS-Image, Krea 2, Ideogram 4, Flux, Anima o SDXL / SD1.5, las LoRAs van en la salida 'modelo', cada una actuando solo dentro de su máscara. En caso contrario viajan en 'positivo' / 'negativo' (una pasada del modelo por región)."
+      },
+      "clip": {
+        "name": "clip",
+        "tooltip": "Codificador de texto. Codifica 'positivo' y 'negativo'. Dentro del modelo, también localiza la descripción de cada región en el prompt, de modo que una LoRA actúa también sobre la descripción de su propia región (y sus palabras de activación)."
+      },
+      "masks": {
+        "name": "máscaras",
+        "tooltip": "Máscaras de región, p. ej. la salida 'máscaras' del nodo Region Genie. Cada fila elige una por su índice (los números de región que muestra el nodo Region Genie)."
+      },
+      "positive_prompt": {
+        "name": "prompt_positivo",
+        "tooltip": "El prompt positivo. Conecta 'prompt' del nodo Region Genie (MOSS JSON, Ideogram JSON o texto, en el formato del modelo), o escribe uno. Las palabras de cada fila se añaden a la descripción de su región (con índice -1, a la descripción de la escena).\nPrompt de texto plano: Las palabras de región se añaden como una frase propia; las de índice -1, tras una coma."
+      },
+      "negative_prompt": {
+        "name": "prompt_negativo",
+        "tooltip": "Prompt negativo, codificado como 'negativo' (como Codificar texto CLIP)."
+      },
+      "feather": {
+        "name": "difuminado",
+        "tooltip": "Suaviza los bordes de la máscara esta cantidad de píxeles, para que cada LoRA se funda con su entorno."
+      },
+      "lora_masking": {
+        "name": "enmascarado_lora",
+        "tooltip": "dentro del modelo (una pasada): Cada LoRA actúa solo sobre la parte de la imagen de su máscara y sobre la descripción de su región, todo en una sola pasada del modelo, como las LoRAs del nodo Region Genie; las LoRAs de índice -1 se fusionan en el modelo como con Cargar LoRA. Necesita MOSS-Image, Krea 2, Ideogram 4, Flux, Anima o SDXL / SD1.5 (los demás modelos recurren a pasadas separadas).\npasadas separadas (ganchos clásicos): El método de ganchos de ComfyUI, una pasada del modelo por región con sus LoRAs, mezcladas mediante las máscaras. Funciona con cualquier modelo, pero los estilos fuertes pueden filtrarse de una región a otra."
+      },
+      "region_separation": {
+        "name": "separación_de_regiones",
+        "tooltip": "Solo dentro del modelo. Con qué fuerza se mantienen separadas las regiones en la atención. Se aplica a la imagen de las distintas regiones con LoRA (todas las máscaras con separar_todas_las_regiones) durante la primera fracción separación_hasta de los pasos, y a la descripción de cada región con LoRA frente a las demás regiones en todos los pasos. Un valor más alto mantiene el estilo de cada LoRA dentro de su región.\n1: Totalmente separadas (puede parecer un collage en las uniones).\n0: Desactivado."
+      },
+      "separation_until": {
+        "name": "separación_hasta",
+        "tooltip": "Solo dentro del modelo. Mantiene separada la imagen de las regiones durante esta fracción de los pasos (1 = todos los pasos). Los primeros pasos fijan el diseño y el estilo de cada región; dejar que los pasos posteriores vean más allá de cada región suaviza las uniones (0.1-0.5 funciona bien con separación_de_regiones 0.85-0.99)."
+      },
+      "loras_data": {
+        "name": "datos_de_loras"
+      },
+      "separate_all_regions": {
+        "name": "separar_todas_las_regiones",
+        "tooltip": "Activado: Cada máscara se mantiene separada de las demás (y del fondo) durante la primera fracción separación_hasta de los pasos, con la fuerza de separación_de_regiones, tenga o no LoRAs, y la descripción de cada región se dirige solo a su propia región.\nDesactivado: Solo se mantienen separadas las máscaras con LoRAs.\nSolo MOSS-Image, Krea 2, Ideogram 4, Flux, Anima o SDXL / SD1.5 con enmascarado_lora 'dentro del modelo'; algo más lento y con más VRAM mientras está activo."
+      },
+      "share_background": {
+        "name": "compartir_fondo",
+        "tooltip": "Solo dentro del modelo.\nActivado: Las regiones que se mantienen separadas (máscaras con LoRAs, o todas las máscaras con separar_todas_las_regiones) siguen separadas entre sí, pero no del resto de la imagen, de modo que la iluminación, la perspectiva y el entorno forman una sola imagen. La descripción de cada región sigue dirigiéndose solo a su propia región.\nDesactivado: También se mantienen separadas del resto de la imagen."
+      },
+      "wildcard_seed": {
+        "name": "semilla_de_comodines",
+        "tooltip": "Semilla para los comodines de prompt_positivo, prompt_negativo y las palabras de las filas (sintaxis __name__ y {'{'}a{'|'}b{'}'} de ComfyUI Impact Pack). Un prompt que llega como JSON de MOSS / Ideogram se deja tal cual."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "modelo",
+        "tooltip": "El modelo para el muestreador.\nDentro del modelo (MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5): Lleva las LoRAs, cada una actuando solo dentro de su máscara (las LoRAs de índice -1 se fusionan en todo el modelo).\nPasadas separadas: El modelo sin cambios (las LoRAs viajan en 'positivo' / 'negativo')."
+      },
+      "1": {
+        "name": "positivo",
+        "tooltip": "El prompt con las palabras de las filas añadidas, codificado con clip (con pasadas separadas, también con los ganchos de LoRA y la máscara de cada región). Conéctalo al muestreador."
+      },
+      "2": {
+        "name": "negativo",
+        "tooltip": "prompt_negativo codificado con clip (con pasadas separadas, también con los mismos ganchos). Conéctalo al muestreador."
+      },
+      "3": {
+        "name": "info_lora",
+        "tooltip": "Lo que se configuró para cada región (también se imprime en la consola)."
+      }
+    }
+  },
+  "Region-Genie_CreateHookLoRA": {
+    "display_name": "Crear hook LoRA (cuantizado) ✨",
+    "description": "Como 'Crear hook LoRA' del núcleo de ComfyUI, pero la LoRA se aplica mientras el modelo se ejecuta en lugar de integrarse en los pesos, así que funciona con modelos int8 / fp8 / cuantizados. Admite LoRA, LoCon, LoKr, LoHa y DoRA. Solo modelo (sin fuerza de CLIP). Conecta los GANCHOS a un acondicionamiento, p. ej. mediante la entrada ganchos de 'Establecer propiedades de pares de acondicionamiento' (con una máscara para una LoRA regional); ese acondicionamiento recibe entonces su propia pasada del modelo con la LoRA activa.",
+    "inputs": {
+      "model": {
+        "name": "modelo",
+        "tooltip": "El modelo de difusión (cuantizado) al que se destina la LoRA. Solo se usa para emparejar las claves de la LoRA con las capas del modelo; el modelo no se modifica."
+      },
+      "lora_name": {
+        "name": "nombre_de_lora",
+        "tooltip": "El archivo de la LoRA (models/loras)."
+      },
+      "strength_model": {
+        "name": "fuerza_del_modelo",
+        "tooltip": "Fuerza de la LoRA sobre el modelo de difusión (0 = desactivada). No hay fuerza de CLIP; los pesos de codificador de texto de la LoRA no se usan."
+      },
+      "prev_hooks": {
+        "name": "ganchos_anteriores",
+        "tooltip": "Ganchos de otro nodo de ganchos, combinados con este. Encadena nodos aquí para acumular varias LoRAs en el mismo acondicionamiento."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "GANCHOS",
+        "tooltip": "Esta LoRA (más ganchos_anteriores) como ganchos. Conéctalos a un acondicionamiento, p. ej. a la entrada ganchos de 'Establecer propiedades de pares de acondicionamiento'. La LoRA solo está activa mientras el modelo calcula ese acondicionamiento."
+      },
+      "1": {
+        "name": "info_lora",
+        "tooltip": "Lo que se aplicó y lo que se omitió, y las palabras de activación de la LoRA (también se muestran en el nodo)."
+      }
+    }
+  },
+  "Region-Genie_SaveImage": {
+    "display_name": "Guardar imagen (Region Genie) ✨",
+    "description": "Guarda imágenes como PNG (compresión 0-9, 8 / 16-bit), WebP (sin pérdidas o con una calidad), JPEG (con una calidad), AVIF (con una calidad) o EXR (16 / 32-bit flotante), con transparencia opcional a partir de una máscara, y muestra el tamaño de los archivos guardados.",
+    "inputs": {
+      "images": {
+        "name": "imágenes",
+        "tooltip": "Las imágenes a guardar (un archivo por imagen)."
+      },
+      "filename_prefix": {
+        "name": "prefijo_de_archivo",
+        "tooltip": "El nombre de archivo antes del número, p. ej. ComfyUI → ComfyUI_00001.png. Puede incluir una subcarpeta (portraits/ComfyUI) y tokens como %date:yyyy-MM-dd% o %Empty Latent Image.width%."
+      },
+      "format": {
+        "name": "formato",
+        "tooltip": "png: Sin pérdidas, conserva el flujo de trabajo.\nwebp: Sin pérdidas o con una calidad, mucho más pequeño, conserva el flujo de trabajo.\njpeg: Con una calidad, pequeño. El flujo de trabajo va en un .json junto a él (ver flujo_de_trabajo_jpeg).\navif: Con una calidad, el más pequeño, conserva el flujo de trabajo.\nexr: 16 / 32-bit flotante, lineal de escena (para composición y HDR; no es más pequeño). El flujo de trabajo va en su cabecera, desde la que ComfyUI todavía no puede cargarlo."
+      },
+      "png_compression": {
+        "name": "compresión_png",
+        "tooltip": "0-9, sin pérdidas en todos los niveles (siempre los mismos píxeles). Más alto = archivo más pequeño, guardado más lento; 9 = el más pequeño (el Guardar imagen propio de ComfyUI usa 4)."
+      },
+      "png_bit_depth": {
+        "name": "profundidad_bits_png",
+        "tooltip": "8-bit: Lo habitual.\n16-bit: Degradados más finos para editar después, aproximadamente el doble de tamaño."
+      },
+      "webp_lossless": {
+        "name": "webp_sin_pérdidas",
+        "tooltip": "Activado: Los píxeles exactos, normalmente un 25-35% más pequeño que PNG.\nDesactivado: Decide calidad_webp (archivos mucho más pequeños, se pierde algo de detalle)."
+      },
+      "webp_quality": {
+        "name": "calidad_webp",
+        "tooltip": "1-100. Más bajo = archivo más pequeño, más detalle perdido. 80-90 se ve igual que el original en la mayoría de las imágenes."
+      },
+      "jpeg_quality": {
+        "name": "calidad_jpeg",
+        "tooltip": "1-100. Más bajo = archivo más pequeño, más detalle perdido. De 90 en adelante se conserva todo el detalle de color; por debajo de 90 los colores se almacenan a media resolución (más pequeño)."
+      },
+      "jpeg_extension": {
+        "name": "extensión_jpeg",
+        "tooltip": "La extensión del archivo; el formato es el mismo en ambos casos."
+      },
+      "jpeg_workflow": {
+        "name": "flujo_de_trabajo_jpeg",
+        "tooltip": "ComfyUI no puede cargar un flujo de trabajo desde un JPEG.\n.json adjunto: El flujo de trabajo en un pequeño archivo .json junto a cada JPEG (arrastra ese archivo a ComfyUI para cargarlo).\nninguno: Sin flujo de trabajo.\ndentro del JPEG (EXIF): Legible por otras herramientas, no por ComfyUI; un flujo de trabajo demasiado grande para ello (unos 64 KB) va al .json en su lugar."
+      },
+      "avif_quality": {
+        "name": "calidad_avif",
+        "tooltip": "1-100. Más bajo = archivo más pequeño, más detalle perdido. AVIF necesita Pillow 11.3+ o un ComfyUI compatible con AVIF."
+      },
+      "exr_bit_depth": {
+        "name": "profundidad_bits_exr",
+        "tooltip": "16-bit flotante: Media precisión, aproximadamente la mitad de tamaño; de sobra para la mayoría de las ediciones.\n32-bit flotante: Precisión completa."
+      },
+      "exr_color_space": {
+        "name": "espacio_de_color_exr",
+        "tooltip": "El espacio de color de las imágenes que entran. El EXR siempre se escribe como luz lineal de escena en la gama correspondiente, como hace Guardar imagen (avanzado) de ComfyUI.\nsRGB: Rec.709 codificado en sRGB (lo habitual); se aplica la curva sRGB inversa.\nHDR: Rec.2020 codificado en HLG (BT.2100); se aplica la curva HLG inversa.\nlineal: Ya es lineal de escena (primarios Rec.709), se escribe sin cambios; para la salida de renderizadores / compositores.\nlineal ACEScg: Ya es ACEScg lineal de escena (AP1 / D60), se escribe sin cambios con las cromaticidades de ACEScg."
+      },
+      "mask": {
+        "name": "máscara",
+        "tooltip": "Transparencia (PNG, WebP, AVIF, EXR; JPEG no tiene). Como la máscara de Cargar imagen de ComfyUI: 1 = transparente. Una máscara de otro tamaño se redimensiona. Una sola máscara se aplica a todas las imágenes; un lote va imagen por imagen. Sin máscara, una imagen RGBA conserva su propio alfa."
+      },
+      "invert_mask": {
+        "name": "invertir_máscara",
+        "tooltip": "Activado: En su lugar, máscara 1 = opaco. Úsalo con una máscara de región de Region Genie o Selector de máscaras, para conservar la región y vaciar el resto."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "imágenes",
+        "tooltip": "Las mismas imágenes, sin modificar."
+      }
+    }
+  }
+}

@@ -1,0 +1,614 @@
+{
+  "RegionGenie_ModelFiles_Browse": {
+    "name": "모델 파일 찾아보기 (Browse…)",
+    "tooltip": "끔 (기본값): 모델 파일 입력란은 ComfyUI 모델 폴더에 있는 파일을 보여 주는 ComfyUI 메뉴를 엽니다.\n켬: 각 입력란에 폴더 버튼(Browse…)도 생겨, ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 파일을 고를 수 있습니다(전체 경로로 저장). 이 설정 화면(대화 상자를 다시 연 뒤부터), 노드의 Edit 행, LLM Settings 팝업에 적용됩니다. 이 버튼으로 고른 파일은 설정을 꺼도 계속 동작합니다."
+  },
+  "RegionGenie_ModelFiles_Check": {
+    "name": "모델 파일 검사",
+    "tooltip": "이 설정(컨트롤, 편집 모드, 개체 선택)과 LLM 프리셋에 지정된 모든 모델 파일을 조회해, ComfyUI가 찾지 못하는 파일(이동, 이름 변경 또는 삭제된 것)을 나열합니다."
+  },
+  "RegionGenie_Autocomplete_DefaultOn": {
+    "name": "새 Region Genie 노드에서 태그 자동 완성 켜기",
+    "tooltip": "Region Genie 노드와 영역별 LoRA 노드에 있는 'autocomplete' 스위치의 기본값입니다(스위치를 직접 설정한 노드는 자체 선택을 유지). 자동 완성 기능 자체는 ComfyUI-Custom-Scripts(활성화되어 있으면 우선) 또는 ComfyUI-Lora-Manager가 제공하며, 해당 팩의 설정을 따릅니다."
+  },
+  "RegionGenie_LLM_Context": {
+    "name": "LLM 프롬프트 향상기에 전달되는 내용",
+    "tooltip": "LLM Settings가 'Settings default'로 되어 있는 Region Genie 노드의 기본값입니다. 컨텍스트를 포함하면 LLM이 '장면 긍정 프롬프트'와 다른 영역의 프롬프트도 받지만(일관성 유지를 위해), 다시 쓰는 것은 해당 프롬프트 하나뿐입니다.",
+    "options": {
+      "Only the prompt": "프롬프트만",
+      "The prompt + the scene and the other regions": "프롬프트 + 장면과 다른 영역"
+    }
+  },
+  "RegionGenie_LLM_NewRegionsOn": {
+    "name": "새 영역은 LLM 프롬프트 향상기를 켠 상태로 시작"
+  },
+  "RegionGenie_LLM_Default_character": {
+    "name": "기본 프리셋: 캐릭터",
+    "tooltip": "LLM Settings에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 캐릭터 프롬프트에 쓰는 프리셋입니다."
+  },
+  "RegionGenie_LLM_Default_object": {
+    "name": "기본 프리셋: 개체",
+    "tooltip": "LLM Settings에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 개체 프롬프트에 쓰는 프리셋입니다."
+  },
+  "RegionGenie_LLM_Default_text": {
+    "name": "기본 프리셋: 텍스트",
+    "tooltip": "LLM Settings에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 텍스트 프롬프트에 쓰는 프리셋입니다."
+  },
+  "RegionGenie_LLM_Default_scene": {
+    "name": "기본 프리셋: 장면",
+    "tooltip": "LLM Settings에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 장면 프롬프트에 쓰는 프리셋입니다."
+  },
+  "RegionGenie_LLM_EditPreset": {
+    "name": "편집할 프리셋",
+    "tooltip": "아래 행들이 표시하고 변경하는 프리셋입니다(즉시 저장되며 모든 워크플로에 적용).\nNew: 이 프리셋을 새 이름으로 복사합니다.\nDelete: 프리셋을 삭제합니다(위에서 기본 프리셋으로 쓰이는 동안에는 불가. 두 번 클릭)."
+  },
+  "RegionGenie_LLM_Preset_name": {
+    "name": "프리셋: 이름",
+    "tooltip": "프리셋의 이름입니다. Enter를 누르면(또는 입력란을 벗어나면) 이름이 바뀌며, 위의 기본 프리셋도 따라 바뀝니다."
+  },
+  "RegionGenie_LLM_Preset_llm": {
+    "name": "프리셋: LLM",
+    "tooltip": "프롬프트를 다시 쓰는 LLM입니다.\n연결된 clip: 그대로 사용합니다(추가 메모리 없음).\n파일: ComfyUI의 text_encoders 폴더에서 고릅니다(모델 파일의 '모델 파일 찾아보기 (Browse…)'를 켜면 어느 위치에서든 가능). 한 번 로드되어 사용하는 동안 유지됩니다."
+  },
+  "RegionGenie_LLM_Preset_llm_type": {
+    "name": "프리셋: LLM 유형",
+    "tooltip": "LLM 파일에 대해 'CLIP 로드'의 '유형'과 같습니다. 일반 Qwen3 / Qwen3.5 / Gemma 파일은 'auto (detect)'로 동작합니다."
+  },
+  "RegionGenie_LLM_Preset_loras": {
+    "name": "프리셋: LLM LoRA",
+    "tooltip": "LLM에만 적용되는 LoRA입니다('LoRA 불러오기 (텍스트 인코더)'와 같음). 이미지 모델과 조건 생성에 쓰는 clip은 변경되지 않습니다.\n각 행: 켬 / 끔, 파일(클릭하면 ComfyUI 메뉴가 열리고, '모델 파일 찾아보기 (Browse…)'를 켜면 폴더 버튼이 표시됨), 강도, ✕로 제거."
+  },
+  "RegionGenie_LLM_Preset_system_prompt": {
+    "name": "프리셋: 시스템 프롬프트",
+    "tooltip": "시스템 프롬프트로 전송됩니다('텍스트 생성'의 system_prompt). 프리셋의 기본 템플릿이 꺼져 있으면 무시됩니다."
+  },
+  "RegionGenie_LLM_Preset_max_length": {
+    "name": "프리셋: max_length",
+    "tooltip": "LLM이 쓰는 최대 토큰 수입니다."
+  },
+  "RegionGenie_LLM_Preset_sampling": {
+    "name": "프리셋: 샘플링",
+    "tooltip": "켬: 아래 설정으로 샘플링합니다.\n끔 (기본값): 그리디 디코딩으로, 같은 입력에는 항상 같은 텍스트가 나옵니다. temperature, top_k, top_p, min_p, 페널티, 시드는 사용되지 않습니다."
+  },
+  "RegionGenie_LLM_Preset_temperature": {
+    "name": "프리셋: temperature",
+    "tooltip": "샘플링 온도입니다.\n프리셋의 샘플링이 켜져 있을 때만 사용됩니다(꺼져 있으면 회색으로 표시)."
+  },
+  "RegionGenie_LLM_Preset_top_k": {
+    "name": "프리셋: top_k",
+    "tooltip": "가능성이 가장 높은 k개의 토큰 중에서 샘플링합니다(0 = 전체).\n프리셋의 샘플링이 켜져 있을 때만 사용됩니다(꺼져 있으면 회색으로 표시)."
+  },
+  "RegionGenie_LLM_Preset_top_p": {
+    "name": "프리셋: top_p",
+    "tooltip": "누적 확률이 이 값에 이를 때까지의 가능성 높은 토큰 중에서 샘플링합니다.\n프리셋의 샘플링이 켜져 있을 때만 사용됩니다(꺼져 있으면 회색으로 표시)."
+  },
+  "RegionGenie_LLM_Preset_min_p": {
+    "name": "프리셋: min_p",
+    "tooltip": "가능성이 가장 높은 토큰 대비 이 비율보다 가능성이 낮은 토큰을 제외합니다.\n프리셋의 샘플링이 켜져 있을 때만 사용됩니다(꺼져 있으면 회색으로 표시)."
+  },
+  "RegionGenie_LLM_Preset_repetition_penalty": {
+    "name": "프리셋: repetition_penalty",
+    "tooltip": "토큰 반복에 대한 페널티입니다(1 = 없음).\n프리셋의 샘플링이 켜져 있을 때만 사용됩니다(꺼져 있으면 회색으로 표시)."
+  },
+  "RegionGenie_LLM_Preset_presence_penalty": {
+    "name": "프리셋: presence_penalty",
+    "tooltip": "이미 사용된 토큰에 대한 페널티입니다(0 = 없음).\n프리셋의 샘플링이 켜져 있을 때만 사용됩니다(꺼져 있으면 회색으로 표시)."
+  },
+  "RegionGenie_LLM_Preset_seed": {
+    "name": "프리셋: 시드",
+    "tooltip": "시드입니다(영역을 우클릭해 'Run again with a new seed'를 실행하면 그 영역에 한해 이 값에 더해집니다).\n프리셋의 샘플링이 켜져 있을 때만 사용됩니다(꺼져 있으면 회색으로 표시)."
+  },
+  "RegionGenie_LLM_Preset_thinking": {
+    "name": "프리셋: 사고",
+    "tooltip": "모델이 지원하는 경우의 사고 모드입니다(추론 내용은 LLM 버튼, 즉 반짝이 아이콘이 있는 버튼의 툴팁에 표시되며, 사용되지는 않습니다)."
+  },
+  "RegionGenie_LLM_Preset_use_default_template": {
+    "name": "프리셋: 기본 템플릿",
+    "tooltip": "모델에 내장된 채팅 템플릿을 사용합니다(시스템 프롬프트에 필요)."
+  },
+  "RegionGenie_LLM_Preset_mtp": {
+    "name": "프리셋: mtp",
+    "tooltip": "모델의 다중 토큰 예측(MTP) 헤드를 이용한 추측 디코딩입니다(MTP 가중치가 없으면 효과 없음)."
+  },
+  "RegionGenie_LLM_CacheOnDisk": {
+    "name": "ComfyUI를 재시작해도 LLM 결과를 디스크에 보관",
+    "tooltip": "끔 (기본값): 향상된 프롬프트는 이번 세션 동안 메모리에, 그리고 이를 사용한 각 워크플로에 보관되므로(저장한 워크플로를 열면 자체 결과가 복원됨), 워크플로를 다시 실행할 때 LLM이 또 필요하지 않습니다.\n켬: <ComfyUI user dir>/region_genie/llm_cache.json에도 저장됩니다. 이는 워크플로를 열지 않고 API로 실행 대기열에 넣는 경우에만 도움이 됩니다. 이 설정을 끄면 해당 파일이 삭제됩니다."
+  },
+  "RegionGenie_LLM_CacheDays": {
+    "name": "LLM 결과 보관 기간 (일; 0 = 무기한)",
+    "tooltip": "이보다 오래된 결과는 캐시(메모리 및 디스크)에서 삭제됩니다."
+  },
+  "RegionGenie_LLM_CacheMaxEntries": {
+    "name": "보관할 LLM 결과의 최대 개수",
+    "tooltip": "이 개수를 넘으면 가장 오래된 결과부터 삭제됩니다(메모리 및 디스크)."
+  },
+  "RegionGenie_Tools_Lasso": {
+    "name": "올가미: 기본값",
+    "tooltip": "모든 Region Genie 노드에서 올가미 버튼이 처음에 어떤 올가미로 시작할지 정합니다. 버튼을 우클릭하면 세션이 끝날 때까지 다른 것으로 바꿀 수 있습니다.",
+    "options": {
+      "Lasso (straight lines)": "올가미 (직선)",
+      "Spline lasso (smooth curve)": "스플라인 올가미 (부드러운 곡선)",
+      "Magnetic lasso (follows edges in the image)": "자석 올가미 (이미지의 윤곽을 따라감)"
+    }
+  },
+  "RegionGenie_Tools_LassoErase": {
+    "name": "올가미 지우기: 기본값",
+    "tooltip": "모든 Region Genie 노드에서 지우개 버튼의 목록이 처음에 어떤 올가미 지우기로 시작할지 정합니다. 버튼을 우클릭하면 세션이 끝날 때까지 다른 것으로 바꿀 수 있습니다.",
+    "options": {
+      "Lasso erase (straight lines)": "올가미 지우기 (직선)",
+      "Spline lasso erase (smooth curve)": "스플라인 올가미 지우기 (부드러운 곡선)",
+      "Magnetic lasso erase (follows edges in the image)": "자석 올가미 지우기 (이미지의 윤곽을 따라감)"
+    }
+  },
+  "RegionGenie_Tools_Wand": {
+    "name": "마술봉: 기본값",
+    "tooltip": "마술봉으로 클릭했을 때 이미지에서 선택되는 범위입니다.\n색이 비슷한 연결된 부분: 클릭한 곳 주변의 부분만 선택합니다.\n이미지의 모든 비슷한 색: 연결 여부와 관계없이 그 색의 모든 픽셀을 선택합니다.\n버튼을 우클릭하면 세션 동안 다른 것으로 바꿀 수 있습니다.",
+    "options": {
+      "Connected area of similar color": "색이 비슷한 연결된 부분",
+      "Every similar color in the image": "이미지의 모든 비슷한 색"
+    }
+  },
+  "RegionGenie_Tools_WandTolerance": {
+    "name": "마술봉: 허용 오차",
+    "tooltip": "클릭한 색과 얼마나 달라도 선택되는지 정합니다(채널당 0-255). 캔버스의 입력란(왼쪽 위, 마술봉이 활성화된 동안 표시)으로 세션 동안 값을 바꿀 수 있습니다."
+  },
+  "RegionGenie_Tools_Fill": {
+    "name": "채우기: 기본값",
+    "tooltip": "채우기, 작은 틈 닫기: 틈 크기(채우기가 활성화된 동안 캔버스에 표시되는 입력란)의 약 두 배보다 좁은 틈으로는 채우기가 새어 나가지 않습니다.\n버튼을 우클릭하면 세션 동안 다른 것으로 바꿀 수 있습니다.",
+    "options": {
+      "Fill": "채우기",
+      "Fill, closing small gaps": "채우기, 작은 틈 닫기",
+      "Gradient fill, linear": "그라데이션 채우기, 선형",
+      "Gradient fill, radial": "그라데이션 채우기, 방사형"
+    }
+  },
+  "RegionGenie_Tools_FillGap": {
+    "name": "채우기: 틈 크기 (px)",
+    "tooltip": "채우기, 작은 틈 닫기: 이 픽셀 수의 약 두 배보다 좁은 틈은 닫힙니다."
+  },
+  "RegionGenie_Select_Model": {
+    "name": "모델",
+    "tooltip": "개체 선택(Select object) 도구가 사용하는 SAM 3.1 체크포인트입니다(ComfyUI의 기본 SAM 3 지원). huggingface.co/Comfy-Org/sam3.1에서 sam3.1_multiplex_fp16.safetensors를 내려받아 ComfyUI/models/checkpoints에 넣으세요. 이 파일이 없으면 그 폴더의 다른 SAM 3 체크포인트가 사용됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 체크포인트를 고를 수 있습니다."
+  },
+  "RegionGenie_Select_KeepLoaded": {
+    "name": "선택 후",
+    "tooltip": "모델 로드 유지: 모델이 세션 동안 메모리에 남습니다(약 1.7 GB). 워크플로에 공간이 필요하면 ComfyUI가 모델을 VRAM에서 시스템 RAM으로 옮기고, 다음 클릭 때 다시 가져옵니다.\n모델 언로드: 선택을 확정하거나 취소하면(그리고 3분간 사용하지 않으면) 모델을 해제하므로, 새로 선택할 때마다 디스크에서 다시 로드합니다.",
+    "options": {
+      "Keep the model loaded (faster next time)": "모델 로드 유지 (다음에 더 빠름)",
+      "Unload the model after each selection": "선택할 때마다 모델 언로드"
+    }
+  },
+  "RegionGenie_Select_Threshold": {
+    "name": "Find all: 신뢰도",
+    "tooltip": "Find all(텍스트 입력): 무언가가 일치한다고 SAM이 얼마나 확신해야 선택할지 정합니다. 낮추면 더 많이 찾고(잘못된 것도 늘어남), 높이면 더 적게 찾습니다."
+  },
+  "RegionGenie_Text_NodeScene": {
+    "name": "노드 내: 장면 프롬프트",
+    "tooltip": "세 개의 장면 프롬프트 입력란의 텍스트 크기(px)입니다(0 = ComfyUI 자체 크기). 영역별 LoRA 노드의 긍정 / 부정 입력란에도 적용됩니다. 모든 노드에 적용됩니다."
+  },
+  "RegionGenie_Text_NodeRegion": {
+    "name": "노드 내: 영역 프롬프트",
+    "tooltip": "영역 목록에 있는 프롬프트 입력란의 텍스트 크기(px)입니다(0 = 기본 12 px). 영역별 LoRA 노드의 행 프롬프트에도 적용됩니다. 모든 노드에 적용됩니다."
+  },
+  "RegionGenie_Text_NodeText": {
+    "name": "노드 내: 렌더링할 텍스트",
+    "tooltip": "영역 목록에 있는 '렌더링할 텍스트' 입력란의 텍스트 크기(px)입니다(0 = 기본 12 px). 모든 노드에 적용됩니다."
+  },
+  "RegionGenie_Text_PopupScene": {
+    "name": "팝업 편집기: 장면 프롬프트",
+    "tooltip": "장면 프롬프트 팝업 편집기에 있는 텍스트 상자의 텍스트 크기(px)입니다(헤더의 A− / A+로도 바꿀 수 있음). 영역별 LoRA 노드의 긍정 / 부정 입력란용 팝업에도 적용됩니다. 모든 노드에 적용됩니다."
+  },
+  "RegionGenie_Text_PopupRegion": {
+    "name": "팝업 편집기: 영역 프롬프트",
+    "tooltip": "영역 팝업 편집기에 있는 Prompt 상자의 텍스트 크기(px)입니다(헤더의 A− / A+로도 바꿀 수 있음). 영역별 LoRA 노드의 행 프롬프트용 팝업에도 적용됩니다. 모든 노드에 적용됩니다."
+  },
+  "RegionGenie_Text_PopupText": {
+    "name": "팝업 편집기: 렌더링할 텍스트",
+    "tooltip": "영역 팝업 편집기에 있는 Text 상자의 텍스트 크기(px)입니다(Text 상자를 사용 중일 때 헤더의 A− / A+로도 바꿀 수 있음). 모든 노드에 적용됩니다."
+  },
+  "RegionGenie_Popup_PrevKey": {
+    "name": "팝업 편집기: 이전 텍스트 입력란으로 가는 키",
+    "tooltip": "팝업 편집기에서 입력하는 동안, 편집기의 ◀ / ▶ 버튼처럼 노드의 이전 / 다음 텍스트 입력란으로 이동합니다. 기본값: Page Up.\n키는 브라우저가 부르는 이름으로, 보조 키를 앞에 붙여 적습니다: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn, Ctrl / Alt / Shift도 사용할 수 있습니다).\n비워 두기: 키 없음. 모든 Region Genie 노드와 영역별 LoRA 노드에 적용됩니다."
+  },
+  "RegionGenie_Popup_NextKey": {
+    "name": "팝업 편집기: 다음 텍스트 입력란으로 가는 키",
+    "tooltip": "팝업 편집기에서 입력하는 동안, 편집기의 ◀ / ▶ 버튼처럼 노드의 이전 / 다음 텍스트 입력란으로 이동합니다. 기본값: Page Down.\n키는 브라우저가 부르는 이름으로, 보조 키를 앞에 붙여 적습니다: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn, Ctrl / Alt / Shift도 사용할 수 있습니다).\n비워 두기: 키 없음. 모든 Region Genie 노드와 영역별 LoRA 노드에 적용됩니다."
+  },
+  "RegionGenie_Popup_EscKeeps": {
+    "name": "팝업 편집기에서의 Esc",
+    "tooltip": "팝업 텍스트 편집기에서 Esc가 하는 일입니다(모든 Region Genie 노드와 영역별 LoRA 노드).\n텍스트 되돌리기: Esc로 닫으면 텍스트가 열었을 때의 상태로 돌아갑니다(Enter와 ✕는 편집 내용을 유지).\n편집 내용 유지: Esc, Enter, ✕ 모두 닫으면서 텍스트를 유지합니다.",
+    "options": {
+      "put the text back": "텍스트 되돌리기",
+      "keep the edits": "편집 내용 유지"
+    }
+  },
+  "RegionGenie_Wildcards_PerField": {
+    "name": "입력란별 시드",
+    "tooltip": "끔: 노드의 모든 프롬프트 입력란이 노드의 와일드카드 시드를 그대로 사용하므로(시드 하나를 공유하는 Impact Pack 노드처럼), 두 입력란에 있는 같은 와일드카드는 대개 같은 값을 고릅니다.\n켬: 각 입력란이 와일드카드 시드와 입력란으로부터 만든 자체 시드를 받아 서로 독립적으로 고릅니다(같은 시드에는 여전히 같은 결과)."
+  },
+  "RegionGenie_Size_Mode": {
+    "name": "이미지 크기: 모드",
+    "tooltip": "새 노드의 이미지 크기를 정하는 방식입니다.\n종횡비: 종횡비와 메가픽셀로 정합니다(ComfyUI의 '해상도 선택기'와 같음).\n프리셋: 프리셋 목록에서 크기를 고릅니다.\n수동: 너비와 높이를 직접 입력합니다.\n지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다.",
+    "options": {
+      "aspect ratio": "종횡비",
+      "presets": "프리셋",
+      "manual": "수동"
+    }
+  },
+  "RegionGenie_Size_Aspect": {
+    "name": "종횡비",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다.",
+    "options": {
+      "1:1 (Square)": "1:1 (정사각형)",
+      "2:3 (Portrait Photo)": "2:3 (세로 사진)",
+      "3:2 (Photo)": "3:2 (사진)",
+      "3:4 (Portrait Standard)": "3:4 (세로 표준)",
+      "4:3 (Standard)": "4:3 (표준)",
+      "9:16 (Portrait Widescreen)": "9:16 (세로 와이드스크린)",
+      "16:9 (Widescreen)": "16:9 (와이드스크린)",
+      "21:9 (Ultrawide)": "21:9 (울트라와이드)"
+    }
+  },
+  "RegionGenie_Size_Megapixels": {
+    "name": "메가픽셀",
+    "tooltip": "목표 총 메가픽셀입니다(정사각형 기준 1.0 MP = 1024 x 1024). 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Size_Multiple": {
+    "name": "배수",
+    "tooltip": "너비와 높이가 이 값의 배수로 반올림됩니다. 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Size_Presets": {
+    "name": "프리셋",
+    "tooltip": "모든 Region Genie 노드의 프리셋 목록에 있는 크기들입니다. ';'으로 구분하며, 각각 WIDTHxHEIGHT와 선택적인 이름으로 적습니다(예: '1216x832 landscape'). 노드에서 프리셋 목록의 마지막 항목 'Edit list…'로 편집하는 편이 더 쉽습니다."
+  },
+  "RegionGenie_Main_Width": {
+    "name": "수동: 너비",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Main_Height": {
+    "name": "수동: 높이",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Main_ImageMode": {
+    "name": "이미지 모드",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다.",
+    "options": {
+      "backdrop (trace over)": "밑그림 (따라 그리기)",
+      "use as color map": "색상 맵으로 사용"
+    }
+  },
+  "RegionGenie_Main_MinRegionPixels": {
+    "name": "색상 맵: 영역 최소 픽셀",
+    "tooltip": "이미지를 색상 맵으로 사용할 때, 평탄한 픽셀이 이 개수 이상인 색이 영역이 됩니다(섞인 가장자리는 가장 가까운 영역에 포함되고, 다른 색의 작은 점은 미지정이 됩니다). 모든 Region Genie 노드에 다음 실행부터 적용됩니다. 이미지를 색상 맵으로 사용하는 동안에는 노드의 이미지 컨트롤에도 표시됩니다."
+  },
+  "RegionGenie_Main_ImportMode": {
+    "name": "캔버스가 비어 있지 않을 때의 '가져올 JSON'",
+    "tooltip": "교체 전에 묻기: 이번 실행에서는 캔버스를 유지하고 노드가 묻습니다(Replace canvas / Keep canvas).\n항상 교체: 새 레이아웃이 즉시 캔버스를 교체합니다.\n빈 캔버스는 항상 채워집니다. 모든 Region Genie 노드에 다음 실행부터 적용됩니다.",
+    "options": {
+      "ask before replacing": "교체 전에 묻기",
+      "always replace": "항상 교체"
+    }
+  },
+  "RegionGenie_Main_Feather": {
+    "name": "페더 (px, 연결된 영역)",
+    "tooltip": "연결된 영역이 공유하는 마스크 페더입니다(영역은 처음에 연결된 상태입니다). 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Main_RegionSeparation": {
+    "name": "LoRA 영역 분리",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Main_SeparationUntil": {
+    "name": "LoRA 분리 종료",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Main_AllRegionsApart": {
+    "name": "모든 영역을 서로 분리 (LoRA가 있는 영역만이 아니라)",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Main_ShareBackground": {
+    "name": "영역 분리: 배경 공유",
+    "tooltip": "분리되는 영역들이 서로는 분리되지만 주변 이미지와는 분리되지 않아, 조명과 배경이 하나의 그림으로 유지됩니다. 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Main_AutoApart": {
+    "name": "일반 텍스트 프롬프트: 모든 영역을 자동으로 분리",
+    "tooltip": "Krea 2, Flux, Flux 3, Anima, SDXL / SD1.5(그리고 표준 모드와 편집 모드의 MOSS-Image)는 영역을 일반 문장으로 받습니다. Region Genie 노드는 어텐션에서 각 영역의 문장을 해당 영역에 묶는 방식으로 영역을 배치합니다(모든 영역을 분리).\n켬: 이런 모델이 '모델'에 연결되고, clip이 연결되고, 영역 프롬프트가 하나 이상 있으면 실행 시 모든 영역을 분리합니다. 단, 노드의 버튼이 'Off for this node'로 설정된 경우는 제외합니다.\n끔: 버튼이 켜진 노드만 영역을 분리합니다.\n아래 설정으로 모델별로 바꿀 수 있습니다. 모든 Region Genie 노드에 다음 실행부터 적용됩니다."
+  },
+  "RegionGenie_Main_AutoApart_MOSS": {
+    "name": "MOSS-Image (표준 모드, 편집 모드): 모든 영역을 자동으로 분리",
+    "tooltip": "MOSS-Image 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
+    "options": {
+      "As set for all models (above)": "모든 모델 설정을 따름 (위)",
+      "On": "켬",
+      "Off": "끔"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Krea2": {
+    "name": "Krea 2: 모든 영역을 자동으로 분리",
+    "tooltip": "Krea 2 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
+    "options": {
+      "As set for all models (above)": "모든 모델 설정을 따름 (위)",
+      "On": "켬",
+      "Off": "끔"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux": {
+    "name": "Flux: 모든 영역을 자동으로 분리",
+    "tooltip": "Flux 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
+    "options": {
+      "As set for all models (above)": "모든 모델 설정을 따름 (위)",
+      "On": "켬",
+      "Off": "끔"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux3": {
+    "name": "Flux 3: 모든 영역을 자동으로 분리",
+    "tooltip": "Flux 3 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
+    "options": {
+      "As set for all models (above)": "모든 모델 설정을 따름 (위)",
+      "On": "켬",
+      "Off": "끔"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Anima": {
+    "name": "Anima: 모든 영역을 자동으로 분리",
+    "tooltip": "Anima 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
+    "options": {
+      "As set for all models (above)": "모든 모델 설정을 따름 (위)",
+      "On": "켬",
+      "Off": "끔"
+    }
+  },
+  "RegionGenie_Main_AutoApart_SDXL": {
+    "name": "SDXL / SD1.5: 모든 영역을 자동으로 분리",
+    "tooltip": "SDXL / SD1.5 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
+    "options": {
+      "As set for all models (above)": "모든 모델 설정을 따름 (위)",
+      "On": "켬",
+      "Off": "끔"
+    }
+  },
+  "RegionGenie_Main_Snap": {
+    "name": "그리드에 스냅 켜기",
+    "tooltip": "Region Genie 노드를 추가하거나 워크플로를 열 때 그리드에 스냅이 켜져 있을지 정합니다."
+  },
+  "RegionGenie_Main_Grid": {
+    "name": "그리드 크기 (이미지 px)",
+    "tooltip": "Region Genie 노드를 추가하거나 워크플로를 열 때의 그리드 크기입니다."
+  },
+  "RegionGenie_Control_MOSS": {
+    "name": "MOSS-Image: 색상 / 깊이 컨트롤 LoRA",
+    "tooltip": "MOSS-Image의 색상 / 깊이 컨트롤 어댑터(LoRA)입니다. 영역의 색상 맵 및 / 또는 깊이 맵을 읽으며, 맵은 이미지와 나란히 VAE로 인코딩됩니다('vae' 필요).\n노드의 Control 행이 MOSS-Image 모델에서 이를 사용합니다(모델에 LoRA로 적용).\nmoss_image_color_depth_control.safetensors 파일을 ComfyUI/models/loras에 넣으세요: https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_Flux1Depth": {
+    "name": "Flux.1: 깊이 LoRA (예: flux1-depth-dev-lora)",
+    "tooltip": "Black Forest Labs의 Flux.1 [dev]용 구조 LoRA입니다. 맵은 이미지와 나란히 VAE로 인코딩됩니다('vae' 필요).\n노드의 Control 행이 Flux.1 모델에서 행의 강도로 이를 사용합니다(모델에 LoRA로 적용).\nflux1-depth-dev-lora.safetensors 파일을 ComfyUI/models/loras에 넣으세요: https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/split_files/loras/flux1-depth-dev-lora.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_Flux1Canny": {
+    "name": "Flux.1: canny LoRA (예: flux1-canny-dev-lora)",
+    "tooltip": "Black Forest Labs의 Flux.1 [dev]용 구조 LoRA입니다. 맵은 이미지와 나란히 VAE로 인코딩됩니다('vae' 필요).\n노드의 Control 행이 Flux.1 모델에서 행의 강도로 이를 사용합니다(모델에 LoRA로 적용).\nflux1-canny-dev-lora.safetensors 파일을 ComfyUI/models/loras에 넣으세요(Black Forest Labs 페이지에서 먼저 FLUX.1 [dev] 라이선스에 동의해야 합니다): https://huggingface.co/black-forest-labs/FLUX.1-Canny-dev-lora/resolve/main/flux1-canny-dev-lora.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_Flux1_depth": {
+    "name": "Flux.1: 깊이 ControlNet",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 Flux.1이고 Flux.1 깊이 LoRA가 지정되지 않았을 때 Control 행이 사용합니다(LoRA가 우선).\nflux-depth-controlnet-v3.safetensors 파일을 ComfyUI/models/controlnet에 넣으세요: https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-depth-controlnet-v3.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_Flux1_canny": {
+    "name": "Flux.1: canny ControlNet",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 Flux.1이고 Flux.1 canny LoRA가 지정되지 않았을 때 Control 행이 사용합니다(LoRA가 우선).\nflux-canny-controlnet-v3.safetensors 파일을 ComfyUI/models/controlnet에 넣으세요: https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_Flux1_other": {
+    "name": "Flux.1: 컨트롤 이미지용 ControlNet (포즈, 라인아트, union …)",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 Flux.1일 때 Control 행이 사용합니다.\ndiffusion_pytorch_model.safetensors 파일을 ComfyUI/models/controlnet에 넣으세요(InstantX의 union ControlNet(포즈, 깊이, canny, tile …)입니다. 이름을 바꾸세요. 예: instantx-flux-union.safetensors): https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_SDXL_depth": {
+    "name": "SDXL: 깊이 ControlNet",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 SDXL일 때 Control 행이 사용합니다.\ncontrol-lora-depth-rank128.safetensors 파일을 ComfyUI/models/controlnet에 넣으세요: https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_SDXL_canny": {
+    "name": "SDXL: canny ControlNet",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 SDXL일 때 Control 행이 사용합니다.\ncontrol-lora-canny-rank128.safetensors 파일을 ComfyUI/models/controlnet에 넣으세요: https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_SDXL_other": {
+    "name": "SDXL: 컨트롤 이미지용 ControlNet (포즈, 라인아트, union …)",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 SDXL일 때 Control 행이 사용합니다.\ndiffusion_pytorch_model_promax.safetensors 파일을 ComfyUI/models/controlnet에 넣으세요(Xinsir의 union ControlNet(포즈, 깊이, canny, 라인아트 …)입니다. 이름을 바꾸세요. 예: controlnet-union-sdxl-promax.safetensors): https://huggingface.co/xinsir/controlnet-union-sdxl-1.0/resolve/main/diffusion_pytorch_model_promax.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_SD15_depth": {
+    "name": "SD1.5: 깊이 ControlNet",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 SD1.5일 때 Control 행이 사용합니다.\ncontrol_v11f1p_sd15_depth_fp16.safetensors 파일을 ComfyUI/models/controlnet에 넣으세요: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11f1p_sd15_depth_fp16.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_SD15_canny": {
+    "name": "SD1.5: canny ControlNet",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 SD1.5일 때 Control 행이 사용합니다.\ncontrol_v11p_sd15_canny_fp16.safetensors 파일을 ComfyUI/models/controlnet에 넣으세요: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_canny_fp16.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_SD15_other": {
+    "name": "SD1.5: 컨트롤 이미지용 ControlNet (포즈, 라인아트, union …)",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 SD1.5일 때 Control 행이 사용합니다.\ncontrol_v11p_sd15_openpose_fp16.safetensors 파일을 ComfyUI/models/controlnet에 넣으세요(포즈용입니다. 라인아트, scribble, softedge … 용은 같은 저장소에 있습니다): https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_Anima_depth": {
+    "name": "Anima: 깊이 LLLite 패치",
+    "tooltip": "Anima LLLite 패치로, 모델에 붙는 작은 컨트롤 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다.\n모델이 Anima일 때 Control 행이 사용합니다.\nanima-lllite-depth-1.safetensors 파일을 ComfyUI/models/model_patches(또는 models/controlnet)에 넣으세요: https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-depth-1.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_Anima_canny": {
+    "name": "Anima: canny LLLite 패치",
+    "tooltip": "Anima LLLite 패치로, 모델에 붙는 작은 컨트롤 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다.\n모델이 Anima일 때 Control 행이 사용합니다.\nanima-lllite-lineart-1.safetensors 파일을 ComfyUI/models/model_patches(또는 models/controlnet)에 넣으세요(canny용 LLLite는 없습니다. 라인아트용이 canny와 비슷한 윤곽선을 읽습니다(canny 맵으로는 테스트되지 않음)): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-lineart-1.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_Anima_other": {
+    "name": "Anima: 컨트롤 이미지용 LLLite 패치",
+    "tooltip": "Anima LLLite 패치로, 모델에 붙는 작은 컨트롤 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다.\n모델이 Anima일 때 Control 행이 사용합니다.\nanima-lllite-pose-1.safetensors 파일을 ComfyUI/models/model_patches(또는 models/controlnet)에 넣으세요(포즈용입니다. 라인아트, scribble, 범용 'any-test-like' 패치는 같은 저장소에 있습니다): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_DA3": {
+    "name": "Depth Anything 3 모델 ('이미지'로 깊이 맵 생성)",
+    "tooltip": "ComfyUI의 Depth Anything 3입니다. '컨트롤 이미지'가 연결되지 않았을 때 '이미지'로 깊이 맵(가까움 = 흰색)을 만듭니다.\ndepth_anything_3_mono_large.safetensors 파일을 ComfyUI/models/geometry_estimation에 넣으세요: https://huggingface.co/Comfy-Org/Depth-Anything-3/resolve/main/geometry_estimation/depth_anything_3_mono_large.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Edit_LoRA_MOSS": {
+    "name": "MOSS-Image: 편집 LoRA",
+    "tooltip": "모델이 MOSS-Image일 때 Region Genie 노드가 편집 모드에서 사용하는 편집 LoRA입니다.\nEdit 행(노드의 Whole image 아래): 이 파일을 그대로 표시하고 설정합니다. 행의 ✕를 누르면 그 노드에서는 제외됩니다.\nMOSS-Image: 예를 들어 Moss-Image-Edit LoRA를 쓸 수 있으며, 파일에 따라 편집 레이아웃이 정해집니다(아래 참고).\nBrowse…: '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 LoRA를 고를 수 있습니다."
+  },
+  "RegionGenie_Edit_LoRA_Krea2": {
+    "name": "Krea 2: 편집 LoRA",
+    "tooltip": "모델이 Krea 2일 때 Region Genie 노드가 편집 모드에서 사용하는 편집 LoRA입니다.\nEdit 행(노드의 Whole image 아래): 이 파일을 그대로 표시하고 설정합니다. 행의 ✕를 누르면 그 노드에서는 제외됩니다.\nBrowse…: '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 LoRA를 고를 수 있습니다."
+  },
+  "RegionGenie_Edit_LoRA_Ideogram4": {
+    "name": "Ideogram 4: 편집 LoRA",
+    "tooltip": "모델이 Ideogram 4일 때 Region Genie 노드가 편집 모드에서 사용하는 편집 LoRA입니다.\nEdit 행(노드의 Whole image 아래): 이 파일을 그대로 표시하고 설정합니다. 행의 ✕를 누르면 그 노드에서는 제외됩니다.\nBrowse…: '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 LoRA를 고를 수 있습니다."
+  },
+  "RegionGenie_Edit_LoRA_Flux1": {
+    "name": "Flux.1: 편집 LoRA",
+    "tooltip": "모델이 Flux.1일 때 Region Genie 노드가 편집 모드에서 사용하는 편집 LoRA입니다.\nEdit 행(노드의 Whole image 아래): 이 파일을 그대로 표시하고 설정합니다. 행의 ✕를 누르면 그 노드에서는 제외됩니다.\nBrowse…: '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 LoRA를 고를 수 있습니다."
+  },
+  "RegionGenie_Edit_LoRA_Flux2": {
+    "name": "Flux.2: 편집 LoRA",
+    "tooltip": "모델이 Flux.2일 때 Region Genie 노드가 편집 모드에서 사용하는 편집 LoRA입니다.\nEdit 행(노드의 Whole image 아래): 이 파일을 그대로 표시하고 설정합니다. 행의 ✕를 누르면 그 노드에서는 제외됩니다.\nBrowse…: '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 LoRA를 고를 수 있습니다."
+  },
+  "RegionGenie_Edit_LoRA_Flux3": {
+    "name": "Flux 3: 편집 LoRA",
+    "tooltip": "모델이 Flux 3일 때 Region Genie 노드가 편집 모드에서 사용하는 편집 LoRA입니다.\nEdit 행(노드의 Whole image 아래): 이 파일을 그대로 표시하고 설정합니다. 행의 ✕를 누르면 그 노드에서는 제외됩니다.\nBrowse…: '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 LoRA를 고를 수 있습니다."
+  },
+  "RegionGenie_Edit_LoRA_Anima": {
+    "name": "Anima: 편집 LoRA",
+    "tooltip": "모델이 Anima일 때 Region Genie 노드가 편집 모드에서 사용하는 편집 LoRA입니다.\nEdit 행(노드의 Whole image 아래): 이 파일을 그대로 표시하고 설정합니다. 행의 ✕를 누르면 그 노드에서는 제외됩니다.\nBrowse…: '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 LoRA를 고를 수 있습니다."
+  },
+  "RegionGenie_Edit_LoRA_SDXL": {
+    "name": "SDXL: 편집 LoRA",
+    "tooltip": "모델이 SDXL일 때 Region Genie 노드가 편집 모드에서 사용하는 편집 LoRA입니다.\nEdit 행(노드의 Whole image 아래): 이 파일을 그대로 표시하고 설정합니다. 행의 ✕를 누르면 그 노드에서는 제외됩니다.\nBrowse…: '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 LoRA를 고를 수 있습니다."
+  },
+  "RegionGenie_Edit_LoRA_SD15": {
+    "name": "SD1.5: 편집 LoRA",
+    "tooltip": "모델이 SD1.5일 때 Region Genie 노드가 편집 모드에서 사용하는 편집 LoRA입니다.\nEdit 행(노드의 Whole image 아래): 이 파일을 그대로 표시하고 설정합니다. 행의 ✕를 누르면 그 노드에서는 제외됩니다.\nBrowse…: '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 LoRA를 고를 수 있습니다."
+  },
+  "RegionGenie_Edit_Reference_MOSS": {
+    "name": "MOSS-Image: 원본 이미지를 참조로 전달",
+    "tooltip": "켬: 편집 모드에서 원본 이미지('이미지' 입력)를 MOSS-Image에 참조 이미지로도 전달합니다(긍정 조건과 부정 조건의 reference_latents). MOSS-Image Edit 같은 편집 모델이 이를 필요로 합니다.\n끔: 잠재 데이터만으로 이미지-투-이미지를 수행합니다."
+  },
+  "RegionGenie_Edit_Reference_Krea2": {
+    "name": "Krea 2: 원본 이미지를 참조로 전달",
+    "tooltip": "켬: 편집 모드에서 원본 이미지('이미지' 입력)를 Krea 2에 참조 이미지로도 전달합니다(긍정 조건과 부정 조건의 reference_latents). Krea 2용 편집 팩이 이를 필요로 합니다.\n끔: 잠재 데이터만으로 이미지-투-이미지를 수행합니다."
+  },
+  "RegionGenie_Edit_Reference_Flux1": {
+    "name": "Flux.1: 원본 이미지를 참조로 전달",
+    "tooltip": "켬: 편집 모드에서 원본 이미지('이미지' 입력)를 Flux.1에 참조 이미지로도 전달합니다(긍정 조건과 부정 조건의 reference_latents). Flux.1 Kontext 같은 편집 모델이 이를 필요로 합니다.\n끔: 잠재 데이터만으로 이미지-투-이미지를 수행합니다.\nFlux.1 dev와 Kontext는 구별할 수 없으므로, 일반 Flux.1 dev에서는 이 설정을 끄세요."
+  },
+  "RegionGenie_Edit_Reference_Flux2": {
+    "name": "Flux.2: 원본 이미지를 참조로 전달",
+    "tooltip": "켬: 편집 모드에서 원본 이미지('이미지' 입력)를 Flux.2에 참조 이미지로도 전달합니다(긍정 조건과 부정 조건의 reference_latents). Flux.2 / Klein 같은 편집 모델이 이를 필요로 합니다.\n끔: 잠재 데이터만으로 이미지-투-이미지를 수행합니다."
+  },
+  "RegionGenie_Edit_Reference_Flux3": {
+    "name": "Flux 3: 원본 이미지를 참조로 전달",
+    "tooltip": "켬: 편집 모드에서 원본 이미지('이미지' 입력)를 Flux 3에 참조 이미지로도 전달합니다(긍정 조건과 부정 조건의 reference_latents). Flux 3 같은 편집 모델이 이를 필요로 합니다.\n끔: 잠재 데이터만으로 이미지-투-이미지를 수행합니다."
+  },
+  "RegionGenie_Edit_ReferenceSize": {
+    "name": "참조 이미지 크기 (긴 변, px; 0 = 출력 크기)",
+    "tooltip": "참조 이미지는 인코딩 전에 긴 변이 이 값이 되도록 축소됩니다(확대는 하지 않음). 클수록 느립니다."
+  },
+  "RegionGenie_Edit_MossFormat": {
+    "name": "MOSS-Image 편집 레이아웃",
+    "tooltip": "참조 이미지를 MOSS-Image에 전달하는 방식입니다(ComfyUI의 TextEncodeMOSSImageEdit 노드와 같음). 자동: ai-toolkit으로 학습한 LoRA(융합된 qkv 가중치)는 'ai-toolkit', 그 밖의 LoRA(예: Moss-Image-Edit LoRA)는 'Moss-Image-Edit'이 됩니다.",
+    "options": {
+      "Auto (from the edit LoRA file)": "자동 (편집 LoRA 파일 기준)",
+      "Moss-Image-Edit": "Moss-Image-Edit",
+      "ai-toolkit": "ai-toolkit",
+      "ai-toolkit (kv_cache off)": "ai-toolkit (kv_cache 끔)"
+    }
+  },
+  "RegionGenie_Edit_MaskGrow": {
+    "name": "편집 마스크: 확장 (px; 음수는 축소)",
+    "tooltip": "편집 마스크(편집 모드에서 샘플러가 변경할 수 있는 부분)가 영역 밖으로 이 픽셀 수만큼 확장되어, 편집 결과가 주변과 자연스럽게 섞입니다. 음수 값은 마스크를 축소합니다. 유지 영역 안으로는 확장되지 않습니다. 목록 헤더에서 자체 값을 설정하지 않은 노드에 적용됩니다."
+  },
+  "RegionGenie_Edit_MaskFeather": {
+    "name": "편집 마스크: 페더 (px)",
+    "tooltip": "편집 마스크의 가장자리를 이 픽셀 수만큼 부드럽게 합니다(확장 후 적용). 영역 자체의 페더와는 별개입니다. 목록 헤더에서 자체 값을 설정하지 않은 노드에 적용됩니다."
+  },
+  "RegionGenie_RegionalLoRAs_Feather": {
+    "name": "페더",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_RegionalLoRAs_LoraMasking": {
+    "name": "LoRA 마스킹",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다.",
+    "options": {
+      "inside the model (one pass)": "모델 내부 (단일 패스)",
+      "separate passes (classic hooks)": "개별 패스 (기존 후크 방식)"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_RegionSeparation": {
+    "name": "영역 분리",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_RegionalLoRAs_SeparateAllRegions": {
+    "name": "모든 영역 분리",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_RegionalLoRAs_ShareBackground": {
+    "name": "배경 공유",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Save_Format": {
+    "name": "형식",
+    "tooltip": "png: 무손실.\nwebp: 무손실 또는 품질 지정. 훨씬 작습니다.\njpeg: 품질 지정. 작습니다.\navif: 품질 지정. 가장 작습니다.\nexr: 16 / 32-bit 부동소수점, 씬 리니어(합성 및 HDR용. 더 작지는 않음).\n지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다.",
+    "options": {
+      "png": "png",
+      "webp": "webp",
+      "jpeg": "jpeg",
+      "avif": "avif",
+      "exr": "exr"
+    }
+  },
+  "RegionGenie_Save_PngLevel": {
+    "name": "PNG 압축",
+    "tooltip": "0-9. 모든 단계에서 무손실입니다. 높을수록 파일이 작아지고 저장이 느려집니다. 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Save_WebpLossless": {
+    "name": "WebP 무손실",
+    "tooltip": "픽셀을 그대로 보존하며, 보통 PNG보다 25-35% 작습니다. 끄면 'WebP 품질'로 정합니다. 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Save_WebpQuality": {
+    "name": "WebP 품질",
+    "tooltip": "1-100. 낮을수록 파일이 작아지고 디테일 손실이 커집니다. 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Save_JpegQuality": {
+    "name": "JPEG 품질",
+    "tooltip": "1-100. 낮을수록 파일이 작아지고 디테일 손실이 커집니다. 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Save_JpegExtension": {
+    "name": "JPEG 확장자",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다.",
+    "options": {
+      "_jpg": ".jpg",
+      "_jpeg": ".jpeg"
+    }
+  },
+  "RegionGenie_Save_JpegWorkflow": {
+    "name": "JPEG 워크플로",
+    "tooltip": "ComfyUI는 JPEG에서 워크플로를 불러올 수 없습니다.\n별도 .json 파일: 각 JPEG 옆의 작은 .json 파일에 워크플로를 저장합니다(그 파일을 ComfyUI로 드래그하면 불러옵니다).\n없음: 워크플로를 저장하지 않습니다.\nJPEG 내부 (EXIF): 다른 도구에서는 읽을 수 있지만 ComfyUI에서는 읽지 못합니다.\n지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다.",
+    "options": {
+      "sidecar _json": "별도 .json 파일",
+      "none": "없음",
+      "inside the JPEG (EXIF)": "JPEG 내부 (EXIF)"
+    }
+  },
+  "RegionGenie_Save_AvifQuality": {
+    "name": "AVIF 품질",
+    "tooltip": "1-100. 낮을수록 파일이 작아지고 디테일 손실이 커집니다. 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Save_ExrBitDepth": {
+    "name": "EXR 비트 심도",
+    "tooltip": "16-bit 부동소수점: 반정밀도이며 크기는 약 절반입니다.\n32-bit 부동소수점: 완전 정밀도입니다.\n지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다.",
+    "options": {
+      "16-bit float": "16-bit 부동소수점",
+      "32-bit float": "32-bit 부동소수점"
+    }
+  },
+  "RegionGenie_Save_ExrColorSpace": {
+    "name": "EXR 색 공간",
+    "tooltip": "들어오는 이미지의 색 공간입니다(EXR은 항상 씬 리니어).\nsRGB: sRGB로 인코딩된 Rec.709. 일반적인 설정입니다.\nHDR: HLG로 인코딩된 Rec.2020.\n리니어: 이미 씬 리니어인 Rec.709.\n리니어 ACEScg: 이미 씬 리니어인 ACEScg.\n지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다.",
+    "options": {
+      "sRGB": "sRGB",
+      "HDR": "HDR",
+      "linear": "리니어",
+      "linear ACEScg": "리니어 ACEScg"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_SeparationUntil": {
+    "name": "분리 종료",
+    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  }
+}

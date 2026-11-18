@@ -87,3 +87,10 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] A saved file dragged back onto ComfyUI loads its workflow
 
 [← Back to the README](../README.md)
+
+## 10. Languages (Chinese, Japanese, Korean, Spanish)
+
+- Settings > Language set to one of the four, page reloaded: node names in the node menu and on the nodes, input / output names, tooltips and the dropdown choices show in that language; Settings > Region Genie shows translated sections, names, tooltips and options. Checked here only in a headless browser at normal scale, not on the 4K display.
+- Longer names (Spanish, Japanese) on the nodes: nothing cut off or overlapping at the default node width, in both node modes.
+- A workflow saved in one language opens and runs unchanged in English, and the other way round.
+- The wording itself: every translation is machine-drafted. A native speaker should read at least the node names, the input names and the dropdown choices (`glossary.json` in each language folder lists them).

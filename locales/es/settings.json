@@ -1,0 +1,614 @@
+{
+  "RegionGenie_ModelFiles_Browse": {
+    "name": "Browse… para archivos de modelo",
+    "tooltip": "Desactivado (predeterminado): Un campo de archivo de modelo abre el menú de ComfyUI con los archivos de las carpetas de modelos de ComfyUI.\nActivado: Cada campo recibe además un botón de carpeta (Browse…) que selecciona un archivo en cualquier lugar del equipo de ComfyUI (se guarda con su ruta completa), en esta Configuración (cuando se vuelva a abrir el diálogo), en las filas Edit del nodo y en la ventana emergente LLM Settings. Los archivos elegidos con él siguen funcionando cuando está desactivado."
+  },
+  "RegionGenie_ModelFiles_Check": {
+    "name": "Comprobar archivos de modelo",
+    "tooltip": "Busca todos los archivos de modelo definidos en esta Configuración (Control, Modo edición, Seleccionar objeto) y en los preajustes LLM, y enumera los que ComfyUI no encuentra (movidos, renombrados o eliminados)."
+  },
+  "RegionGenie_Autocomplete_DefaultOn": {
+    "name": "Autocompletado de etiquetas activado en los nodos Region Genie nuevos",
+    "tooltip": "Valor predeterminado del interruptor 'autocomplete' en los nodos Region Genie y LoRAs regionales (los nodos en los que tú mismo ajustaste el interruptor conservan su elección). El autocompletado en sí procede de ComfyUI-Custom-Scripts (preferido cuando está habilitado) o de ComfyUI-Lora-Manager, y sigue los ajustes de ese paquete."
+  },
+  "RegionGenie_LLM_Context": {
+    "name": "Qué ve el Mejorador de prompts LLM",
+    "tooltip": "Valor predeterminado para los nodos Region Genie cuyos LLM Settings indican 'Settings default'. Con contexto, el LLM recibe también prompt_escena_positivo y los prompts de las demás regiones (para mantenerlos coherentes), pero solo reescribe ese único prompt.",
+    "options": {
+      "Only the prompt": "Solo el prompt",
+      "The prompt + the scene and the other regions": "El prompt + la escena y las demás regiones"
+    }
+  },
+  "RegionGenie_LLM_NewRegionsOn": {
+    "name": "Las regiones nuevas empiezan con el Mejorador de prompts LLM activado"
+  },
+  "RegionGenie_LLM_Default_character": {
+    "name": "Preajuste predeterminado: Personaje",
+    "tooltip": "El preajuste para los prompts de personaje en todos los nodos Region Genie cuyos LLM Settings no eligen otro."
+  },
+  "RegionGenie_LLM_Default_object": {
+    "name": "Preajuste predeterminado: Objeto",
+    "tooltip": "El preajuste para los prompts de objeto en todos los nodos Region Genie cuyos LLM Settings no eligen otro."
+  },
+  "RegionGenie_LLM_Default_text": {
+    "name": "Preajuste predeterminado: Texto",
+    "tooltip": "El preajuste para los prompts de texto en todos los nodos Region Genie cuyos LLM Settings no eligen otro."
+  },
+  "RegionGenie_LLM_Default_scene": {
+    "name": "Preajuste predeterminado: Escena",
+    "tooltip": "El preajuste para los prompts de escena en todos los nodos Region Genie cuyos LLM Settings no eligen otro."
+  },
+  "RegionGenie_LLM_EditPreset": {
+    "name": "Preajuste a editar",
+    "tooltip": "El preajuste que las filas de abajo muestran y modifican (se guarda al instante, para todos tus flujos de trabajo).\nNew: Una copia de este preajuste con un nombre nuevo.\nDelete: Lo elimina (no mientras sea uno de los predeterminados de arriba; haz clic dos veces)."
+  },
+  "RegionGenie_LLM_Preset_name": {
+    "name": "Preajuste: nombre",
+    "tooltip": "El nombre del preajuste. Pulsa Enter (o sal del campo) para renombrarlo; los predeterminados de arriba se actualizan con él."
+  },
+  "RegionGenie_LLM_Preset_llm": {
+    "name": "Preajuste: LLM",
+    "tooltip": "El LLM que reescribe los prompts.\nEl clip conectado: Se usa tal cual (sin memoria adicional).\nUn archivo: De las carpetas text_encoders de ComfyUI (o de cualquier lugar con 'Browse… para archivos de modelo' activado, Archivos de modelo); se carga una vez y se mantiene mientras está en uso."
+  },
+  "RegionGenie_LLM_Preset_llm_type": {
+    "name": "Preajuste: tipo de LLM",
+    "tooltip": "Como el 'tipo' de Cargar CLIP, para un archivo de LLM. 'auto (detect)' funciona con archivos normales de Qwen3 / Qwen3.5 / Gemma."
+  },
+  "RegionGenie_LLM_Preset_loras": {
+    "name": "Preajuste: LoRAs del LLM",
+    "tooltip": "LoRAs aplicadas solo al LLM (como Cargar LoRA (codificador de texto)); el modelo de imagen y el clip usado para el acondicionamiento no se modifican.\nCada fila: Activar / desactivar, el archivo (un clic abre el menú de ComfyUI; un botón de carpeta con 'Browse… para archivos de modelo' activado), fuerza, ✕ la elimina."
+  },
+  "RegionGenie_LLM_Preset_system_prompt": {
+    "name": "Preajuste: prompt de sistema",
+    "tooltip": "Se envía como prompt de sistema (system_prompt de Generar texto). Se ignora cuando la plantilla predeterminada del preajuste está desactivada."
+  },
+  "RegionGenie_LLM_Preset_max_length": {
+    "name": "Preajuste: max_length",
+    "tooltip": "Máximo de tokens que escribe el LLM."
+  },
+  "RegionGenie_LLM_Preset_sampling": {
+    "name": "Preajuste: muestreo",
+    "tooltip": "Activado: Muestreo con los ajustes de abajo.\nDesactivado (predeterminado): Decodificación voraz, siempre el mismo texto para la misma entrada; no se usan temperatura, top_k, top_p, min_p, las penalizaciones ni la semilla."
+  },
+  "RegionGenie_LLM_Preset_temperature": {
+    "name": "Preajuste: temperatura",
+    "tooltip": "Temperatura de muestreo.\nSolo se usa mientras el muestreo del preajuste está activado (si no, aparece atenuado)."
+  },
+  "RegionGenie_LLM_Preset_top_k": {
+    "name": "Preajuste: top_k",
+    "tooltip": "Muestrea entre los k tokens más probables (0 = todos).\nSolo se usa mientras el muestreo del preajuste está activado (si no, aparece atenuado)."
+  },
+  "RegionGenie_LLM_Preset_top_p": {
+    "name": "Preajuste: top_p",
+    "tooltip": "Muestrea entre los tokens más probables hasta alcanzar esta probabilidad total.\nSolo se usa mientras el muestreo del preajuste está activado (si no, aparece atenuado)."
+  },
+  "RegionGenie_LLM_Preset_min_p": {
+    "name": "Preajuste: min_p",
+    "tooltip": "Descarta los tokens menos probables que esta proporción del más probable.\nSolo se usa mientras el muestreo del preajuste está activado (si no, aparece atenuado)."
+  },
+  "RegionGenie_LLM_Preset_repetition_penalty": {
+    "name": "Preajuste: penalización por repetición",
+    "tooltip": "Penalización por repetir tokens (1 = ninguna).\nSolo se usa mientras el muestreo del preajuste está activado (si no, aparece atenuado)."
+  },
+  "RegionGenie_LLM_Preset_presence_penalty": {
+    "name": "Preajuste: penalización de presencia",
+    "tooltip": "Penalización para los tokens ya usados (0 = ninguna).\nSolo se usa mientras el muestreo del preajuste está activado (si no, aparece atenuado)."
+  },
+  "RegionGenie_LLM_Preset_seed": {
+    "name": "Preajuste: semilla",
+    "tooltip": "La semilla ('Run again with a new seed', en el menú de clic derecho de una región, le suma para esa región).\nSolo se usa mientras el muestreo del preajuste está activado (si no, aparece atenuado)."
+  },
+  "RegionGenie_LLM_Preset_thinking": {
+    "name": "Preajuste: pensamiento",
+    "tooltip": "Modo de pensamiento, si el modelo lo admite (el razonamiento se muestra en la descripción emergente del botón LLM, el del icono de destellos; no se usa)."
+  },
+  "RegionGenie_LLM_Preset_use_default_template": {
+    "name": "Preajuste: plantilla predeterminada",
+    "tooltip": "Usa la plantilla de chat integrada del modelo (necesaria para el prompt de sistema)."
+  },
+  "RegionGenie_LLM_Preset_mtp": {
+    "name": "Preajuste: mtp",
+    "tooltip": "Decodificación especulativa con el cabezal de predicción de múltiples tokens del modelo (no tiene efecto sin pesos MTP)."
+  },
+  "RegionGenie_LLM_CacheOnDisk": {
+    "name": "Conservar los resultados del LLM en disco entre reinicios de ComfyUI",
+    "tooltip": "Desactivado (predeterminado): Los prompts mejorados se conservan en memoria durante esta sesión, y en cada flujo de trabajo que los usó (un flujo de trabajo guardado recupera sus propios resultados al abrirse), así que volver a ejecutar un flujo de trabajo nunca necesita otra vez el LLM.\nActivado: También se guardan en <ComfyUI user dir>/region_genie/llm_cache.json, lo que solo ayuda a los flujos de trabajo encolados mediante la API sin abrirlos. Al desactivarlo se elimina ese archivo."
+  },
+  "RegionGenie_LLM_CacheDays": {
+    "name": "Olvidar los resultados del LLM tras (días; 0 = nunca)",
+    "tooltip": "Los resultados más antiguos que esto se eliminan de la caché (memoria y disco)."
+  },
+  "RegionGenie_LLM_CacheMaxEntries": {
+    "name": "Máximo de resultados del LLM que se conservan",
+    "tooltip": "Por encima de este número, se eliminan primero los resultados más antiguos (memoria y disco)."
+  },
+  "RegionGenie_Tools_Lasso": {
+    "name": "Lazo: predeterminado",
+    "tooltip": "Con qué lazo empieza el botón Lazo en todos los nodos Region Genie. Un clic derecho en el botón lo sigue cambiando durante el resto de la sesión.",
+    "options": {
+      "Lasso (straight lines)": "Lazo (líneas rectas)",
+      "Spline lasso (smooth curve)": "Lazo spline (curva suave)",
+      "Magnetic lasso (follows edges in the image)": "Lazo magnético (sigue los bordes de la imagen)"
+    }
+  },
+  "RegionGenie_Tools_LassoErase": {
+    "name": "Borrado con lazo: predeterminado",
+    "tooltip": "Con qué borrado con lazo empieza la lista del botón Borrador en todos los nodos Region Genie. Un clic derecho en el botón lo sigue cambiando durante el resto de la sesión.",
+    "options": {
+      "Lasso erase (straight lines)": "Borrado con lazo (líneas rectas)",
+      "Spline lasso erase (smooth curve)": "Borrado con lazo spline (curva suave)",
+      "Magnetic lasso erase (follows edges in the image)": "Borrado con lazo magnético (sigue los bordes de la imagen)"
+    }
+  },
+  "RegionGenie_Tools_Wand": {
+    "name": "Varita mágica: predeterminado",
+    "tooltip": "Qué selecciona en la imagen un clic con la varita mágica.\nÁrea conectada de color similar: Solo el área que rodea al clic.\nTodos los colores similares de la imagen: Todos los píxeles de ese color, estén conectados o no.\nUn clic derecho en el botón lo sigue cambiando durante la sesión.",
+    "options": {
+      "Connected area of similar color": "Área conectada de color similar",
+      "Every similar color in the image": "Todos los colores similares de la imagen"
+    }
+  },
+  "RegionGenie_Tools_WandTolerance": {
+    "name": "Varita mágica: tolerancia",
+    "tooltip": "Cuánto puede diferir un color del que se ha pulsado (0-255 por canal) y seguir seleccionándose. El campo del lienzo (arriba a la izquierda, mientras la varita está activa) lo cambia durante la sesión."
+  },
+  "RegionGenie_Tools_Fill": {
+    "name": "Relleno: predeterminado",
+    "tooltip": "Relleno, cerrando huecos pequeños: El relleno no se escapa por aberturas más estrechas que aproximadamente el doble del tamaño de hueco (el campo del lienzo mientras Relleno está activo).\nUn clic derecho en el botón lo sigue cambiando durante la sesión.",
+    "options": {
+      "Fill": "Relleno",
+      "Fill, closing small gaps": "Relleno, cerrando huecos pequeños",
+      "Gradient fill, linear": "Relleno degradado, lineal",
+      "Gradient fill, radial": "Relleno degradado, radial"
+    }
+  },
+  "RegionGenie_Tools_FillGap": {
+    "name": "Relleno: tamaño de hueco (px)",
+    "tooltip": "Relleno, cerrando huecos pequeños: Se cierran las aberturas más estrechas que aproximadamente el doble de esta cantidad de píxeles."
+  },
+  "RegionGenie_Select_Model": {
+    "name": "Modelo",
+    "tooltip": "El checkpoint de SAM 3.1 que usa la herramienta Seleccionar objeto (el soporte nativo de SAM 3 de ComfyUI). Descarga sam3.1_multiplex_fp16.safetensors de huggingface.co/Comfy-Org/sam3.1 en ComfyUI/models/checkpoints. Cuando ese archivo no está, se usa otro checkpoint de SAM 3 de esa carpeta. Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona un checkpoint en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Select_KeepLoaded": {
+    "name": "Tras una selección",
+    "tooltip": "Mantener el modelo cargado: El modelo permanece en memoria durante la sesión (unos 1.7 GB). ComfyUI lo sigue pasando de la VRAM a la RAM del sistema cuando un flujo de trabajo necesita el espacio, y lo devuelve en el siguiente clic.\nLiberar el modelo: El modelo se libera cuando aceptas o cancelas una selección (y tras 3 minutos de inactividad), así que cada nueva selección vuelve a cargarlo desde el disco.",
+    "options": {
+      "Keep the model loaded (faster next time)": "Mantener el modelo cargado (más rápido la próxima vez)",
+      "Unload the model after each selection": "Liberar el modelo tras cada selección"
+    }
+  },
+  "RegionGenie_Select_Threshold": {
+    "name": "Find all: confianza",
+    "tooltip": "Find all (texto escrito): Lo seguro que debe estar SAM de que algo coincide para seleccionarlo. Un valor más bajo encuentra más cosas (y más cosas erróneas); uno más alto, menos."
+  },
+  "RegionGenie_Text_NodeScene": {
+    "name": "En el nodo: prompts de escena",
+    "tooltip": "Tamaño del texto en px para los tres cuadros prompt_escena (0 = el tamaño propio de ComfyUI); también para los cuadros positivo / negativo del nodo LoRAs regionales. Se aplica a todos los nodos."
+  },
+  "RegionGenie_Text_NodeRegion": {
+    "name": "En el nodo: prompts de región",
+    "tooltip": "Tamaño del texto en px para los campos de prompt de la lista de regiones (0 = los 12 px habituales); también para los prompts de fila del nodo LoRAs regionales. Se aplica a todos los nodos."
+  },
+  "RegionGenie_Text_NodeText": {
+    "name": "En el nodo: texto a renderizar",
+    "tooltip": "Tamaño del texto en px para los campos de texto a renderizar de la lista de regiones (0 = los 12 px habituales). Se aplica a todos los nodos."
+  },
+  "RegionGenie_Text_PopupScene": {
+    "name": "Editor emergente: prompts de escena",
+    "tooltip": "Tamaño del texto en px para el cuadro de texto del editor emergente de los prompts de escena (A− / A+ en su cabecera también lo cambian); también para la ventana emergente del nodo LoRAs regionales de sus cuadros positivo / negativo. Se aplica a todos los nodos."
+  },
+  "RegionGenie_Text_PopupRegion": {
+    "name": "Editor emergente: prompts de región",
+    "tooltip": "Tamaño del texto en px para el cuadro Prompt del editor emergente de región (A− / A+ en su cabecera también lo cambian); también para la ventana emergente del nodo LoRAs regionales de sus prompts de fila. Se aplica a todos los nodos."
+  },
+  "RegionGenie_Text_PopupText": {
+    "name": "Editor emergente: texto a renderizar",
+    "tooltip": "Tamaño del texto en px para el cuadro Text del editor emergente de región (A− / A+ en su cabecera, con el cuadro Text en uso). Se aplica a todos los nodos."
+  },
+  "RegionGenie_Popup_PrevKey": {
+    "name": "Editor emergente: tecla para el campo de texto anterior",
+    "tooltip": "Pasa al campo de texto anterior / siguiente del nodo mientras escribes en un editor emergente, como sus botones ◀ / ▶. Predeterminado: Page Up.\nEscribe la tecla como la nombra el navegador, con los modificadores delante: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (también funcionan Left / Right / Up / Down, PgUp / PgDn y Ctrl / Alt / Shift).\nVacío: Sin tecla. Se aplica a todos los nodos Region Genie y LoRAs regionales."
+  },
+  "RegionGenie_Popup_NextKey": {
+    "name": "Editor emergente: tecla para el campo de texto siguiente",
+    "tooltip": "Pasa al campo de texto anterior / siguiente del nodo mientras escribes en un editor emergente, como sus botones ◀ / ▶. Predeterminado: Page Down.\nEscribe la tecla como la nombra el navegador, con los modificadores delante: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (también funcionan Left / Right / Up / Down, PgUp / PgDn y Ctrl / Alt / Shift).\nVacío: Sin tecla. Se aplica a todos los nodos Region Genie y LoRAs regionales."
+  },
+  "RegionGenie_Popup_EscKeeps": {
+    "name": "Esc en un editor emergente",
+    "tooltip": "Qué hace Esc en los editores de texto emergentes (todos los nodos Region Genie y LoRAs regionales).\nRestaurar el texto: Esc lo cierra y el texto queda como estaba al abrirlo (Enter y ✕ conservan los cambios).\nConservar los cambios: Esc, Enter y ✕ lo cierran y conservan el texto.",
+    "options": {
+      "put the text back": "restaurar el texto",
+      "keep the edits": "conservar los cambios"
+    }
+  },
+  "RegionGenie_Wildcards_PerField": {
+    "name": "Una semilla por campo",
+    "tooltip": "Desactivado: Todos los campos de prompt de un nodo usan la semilla de comodines del nodo tal cual (como los nodos de Impact Pack que comparten una semilla), así que el mismo comodín en dos campos suele elegir el mismo valor.\nActivado: Cada campo recibe su propia semilla, derivada de la semilla de comodines y del campo, así que eligen de forma independiente (el resultado sigue siendo el mismo con la misma semilla)."
+  },
+  "RegionGenie_Size_Mode": {
+    "name": "Tamaño de imagen: modo",
+    "tooltip": "Cómo se define el tamaño de imagen de un nodo nuevo.\nrelación de aspecto: Una relación de aspecto y megapíxeles (como el Selector de resolución de ComfyUI).\npreajustes: Un tamaño de la lista de preajustes.\nmanual: Ancho y alto escritos a mano.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor.",
+    "options": {
+      "aspect ratio": "relación de aspecto",
+      "presets": "preajustes",
+      "manual": "manual"
+    }
+  },
+  "RegionGenie_Size_Aspect": {
+    "name": "Relación de aspecto",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor.",
+    "options": {
+      "1:1 (Square)": "1:1 (Cuadrado)",
+      "2:3 (Portrait Photo)": "2:3 (Foto vertical)",
+      "3:2 (Photo)": "3:2 (Foto)",
+      "3:4 (Portrait Standard)": "3:4 (Estándar vertical)",
+      "4:3 (Standard)": "4:3 (Estándar)",
+      "9:16 (Portrait Widescreen)": "9:16 (Panorámico vertical)",
+      "16:9 (Widescreen)": "16:9 (Panorámico)",
+      "21:9 (Ultrawide)": "21:9 (Ultrapanorámico)"
+    }
+  },
+  "RegionGenie_Size_Megapixels": {
+    "name": "Megapíxeles",
+    "tooltip": "Total de megapíxeles objetivo (1.0 MP = 1024 x 1024 para cuadrado). Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Size_Multiple": {
+    "name": "Múltiplo",
+    "tooltip": "El ancho y el alto se redondean a un múltiplo de este valor. Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Size_Presets": {
+    "name": "Preajustes",
+    "tooltip": "Los tamaños de la lista de preajustes de todos los nodos Region Genie, separados por ';', cada uno como ANCHOxALTO y un nombre opcional (p. ej. '1216x832 landscape'). Es más fácil editarla desde el nodo, con la última entrada de su lista de preajustes, 'Edit list…'."
+  },
+  "RegionGenie_Main_Width": {
+    "name": "Manual: ancho",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Main_Height": {
+    "name": "Manual: alto",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Main_ImageMode": {
+    "name": "modo_de_imagen",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor.",
+    "options": {
+      "backdrop (trace over)": "plantilla (para calcar)",
+      "use as color map": "usar como mapa de color"
+    }
+  },
+  "RegionGenie_Main_MinRegionPixels": {
+    "name": "Mapa de color: píxeles mínimos de región",
+    "tooltip": "Con la imagen usada como mapa de color, un color se convierte en región cuando tiene al menos esta cantidad de píxeles planos (los bordes mezclados van a la región más cercana, las motas de otros colores quedan sin especificar). Se aplica a todos los nodos Region Genie en su próxima ejecución; el control de imagen del nodo también lo muestra mientras la imagen se usa como mapa de color."
+  },
+  "RegionGenie_Main_ImportMode": {
+    "name": "importar_json cuando el lienzo no está vacío",
+    "tooltip": "preguntar antes de reemplazar: La ejecución conserva el lienzo y el nodo pregunta (Replace canvas / Keep canvas).\nreemplazar siempre: El nuevo diseño reemplaza el lienzo de inmediato.\nUn lienzo vacío siempre se rellena. Se aplica a todos los nodos Region Genie en su próxima ejecución.",
+    "options": {
+      "ask before replacing": "preguntar antes de reemplazar",
+      "always replace": "reemplazar siempre"
+    }
+  },
+  "RegionGenie_Main_Feather": {
+    "name": "Difuminado (px, regiones vinculadas)",
+    "tooltip": "El difuminado de máscara que comparten las regiones vinculadas (las regiones empiezan vinculadas). Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Main_RegionSeparation": {
+    "name": "Separación de regiones LoRA",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Main_SeparationUntil": {
+    "name": "Separación LoRA hasta",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Main_AllRegionsApart": {
+    "name": "Mantener todas las regiones separadas (no solo las que tienen LoRAs)",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Main_ShareBackground": {
+    "name": "Mantener las regiones separadas: compartir el fondo",
+    "tooltip": "Las regiones que se mantienen separadas siguen separadas entre sí, pero no de la imagen que las rodea, de modo que la iluminación y el entorno forman una sola imagen. Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Main_AutoApart": {
+    "name": "Prompts de texto plano: mantener todas las regiones separadas automáticamente",
+    "tooltip": "Krea 2, Flux, Flux 3, Anima y SDXL / SD1.5 (y MOSS-Image en su modo estándar y en Modo edición) reciben las regiones como frases de texto plano. El nodo Region Genie coloca cada región vinculando su frase a su región en la atención (manteniendo todas las regiones separadas).\nActivado: Con uno de esos modelos en 'modelo', clip conectado y al menos un prompt de región, una ejecución mantiene todas las regiones separadas, salvo que el botón del nodo esté en 'Off for this node'.\nDesactivado: Solo las mantiene separadas un nodo cuyo botón esté activado.\nLos ajustes de abajo lo cambian para un modelo concreto. Se aplica a todos los nodos Region Genie en su próxima ejecución."
+  },
+  "RegionGenie_Main_AutoApart_MOSS": {
+    "name": "MOSS-Image (modo estándar, Modo edición): mantener todas las regiones separadas automáticamente",
+    "tooltip": "Solo para modelos MOSS-Image. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
+    "options": {
+      "As set for all models (above)": "Igual que para todos los modelos (arriba)",
+      "On": "Activado",
+      "Off": "Desactivado"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Krea2": {
+    "name": "Krea 2: mantener todas las regiones separadas automáticamente",
+    "tooltip": "Solo para modelos Krea 2. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
+    "options": {
+      "As set for all models (above)": "Igual que para todos los modelos (arriba)",
+      "On": "Activado",
+      "Off": "Desactivado"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux": {
+    "name": "Flux: mantener todas las regiones separadas automáticamente",
+    "tooltip": "Solo para modelos Flux. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
+    "options": {
+      "As set for all models (above)": "Igual que para todos los modelos (arriba)",
+      "On": "Activado",
+      "Off": "Desactivado"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux3": {
+    "name": "Flux 3: mantener todas las regiones separadas automáticamente",
+    "tooltip": "Solo para modelos Flux 3. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
+    "options": {
+      "As set for all models (above)": "Igual que para todos los modelos (arriba)",
+      "On": "Activado",
+      "Off": "Desactivado"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Anima": {
+    "name": "Anima: mantener todas las regiones separadas automáticamente",
+    "tooltip": "Solo para modelos Anima. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
+    "options": {
+      "As set for all models (above)": "Igual que para todos los modelos (arriba)",
+      "On": "Activado",
+      "Off": "Desactivado"
+    }
+  },
+  "RegionGenie_Main_AutoApart_SDXL": {
+    "name": "SDXL / SD1.5: mantener todas las regiones separadas automáticamente",
+    "tooltip": "Solo para modelos SDXL / SD1.5. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
+    "options": {
+      "As set for all models (above)": "Igual que para todos los modelos (arriba)",
+      "On": "Activado",
+      "Off": "Desactivado"
+    }
+  },
+  "RegionGenie_Main_Snap": {
+    "name": "Ajuste a la cuadrícula activado",
+    "tooltip": "Si el ajuste a la cuadrícula está activado cuando se añade un nodo Region Genie o se abre un flujo de trabajo."
+  },
+  "RegionGenie_Main_Grid": {
+    "name": "Tamaño de la cuadrícula (px de imagen)",
+    "tooltip": "El tamaño de la cuadrícula cuando se añade un nodo Region Genie o se abre un flujo de trabajo."
+  },
+  "RegionGenie_Control_MOSS": {
+    "name": "MOSS-Image: LoRA de control de color / profundidad",
+    "tooltip": "El adaptador de control de color / profundidad de MOSS-Image (una LoRA). Lee el mapa de color de las regiones y / o un mapa de profundidad, codificados con el VAE junto a la imagen (necesita 'vae').\nLa fila Control de un nodo lo usa (como LoRA sobre el modelo) con los modelos MOSS-Image.\nDescarga moss_image_color_depth_control.safetensors en ComfyUI/models/loras: https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_Flux1Depth": {
+    "name": "Flux.1: LoRA de profundidad (p. ej. flux1-depth-dev-lora)",
+    "tooltip": "La LoRA estructural de Black Forest Labs para Flux.1 [dev]. El mapa se codifica con el VAE junto a la imagen (necesita 'vae').\nLa fila Control de un nodo la usa (como LoRA sobre el modelo) con los modelos Flux.1, con la fuerza de la fila.\nDescarga flux1-depth-dev-lora.safetensors en ComfyUI/models/loras: https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/split_files/loras/flux1-depth-dev-lora.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_Flux1Canny": {
+    "name": "Flux.1: LoRA de canny (p. ej. flux1-canny-dev-lora)",
+    "tooltip": "La LoRA estructural de Black Forest Labs para Flux.1 [dev]. El mapa se codifica con el VAE junto a la imagen (necesita 'vae').\nLa fila Control de un nodo la usa (como LoRA sobre el modelo) con los modelos Flux.1, con la fuerza de la fila.\nDescarga flux1-canny-dev-lora.safetensors en ComfyUI/models/loras (la página de Black Forest Labs te pide aceptar antes la licencia de FLUX.1 [dev]): https://huggingface.co/black-forest-labs/FLUX.1-Canny-dev-lora/resolve/main/flux1-canny-dev-lora.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_Flux1_depth": {
+    "name": "Flux.1: ControlNet de profundidad",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa la fila Control cuando el modelo es Flux.1 y no hay definida ninguna LoRA de profundidad de Flux.1 (la LoRA tiene prioridad).\nDescarga flux-depth-controlnet-v3.safetensors en ComfyUI/models/controlnet: https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-depth-controlnet-v3.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_Flux1_canny": {
+    "name": "Flux.1: ControlNet de canny",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa la fila Control cuando el modelo es Flux.1 y no hay definida ninguna LoRA de canny de Flux.1 (la LoRA tiene prioridad).\nDescarga flux-canny-controlnet-v3.safetensors en ComfyUI/models/controlnet: https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_Flux1_other": {
+    "name": "Flux.1: ControlNet para tu imagen_de_control (pose, lineart, union …)",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa la fila Control cuando el modelo es Flux.1.\nDescarga diffusion_pytorch_model.safetensors en ComfyUI/models/controlnet (el ControlNet union de InstantX (pose, profundidad, canny, tile …); renómbralo, p. ej. instantx-flux-union.safetensors): https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_SDXL_depth": {
+    "name": "SDXL: ControlNet de profundidad",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa la fila Control cuando el modelo es SDXL.\nDescarga control-lora-depth-rank128.safetensors en ComfyUI/models/controlnet: https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_SDXL_canny": {
+    "name": "SDXL: ControlNet de canny",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa la fila Control cuando el modelo es SDXL.\nDescarga control-lora-canny-rank128.safetensors en ComfyUI/models/controlnet: https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_SDXL_other": {
+    "name": "SDXL: ControlNet para tu imagen_de_control (pose, lineart, union …)",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa la fila Control cuando el modelo es SDXL.\nDescarga diffusion_pytorch_model_promax.safetensors en ComfyUI/models/controlnet (el ControlNet union de Xinsir (pose, profundidad, canny, lineart …); renómbralo, p. ej. controlnet-union-sdxl-promax.safetensors): https://huggingface.co/xinsir/controlnet-union-sdxl-1.0/resolve/main/diffusion_pytorch_model_promax.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_SD15_depth": {
+    "name": "SD1.5: ControlNet de profundidad",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa la fila Control cuando el modelo es SD1.5.\nDescarga control_v11f1p_sd15_depth_fp16.safetensors en ComfyUI/models/controlnet: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11f1p_sd15_depth_fp16.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_SD15_canny": {
+    "name": "SD1.5: ControlNet de canny",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa la fila Control cuando el modelo es SD1.5.\nDescarga control_v11p_sd15_canny_fp16.safetensors en ComfyUI/models/controlnet: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_canny_fp16.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_SD15_other": {
+    "name": "SD1.5: ControlNet para tu imagen_de_control (pose, lineart, union …)",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa la fila Control cuando el modelo es SD1.5.\nDescarga control_v11p_sd15_openpose_fp16.safetensors en ComfyUI/models/controlnet (El de pose; lineart, scribble, softedge … están en el mismo repositorio): https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_Anima_depth": {
+    "name": "Anima: parche LLLite de profundidad",
+    "tooltip": "Un parche LLLite de Anima, una pequeña red de control sobre el modelo, con la fuerza y el inicio / fin de la fila Control.\nLo usa la fila Control cuando el modelo es Anima.\nDescarga anima-lllite-depth-1.safetensors en ComfyUI/models/model_patches (o models/controlnet): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-depth-1.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_Anima_canny": {
+    "name": "Anima: parche LLLite de canny",
+    "tooltip": "Un parche LLLite de Anima, una pequeña red de control sobre el modelo, con la fuerza y el inicio / fin de la fila Control.\nLo usa la fila Control cuando el modelo es Anima.\nDescarga anima-lllite-lineart-1.safetensors en ComfyUI/models/model_patches (o models/controlnet) (No hay LLLite de canny; el de lineart lee líneas de borde como las de canny (sin probar con mapas canny)): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-lineart-1.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_Anima_other": {
+    "name": "Anima: parche LLLite para tu imagen_de_control",
+    "tooltip": "Un parche LLLite de Anima, una pequeña red de control sobre el modelo, con la fuerza y el inicio / fin de la fila Control.\nLo usa la fila Control cuando el modelo es Anima.\nDescarga anima-lllite-pose-1.safetensors en ComfyUI/models/model_patches (o models/controlnet) (El de pose; lineart, scribble y un parche general 'any-test-like' están en el mismo repositorio): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_DA3": {
+    "name": "Modelo Depth Anything 3 (crea mapas de profundidad a partir de 'imagen')",
+    "tooltip": "El Depth Anything 3 de ComfyUI. Crea el mapa de profundidad (cerca = blanco) a partir de 'imagen' cuando no hay ninguna imagen_de_control conectada.\nDescarga depth_anything_3_mono_large.safetensors en ComfyUI/models/geometry_estimation: https://huggingface.co/Comfy-Org/Depth-Anything-3/resolve/main/geometry_estimation/depth_anything_3_mono_large.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Edit_LoRA_MOSS": {
+    "name": "MOSS-Image: LoRA de edición",
+    "tooltip": "La LoRA de edición que usa un nodo Region Genie en Modo edición cuando su modelo es MOSS-Image.\nFila Edit (en el nodo, bajo Whole image): Muestra y define este mismo archivo; su ✕ lo deja fuera en ese nodo.\nMOSS-Image: La LoRA Moss-Image-Edit, por ejemplo; su archivo decide el diseño de edición (ver más abajo).\nBrowse…: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona una LoRA en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Edit_LoRA_Krea2": {
+    "name": "Krea 2: LoRA de edición",
+    "tooltip": "La LoRA de edición que usa un nodo Region Genie en Modo edición cuando su modelo es Krea 2.\nFila Edit (en el nodo, bajo Whole image): Muestra y define este mismo archivo; su ✕ lo deja fuera en ese nodo.\nBrowse…: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona una LoRA en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Edit_LoRA_Ideogram4": {
+    "name": "Ideogram 4: LoRA de edición",
+    "tooltip": "La LoRA de edición que usa un nodo Region Genie en Modo edición cuando su modelo es Ideogram 4.\nFila Edit (en el nodo, bajo Whole image): Muestra y define este mismo archivo; su ✕ lo deja fuera en ese nodo.\nBrowse…: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona una LoRA en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Edit_LoRA_Flux1": {
+    "name": "Flux.1: LoRA de edición",
+    "tooltip": "La LoRA de edición que usa un nodo Region Genie en Modo edición cuando su modelo es Flux.1.\nFila Edit (en el nodo, bajo Whole image): Muestra y define este mismo archivo; su ✕ lo deja fuera en ese nodo.\nBrowse…: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona una LoRA en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Edit_LoRA_Flux2": {
+    "name": "Flux.2: LoRA de edición",
+    "tooltip": "La LoRA de edición que usa un nodo Region Genie en Modo edición cuando su modelo es Flux.2.\nFila Edit (en el nodo, bajo Whole image): Muestra y define este mismo archivo; su ✕ lo deja fuera en ese nodo.\nBrowse…: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona una LoRA en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Edit_LoRA_Flux3": {
+    "name": "Flux 3: LoRA de edición",
+    "tooltip": "La LoRA de edición que usa un nodo Region Genie en Modo edición cuando su modelo es Flux 3.\nFila Edit (en el nodo, bajo Whole image): Muestra y define este mismo archivo; su ✕ lo deja fuera en ese nodo.\nBrowse…: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona una LoRA en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Edit_LoRA_Anima": {
+    "name": "Anima: LoRA de edición",
+    "tooltip": "La LoRA de edición que usa un nodo Region Genie en Modo edición cuando su modelo es Anima.\nFila Edit (en el nodo, bajo Whole image): Muestra y define este mismo archivo; su ✕ lo deja fuera en ese nodo.\nBrowse…: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona una LoRA en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Edit_LoRA_SDXL": {
+    "name": "SDXL: LoRA de edición",
+    "tooltip": "La LoRA de edición que usa un nodo Region Genie en Modo edición cuando su modelo es SDXL.\nFila Edit (en el nodo, bajo Whole image): Muestra y define este mismo archivo; su ✕ lo deja fuera en ese nodo.\nBrowse…: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona una LoRA en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Edit_LoRA_SD15": {
+    "name": "SD1.5: LoRA de edición",
+    "tooltip": "La LoRA de edición que usa un nodo Region Genie en Modo edición cuando su modelo es SD1.5.\nFila Edit (en el nodo, bajo Whole image): Muestra y define este mismo archivo; su ✕ lo deja fuera en ese nodo.\nBrowse…: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona una LoRA en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Edit_Reference_MOSS": {
+    "name": "MOSS-Image: enviar la imagen de origen como referencia",
+    "tooltip": "Activado: En Modo edición, la imagen de origen (en 'imagen') también se entrega a MOSS-Image como imagen de referencia (reference_latents en positivo y negativo), como esperan modelos de edición como MOSS-Image Edit.\nDesactivado: Imagen a imagen solo a partir del latente."
+  },
+  "RegionGenie_Edit_Reference_Krea2": {
+    "name": "Krea 2: enviar la imagen de origen como referencia",
+    "tooltip": "Activado: En Modo edición, la imagen de origen (en 'imagen') también se entrega a Krea 2 como imagen de referencia (reference_latents en positivo y negativo), como esperan los paquetes de edición para Krea 2.\nDesactivado: Imagen a imagen solo a partir del latente."
+  },
+  "RegionGenie_Edit_Reference_Flux1": {
+    "name": "Flux.1: enviar la imagen de origen como referencia",
+    "tooltip": "Activado: En Modo edición, la imagen de origen (en 'imagen') también se entrega a Flux.1 como imagen de referencia (reference_latents en positivo y negativo), como esperan modelos de edición como Flux.1 Kontext.\nDesactivado: Imagen a imagen solo a partir del latente.\nFlux.1 dev y Kontext no se pueden distinguir; desactívalo para un Flux.1 dev normal."
+  },
+  "RegionGenie_Edit_Reference_Flux2": {
+    "name": "Flux.2: enviar la imagen de origen como referencia",
+    "tooltip": "Activado: En Modo edición, la imagen de origen (en 'imagen') también se entrega a Flux.2 como imagen de referencia (reference_latents en positivo y negativo), como esperan modelos de edición como Flux.2 / Klein.\nDesactivado: Imagen a imagen solo a partir del latente."
+  },
+  "RegionGenie_Edit_Reference_Flux3": {
+    "name": "Flux 3: enviar la imagen de origen como referencia",
+    "tooltip": "Activado: En Modo edición, la imagen de origen (en 'imagen') también se entrega a Flux 3 como imagen de referencia (reference_latents en positivo y negativo), como esperan modelos de edición como Flux 3.\nDesactivado: Imagen a imagen solo a partir del latente."
+  },
+  "RegionGenie_Edit_ReferenceSize": {
+    "name": "Tamaño de la imagen de referencia (lado largo, px; 0 = tamaño de salida)",
+    "tooltip": "La imagen de referencia se reduce a este lado largo antes de codificarse (nunca se amplía). Cuanto más grande, más lento."
+  },
+  "RegionGenie_Edit_MossFormat": {
+    "name": "Diseño de edición de MOSS-Image",
+    "tooltip": "Cómo se entrega la referencia a MOSS-Image (como en el nodo TextEncodeMOSSImageEdit de ComfyUI). Auto: Las LoRAs entrenadas con ai-toolkit (pesos qkv fusionados) reciben 'ai-toolkit'; las demás (p. ej. la LoRA Moss-Image-Edit) reciben 'Moss-Image-Edit'.",
+    "options": {
+      "Auto (from the edit LoRA file)": "Auto (según el archivo de la LoRA de edición)",
+      "Moss-Image-Edit": "Moss-Image-Edit",
+      "ai-toolkit": "ai-toolkit",
+      "ai-toolkit (kv_cache off)": "ai-toolkit (kv_cache desactivado)"
+    }
+  },
+  "RegionGenie_Edit_MaskGrow": {
+    "name": "Máscara de edición: expansión (px; negativo la reduce)",
+    "tooltip": "La máscara de edición (lo que el muestreador puede cambiar en Modo edición) se expande esta cantidad de píxeles más allá de las regiones, para que las ediciones se fundan con su entorno; los valores negativos la reducen. Nunca invade las regiones conservadas. Para los nodos cuya cabecera de lista no define su propio valor."
+  },
+  "RegionGenie_Edit_MaskFeather": {
+    "name": "Máscara de edición: difuminado (px)",
+    "tooltip": "Suaviza el borde de la máscara de edición esta cantidad de píxeles (después de expandirla), con independencia del difuminado propio de las regiones. Para los nodos cuya cabecera de lista no define su propio valor."
+  },
+  "RegionGenie_RegionalLoRAs_Feather": {
+    "name": "difuminado",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_RegionalLoRAs_LoraMasking": {
+    "name": "enmascarado_lora",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor.",
+    "options": {
+      "inside the model (one pass)": "dentro del modelo (una pasada)",
+      "separate passes (classic hooks)": "pasadas separadas (ganchos clásicos)"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_RegionSeparation": {
+    "name": "separación_de_regiones",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_RegionalLoRAs_SeparateAllRegions": {
+    "name": "separar_todas_las_regiones",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_RegionalLoRAs_ShareBackground": {
+    "name": "compartir_fondo",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Save_Format": {
+    "name": "formato",
+    "tooltip": "png: Sin pérdidas.\nwebp: Sin pérdidas o con una calidad, mucho más pequeño.\njpeg: Con una calidad, pequeño.\navif: Con una calidad, el más pequeño.\nexr: 16 / 32-bit flotante, lineal de escena (para composición y HDR; no es más pequeño).\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor.",
+    "options": {
+      "png": "png",
+      "webp": "webp",
+      "jpeg": "jpeg",
+      "avif": "avif",
+      "exr": "exr"
+    }
+  },
+  "RegionGenie_Save_PngLevel": {
+    "name": "Compresión PNG",
+    "tooltip": "0-9, sin pérdidas en todos los niveles. Más alto = archivo más pequeño, guardado más lento. Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Save_WebpLossless": {
+    "name": "WebP sin pérdidas",
+    "tooltip": "Los píxeles exactos, normalmente un 25-35% más pequeño que PNG; desactivado: Decide Calidad WebP. Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Save_WebpQuality": {
+    "name": "Calidad WebP",
+    "tooltip": "1-100. Más bajo = archivo más pequeño, más detalle perdido. Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Save_JpegQuality": {
+    "name": "Calidad JPEG",
+    "tooltip": "1-100. Más bajo = archivo más pequeño, más detalle perdido. Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Save_JpegExtension": {
+    "name": "Extensión JPEG",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor.",
+    "options": {
+      "_jpg": ".jpg",
+      "_jpeg": ".jpeg"
+    }
+  },
+  "RegionGenie_Save_JpegWorkflow": {
+    "name": "Flujo de trabajo JPEG",
+    "tooltip": "ComfyUI no puede cargar un flujo de trabajo desde un JPEG.\n.json adjunto: El flujo de trabajo en un pequeño archivo .json junto a cada JPEG (arrastra ese archivo a ComfyUI para cargarlo).\nninguno: Sin flujo de trabajo.\ndentro del JPEG (EXIF): Legible por otras herramientas, no por ComfyUI.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor.",
+    "options": {
+      "sidecar _json": ".json adjunto",
+      "none": "ninguno",
+      "inside the JPEG (EXIF)": "dentro del JPEG (EXIF)"
+    }
+  },
+  "RegionGenie_Save_AvifQuality": {
+    "name": "Calidad AVIF",
+    "tooltip": "1-100. Más bajo = archivo más pequeño, más detalle perdido. Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Save_ExrBitDepth": {
+    "name": "Profundidad de bits EXR",
+    "tooltip": "16-bit flotante: Media precisión, aproximadamente la mitad de tamaño.\n32-bit flotante: Precisión completa.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor.",
+    "options": {
+      "16-bit float": "16-bit flotante",
+      "32-bit float": "32-bit flotante"
+    }
+  },
+  "RegionGenie_Save_ExrColorSpace": {
+    "name": "Espacio de color EXR",
+    "tooltip": "El espacio de color de las imágenes que entran (el EXR siempre es lineal de escena).\nsRGB: Rec.709 codificado en sRGB, lo habitual.\nHDR: Rec.2020 codificado en HLG.\nlineal: Ya es Rec.709 lineal de escena.\nlineal ACEScg: Ya es ACEScg lineal de escena.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor.",
+    "options": {
+      "sRGB": "sRGB",
+      "HDR": "HDR",
+      "linear": "lineal",
+      "linear ACEScg": "lineal ACEScg"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_SeparationUntil": {
+    "name": "separación_hasta",
+    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  }
+}

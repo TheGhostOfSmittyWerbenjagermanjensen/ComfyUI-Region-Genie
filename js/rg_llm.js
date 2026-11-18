@@ -427,7 +427,7 @@ export async function openLlmSettings(anchor, host) {
         // as Generate Text: with sampling off these are hidden and not used (greedy decoding, no seed)
         function syncSampling() { for (const i of sampled) i.__label.style.display = draft.sampling ? "" : "none"; }
         syncSampling();
-        chk("thinking", "thinking", "Thinking mode, if the model supports it (the reasoning is shown in the sparkles button's tooltip, not used)");
+        chk("thinking", "thinking", "Thinking mode, if the model supports it (the reasoning is shown in the tooltip of the LLM button, the one with the sparkles icon; it is not used)");
         chk("use_default_template", "default template", "Use the model's built-in chat template (needed for the system prompt)");
         const mtpL = mk("label"); mtpL.title = "Speculative decoding with the model's multi-token-prediction head (no effect without MTP weights)";
         const mtpSel = mk("select"); for (const m of MTP) mtpSel.append(opt(m, m)); mtpSel.value = draft.mtp;

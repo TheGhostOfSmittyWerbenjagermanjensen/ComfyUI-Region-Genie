@@ -598,9 +598,9 @@ export const LLM_FIELDS = [
     ["name", "Preset: name", "The preset's name. Press Enter (or leave the field) to rename it; the defaults above follow."],
     ["llm", "Preset: LLM", "The LLM that rewrites the prompts.\nThe connected clip: Used as it is (no extra memory).\n"
         + "A file: From ComfyUI's text_encoders folders (or anywhere with 'Browse… for model files' on, Model files); loaded once and kept while in use."],
-    ["llm_type", "Preset: LLM type", "As the 'type' of Load CLIP, for an LLM file. Auto works for plain Qwen3 / Qwen3.5 / Gemma files."],
+    ["llm_type", "Preset: LLM type", "As the 'type' of Load CLIP, for an LLM file. 'auto (detect)' works for plain Qwen3 / Qwen3.5 / Gemma files."],
     ["loras", "Preset: LLM LoRAs", "LoRAs applied to the LLM only (like Load LoRA (Text Encoder)); the image model and the clip "
-        + "used for conditioning are not changed. \nEach row: On / off, the file (a click opens ComfyUI's menu; a folder button with 'Browse… for model files' on), strength, ✕ removes it."],
+        + "used for conditioning are not changed.\nEach row: On / off, the file (a click opens ComfyUI's menu; a folder button with 'Browse… for model files' on), strength, ✕ removes it."],
     ["system_prompt", "Preset: system prompt", "Sent as the system prompt (Generate Text's system_prompt). Ignored when the preset's default template is off."],
     ["max_length", "Preset: max_length", "Most tokens the LLM writes."],
     ["sampling", "Preset: sampling", "On: Sampling with the settings below.\nOff (default): Greedy decoding, always the same text for "
@@ -612,7 +612,7 @@ export const LLM_FIELDS = [
     ["repetition_penalty", "Preset: repetition_penalty", "Penalty for repeating tokens (1 = none)." + SAMPLED],
     ["presence_penalty", "Preset: presence_penalty", "Penalty for tokens already used (0 = none)." + SAMPLED],
     ["seed", "Preset: seed", "The seed (a region's right-click 'Run again with a new seed' adds to it for that region)." + SAMPLED],
-    ["thinking", "Preset: thinking", "Thinking mode, if the model supports it (the reasoning is shown in the sparkles button's tooltip, not used)."],
+    ["thinking", "Preset: thinking", "Thinking mode, if the model supports it (the reasoning is shown in the tooltip of the LLM button, the one with the sparkles icon; it is not used)."],
     ["use_default_template", "Preset: default template", "Use the model's built-in chat template (needed for the system prompt)."],
     ["mtp", "Preset: mtp", "Speculative decoding with the model's multi-token-prediction head (no effect without MTP weights)."],
 ];
@@ -1644,7 +1644,7 @@ const SETTINGS = [
             id: SET.filePickers, name: "Browse… for model files", type: "boolean", defaultValue: false,
             tooltip: "Off (default): A model-file field opens ComfyUI's menu of the files in ComfyUI's model folders.\nOn: Each "
                 + "field also gets a folder button (Browse…) that picks a file anywhere on the ComfyUI machine (saved by its full "
-                + "path), in these Settings (once the dialog is opened again), on the node's Edit rows and in the LLM settings. "
+                + "path), in these Settings (once the dialog is opened again), on the node's Edit rows and in the LLM Settings pop-up. "
                 + "Files picked with it keep working when it is off.",
             category: CAT("Model files", "1 browse"),
         },
@@ -1677,7 +1677,7 @@ const SETTINGS = [
         // round 19: the presets (as in the node's LLM settings pop-up), one row per field
         ...[["character", "Character"], ["object", "Object"], ["text", "Text"], ["scene", "Scene"]].map(([t, label], i) => ({
             id: `RegionGenie.LLM.Default.${t}`, name: `Default preset: ${label}`, type: llmRowType("default." + t), defaultValue: "",
-            tooltip: `The preset for ${label.toLowerCase()} prompts in every Region Genie node whose LLM settings don't choose another.`,
+            tooltip: `The preset for ${label.toLowerCase()} prompts in every Region Genie node whose LLM Settings don't choose another.`,
             category: CAT("LLM Prompt Enhancer", "2a default " + i),
         })),
         {
@@ -1754,7 +1754,7 @@ const SETTINGS = [
             id: SET.toolFill, name: "Fill: default", type: "combo", defaultValue: "normal",
             options: [{ text: "Fill", value: "normal" }, { text: "Fill, closing small gaps", value: "gaps" },
                       { text: "Gradient fill, linear", value: "linear" }, { text: "Gradient fill, radial", value: "radial" }],
-            tooltip: "Closing small gaps: The fill doesn't leak out through openings narrower than about twice the gap size "
+            tooltip: "Fill, closing small gaps: The fill doesn't leak out through openings narrower than about twice the gap size "
                 + "(the field on the canvas while Fill is active).\nRight-clicking the button still switches it for the session.",
             category: CAT("Canvas tools", "5 fill"),
             onChange: (v) => toolChanged("fill", v),
@@ -1778,9 +1778,9 @@ const SETTINGS = [
             id: SET.samKeep, name: "After a selection", type: "combo", defaultValue: "keep loaded",
             options: [{ text: "Keep the model loaded (faster next time)", value: "keep loaded" },
                 { text: "Unload the model after each selection", value: "unload" }],
-            tooltip: "Keep loaded: The model stays in memory for the session (about 1.7 GB). ComfyUI still moves it out of "
+            tooltip: "Keep the model loaded: The model stays in memory for the session (about 1.7 GB). ComfyUI still moves it out of "
                 + "VRAM into system RAM when a workflow needs the room, and back on the next click.\n"
-                + "Unload: The model is freed when you accept or cancel a selection (and after 3 idle minutes), so each new "
+                + "Unload the model: The model is freed when you accept or cancel a selection (and after 3 idle minutes), so each new "
                 + "selection loads it from disk again.",
             category: CAT("Select object", "2 keep"),
         },
@@ -1842,18 +1842,18 @@ const SETTINGS = [
             id: SET.cmMinPixels, name: "Color map: min region pixels", type: "number", defaultValue: 64, attrs: { min: 1, max: 1000000, step: 1 },
             tooltip: "With the image used as a color map, a color becomes a region when it has at least this many flat pixels "
                 + "(blended edges go to the nearest region, specks of other colors become unspecified). Applies to every Region Genie node at its next run; "
-                + "the node's image control shows it too while 'color map' is chosen.",
+                + "the node's image control shows it too while the image is used as a color map.",
             category: CAT("Region Genie node", "04 min"),
         },
         {
             id: SET.cmImportMode, name: "import_json when the canvas isn't empty", type: "combo", defaultValue: "ask before replacing",
             options: ["ask before replacing", "always replace"],
-            tooltip: "Ask before replacing: The run keeps the canvas and the node asks (Replace canvas / Keep canvas).\n"
-                + "Always replace: The new layout replaces the canvas right away.\n"
+            tooltip: "ask before replacing: The run keeps the canvas and the node asks (Replace canvas / Keep canvas).\n"
+                + "always replace: The new layout replaces the canvas right away.\n"
                 + "An empty canvas is always filled. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "05 import"),
         },
-        { id: SET.cmFeather, name: "Feather (px, linked regions)", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "06 feather") },
+        { id: SET.cmFeather, name: "Feather (px, linked regions)", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: "The mask feather that linked regions share (regions start linked). " + NEW_NODES, category: CAT("Region Genie node", "06 feather") },
         { id: SET.cmSeparation, name: "LoRA region separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "07 separation") },
         { id: SET.cmUntil, name: "LoRA separation until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "08 until") },
         { id: SET.cmAllRegions, name: "Keep all regions apart (not only those with LoRAs)", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Region Genie node", "085 all regions") },
@@ -1867,7 +1867,7 @@ const SETTINGS = [
             id: SET.cmAutoApart, name: "Plain-text prompts: keep all regions apart automatically", type: "boolean", defaultValue: true,
             tooltip: "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get "
                 + "the regions as plain sentences. The Region Genie node places each region by tying its sentence to its "
-                + "region in attention ('keep all regions apart').\n"
+                + "region in attention (keeping all regions apart).\n"
                 + "On: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, "
                 + "unless the node's button is set to 'Off for this node'.\n"
                 + "Off: Only a node whose button is on keeps them apart.\n"
@@ -1880,8 +1880,8 @@ const SETTINGS = [
             tooltip: `For ${fam} models only. 'As set for all models' follows the setting above.`,
             category: CAT("Region Genie node", "087 auto apart " + i),
         })),
-        { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
-        { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "When a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
+        { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "Whether snap to grid is on when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
+        { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "The grid size when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
             // the file field: ComfyUI's menu on the model folders (round 23), Browse… with SET.filePickers
             id: SET.control + "." + key, name, type: fileSettingType(MODEL_ROOTS, CONTROL_NONE, SET.control + "." + key, folder), defaultValue: CONTROL_NONE,
@@ -1899,9 +1899,10 @@ const SETTINGS = [
         ...EDIT_MODELS.filter((m) => m[2]).map(([name, key], i) => ({
             id: SET.editRef + "." + key, name: `${name}: send the source image as a reference`, type: "boolean", defaultValue: true,
             tooltip: `On: In Edit Mode, the source image (on 'image') is also given to ${name} as a reference image `
-                + "(reference_latents on positive and negative), as edit models such as "
-                + ({ MOSS: "MOSS-Image Edit", Krea2: "Krea 2 edit packs", Flux1: "Flux.1 Kontext", Flux2: "Flux.2 / Klein", Flux3: "Flux 3" }[key])
-                + " expect.\nOff: Image-to-image from the latent only."
+                + "(reference_latents on positive and negative), as "
+                + ({ MOSS: "edit models such as MOSS-Image Edit expect", Krea2: "the edit packs for Krea 2 expect", Flux1: "edit models such as Flux.1 Kontext expect",
+                     Flux2: "edit models such as Flux.2 / Klein expect", Flux3: "edit models such as Flux 3 expect" }[key])
+                + ".\nOff: Image-to-image from the latent only."
                 + (key === "Flux1" ? "\nFlux.1 dev and Kontext can't be told apart; turn this off for plain Flux.1 dev." : ""),
             category: CAT("Edit Mode", "2 ref " + i),
         })),

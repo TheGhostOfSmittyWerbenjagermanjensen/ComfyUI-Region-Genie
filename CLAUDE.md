@@ -7,7 +7,7 @@ Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the d
 ## Layout
 
 - Python nodes and server routes at the top level (`__init__.py` registers them); every `.js` file in `js/` (`WEB_DIRECTORY`).
-- `region_genie.py` / `js/region_genie.js` + `js/editor/*.js`: the main node and its canvas editor (the editor is split into parts that share one object, `E`: read the header of `js/editor/parts.js` first). `regional_lora.py`: the regional LoRA engine. `region_select.py`: Select object (SAM 3.1). `llm_enhance.py`: LLM Prompt Enhancer. `wildcards.py`: Impact Pack wildcards. `control.py`: Control (ControlNet / control LoRAs). `save_image.py` / `js/save_image.js`: Save Image (Region Genie). `js/rg_shared.js`: icons, Settings, shared helpers.
+- `region_genie.py` / `js/region_genie.js` + `js/editor/*.js`: the main node and its canvas editor (the editor is split into parts that share one object, `E`: read the header of `js/editor/parts.js` first). `regional_lora.py`: the regional LoRA engine. `region_select.py`: Select object (SAM 3.1). `llm_enhance.py`: LLM Prompt Enhancer. `wildcards.py`: Impact Pack wildcards. `control.py`: Control (ControlNet / control LoRAs). `save_image.py` / `js/save_image.js`: Save Image (Region Genie). `js/rg_shared.js`: icons, Settings, shared helpers. `locales/<language>/`: translations of node texts and Settings (read `locales/README.md`); `js/rg_i18n.js`: translated dropdown choices.
 - `tests/`: see `tests/README.md`. There is no GPU in cloud sessions; tests use stubs, CPU, and a random-weight SAM fixture.
 
 ## Working agreements with the owner
@@ -28,6 +28,7 @@ GitHub Actions (`.github/workflows/tests.yml`) runs the syntax checks, `tests/ru
 
 - `node --check --input-type=module < js/<file>.js` for every changed JS file (also in `js/editor/`); `python3 -m py_compile` for Python.
 - `tests/run_py.sh`; `tests/run_ui.sh` when the editor changed; `tests/test_select.py` when `region_select.py` changed; `tests/test_control.py` when `control.py` changed; `tests/real_save_image.cjs [vue]` when the save node changed; `tests/real_tooltips.cjs [vue]` when a tooltip changed; `tests/real_settings.cjs` when a Setting changed; `tests/real_llm_settings.cjs [vue]` when the LLM settings (pop-up or Settings rows) changed.
+- When a node text (name, input, output, tooltip, dropdown choice) or a Setting changed: `node tests/i18n_extract.cjs` (rewrites the English reference `tests/i18n_en/`), `python3 tests/test_i18n.py --todo` lists exactly the entries whose English is new or changed: translate only those in every `locales/<language>/` (never re-translate or re-review the rest), `python3 tests/test_i18n.py --done`, then `tests/real_i18n.cjs [vue]` (restart ComfyUI first: it reads locale files at start).
 
 ## Never commit
 

@@ -1,0 +1,476 @@
+{
+  "Region-Genie_Main": {
+    "display_name": "Region Genie ✨",
+    "inputs": {
+      "width": {
+        "name": "宽度",
+        "tooltip": "输出尺寸。画布随之变化，连接到其他节点时也一样。"
+      },
+      "height": {
+        "name": "高度"
+      },
+      "scene_prompt_positive": {
+        "name": "场景正面提示词",
+        "tooltip": "整个场景的描述。\nMOSS JSON：概要描述（summary caption）。\nIdeogram JSON：high_level_description。\n文本：第一句。"
+      },
+      "scene_prompt_negative": {
+        "name": "场景负面提示词",
+        "tooltip": "负面提示词，用所连接的 clip 编码后作为“负面条件”输出（同“CLIP文本编码”）。"
+      },
+      "image_mode": {
+        "name": "图像模式",
+        "tooltip": "所连接图像的用途。\n底图（用于描摹）：显示在画布下方，供描摹。\n用作颜色图：直接作为颜色图（其颜色成为区域；绘制的内容叠加在上面）。"
+      },
+      "min_region_pixels": {
+        "name": "区域最小像素",
+        "tooltip": "仅用于“用作颜色图”。一种颜色至少有这么多纯色像素（在图像原始尺寸下，与上下左右 4 个相邻像素都相同的像素）时才成为区域。混合的边缘归入最近的区域；其他颜色的零星杂点成为未指定。在 设置 > Region Genie > Region Genie 节点 中设定（编辑器每次运行都会发送该值）；此隐藏值仅作后备。"
+      },
+      "paint_data": {
+        "name": "绘制数据"
+      },
+      "model": {
+        "name": "模型",
+        "tooltip": "用于区域上所设 LoRA 的 MOSS-Image、Krea 2、Ideogram 4、Flux、Anima 或 SDXL / SD1.5 模型（“Whole image”的 LoRA 可用任意模型）。“模型”输出即此模型，其中每个 LoRA 只在自己的区域内起作用；请将它连接到采样器。节点的模型下拉框为 auto 时，它还决定提示词格式。"
+      },
+      "clip": {
+        "name": "clip",
+        "tooltip": "可选。模型的文本编码器。用于编码“正面条件”和“负面条件”，并让每个区域 LoRA 也作用于其所在区域的描述（触发词）。"
+      },
+      "vae": {
+        "name": "vae",
+        "tooltip": "编辑模式：为“Latent”输出编码源图像（“图像”输入），并为需要参考图像的模型提供参考图像。\nControl：为 MOSS-Image 的控制 LoRA 以及 Flux.1 的深度 / canny LoRA 编码控制图。\n未连接模型时，它还决定“Latent”的格式。"
+      },
+      "image": {
+        "name": "图像",
+        "tooltip": "可选。\n生成模式：供描摹的底图，或直接作为颜色图（见“图像模式”）。\n编辑模式：要修改的图片。\nControl：未连接“控制图像”时，由它生成深度图和 canny 图。"
+      },
+      "size_from_image": {
+        "name": "尺寸来自图像",
+        "tooltip": "从此图像获取宽度 / 高度。优先于“尺寸来自Latent”和宽度 / 高度控件。"
+      },
+      "size_from_latent": {
+        "name": "尺寸来自Latent",
+        "tooltip": "从此 Latent 获取宽度 / 高度（自动识别：MOSS-Image / Flux.2 的 Latent 为 16 倍，SD / SDXL / Flux.1 为 8 倍）。"
+      },
+      "import_mode": {
+        "name": "导入模式",
+        "tooltip": "画布上已有图层时，新的“导入JSON”如何处理。\n替换前询问：节点先询问（本次运行保留画布）。\n始终替换：新布局立即替换画布。\n空画布总是会被填入。在 设置 > Region Genie > Region Genie 节点 中设定（编辑器每次运行都会发送该值）；此隐藏值仅作后备。"
+      },
+      "scene_prompt_background": {
+        "name": "场景背景提示词",
+        "tooltip": "仅 Ideogram 4。区域背后的背景 / 环境（地面、地板、天空、房间……），即其描述 JSON 所要求的“background”。仅在模型为 Ideogram 4 时显示；其他模型不使用。"
+      },
+      "prompt_format": {
+        "name": "提示词格式",
+        "tooltip": "隐藏（为 API 提示词和旧工作流保留）。“提示词”和“正面条件”的格式由节点的模型下拉框决定。\n自动：跟随所连接的模型，其次是 clip，再其次是“提示词”所连接的文本编码器。"
+      },
+      "mode": {
+        "name": "模式",
+        "tooltip": "生成：一张新图像。\n编辑：“图像”输入上的图像是要修改的源图像（图生图）。“Latent”即该图像（需连接 vae），需要参考图像的模型会在“正面条件” / “负面条件”上得到它，并使用 Edit 行的 LoRA（在设置中为该模型设定的那个，以及用 ＋Edit 添加的）。"
+      },
+      "edit_area": {
+        "name": "编辑范围",
+        "tooltip": "编辑模式：哪些部分可以改变。\n仅区域：“Latent”带有设为更改的区域的遮罩（类似局部重绘）；其余部分保持不变。\n整张图像：除设为保留的区域外全部可变（没有保留区域时不带遮罩）；改变多少由采样器的降噪决定。\n遮罩的扩展 / 羽化在区域列表的标题栏中设置。"
+      },
+      "import_json": {
+        "name": "导入JSON",
+        "tooltip": "工作流运行时加载到编辑器中的布局。可以是用 Export 保存的文件（例如通过 Load Text 节点）、MOSS-Image 布局 JSON、Ideogram 描述 JSON / 元素，或边界框。每个新的“导入JSON”只使用一次；之后所做的编辑会保留。"
+      },
+      "control_image": {
+        "name": "控制图像",
+        "tooltip": "可选。供 Control 行使用的控制图（深度、canny、姿态、线稿……来自任意预处理器）；除“color map”外的每一行都使用它。未连接时，canny 图和深度图由“图像”生成（深度：使用 设置 > Region Genie > 控制 中设定的 Depth Anything 3 模型）。"
+      },
+      "width_in": {
+        "name": "宽度输入",
+        "tooltip": "可选。来自其他节点的图像宽度。它会覆盖顶部的尺寸行（“尺寸来自图像”和“尺寸来自Latent”仍然优先）。"
+      },
+      "height_in": {
+        "name": "高度输入",
+        "tooltip": "可选。来自其他节点的图像高度。它会覆盖顶部的尺寸行（“尺寸来自图像”和“尺寸来自Latent”仍然优先）。"
+      },
+      "wildcard_seed": {
+        "name": "通配符种子",
+        "tooltip": "提示词字段中通配符的种子（ComfyUI Impact Pack 的 __name__ 和 {'{'}a{'|'}b{'}'} 语法）。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "模型",
+        "tooltip": "所连接的模型加上 LoRA：“Whole image”的 LoRA 合并进模型，各区域的 LoRA 只在其区域内起作用（单次推理；MOSS-Image、Krea 2、Ideogram 4、Flux、Anima 或 SDXL / SD1.5）。将它连接到采样器，并以“正面条件”作为提示词。未设置 LoRA、区域未分离且未使用 Anima 的 Control 行时，模型保持不变。"
+      },
+      "1": {
+        "name": "正面条件",
+        "tooltip": "用所连接的 clip 编码的“提示词”，并附带编辑模式的参考图像和 Control 行。未连接 clip 时为空。"
+      },
+      "2": {
+        "name": "负面条件",
+        "tooltip": "用所连接的 clip 编码的“场景负面提示词”（同“CLIP文本编码”），即给采样器的负面提示词。未连接 clip 时为空。"
+      },
+      "3": {
+        "name": "Latent",
+        "tooltip": "给采样器的 Latent。\n生成：画布尺寸的空 Latent（格式随所连接的模型）。\n编辑：画布尺寸的源图像（“图像”输入，用 vae 编码），带有可改变部分的遮罩（设为更改的区域，或除保留区域外的全部；按区域列表标题栏中的设置扩展和羽化）。将采样器的降噪设为小于 1 可保留更多源图像的内容。"
+      },
+      "4": {
+        "name": "提示词",
+        "tooltip": "文本形式的提示词，采用模型的格式。\nMOSS-Image：布局 JSON（在标准模式下、没有区域时以及编辑模式下改为纯文本）。\nIdeogram 4：描述 JSON。\n其他模型：纯文本（先是场景，然后是各区域的提示词）。\n格式由节点的模型下拉框选择；为 auto 时：依次按所连接的模型、clip、此输出所连接的文本编码器决定。该 JSON 也可用作 MOSS-Image Prompt Builder KJ 或 (Deno) Ideogram Director 的 import_json。\n纯文本不包含区域的位置：节点上的分离所有区域按钮（需要模型和 clip）会把每个区域的句子绑定到它的区域。"
+      },
+      "5": {
+        "name": "颜色图",
+        "tooltip": "纯色的区域图（黑色 = 未指定），例如用于“MOSS-Image 颜色/深度控制”。带调色板的区域以其调色板的第一种颜色显示。"
+      },
+      "6": {
+        "name": "遮罩组",
+        "tooltip": "每个有像素的区域一个遮罩，按区域顺序组成批次。按各区域的设置羽化；渐变填充会使其渐隐。"
+      },
+      "7": {
+        "name": "边界框",
+        "tooltip": "每个区域的紧贴像素边界框：用于 MOSS-Image Prompt Builder KJ、“创建边界框”、“边界框转遮罩”。"
+      },
+      "8": {
+        "name": "元素",
+        "tooltip": "包含各区域提示词和类型的元素：用于“MOSS-Image 布局提示词”（element）、“创建边界框”、“边界框转遮罩”。"
+      },
+      "9": {
+        "name": "角色框",
+        "tooltip": "角色区域的编号（例如“1, 3”）：用于“MOSS-Image 布局提示词”的 character_boxes。"
+      },
+      "10": {
+        "name": "区域信息",
+        "tooltip": "各区域（索引、颜色、边界框、提示词）、提示词格式，以及编辑模式、LoRA 和 Control 所做的处理。以 NOTE 开头的行说明省略了什么以及原因。"
+      },
+      "11": {
+        "name": "宽度",
+        "tooltip": "输出宽度。"
+      },
+      "12": {
+        "name": "高度",
+        "tooltip": "输出高度。"
+      }
+    }
+  },
+  "Region-Genie_MaskPicker": {
+    "display_name": "遮罩选择器 ✨",
+    "inputs": {
+      "masks": {
+        "name": "遮罩组",
+        "tooltip": "一批遮罩，例如 Region Genie 节点的“遮罩组”输出。"
+      },
+      "index": {
+        "name": "索引",
+        "tooltip": "哪个遮罩送到“遮罩”和“提示词”输出。运行一次后，标签会显示有效范围；更大的值仍可选择。"
+      },
+      "feather": {
+        "name": "羽化",
+        "tooltip": "将遮罩边缘柔化这么多像素（宽度为该值 2 倍的线性渐变，以边缘为中心）。位于画布边界上的边缘保持硬边，除非开启“羽化画布边缘”。"
+      },
+      "invert": {
+        "name": "反转",
+        "tooltip": "开启：遮罩被反转（除框 / 区域以外的部分为白色）。"
+      },
+      "feather_canvas_edges": {
+        "name": "羽化画布边缘",
+        "tooltip": "关闭：贴着图像边界的遮罩边缘保持硬边。\n开启：它们像其他边缘一样向边界渐隐。"
+      },
+      "elements": {
+        "name": "元素",
+        "tooltip": "遮罩对应的提示词，顺序相同：Region Genie 节点的“元素”（或其“提示词”，当它是 MOSS 或 Ideogram JSON 时），或“边界框转遮罩”节点能读取的任何布局。"
+      },
+      "size_from_image": {
+        "name": "尺寸来自图像",
+        "tooltip": "将遮罩缩放到此图像的尺寸。优先于“尺寸来自Latent”。"
+      },
+      "size_from_latent": {
+        "name": "尺寸来自Latent",
+        "tooltip": "将遮罩缩放到此 Latent 对应的图像尺寸（MOSS-Image / Flux.2 的 Latent 为 16 倍，SD / SDXL / Flux.1 为 8 倍）。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "遮罩",
+        "tooltip": "由“索引”选中的遮罩。"
+      },
+      "1": {
+        "name": "合并遮罩",
+        "tooltip": "所有遮罩的并集，合为一个遮罩。"
+      },
+      "2": {
+        "name": "遮罩批次",
+        "tooltip": "所有遮罩（按设置缩放 / 羽化 / 反转），组成批次。"
+      },
+      "3": {
+        "name": "宽度",
+        "tooltip": "遮罩宽度。"
+      },
+      "4": {
+        "name": "高度",
+        "tooltip": "遮罩高度。"
+      },
+      "5": {
+        "name": "遮罩信息",
+        "tooltip": "所有遮罩的文本列表：各自的索引、边界框（x、y、尺寸）和提示词。"
+      },
+      "6": {
+        "name": "提示词",
+        "tooltip": "由“索引”选中的遮罩的提示词。未连接元素时为空。"
+      }
+    }
+  },
+  "Region-Genie_BBoxToMasks": {
+    "display_name": "边界框转遮罩 ✨",
+    "inputs": {
+      "index": {
+        "name": "索引",
+        "tooltip": "哪个边界框送到“遮罩”和“提示词”输出。运行一次后，标签会显示有效范围；更大的值仍可选择，供以后添加的边界框使用。"
+      },
+      "width": {
+        "name": "宽度",
+        "tooltip": "画布宽度。连接了“尺寸来自图像”或“尺寸来自Latent”时忽略。"
+      },
+      "height": {
+        "name": "高度",
+        "tooltip": "画布高度。连接了“尺寸来自图像”或“尺寸来自Latent”时忽略。"
+      },
+      "feather": {
+        "name": "羽化",
+        "tooltip": "将遮罩边缘柔化这么多像素（宽度为该值 2 倍的线性渐变，以边缘为中心）。位于画布边界上的边缘保持硬边，除非开启“羽化画布边缘”。"
+      },
+      "invert": {
+        "name": "反转",
+        "tooltip": "开启：遮罩被反转（除框 / 区域以外的部分为白色）。"
+      },
+      "latent_scale": {
+        "name": "Latent缩放",
+        "tooltip": "“尺寸来自Latent”中每个 Latent 单元对应的像素数。自动：MOSS-Image / Flux.2 的 Latent 为 16，SD / SDXL / Flux.1 为 8。"
+      },
+      "feather_canvas_edges": {
+        "name": "羽化画布边缘",
+        "tooltip": "关闭：贴着画布边界的框边缘保持硬边。\n开启：它们像其他边缘一样向边界渐隐。"
+      },
+      "bboxes": {
+        "name": "边界框",
+        "tooltip": "像素边界框，或元素 / 提示词 JSON（它们同时带有提示词）。"
+      },
+      "size_from_image": {
+        "name": "尺寸来自图像",
+        "tooltip": "从此图像获取宽度 / 高度。优先于“尺寸来自Latent”。"
+      },
+      "size_from_latent": {
+        "name": "尺寸来自Latent",
+        "tooltip": "从此 Latent 获取宽度 / 高度（其尺寸乘以“Latent缩放”）。“尺寸来自图像”优先。"
+      },
+      "elements": {
+        "name": "元素",
+        "tooltip": "每个框的提示词：MOSS-Image Prompt Builder KJ 或 (Deno) Ideogram Director 的“prompt”，或者“创建边界框”或 Region Genie 节点的“元素”。未连接“边界框”或其框数不同时，使用它自带的框。\nMOSS 布局：从画布中心起算，因此宽度 / 高度必须与构建器的一致。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "遮罩",
+        "tooltip": "由“索引”选中的边界框的遮罩。"
+      },
+      "1": {
+        "name": "合并遮罩",
+        "tooltip": "所有边界框的并集，合为一个遮罩。"
+      },
+      "2": {
+        "name": "遮罩批次",
+        "tooltip": "每个边界框一个遮罩，堆叠成批次（例如用于 Impact Pack 的“MASK to SEGS”）。"
+      },
+      "3": {
+        "name": "宽度",
+        "tooltip": "实际使用的画布宽度。"
+      },
+      "4": {
+        "name": "高度",
+        "tooltip": "实际使用的画布高度。"
+      },
+      "5": {
+        "name": "边界框信息",
+        "tooltip": "所有边界框的文本列表，含各自的索引和提示词。"
+      },
+      "6": {
+        "name": "提示词",
+        "tooltip": "由“索引”选中的边界框的提示词（desc）。没有可用的元素时为空。"
+      }
+    }
+  },
+  "Region-Genie_RegionalLoRAs": {
+    "display_name": "区域 LoRA ✨",
+    "description": "基于一批遮罩的区域 LoRA（支持 int8 / fp8 / 量化模型）。每一行在一个遮罩内应用一个 LoRA（索引 -1 表示整张图像），并可向该区域的描述添加词语（例如触发词）；索引相同的行会叠加在该区域上。\nMOSS-Image、Krea 2、Ideogram 4、Flux、Anima 和 SDXL / SD1.5：所有 LoRA 在一次模型推理中起作用，各自限定在自己的遮罩和描述内，与 Region Genie 节点的 LoRA 相同。\n其他模型：通过 ComfyUI 的约束，每个区域进行一次模型推理。",
+    "inputs": {
+      "model": {
+        "name": "模型",
+        "tooltip": "扩散模型（支持量化模型）。当“LoRA遮罩方式”为“模型内”且模型为 MOSS-Image、Krea 2、Ideogram 4、Flux、Anima 或 SDXL / SD1.5 时，LoRA 进入“模型”输出，各自只在其遮罩内起作用。否则它们附加在“正面条件” / “负面条件”上（每个区域一次模型推理）。"
+      },
+      "clip": {
+        "name": "clip",
+        "tooltip": "文本编码器。用于编码“正面条件”和“负面条件”。在模型内方式下，它还会在提示词中找出每个区域的描述，使 LoRA 也作用于其所在区域的描述（及触发词）。"
+      },
+      "masks": {
+        "name": "遮罩组",
+        "tooltip": "区域遮罩，例如 Region Genie 节点的“遮罩组”输出。每一行按索引选择一个（即 Region Genie 节点中显示的区域编号）。"
+      },
+      "positive_prompt": {
+        "name": "正面提示词",
+        "tooltip": "正面提示词。连接 Region Genie 节点的“提示词”（MOSS JSON、Ideogram JSON 或文本，采用模型的格式），或直接输入。每一行的词语会添加到其区域的描述中（索引 -1 则添加到场景描述中）。\n纯文本提示词：区域的词语作为独立的一句添加，索引 -1 的词语加在逗号之后。"
+      },
+      "negative_prompt": {
+        "name": "负面提示词",
+        "tooltip": "负面提示词，编码为“负面条件”（同“CLIP文本编码”）。"
+      },
+      "feather": {
+        "name": "羽化",
+        "tooltip": "将遮罩边缘柔化这么多像素，使每个 LoRA 平滑过渡到周围。"
+      },
+      "lora_masking": {
+        "name": "LoRA遮罩方式",
+        "tooltip": "模型内（单次推理）：每个 LoRA 只作用于图像中其遮罩所在的部分以及其区域的描述，全部在一次模型推理中完成，与 Region Genie 节点的 LoRA 相同；索引 -1 的 LoRA 像“加载LoRA”一样合并进模型。需要 MOSS-Image、Krea 2、Ideogram 4、Flux、Anima 或 SDXL / SD1.5（其他模型回退到分开推理）。\n分开推理（经典约束）：ComfyUI 的约束方式，每个区域带着自己的 LoRA 进行一次模型推理，再按遮罩混合。适用于任何模型，但强烈的风格可能渗到其他区域。"
+      },
+      "region_separation": {
+        "name": "区域分离",
+        "tooltip": "仅模型内方式。区域在注意力中被分离的强度。在前“分离截止”比例的步数内作用于不同 LoRA 区域的图像（开启“分离所有区域”时为每个遮罩），并在每一步作用于每个 LoRA 区域的描述与其他区域之间。值越高，每个 LoRA 的风格越能留在自己的区域内。\n1：完全分离（接缝处可能像拼贴画）。\n0：关闭。"
+      },
+      "separation_until": {
+        "name": "分离截止",
+        "tooltip": "仅模型内方式。在这一比例的步数内保持各区域的图像相互分离（1 = 所有步）。早期的步骤确定每个区域的布局和风格；让后面的步骤能跨区域相互看到，可以融合接缝（0.1-0.5 配合“区域分离”0.85-0.99 效果较好）。"
+      },
+      "loras_data": {
+        "name": "LoRA数据"
+      },
+      "separate_all_regions": {
+        "name": "分离所有区域",
+        "tooltip": "开启：在前“分离截止”比例的步数内，每个遮罩都以“区域分离”的强度与其他遮罩（以及背景）分离，无论是否带 LoRA，并且每个区域的描述只作用于自己的区域。\n关闭：只有带 LoRA 的遮罩被分离。\n仅适用于 MOSS-Image、Krea 2、Ideogram 4、Flux、Anima 或 SDXL / SD1.5 且“LoRA遮罩方式”为“模型内”；生效时稍慢并占用更多显存。"
+      },
+      "share_background": {
+        "name": "共享背景",
+        "tooltip": "仅模型内方式。\n开启：被分离的区域（带 LoRA 的遮罩，或开启“分离所有区域”时的每个遮罩）彼此保持分离，但不与图像的其余部分分离，因此光照、透视和环境保持为同一幅画面。每个区域的描述仍只作用于自己的区域。\n关闭：它们也与图像的其余部分分离。"
+      },
+      "wildcard_seed": {
+        "name": "通配符种子",
+        "tooltip": "“正面提示词”、“负面提示词”和各行词语中通配符的种子（ComfyUI Impact Pack 的 __name__ 和 {'{'}a{'|'}b{'}'} 语法）。以 MOSS / Ideogram JSON 形式传入的提示词保持原样。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "模型",
+        "tooltip": "给采样器的模型。\n模型内（MOSS-Image、Krea 2、Ideogram 4、Flux、Anima、SDXL / SD1.5）：带有 LoRA，各自只在其遮罩内起作用（索引 -1 的 LoRA 合并到全图）。\n分开推理：模型不变（LoRA 附加在“正面条件” / “负面条件”上）。"
+      },
+      "1": {
+        "name": "正面条件",
+        "tooltip": "添加了各行词语的提示词，用 clip 编码（分开推理时，还带有每个区域的 LoRA 约束和遮罩）。将它连接到采样器。"
+      },
+      "2": {
+        "name": "负面条件",
+        "tooltip": "用 clip 编码的“负面提示词”（分开推理时，还带有相同的约束）。将它连接到采样器。"
+      },
+      "3": {
+        "name": "LoRA信息",
+        "tooltip": "为每个区域所做的设置（也会打印到控制台）。"
+      }
+    }
+  },
+  "Region-Genie_CreateHookLoRA": {
+    "display_name": "创建约束LoRA（量化） ✨",
+    "description": "类似核心的“创建约束LoRA”，但 LoRA 是在模型运行时应用，而不是烘焙进权重，因此适用于 int8 / fp8 / 量化模型。支持 LoRA、LoCon、LoKr、LoHa 和 DoRA。仅模型（没有 CLIP 强度）。将“约束”连接到一个条件上，例如通过“条件对设置属性”的约束输入（配合遮罩即为区域 LoRA）；该条件随后会在 LoRA 开启的状态下单独进行一次模型推理。",
+    "inputs": {
+      "model": {
+        "name": "模型",
+        "tooltip": "LoRA 所针对的（量化）扩散模型。仅用于将 LoRA 的键匹配到层；模型不会被修改。"
+      },
+      "lora_name": {
+        "name": "LoRA名称",
+        "tooltip": "LoRA 文件（models/loras）。"
+      },
+      "strength_model": {
+        "name": "模型强度",
+        "tooltip": "LoRA 在扩散模型上的强度（0 = 关闭）。没有 CLIP 强度；LoRA 的文本编码器权重不会被使用。"
+      },
+      "prev_hooks": {
+        "name": "前一个约束",
+        "tooltip": "来自另一个约束节点的约束，与本节点的约束合并。在此串联节点，可在同一个条件上叠加多个 LoRA。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "约束",
+        "tooltip": "此 LoRA（加上“前一个约束”）的约束。将它连接到一个条件上，例如“条件对设置属性”的约束输入。只有在模型计算该条件时，LoRA 才生效。"
+      },
+      "1": {
+        "name": "LoRA信息",
+        "tooltip": "应用了什么、跳过了什么，以及 LoRA 的触发词（也显示在节点上）。"
+      }
+    }
+  },
+  "Region-Genie_SaveImage": {
+    "display_name": "保存图像（Region Genie） ✨",
+    "description": "将图像保存为 PNG（压缩 0-9，8 / 16-bit）、WebP（无损或指定质量）、JPEG（指定质量）、AVIF（指定质量）或 EXR（16 / 32-bit 浮点），可用遮罩添加透明度，并显示已保存文件的大小。",
+    "inputs": {
+      "images": {
+        "name": "图像",
+        "tooltip": "要保存的图像（每张图像一个文件）。"
+      },
+      "filename_prefix": {
+        "name": "文件名前缀",
+        "tooltip": "编号之前的文件名，例如 ComfyUI → ComfyUI_00001.png。可包含子文件夹（portraits/ComfyUI）以及 %date:yyyy-MM-dd% 或 %Empty Latent Image.width% 这样的标记。"
+      },
+      "format": {
+        "name": "格式",
+        "tooltip": "png：无损，保留工作流。\nwebp：无损或指定质量，小得多，保留工作流。\njpeg：指定质量，体积小。工作流保存在旁边的 .json 中（见“JPEG工作流”）。\navif：指定质量，体积最小，保留工作流。\nexr：16 / 32-bit 浮点，场景线性（用于合成和 HDR；体积并不更小）。工作流在其文件头中，ComfyUI 目前还无法从中加载。"
+      },
+      "png_compression": {
+        "name": "PNG压缩",
+        "tooltip": "0-9，每一级都是无损的（像素始终相同）。越高 = 文件越小、保存越慢；9 = 最小（ComfyUI 自带的“保存图像”使用 4）。"
+      },
+      "png_bit_depth": {
+        "name": "PNG位深度",
+        "tooltip": "8-bit：常规。\n16-bit：渐变更细腻，便于后期编辑，体积约为两倍。"
+      },
+      "webp_lossless": {
+        "name": "WebP无损",
+        "tooltip": "开启：像素完全一致，通常比 PNG 小 25-35%。\n关闭：由“WebP质量”决定（文件小得多，损失少量细节）。"
+      },
+      "webp_quality": {
+        "name": "WebP质量",
+        "tooltip": "1-100。越低 = 文件越小、细节损失越多。对大多数图像，80-90 看起来与原图相同。"
+      },
+      "jpeg_quality": {
+        "name": "JPEG质量",
+        "tooltip": "1-100。越低 = 文件越小、细节损失越多。90 及以上保留完整的色彩细节；低于 90 时色彩以一半分辨率存储（更小）。"
+      },
+      "jpeg_extension": {
+        "name": "JPEG扩展名",
+        "tooltip": "文件扩展名；两种写法是同一种格式。"
+      },
+      "jpeg_workflow": {
+        "name": "JPEG工作流",
+        "tooltip": "ComfyUI 无法从 JPEG 加载工作流。\n附带 .json：工作流保存在每个 JPEG 旁边的一个小 .json 文件中（把该文件拖进 ComfyUI 即可加载）。\n无：不保存工作流。\n写入 JPEG（EXIF）：其他工具可读取，ComfyUI 不能；工作流太大放不下时（约 64 KB）改存到 .json 中。"
+      },
+      "avif_quality": {
+        "name": "AVIF质量",
+        "tooltip": "1-100。越低 = 文件越小、细节损失越多。AVIF 需要 Pillow 11.3+ 或支持 AVIF 的 ComfyUI。"
+      },
+      "exr_bit_depth": {
+        "name": "EXR位深度",
+        "tooltip": "16-bit 浮点：半精度，体积约为一半；足以应对大多数编辑。\n32-bit 浮点：全精度。"
+      },
+      "exr_color_space": {
+        "name": "EXR色彩空间",
+        "tooltip": "输入图像的色彩空间。EXR 始终以对应色域的场景线性光写入，与 ComfyUI 的“保存图像（高级）”相同。\nsRGB：sRGB 编码的 Rec.709（常规）；应用 sRGB 逆曲线。\nHDR：HLG 编码的 Rec.2020（BT.2100）；应用 HLG 逆曲线。\n线性：已是场景线性（Rec.709 基色），原样写入；用于渲染器 / 合成软件的输出。\n线性 ACEScg：已是场景线性 ACEScg（AP1 / D60），原样写入，并带 ACEScg 色度坐标。"
+      },
+      "mask": {
+        "name": "遮罩",
+        "tooltip": "透明度（PNG、WebP、AVIF、EXR；JPEG 不支持）。与 ComfyUI“加载图像”的遮罩相同：1 = 透明。尺寸不同的遮罩会被缩放。单个遮罩应用于每张图像；批次则逐张对应。没有遮罩时，RGBA 图像保留自己的 alpha。"
+      },
+      "invert_mask": {
+        "name": "反转遮罩",
+        "tooltip": "开启：改为遮罩 1 = 不透明。用于来自 Region Genie 或“遮罩选择器”的区域遮罩，以保留区域并清除其余部分。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "相同的图像，原样传出。"
+      }
+    }
+  }
+}
