@@ -2,6 +2,11 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 27 (Nov 18): MOSS-Image edit settings in the manual
+- Asked for: how to get good results from the MOSS-Image edit LoRAs (researched online), then the manual's CFG advice updated.
+- `docs/edit-mode.md`: "30 steps, cfg 4, shift 5" replaced by per-LoRA advice: CFG 5 for chinoll's Moss-Image-Edit, CFG 3 for MOSS-Image-Edit-HQ, strength 1, SFT model, reference size, how to write the instruction. Sources: the PedroMarinhoDev/Moss-Image-Edit-ComfyUI card and its node pack's README, the akhaliq/MOSS-Image-Edit-HQ card, comfyui-wiki.com's Oct 25 article.
+- Not tested: none of it was run here (no GPU). Open: Region Genie doesn't add the layer-22 Skip Layer Guidance both authors use; how their whole-image reference editing combines with Region Genie's 'regions only' mask.
+
 ## Round 26 (Nov 17): autocomplete list behind the pop-up editor; gradient fill
 - Asked for: (1) the tag autocomplete list was hidden behind the pop-up text box; (2) a gradient fill as another version of the Fill tool.
 - (1) Cause: since round 12 the pop-up editors sit on top of the page at z-index 10000 (`.rg-pop`, `.rg-fpop`); the packs' lists are at 9999 (ComfyUI-Custom-Scripts) / 10000 (LoRA Manager). Fix: the lists Region Genie opens already carry the class `rg-ac`; `AC_CSS` now gives them z-index 10002. Test (stub page, a stand-in list element): ui_rows_popups. Confirmed afterwards with ComfyUI-Custom-Scripts installed in the test ComfyUI (the owner approved it), legacy and Nodes 2.0: its list (z-index 9999) opens over the pop-up and a pick is inserted; with the class taken off it is behind again. LoRA Manager's list isn't checked for real.
