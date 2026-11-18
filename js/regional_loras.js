@@ -246,7 +246,7 @@ function setup(node) {
             if (v.color) h.sw.style.background = v.color;
             const ph = promptHint(r, regs);
             h.pr.placeholder = ph;
-            if (document.activeElement !== h.pr) h.pr.title = r.prompt ? `${r.prompt}\n(${ph})` : ph;
+            if (document.activeElement !== h.pr) h.pr.title = r.prompt ? `${r.prompt}\n(${ph})` : ph[0].toUpperCase() + ph.slice(1) + ".";
         });
         const groups = new Set(rows.filter((r) => r.on && r.lora && r.index >= 0).map((r) => r.index));
         hint.textContent = rows.length ? `${rows.filter((r) => r.on).length} on, ${groups.size} region(s)` : "no LoRAs yet";

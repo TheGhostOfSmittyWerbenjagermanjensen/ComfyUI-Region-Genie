@@ -202,7 +202,7 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
     kind = cfg["kind"]
     label = KIND_LABEL[kind]
     if arch_name is None:
-        notes.append("NOTE: control is on, but no model is connected to 'model' (it decides which control to use)")
+        notes.append("NOTE: control: no model is connected to 'model' (it decides which control files are used); control not used")
         return model, positive, negative, None
     if arch_name not in SUPPORTED:
         notes.append(f"NOTE: control: ComfyUI has no ControlNet support for {arch_name} yet; control not used")
@@ -221,6 +221,9 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
     def made(k):
         if control_image is not None:
             return _fit(control_image, width, height)
+        if k not in ("canny", "depth"):
+            notes.append("NOTE: control 'your control_image' needs the 'control_image' input; control not used")
+            return None
         if image is None:
             notes.append(f"NOTE: control ({label}) needs 'control_image', or an 'image' to make the map from; control not used")
             return None
@@ -229,7 +232,6 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
             return _canny(src)
         if k == "depth":
             return _depth(src, files.get("DA3"), notes, missing)
-        notes.append("NOTE: control 'your control_image' needs the 'control_image' input; control not used")
         return None
 
     s, a, b = cfg["strength"], cfg["start"], cfg["end"]
@@ -242,8 +244,10 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
             notes.append("NOTE: control: MOSS-Image needs 'vae' connected to encode the maps; control not used")
             return model, positive, negative, None
         if not _have("MOSS", files.get("MOSS"), missing):
-            notes.append("NOTE: control: no MOSS-Image color / depth LoRA is set in Settings > Region Genie > Control (or ComfyUI "
-                         "doesn't find it in models/loras), so the maps have nothing to read them")
+            notes.append((f"NOTE: control: the MOSS-Image control LoRA '{files.get('MOSS')}' isn't found (in ComfyUI's model folders "
+                          "or at that path)" if files.get("MOSS") else
+                          "NOTE: control: no MOSS-Image color / depth control LoRA is set in Settings > Region Genie > Control")
+                         + "; without it the model ignores the maps")
         cm = _fit(color_map, width, height) if kind in ("color", "color+depth") else None
         dm = made("depth") if kind in ("color+depth", "depth") else None
         if cm is None and dm is None:
@@ -293,15 +297,15 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
             if name:
                 notes.append(f"NOTE: control: the {arch_name} ControlNet '{name}' isn't found (in ComfyUI's controlnet folders or at that path); control not used")
                 return model, positive, negative, img
-            notes.append(f"NOTE: control: no {arch_name} ControlNet for {label} is set in Settings > Region Genie > Control; "
-                         "control not used")
+            what = f"Flux.1 {kind} LoRA or {kind} ControlNet" if arch_name == "Flux.1" and kind in ("depth", "canny") else f"{arch_name} ControlNet for {label}"
+            notes.append(f"NOTE: control: no {what} is set in Settings > Region Genie > Control; control not used")
             return model, positive, negative, img
         try:
             import nodes
             cn = _load_controlnet(name)
             positive, negative = nodes.ControlNetApplyAdvanced().apply_controlnet(positive, negative, cn, img, s, a, b, vae=vae)
         except Exception as e:
-            notes.append(f"NOTE: control: the ControlNet '{name}' could not be used ({e})")
+            notes.append(f"NOTE: control: the ControlNet '{name}' could not be used ({e}); control not used")
             return model, positive, negative, img
         notes.append(f"control: {arch_name} ControlNet '{name}' ({label}), strength {s:g}, {a:.0%}-{b:.0%}")
         return model, positive, negative, img
@@ -318,7 +322,7 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         from comfy_extras.nodes_model_patch import AnimaLLLiteApply
         model = AnimaLLLiteApply().apply_patch(model, _load_patch(name), img, s, a, b, mask=mask)[0]
     except Exception as e:
-        notes.append(f"NOTE: control: the Anima LLLite patch '{name}' could not be used ({e})")
+        notes.append(f"NOTE: control: the Anima LLLite patch '{name}' could not be used ({e}); control not used")
         return model, positive, negative, img
     notes.append(f"control: Anima LLLite '{name}' ({label}), strength {s:g}, {a:.0%}-{b:.0%}")
     return model, positive, negative, img

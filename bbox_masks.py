@@ -230,7 +230,7 @@ def _common_inputs():
         "height": ("INT", {"default": 1024, "min": 1, "max": 16384, "step": 1,
                            "tooltip": "Canvas height. Ignored when size_from_image or size_from_latent is connected."}),
         "feather": ("INT", {"default": 0, "min": 0, "max": 1024, "step": 1,
-                            "tooltip": "Soften mask edges by this many pixels (a linear ramp of 2x this width, centred on the box edge). Edges on the canvas border stay solid."}),
+                            "tooltip": "Soften mask edges by this many pixels (a linear ramp of 2x this width, centred on the edge). Edges on the canvas border stay solid unless feather_canvas_edges is on."}),
         "invert": ("BOOLEAN", {"default": False,
                                "tooltip": "On: The masks are inverted (everything except the box / region is white)."}),
         "latent_scale": (LATENT_SCALES, {"default": "auto",
@@ -241,7 +241,7 @@ def _common_inputs():
 
 def _optional_inputs():
     return {
-        "size_from_image": ("IMAGE", {"tooltip": "Takes priority over size_from_latent."}),
+        "size_from_image": ("IMAGE", {"tooltip": "Take width / height from this image. Comes before size_from_latent."}),
         "size_from_latent": ("LATENT", {"tooltip": "Take width / height from this latent (its size times latent_scale). "
                                                    "size_from_image comes first."}),
     }
@@ -269,10 +269,10 @@ class BBoxesToMasks:
                                  "tooltip": "Pixel bboxes, or elements / prompt JSON (those carry the prompts too)."}),
                 **_optional_inputs(),
                 "elements": ("*", {"forceInput": True,
-                                   "tooltip": ("The 'prompt' of MOSS-Image Prompt Builder KJ, 'elements' from Create Bounding Boxes or the "
-                                               "Region Genie node, or the 'prompt' of (Deno) Ideogram Director. It supplies the prompt of each "
-                                               "box. MOSS layouts are measured from the canvas centre, so width/height must match the builder's. "
-                                               "It is enough on its own; the boxes are read from it when 'bboxes' isn't connected.")}),
+                                   "tooltip": ("The prompt of each box: 'prompt' of MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director, or "
+                                               "'elements' of Create Bounding Boxes or the Region Genie node. Its own boxes are used when "
+                                               "'bboxes' isn't connected or has a different number of boxes.\n"
+                                               "MOSS layouts: Measured from the canvas centre, so width / height must match the builder's.")}),
             },
         }
 
@@ -388,7 +388,7 @@ class MaskPicker:
                                    "tooltip": "Prompts for the masks, in the same order: 'elements' of the Region "
                                               "Genie node (or its 'prompt' when that is MOSS or Ideogram JSON), or "
                                               "any layout the BBoxes to Masks node reads."}),
-                "size_from_image": ("IMAGE", {"tooltip": "Resize the masks to this image's size."}),
+                "size_from_image": ("IMAGE", {"tooltip": "Resize the masks to this image's size. Comes before size_from_latent."}),
                 "size_from_latent": ("LATENT", {"tooltip": "Resize the masks to this latent's image size "
                                                            "(16x for MOSS-Image / Flux 2 latents, 8x for SD/SDXL/Flux 1)."}),
             },
@@ -402,7 +402,7 @@ class MaskPicker:
         "All masks (resized / feathered / inverted as set), as a batch.",
         "Mask width.",
         "Mask height.",
-        "Text list of every mask with its index, area and prompt.",
+        "Text list of every mask: Its index, bounding box (x, y, size) and prompt.",
         "Prompt of the mask chosen by 'index'. Empty when no elements are connected.",
     )
     FUNCTION = "run"

@@ -110,7 +110,7 @@ def resolve_model(name):
         pick = sorted(found, key=lambda n: ("sam3.1" not in n.lower(), n))[0]
         return pick, folder_paths.get_full_path("checkpoints", pick)
     raise SelectError(f"Select object needs the SAM 3.1 model: put {DEFAULT_MODEL} in ComfyUI/models/checkpoints "
-                      f"({MODEL_URL}), then try again", "no_model", 404)
+                      f"({MODEL_URL}), or pick your file in Settings > Region Genie > Select object > Model, then try again", "no_model", 404)
 
 
 def queue_busy():
