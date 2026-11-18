@@ -35,7 +35,7 @@ export function* toolbar(E) {
         const b = iconBtn(icon, title, () => E.setTool(key));
         toolBtns[key] = b; bar1.appendChild(b); return b;
     };
-    addTool("select", "Select: Move, resize and rotate layers (V). Shift keeps proportions / snaps angles to 15°.");
+    addTool("select", "Select: Move, resize and rotate layers (V). Shift keeps proportions / snaps angles to 15°; Alt resizes from the centre.");
     // ---- tools with versions: one button each, showing the active version's icon, with ▾ on its right (and
     // right-click) for the list. Shape: the shapes; Lasso / Fill: their versions; Magic wand: the wand's two versions
     // and Select object; Eraser: the eraser and the three lasso erase versions. Keyboard shortcuts pick an entry too.

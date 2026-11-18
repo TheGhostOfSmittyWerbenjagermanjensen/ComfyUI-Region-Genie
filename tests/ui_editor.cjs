@@ -122,6 +122,36 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await modeBtn("Generate").click();
     await page.waitForTimeout(150);
     check("generate: keep toggle and grow / feather hidden", await page.locator(".rg-row.region button[title^='Keep (Edit Mode)']").count() === 0 && await page.locator(".rg-editmask").isHidden());
+    // ---- round 29: Alt+drag on a resize handle resizes from the centre
+    const setRect = () => page.evaluate(async () => { const n = window.__node, s = n.__rgState();
+        s.regions = [{ id: 1, color: "#E6194B", prompt: "", type: "object", text: "" }];
+        s.layers = [{ id: 1, name: "R", region: 1, visible: true, shape: "rect", sides: 5, bw: 0.4, bh: 0.3, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0, ops: [] }];
+        n.__rgRefresh(); n.__rgSetTool("select"); n.__rgSelectLayer(1); await new Promise((r) => setTimeout(r, 150)); });
+    const boxOf = () => page.evaluate(() => { const c = window.__node.__rgBox(); const xs = c.map((p) => p[0]), ys = c.map((p) => p[1]);
+        return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) }; });
+    const pull = async (pick, dx, dy, mods = []) => {
+        const hs = await page.evaluate(() => window.__node.__rgHandles().filter((h) => h.kind === "scale").map((h) => h.at));
+        const h = pick(hs);
+        for (const m of mods) await page.keyboard.down(m);
+        await page.mouse.move(h[0], h[1]); await page.mouse.down(); await page.mouse.move(h[0] + dx, h[1] + dy, { steps: 5 }); await page.mouse.up();
+        for (const m of mods) await page.keyboard.up(m);
+        await page.waitForTimeout(100);
+    };
+    const corner = (hs) => hs.reduce((a, b) => (b[0] + b[1] > a[0] + a[1] ? b : a));          // bottom right
+    const rightMid = (hs) => { const ys = hs.map((h) => h[1]), my = (Math.min(...ys) + Math.max(...ys)) / 2; return hs.filter((h) => Math.abs(h[1] - my) < 2).reduce((a, b) => (b[0] > a[0] ? b : a)); };
+    const near = (a, b, tol = 1.5) => Math.abs(a - b) <= tol;
+    await setRect(); const b0 = await boxOf(), c0 = [(b0.x0 + b0.x1) / 2, (b0.y0 + b0.y1) / 2];
+    await pull(corner, 30, 20); const b1 = await boxOf();
+    check("resize without Alt: the opposite corner stays, the dragged corner moves", near(b1.x0, b0.x0) && near(b1.y0, b0.y0) && b1.x1 > b0.x1 + 5 && b1.y1 > b0.y1 + 5);
+    await setRect(); await pull(corner, 30, 20, ["Alt"]); const b2 = await boxOf();
+    check("Alt+drag a corner: the centre stays, both sides move the same amount", near((b2.x0 + b2.x1) / 2, c0[0]) && near((b2.y0 + b2.y1) / 2, c0[1])
+        && b2.x1 > b0.x1 + 5 && near(b2.x1 - b0.x1, b0.x0 - b2.x0) && near(b2.y1 - b0.y1, b0.y0 - b2.y0) && near(b2.x1 - b0.x1, b1.x1 - b0.x1));
+    await setRect(); await pull(corner, 30, 20, ["Alt", "Shift"]); const b3 = await boxOf();
+    check("Alt+Shift: from the centre, proportions kept", near((b3.x0 + b3.x1) / 2, c0[0]) && near((b3.y0 + b3.y1) / 2, c0[1]) && Math.abs((b3.x1 - b3.x0) / (b3.y1 - b3.y0) - 0.4 / 0.3) < 0.02 && b3.x1 > b0.x1 + 5);
+    await setRect(); await pull(rightMid, -25, 0, ["Alt"]); const b4 = await boxOf();
+    check("Alt+drag a side handle: that side and the opposite one move, the height stays", near((b4.x0 + b4.x1) / 2, c0[0]) && b4.x1 < b0.x1 - 5 && near(b0.x1 - b4.x1, b4.x0 - b0.x0) && near(b4.y0, b0.y0) && near(b4.y1, b0.y1));
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(100);
+    check("one undo step puts the size back", near((await boxOf()).x1, b0.x1));
     await page.screenshot({ path: require("path").join(__dirname, "out", "ui.png"), fullPage: false });
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");
