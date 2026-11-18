@@ -6,24 +6,6 @@ Region Genie
   Regional LoRAs                  several regional LoRAs + their conditioning in one node
   Create Hook LoRA (Quantized)    hook LoRA that works on int8/fp8 models
 """
-import logging as _logging
-import os as _os
-
-# Files that were renamed in this version. Unzipping the new version over an old copy leaves them behind, and
-# ComfyUI loads every .js file in the js folder, so the old copies would register a second, outdated editor.
-# Remove them before the frontend asks for the extension list (only these exact files in this pack's folder).
-_OBSOLETE = ["js/color_map_layout.js", "js/hook_loras.js", "js/rmk_shared.js", "js/rmk_llm.js",
-             "js/rmk_colorpicker.js", "color_map_layout.py", "hook_lora.py"]
-_here = _os.path.dirname(_os.path.abspath(__file__))
-for _rel in _OBSOLETE:
-    _p = _os.path.join(_here, *_rel.split("/"))
-    if _os.path.isfile(_p):
-        try:
-            _os.remove(_p)
-            _logging.info(f"[Region Genie] removed {_rel}: an old copy of a file that was renamed in this version")
-        except OSError as _e:
-            _logging.warning(f"[Region Genie] please delete {_p} (an old copy of a renamed file): {_e}")
-
 from .bbox_masks import BBoxesToMasks, MaskPicker
 from .region_genie import RegionGenie
 from .regional_lora import CreateHookLoRAQuantized, RegionalLoRAs
@@ -50,24 +32,14 @@ NODES = [
     ("Region-Genie_SaveImage", SaveImageRG, "Save Image (Region Genie)"),
 ]
 
-# IDs used before the pack was renamed: still registered so saved workflows load, but marked deprecated, so
-# node search doesn't list them. To be removed in a later version.
-LEGACY_IDS = {
-    "RegionalMaskKit_ColorMap": RegionGenie,
-    "RegionalMaskKit_MaskPicker": MaskPicker,
-    "RegionalMaskKit_BBoxesToMasks": BBoxesToMasks,
-    "RegionalMaskKit_CreateHookLoRAs": RegionalLoRAs,
-    "RegionalMaskKit_CreateHookLoRASingle": CreateHookLoRAQuantized,
-}
 
 # extra words node search matches (every node: the pack and what it is for)
 _COMMON = ["Region Genie", "RegionGenie", "Region-Genie", "Region_Genie", "genie", "regional", "region", "regions",
            "mask", "masks", "MOSS", "MOSS-Image", "MOSS Image", "MOSSImage", "Ideogram", "Ideogram 4", "Krea",
            "Krea 2", "Krea2", "layout", "map", "canvas",
-           "bbox", "bounding box", "regional prompt", "regional lora", "area",
-           "Regional Mask Kit", "RegionalMaskKit"]                  # the pack's old name (remove later)
+           "bbox", "bounding box", "regional prompt", "regional lora", "area"]
 _ALIASES = {
-    RegionGenie: ["color map", "colour map", "Color Map to Layout", "region painter", "paint regions",
+    RegionGenie: ["color map", "colour map", "region painter", "paint regions",
                   "draw regions", "segmentation map", "layout editor", "layout prompt", "MOSS layout",
                   "Ideogram layout", "elements", "regional LoRA", "region editor", "mask editor", "mask painter",
                   "color palette", "brush", "shapes", "LLM", "prompt enhancer", "SAM", "SAM 3", "SAM3",
@@ -76,7 +48,7 @@ _ALIASES = {
     BBoxesToMasks: ["bbox to mask", "bboxes", "boxes to masks", "bounding boxes to masks", "box mask",
                     "elements to masks", "region masks"],
     RegionalLoRAs: ["regional LoRAs", "LoRA", "LoRAs", "multi LoRA", "LoRA mask", "masked LoRA",
-                    "hook LoRA", "hook LoRAs", "Create Hook LoRAs", "runtime LoRA", "quantized LoRA",
+                    "hook LoRA", "hook LoRAs", "runtime LoRA", "quantized LoRA",
                     "int8", "fp8", "trigger words"],
     SaveImageRG: ["save", "save image", "export image", "output image", "png", "jpeg", "jpg", "webp", "avif",
                   "compression", "compress", "quality", "file size", "transparency", "alpha"],
@@ -96,7 +68,3 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 for _id, _cls, _name in NODES:
     NODE_CLASS_MAPPINGS[_id] = _cls
     NODE_DISPLAY_NAME_MAPPINGS[_id] = _name + ICON
-_names = {cls: name for _, cls, name in NODES}
-for _id, _cls in LEGACY_IDS.items():
-    NODE_CLASS_MAPPINGS[_id] = type(_cls.__name__ + "Legacy", (_cls,), {"DEPRECATED": True, "SEARCH_ALIASES": []})
-    NODE_DISPLAY_NAME_MAPPINGS[_id] = _names[_cls] + ICON

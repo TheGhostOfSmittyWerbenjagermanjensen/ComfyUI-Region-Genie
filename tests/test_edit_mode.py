@@ -99,13 +99,11 @@ check("cross-attn: region vs background blocked / shared", q0[0, 2] and not q1[0
 
 # ---------------------------------------------------------------- LLM cache settings
 cache_file = os.path.join(USER_DIR, "region_genie", "llm_cache.json")
-old_file = os.path.join(USER_DIR, "regional_mask_kit", "llm_cache.json")
-for p in (cache_file, old_file):
-    os.makedirs(os.path.dirname(p), exist_ok=True)
-    with open(p, "w") as f:
-        json.dump({"k0": {"text": "old"}}, f)
+os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+with open(cache_file, "w") as f:
+    json.dump({"k0": {"text": "old"}}, f)
 cfg = le.configure({"disk": False})
-check("disk off (default): both cache files deleted", not os.path.exists(cache_file) and not os.path.exists(old_file))
+check("disk off (default): the cache file is deleted", not os.path.exists(cache_file))
 check("defaults: 30 days, 500 entries", cfg == {"disk": False, "days": 30, "max": 500})
 le.cache_put({"a": {"text": "A"}})
 check("disk off: nothing written", not os.path.exists(cache_file) and le.cache_get("a")["text"] == "A")

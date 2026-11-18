@@ -2,7 +2,7 @@ import { app } from "../../scripts/app.js";
 import { padWidgets } from "./rg_shared.js";
 
 // Show the node's LoRA summary (layers patched, adapter types, skips) on the node.
-const NODE_NAMES = ["Region-Genie_CreateHookLoRA", "RegionalMaskKit_CreateHookLoRASingle"];   // new ID, old ID
+const NODE_NAMES = ["Region-Genie_CreateHookLoRA"];
 const INFO_WIDGET = "lora_summary";
 
 async function showInfo(node, text) {

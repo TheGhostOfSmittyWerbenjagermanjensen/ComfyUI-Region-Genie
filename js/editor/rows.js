@@ -170,8 +170,20 @@ export function* rows(E) {
         });
     }
     // ---- the Control rows (round 23: several; ＋Control adds one, ✕ removes it; no details under them)
+    // Kinds that feed the model's one extra input (control.py uses_concat): MOSS-Image's control LoRA and Flux.1's
+    // depth / canny LoRAs. A run uses only the first such row, so the editor marks the others.
+    function usesConcat(c, arch) {
+        if (arch === "MOSS-Image") return ["color", "color+depth", "depth"].includes(c.kind);
+        if (arch === "Flux.1") { const f = controlFiles(); return (c.kind === "depth" && !!f.Flux1Depth) || (c.kind === "canny" && !!f.Flux1Canny); }
+        return false;
+    }
+    function controlUnused(k) {
+        const arch = E.modelArch(), cs = controls();
+        return !!cs[k] && usesConcat(cs[k], arch) && cs.slice(0, k).some((c) => usesConcat(c, arch));
+    }
     function controlRow(c, k) {
-        const row = E.el("div", "rg-row ctrl");
+        const unused = controlUnused(k);
+        const row = E.el("div", "rg-row ctrl" + (unused ? " unused" : ""));
         row.append(...rowLabel("Control", "Control: The model follows a map (ControlNet / control LoRA for the connected model). "
             + "The files are set in Settings > Region Genie > Control."));
         const kind = E.el("select", "rg-sel");
@@ -193,6 +205,12 @@ export function* rows(E) {
         eye.disabled = !map;
         eye.addEventListener("pointerdown", (e) => e.stopPropagation());
         const gap = E.el("span"); gap.style.flex = "1 1 auto";
+        if (unused) {
+            const warn = E.el("span", "rg-warn"); warn.textContent = "⚠";
+            warn.title = "Not used in a run: " + (E.modelArch() === "Flux.1" ? "Flux.1's depth / canny LoRAs take" : "MOSS-Image's control LoRA takes")
+                + " one map per run, and a Control row above this one already gives it.\nRemove one of the two rows, or change this row's kind.";
+            row.append(warn);
+        }
         row.append(kind, str, a, dash, b, pct, gap, eye, rowX("Remove this Control row (its settings are kept for the next ＋Control)", () => removeControl(k)));
         return row;
     }

@@ -176,9 +176,6 @@ def _cache_path(folder="region_genie"):
     return os.path.join(d, "llm_cache.json")
 
 
-OLD_CACHE_FOLDER = "regional_mask_kit"          # the pack's old name: read once if the new cache doesn't exist yet
-
-
 def _prune():
     """Drop entries older than the day limit, then the oldest beyond the entry limit (call with the lock held)."""
     if _cfg["days"] > 0:
@@ -190,8 +187,8 @@ def _prune():
 
 
 def _delete_files():
-    """Disk caching is off: remove the cache file (and the one kept under the pack's old name)."""
-    for folder in ("region_genie", OLD_CACHE_FOLDER):
+    """Disk caching is off: remove the cache file."""
+    for folder in ("region_genie",):
         p = _cache_path(folder)
         if p and os.path.isfile(p):
             try:
@@ -246,8 +243,6 @@ def _load_cache():
     if not _cfg["disk"]:
         return
     p = _cache_path()
-    if p and not os.path.isfile(p):
-        p = _cache_path(OLD_CACHE_FOLDER)             # first run after the rename: start from the old cache
     if p and os.path.isfile(p):
         try:
             with open(p, "r", encoding="utf-8") as f:

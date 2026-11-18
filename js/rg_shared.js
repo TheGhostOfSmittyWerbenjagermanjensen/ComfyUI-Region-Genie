@@ -104,20 +104,6 @@ export const svgIcon = (name) =>
 // set an element's content only when it changes: replacing what is under the mouse restarts (and so hides) its tooltip
 export const setHTML = (e, html) => { if (e && e.__rgHtml !== html) { e.__rgHtml = html; e.innerHTML = html; } };
 
-// ---------------------------------------------------------------- saved node properties
-// Property keys renamed with Region Genie (workflows saved before still have the old ones). An old key always
-// wins over the new one: a node gets its defaults before the workflow's properties are copied in.
-const RENAMED_PROPS = { rg_llm: "rmk_llm", rg_autocomplete: "rmk_autocomplete", rg_widget_values: "rmk_widget_values",
-                        rg_labels: "cml_labels" };
-export function migrateProps(props) {
-    if (!props || typeof props !== "object") return props;
-    for (const [key, old] of Object.entries(RENAMED_PROPS)) {
-        if (!(old in props)) continue;
-        props[key] = props[old];
-        delete props[old];
-    }
-    return props;
-}
 
 // ---------------------------------------------------------------- widget values
 // Widget values are saved by position, and some frontend versions line positions up differently on load
@@ -161,8 +147,6 @@ export function keepWidgetValuesByName(node, names) {
     };
     const onConfigure = node.onConfigure;
     node.onConfigure = function (info) {
-        migrateProps(info?.properties);
-        migrateProps(this.properties);
         const r = onConfigure?.apply(this, arguments);
         const vals = info?.properties?.rg_widget_values;
         restore(vals || {});
@@ -205,7 +189,8 @@ async function fetchModelFiles(folders) {
         try { const r = await api.fetchApi(`/models/${f}`); l = r.ok ? await r.json() : []; } catch (e) { l = []; }
         for (const x of Array.isArray(l) ? l : []) {
             const n = typeof x === "string" ? x : x?.name;
-            if (n && !seen.has(n)) { seen.add(n); out.push({ name: n, folder: f }); }
+            const key = f + "\n" + n;         // per folder: the same name can be in two model folders
+            if (n && !seen.has(key)) { seen.add(key); out.push({ name: n, folder: f }); }
         }
         if (modelLists[f]) modelLists[f].list = (Array.isArray(l) ? l : []).map((x) => (typeof x === "string" ? x : x?.name)).filter(Boolean);
     }
@@ -538,6 +523,67 @@ const fileSettingType = (roots, none, id, home, noneLabel) => (name, setter, val
     fileField({ roots, home, none, noneLabel, value: typeof value === "string" && value ? value : none, title: name,
                 onPick: (v) => { try { setter(v); } catch (e) { /* the dialog is gone */ } if (id) setSetting(id, v); } });
 
+// ---- Settings > Region Genie > Model files > Check model files (round 24): every model file set in these Settings
+// (Control, edit LoRAs, Select object) and in the LLM presets is looked up now; the ones not found are listed.
+export const LLM_FILES = { list: null };          // rg_llm.js fills it in: () => [{ what, value, roots, home }]
+function configuredModelFiles() {
+    const out = [], set = (v, none) => typeof v === "string" && v && v !== none;
+    for (const [key, name, folder] of CONTROL_FILES) {
+        const v = getSetting(SET.control + "." + key, CONTROL_NONE);
+        if (set(v, CONTROL_NONE)) out.push({ what: "Control > " + name, value: v, roots: MODEL_ROOTS, home: folder });
+    }
+    for (const [name, key] of EDIT_MODELS) {
+        const v = getSetting(SET.editLora + "." + key, NO_LORA);
+        if (set(v, NO_LORA)) out.push({ what: `Edit Mode > ${name}: edit LoRA`, value: v, roots: MODEL_ROOTS, home: "loras" });
+    }
+    const sam = getSetting(SET.samModel, SAM_DEFAULT);
+    if (set(sam)) out.push({ what: "Select object > Model", value: sam, roots: ["checkpoints"], home: "checkpoints" });
+    try { out.push(...(LLM_FILES.list?.() || [])); } catch (e) { /* the LLM presets aren't loaded */ }
+    return out;
+}
+export async function checkModelFiles() {
+    fileListCache.clear();
+    const all = configuredModelFiles(), missing = [];
+    for (const f of all) {
+        let ok = false;
+        try { ok = await fileKnown(f.value, f.roots, f.home); } catch (e) { ok = false; }
+        if (!ok) missing.push(f);
+    }
+    return { count: all.length, missing };
+}
+const CHECK_CSS = `
+.rg-chk { display:flex; flex-direction:column; align-items:flex-end; gap:6px; width:360px; max-width:100%; }
+.rg-chk button { cursor:pointer; font:inherit; color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a); border:1px solid var(--border-color,#4a4a4a); border-radius:6px; padding:6px 14px; }
+.rg-chk button:disabled { opacity:.5; cursor:default; }
+.rg-chk-out { align-self:stretch; font-size:12px; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; user-select:text; }
+.rg-chk-out.ok { color:#8c8; }
+.rg-chk-out.bad b { color:#e88; font-weight:600; }`;
+const checkFilesType = () => () => {
+    if (!document.getElementById("rg-chk-style")) { const s = document.createElement("style"); s.id = "rg-chk-style"; s.textContent = CHECK_CSS; document.head.appendChild(s); }
+    const box = document.createElement("div"); box.className = "rg-chk";
+    const btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Check";
+    btn.title = "Look up every model file set in Settings > Region Genie and in the LLM presets now.";
+    const out = document.createElement("div"); out.className = "rg-chk-out";
+    btn.addEventListener("click", async () => {
+        btn.disabled = true; out.className = "rg-chk-out"; out.textContent = "Checking…";
+        let r = null;
+        try { r = await checkModelFiles(); } catch (e) { r = null; }
+        btn.disabled = false;
+        if (!r) { out.textContent = "The check couldn't run (is ComfyUI still running?)."; return; }
+        if (!r.count) { out.textContent = "No model files are set."; return; }
+        if (!r.missing.length) { out.className = "rg-chk-out ok"; out.textContent = r.count === 1 ? "The 1 file that is set was found." : `All ${r.count} files that are set were found.`; return; }
+        out.className = "rg-chk-out bad"; out.textContent = "";
+        const head = document.createElement("div"); head.textContent = `${r.missing.length} of ${r.count} not found:`; out.appendChild(head);
+        for (const f of r.missing) {
+            const line = document.createElement("div"), b = document.createElement("b");
+            b.textContent = f.what + ": "; line.append(b, isFullPath(f.value) ? f.value : splitValue(f.value).name); line.title = f.value; out.appendChild(line);
+        }
+    });
+    for (const ev of ["pointerdown", "mousedown", "keydown", "dblclick"]) box.addEventListener(ev, (e) => e.stopPropagation());
+    box.append(btn, out);
+    return box;
+};
+
 // ---------------------------------------------------------------- the LLM presets in Settings (round 19)
 // One Settings row per field of the LLM Prompt Enhancer's presets (the pop-up's library, in user data, not in
 // ComfyUI's settings): rg_llm.js fills in LLM_ROWS.render(key) when it loads.
@@ -590,6 +636,7 @@ export const CONTROL_FILES = [
     ["DA3", "Depth Anything 3 model (makes depth maps from 'image')", "geometry_estimation", null, null],
 ];
 export const CONTROL_NONE = "(none)";
+const SAM_DEFAULT = "sam3.1_multiplex_fp16.safetensors";
 // where to get each file (official / original uploads; checked Nov 2026) and the folder it goes in
 const HF = "https://huggingface.co/";
 export const CONTROL_DOWNLOADS = {
@@ -1262,7 +1309,7 @@ export function activeEngine() {
 export const engineName = (e = activeEngine()) => ({ pysssss: "ComfyUI-Custom-Scripts AutoCompleter", lm: "LoRA Manager Tag Autocomplete" })[e] || "";
 export function autocompleteDefault() { return getSetting(AC_DEFAULT_SETTING, true) !== false; }
 export function autocompleteEnabledFor(node) {
-    const v = migrateProps(node?.properties)?.[AC_PROPERTY];
+    const v = node?.properties?.[AC_PROPERTY];
     return typeof v === "boolean" ? v : autocompleteDefault();
 }
 export function setAutocompleteFor(node, on) {
@@ -1474,7 +1521,6 @@ export const SET = {
     cmSnap: "RegionGenie.Main.Snap",
     cmGrid: "RegionGenie.Main.Grid",
     cmAllRegions: "RegionGenie.Main.AllRegionsApart",
-    cmKrea2Apart: "RegionGenie.Main.Krea2AllRegionsApart",     // before 'keep all regions apart automatically' per model
     cmAutoApart: "RegionGenie.Main.AutoApart",
     cmShareBg: "RegionGenie.Main.ShareBackground",
     toolLasso: "RegionGenie.Tools.Lasso",
@@ -1485,6 +1531,7 @@ export const SET = {
     toolFillGap: "RegionGenie.Tools.FillGap",
     samModel: "RegionGenie.Select.Model",
     filePickers: "RegionGenie.ModelFiles.Browse",
+    checkFiles: "RegionGenie.ModelFiles.Check",
     samKeep: "RegionGenie.Select.KeepLoaded",
     samThreshold: "RegionGenie.Select.Threshold",
     llmCacheDisk: "RegionGenie.LLM.CacheOnDisk",
@@ -1594,6 +1641,12 @@ const SETTINGS = [
                 + "path), in these Settings (once the dialog is opened again), on the node's Edit rows and in the LLM settings. "
                 + "Files picked with it keep working when it is off.",
             category: CAT("Model files", "1 browse"),
+        },
+        {
+            id: SET.checkFiles, name: "Check model files", type: checkFilesType(), defaultValue: "",
+            tooltip: "Looks up every model file set in these Settings (Control, Edit Mode, Select object) and in the LLM presets, "
+                + "and lists the ones ComfyUI can't find (moved, renamed or deleted).",
+            category: CAT("Model files", "2 check"),
         },
         {
             id: AC_DEFAULT_SETTING, name: "Tag autocomplete on in new Region Genie nodes", type: "boolean", defaultValue: true,
@@ -1709,7 +1762,7 @@ const SETTINGS = [
             onChange: (v) => toolChanged("fillGap", v),
         },
         {
-            id: SET.samModel, name: "Model", type: fileSettingType(["checkpoints"], "sam3.1_multiplex_fp16.safetensors", SET.samModel, "checkpoints", false), defaultValue: "sam3.1_multiplex_fp16.safetensors",
+            id: SET.samModel, name: "Model", type: fileSettingType(["checkpoints"], SAM_DEFAULT, SET.samModel, "checkpoints", false), defaultValue: SAM_DEFAULT,
             tooltip: "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download "
                 + "sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. "
                 + "When this file isn't there, another SAM 3 checkpoint in that folder is used. With 'Browse… for model files' "
@@ -1911,36 +1964,11 @@ const SETTINGS = [
         { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
 SETTINGS.forEach((x, i) => { x.sortOrder = 1000 - i; });         // listed in this order (higher sortOrder first)
-// The pack was called "Regional Mask Kit" before: on the first start after the rename, copy the values set under
-// the old setting IDs to the new ones (only where the new one isn't set yet). To be removed in a later version.
-const OLD_PREFIX = "RegionalMaskKit.";
-const oldSettingId = (id) => OLD_PREFIX + id.slice("RegionGenie.".length).replace(/^Main\./, "ColorMap.").replace(/^RegionalLoRAs\./, "HookLoRAs.");
-async function migrateOldSettings() {
-    let stored = null;
-    try { stored = await api.getSettings(); } catch (e) { return; }
-    if (!stored || typeof stored !== "object") return;
-    for (const { id } of SETTINGS) {
-        const old = oldSettingId(id);
-        if (!(old in stored) || id in stored) continue;
-        try {
-            if (app.extensionManager?.setting?.set) await app.extensionManager.setting.set(id, stored[old]);
-            else await app.ui?.settings?.setSettingValueAsync?.(id, stored[old]);
-        } catch (e) { console.warn("[Region Genie] could not copy setting", old, e); }
-    }
-    // "Krea 2: keep all regions apart automatically" turned off before it became one setting per model
-    const krea2 = SET.cmAutoApart + ".Krea2";
-    if (stored[SET.cmKrea2Apart] === false && !(krea2 in stored)) {
-        try {
-            if (app.extensionManager?.setting?.set) await app.extensionManager.setting.set(krea2, "off");
-            else await app.ui?.settings?.setSettingValueAsync?.(krea2, "off");
-        } catch (e) { console.warn("[Region Genie] could not copy setting", SET.cmKrea2Apart, e); }
-    }
-}
 app.registerExtension({
     name: "RegionGenie.Settings",
     settings: SETTINGS,
     setup() {
-        loadAutocompleteEngines(); migrateOldSettings(); getLoras();
+        loadAutocompleteEngines(); getLoras();
         settingsReady = true;
         postLlmCache({});                     // the server learns the LLM cache settings (and deletes the file when off)
     },

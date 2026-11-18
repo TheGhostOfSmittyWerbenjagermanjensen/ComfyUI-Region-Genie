@@ -234,6 +234,8 @@ textarea.rg-scene-ta { padding-right:20px !important; }
 .rg-pop .rg-wc-pick { line-height:0; padding:1px 3px; }
 .rg-row.ctrl.off .rg-pseudo { opacity:.6; }
 .rg-row.ctrl.edit { cursor:default; }
+.rg-row.ctrl.unused .rg-sel, .rg-row.ctrl.unused .rg-num, .rg-row.ctrl.unused .rg-hint { opacity:.5; }
+.rg-warn { color:#e8b339; cursor:help; user-select:none; }
 .rg-row.layer.hole .rg-sw { background:repeating-linear-gradient(135deg, #000 0 3px, #8a8a8a 3px 4px); }
 .rg-row.layer .ico.on { color:var(--p-primary-color, #4a9eff); border-color:var(--p-primary-color, #4a9eff); }
 .rg-row.ctrl.edit:hover { background:none; }

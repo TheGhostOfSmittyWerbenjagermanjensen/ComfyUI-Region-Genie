@@ -42,7 +42,7 @@ A starter workflow is in [`examples/`](examples/): drag `region-genie-starter-sd
 | [Wildcards](docs/wildcards.md) | Impact Pack wildcards in every prompt field |
 | [BBoxes to Masks and Mask Picker](docs/mask-nodes.md) | The two small mask nodes |
 | [Save Image (Region Genie)](docs/save-image.md) | Formats, quality, transparency, file sizes |
-| [Setup notes](docs/setup-notes.md) | Finding the nodes, tag autocomplete, the rename from Regional Mask Kit |
+| [Setup notes](docs/setup-notes.md) | Finding the nodes, tag autocomplete, coming from Regional Mask Kit |
 
 ![A Control row and an Edit row under Whole image](docs/images/rows.png)
 

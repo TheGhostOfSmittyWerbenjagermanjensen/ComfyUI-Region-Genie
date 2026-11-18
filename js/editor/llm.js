@@ -1,7 +1,7 @@
 // LLM Prompt Enhancer: the sparkle buttons, requests and results.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { api } from "../../../scripts/api.js";
-import { setHTML, contextMenu, appendWord, autocompleteOnFocus, autocompleteOpen, migrateProps } from "../rg_shared.js";
+import { setHTML, contextMenu, appendWord, autocompleteOnFocus, autocompleteOpen } from "../rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings } from "../rg_llm.js";
 import { TYPES } from "./shared.js";
 import { normLoraOpts } from "./state.js";
@@ -20,7 +20,7 @@ export function* llm(E) {
     const LLM_SCENE = "llm:scene"; E.LLM_SCENE = LLM_SCENE;
     const llmBtns = new Map();
     const llmResults = () => {
-        E.node.properties = migrateProps(E.node.properties || {});
+        E.node.properties = E.node.properties || {};
         let p = E.node.properties.rg_llm;
         if (!p || typeof p !== "object") p = E.node.properties.rg_llm = { regions: {}, scene: null };
         if (!p.regions || typeof p.regions !== "object") p.regions = {};
@@ -150,7 +150,7 @@ export function* llm(E) {
         updateLlmButtons();
     }
     function pushLlmCache() {                       // results saved in the workflow -> server cache
-        const st = migrateProps(E.node.properties)?.rg_llm;
+        const st = E.node.properties?.rg_llm;
         const entries = {};
         for (const res of [...Object.values(st?.regions || {}), st?.scene]) {
             if (res?.key && res.text && !res.failed) entries[res.key] = { text: res.text, thinking: res.thinking || "" };

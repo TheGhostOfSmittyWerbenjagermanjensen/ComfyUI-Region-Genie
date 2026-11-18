@@ -3,7 +3,7 @@ import { OLD_MOSS, MOSS } from "../rg_shared.js";
 import { TYPES, UNSPEC } from "./shared.js";
 import { normPalette } from "./colors.js";
 
-// Layered region editor of the "Region Genie" node (formerly "Color Map to Layout").
+// Layered region editor of the "Region Genie" node.
 // paint_data v2 (JSON, hidden widget):
 //   { v: 2, regions: [{id, color, prompt, type: "object"|"character"|"text", text, loras: [{lora, strength, on}],
 //                      palette: ["#RRGGBB", ... up to 5], paletteOn, featherLinked, feather, featherEdges}],
@@ -19,7 +19,7 @@ import { normPalette } from "./colors.js";
 // with the size it was made for.
 // Python (region_genie.py) renders the same data with hard edges; this preview is for editing.
 
-export const NODE_NAMES = ["Region-Genie_Main", "RegionalMaskKit_ColorMap"];      // new ID, old ID (old workflows)
+export const NODE_NAMES = ["Region-Genie_Main"];
 
 // ---- state / migration ----------------------------------------------------
 export function emptyState() { return { v: 2, regions: [], layers: [] }; }
