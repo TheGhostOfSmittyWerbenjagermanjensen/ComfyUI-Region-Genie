@@ -33,6 +33,6 @@ Tooltips name the editor's buttons in English for that reason: it is what you se
 - Only what is shown changes. A workflow saves the same values in every language, so workflows can be shared
   between users of different languages, and API prompts use the English names and values.
 - The manual and the run-time notes use the English input names (`edit_area`, `image_mode`, …). Hover an input to see
-  its tooltip; the node search also finds nodes by their English name.
+  its tooltip, which explains it in your language.
 - A wrong or awkward translation? The texts are plain files in the pack's `locales/` folder; `locales/README.md`
   explains how to correct one or add a language.

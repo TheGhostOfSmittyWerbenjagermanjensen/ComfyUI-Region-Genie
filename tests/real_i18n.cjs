@@ -77,7 +77,9 @@ const plain = (t) => t.replace(/\{'([^']*)'\}/g, "$1");      // vue-i18n's liter
                 for (const [k, e] of Object.entries(nodes[id].inputs)) {
                     const shown = r[id].inputs[k] ?? r[id].widgets[k]?.label;
                     if (shown == null) continue;                                  // hidden / replaced by the editor
-                    if (!String(shown).startsWith(plain(e.name))) nameBad.push(`${id}.${k}: ${shown}`);
+                    // the width_in / height_in sockets show as the width / height inputs (js/editor/sizeRow.js)
+                    const name = id === "Region-Genie_Main" && /^(width|height)_in$/.test(k) ? nodes[id].inputs[k.slice(0, -3)].name : e.name;
+                    if (!String(shown).startsWith(plain(name))) nameBad.push(`${id}.${k}: ${shown}`);
                 }
                 Object.entries(nodes[id].outputs).forEach(([i, e]) => { if (r[id].outputs[i] !== plain(e.name)) nameBad.push(`${id} output ${i}: ${r[id].outputs[i]}`); });
             }

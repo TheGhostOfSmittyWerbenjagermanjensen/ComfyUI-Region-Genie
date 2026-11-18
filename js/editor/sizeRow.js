@@ -5,6 +5,7 @@ import {
     formatSizePresets, ratioLabel, SIZE_PRESETS_DEFAULT,
 } from "../rg_shared.js";
 import { linkOf } from "./graph.js";
+import { inputLabel } from "../rg_i18n.js";
 
 export function* sizeRow(E) {
     Object.assign(E, {
@@ -259,8 +260,9 @@ export function* sizeRow(E) {
     // the optional width / height sockets (internal names width_in / height_in) show as "width" / "height"
     const labelSizeInputs = () => {
         for (const inp of E.node.inputs || []) {
-            if (inp.name === "width_in" && inp.label !== "width") inp.label = "width";
-            if (inp.name === "height_in" && inp.label !== "height") inp.label = "height";
+            // in ComfyUI's language: the translated name of the width / height input
+            const want = inp.name === "width_in" ? inputLabel("Region-Genie_Main", "width") : inp.name === "height_in" ? inputLabel("Region-Genie_Main", "height") : null;
+            if (want && inp.label !== want) inp.label = want;
         }
     }; E.labelSizeInputs = labelSizeInputs;
     labelSizeInputs();

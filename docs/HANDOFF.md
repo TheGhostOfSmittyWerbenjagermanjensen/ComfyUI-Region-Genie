@@ -1,6 +1,6 @@
 # Region Genie (ComfyUI node pack): handoff summary
 
-**State (Nov 17, 2026):** version 0.26.2 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
+**State (Nov 17, 2026):** version 0.27.0 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
 
 The pack used to be called **Regional Mask Kit** (renamed Nov 10, 2026). The compatibility code for the old names was removed in round 24 (section 7).
 
@@ -162,6 +162,17 @@ The reasons behind the parts a new session is most likely to trip over. Each end
 - LLM Prompt Enhancer: presets live in `user/default/region_genie/llm_presets.json`; every pop-up field is also a Settings row (`LLM_FIELDS`, `LLM_ROWS`). (Round 19)
 
 **Tooltips:** one item per line, capitalized sentences; `tests/tooltip_rules.cjs` and `tests/real_tooltips.cjs [vue]` enforce it. (Round 14)
+
+### Languages (round 31, phase 1)
+
+- ComfyUI's own route: `locales/<zh|ja|ko|es>/{nodeDefs,settings,main}.json`, read by ComfyUI at start, served at `/i18n`, applied by Settings > Language (`Comfy.Locale`). No language setting of the pack's own. `locales/README.md` is the contributor guide; `glossary.json` per language holds its terms (not read by ComfyUI).
+- Translated: node names (not "Region Genie"), descriptions, input / output names, tooltips, Settings names / tooltips / options / section names, and the nodes' dropdown choices. All four languages are machine-drafted and unreviewed.
+- No `locales/en`: English comes from the code, and a copy would go stale and send English through the translation engine. The reference is `tests/i18n_en/` (`node tests/i18n_extract.cjs`, from a running ComfyUI in English).
+- `js/rg_i18n.js`: ComfyUI has no key for a node dropdown's choices, so the script sets `widget.options.getOptionLabel` (read by the legacy and the Nodes 2.0 combo) on the pack's combo widgets, from `regionGenie.choices` in `main.json`. Only when the current language has translations; the value stays English. `inputLabel(nodeClass, input)` gives the pack's own code a translated input name (used for the width / height sockets).
+- `@ { } |` in a translated text must be written `{'@'}` `{'{'}` `{'}'}` `{'|'}` (vue-i18n syntax; raw, the text throws). The test enforces it.
+- Identity never changes: input names, option values, Setting ids and the node class names stay English in workflows, API prompts and the pack's code (`w.name`, `inp.name`); only labels change. Code must never look a widget or input up by its label.
+- Phase 2 (not started): a `t()` helper for everything the pack draws itself (the editor, Regional LoRAs rows, LLM pop-up, the buttons and file fields inside Settings), following the same `Comfy.Locale`. Phase 3 (optional): run-time texts from Python. Until then the translated tooltips name editor labels in English on purpose; when phase 2 translates a label, the tooltips quoting it must follow.
+- After changing an English node text or Setting: `node tests/i18n_extract.cjs`, update the entries in every language, `python3 tests/test_i18n.py`, restart ComfyUI, `node tests/real_i18n.cjs [vue]`.
 
 ## 5. Open items and offered ideas
 

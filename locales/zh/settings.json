@@ -1,0 +1,614 @@
+{
+  "RegionGenie_ModelFiles_Browse": {
+    "name": "浏览…选取模型文件",
+    "tooltip": "关闭（默认）：模型文件字段打开 ComfyUI 的菜单，列出 ComfyUI 模型文件夹中的文件。\n开启：每个字段还会多一个文件夹按钮（Browse…），可选取 ComfyUI 所在机器上任意位置的文件（按完整路径保存），适用于本设置（重新打开对话框后生效）、节点的 Edit 行以及 LLM 设置。关闭后，用它选取的文件仍然有效。"
+  },
+  "RegionGenie_ModelFiles_Check": {
+    "name": "检查模型文件",
+    "tooltip": "查找本设置（控制、编辑模式、选择对象）和 LLM 预设中设定的每个模型文件，并列出 ComfyUI 找不到的文件（已移动、重命名或删除）。"
+  },
+  "RegionGenie_Autocomplete_DefaultOn": {
+    "name": "新建的 Region Genie 节点默认开启标签自动补全",
+    "tooltip": "Region Genie 和“区域 LoRA”节点上“autocomplete”开关的默认值（你自己设置过开关的节点保留各自的选择）。自动补全功能本身来自 ComfyUI-Custom-Scripts（启用时优先）或 ComfyUI-Lora-Manager，并遵循该扩展包的设置。"
+  },
+  "RegionGenie_LLM_Context": {
+    "name": "LLM 提示词增强器能看到的内容",
+    "tooltip": "用于 LLM Settings 中选择了“Settings default”的 Region Genie 节点的默认值。带上下文时，LLM 还会得到“场景正面提示词”和其他区域的提示词（以保持一致），但只改写那一条提示词。",
+    "options": {
+      "Only the prompt": "仅提示词",
+      "The prompt + the scene and the other regions": "提示词 + 场景和其他区域"
+    }
+  },
+  "RegionGenie_LLM_NewRegionsOn": {
+    "name": "新区域默认开启 LLM 提示词增强器"
+  },
+  "RegionGenie_LLM_Default_character": {
+    "name": "默认预设：角色",
+    "tooltip": "用于角色提示词的预设，适用于 LLM 设置中未另选预设的每个 Region Genie 节点。"
+  },
+  "RegionGenie_LLM_Default_object": {
+    "name": "默认预设：对象",
+    "tooltip": "用于对象提示词的预设，适用于 LLM 设置中未另选预设的每个 Region Genie 节点。"
+  },
+  "RegionGenie_LLM_Default_text": {
+    "name": "默认预设：文字",
+    "tooltip": "用于文字提示词的预设，适用于 LLM 设置中未另选预设的每个 Region Genie 节点。"
+  },
+  "RegionGenie_LLM_Default_scene": {
+    "name": "默认预设：场景",
+    "tooltip": "用于场景提示词的预设，适用于 LLM 设置中未另选预设的每个 Region Genie 节点。"
+  },
+  "RegionGenie_LLM_EditPreset": {
+    "name": "要编辑的预设",
+    "tooltip": "下面各行显示和修改的预设（立即保存，适用于你的所有工作流）。\nNew：以新名称创建此预设的副本。\nDelete：删除它（它是上面的默认预设时不能删除；需点击两次）。"
+  },
+  "RegionGenie_LLM_Preset_name": {
+    "name": "预设：名称",
+    "tooltip": "预设的名称。按 Enter（或离开该字段）即可重命名；上面的默认预设会随之更新。"
+  },
+  "RegionGenie_LLM_Preset_llm": {
+    "name": "预设：LLM",
+    "tooltip": "改写提示词的 LLM。\n所连接的 clip（The connected clip）：原样使用（不占用额外内存）。\n文件：来自 ComfyUI 的 text_encoders 文件夹（开启“模型文件”中的“浏览…选取模型文件”后可来自任意位置）；加载一次，并在使用期间保留。"
+  },
+  "RegionGenie_LLM_Preset_llm_type": {
+    "name": "预设：LLM 类型",
+    "tooltip": "同“加载CLIP”的“类型”，用于 LLM 文件。auto 适用于普通的 Qwen3 / Qwen3.5 / Gemma 文件。"
+  },
+  "RegionGenie_LLM_Preset_loras": {
+    "name": "预设：LLM LoRA",
+    "tooltip": "仅应用于 LLM 的 LoRA（类似“加载 LoRA（文本编码器）”）；图像模型和用于条件的 clip 不受影响。 \n每一行：开 / 关、文件（点击打开 ComfyUI 的菜单；开启“浏览…选取模型文件”后有文件夹按钮）、强度，✕ 用于移除。"
+  },
+  "RegionGenie_LLM_Preset_system_prompt": {
+    "name": "预设：系统提示词",
+    "tooltip": "作为系统提示词发送（“生成文本”的“系统提示词”）。预设的默认模板关闭时忽略。"
+  },
+  "RegionGenie_LLM_Preset_max_length": {
+    "name": "预设：最大长度",
+    "tooltip": "LLM 最多写出的词元数。"
+  },
+  "RegionGenie_LLM_Preset_sampling": {
+    "name": "预设：采样",
+    "tooltip": "开启：按下面的设置采样。\n关闭（默认）：贪心解码，相同的输入总是得到相同的文本；不使用温度、top_k、top_p、min_p、各项惩罚和种子。"
+  },
+  "RegionGenie_LLM_Preset_temperature": {
+    "name": "预设：温度",
+    "tooltip": "采样温度。\n仅在预设的采样开启时使用（否则显示为灰色）。"
+  },
+  "RegionGenie_LLM_Preset_top_k": {
+    "name": "预设：top_k",
+    "tooltip": "从概率最高的 k 个词元中采样（0 = 全部）。\n仅在预设的采样开启时使用（否则显示为灰色）。"
+  },
+  "RegionGenie_LLM_Preset_top_p": {
+    "name": "预设：top_p",
+    "tooltip": "从概率最高的词元中采样，直到累计概率达到此值。\n仅在预设的采样开启时使用（否则显示为灰色）。"
+  },
+  "RegionGenie_LLM_Preset_min_p": {
+    "name": "预设：min_p",
+    "tooltip": "排除概率低于最可能词元的这一比例的词元。\n仅在预设的采样开启时使用（否则显示为灰色）。"
+  },
+  "RegionGenie_LLM_Preset_repetition_penalty": {
+    "name": "预设：重复惩罚",
+    "tooltip": "对重复词元的惩罚（1 = 无）。\n仅在预设的采样开启时使用（否则显示为灰色）。"
+  },
+  "RegionGenie_LLM_Preset_presence_penalty": {
+    "name": "预设：存在惩罚",
+    "tooltip": "对已出现过的词元的惩罚（0 = 无）。\n仅在预设的采样开启时使用（否则显示为灰色）。"
+  },
+  "RegionGenie_LLM_Preset_seed": {
+    "name": "预设：种子",
+    "tooltip": "种子（在区域上右键选择“Run again with a new seed”会为该区域在此基础上累加）。\n仅在预设的采样开启时使用（否则显示为灰色）。"
+  },
+  "RegionGenie_LLM_Preset_thinking": {
+    "name": "预设：思考模式",
+    "tooltip": "思考模式（如果模型支持；推理过程显示在闪光按钮的提示中，不会被使用）。"
+  },
+  "RegionGenie_LLM_Preset_use_default_template": {
+    "name": "预设：默认模板",
+    "tooltip": "使用模型内置的聊天模板（系统提示词需要它）。"
+  },
+  "RegionGenie_LLM_Preset_mtp": {
+    "name": "预设：mtp",
+    "tooltip": "使用模型的多词元预测头进行推测解码（没有 MTP 权重时无效）。"
+  },
+  "RegionGenie_LLM_CacheOnDisk": {
+    "name": "ComfyUI 重启后仍在磁盘上保留 LLM 结果",
+    "tooltip": "关闭（默认）：增强后的提示词在本次会话期间保存在内存中，也保存在用过它们的每个工作流里（保存的工作流打开时会带回自己的结果），因此重新运行工作流不必再次调用 LLM。\n开启：它们还会保存到 <ComfyUI user dir>/region_genie/llm_cache.json，这只对通过 API 排队而未打开的工作流有帮助。关闭此项会删除该文件。"
+  },
+  "RegionGenie_LLM_CacheDays": {
+    "name": "LLM 结果保留天数（0 = 永久）",
+    "tooltip": "早于此天数的结果会从缓存中清除（内存和磁盘）。"
+  },
+  "RegionGenie_LLM_CacheMaxEntries": {
+    "name": "最多保留的 LLM 结果数",
+    "tooltip": "超出后，最旧的结果先被清除（内存和磁盘）。"
+  },
+  "RegionGenie_Tools_Lasso": {
+    "name": "套索：默认",
+    "tooltip": "每个 Region Genie 节点中套索按钮初始使用哪种套索。右键点击该按钮仍可在本次会话的剩余时间内切换。",
+    "options": {
+      "Lasso (straight lines)": "套索（直线）",
+      "Spline lasso (smooth curve)": "样条套索（平滑曲线）",
+      "Magnetic lasso (follows edges in the image)": "磁性套索（跟随图像中的边缘）"
+    }
+  },
+  "RegionGenie_Tools_LassoErase": {
+    "name": "套索擦除：默认",
+    "tooltip": "每个 Region Genie 节点中橡皮擦按钮的列表初始使用哪种套索擦除。右键点击该按钮仍可在本次会话的剩余时间内切换。",
+    "options": {
+      "Lasso erase (straight lines)": "套索擦除（直线）",
+      "Spline lasso erase (smooth curve)": "样条套索擦除（平滑曲线）",
+      "Magnetic lasso erase (follows edges in the image)": "磁性套索擦除（跟随图像中的边缘）"
+    }
+  },
+  "RegionGenie_Tools_Wand": {
+    "name": "魔棒：默认",
+    "tooltip": "用魔棒点击时在图像中选中什么。\n颜色相近的连通区域：仅点击处周围的区域。\n图像中所有相近的颜色：该颜色的所有像素，无论是否连通。\n右键点击该按钮仍可在本次会话中切换。",
+    "options": {
+      "Connected area of similar color": "颜色相近的连通区域",
+      "Every similar color in the image": "图像中所有相近的颜色"
+    }
+  },
+  "RegionGenie_Tools_WandTolerance": {
+    "name": "魔棒：容差",
+    "tooltip": "颜色与点击处的颜色相差多少（每通道 0-255）仍会被选中。画布上的输入框（左上角，魔棒激活时）可在本次会话中更改它。"
+  },
+  "RegionGenie_Tools_Fill": {
+    "name": "填充：默认",
+    "tooltip": "填充并封闭小缝隙：填充不会从宽度小于约两倍缝隙大小的开口漏出（缝隙大小见“填充”激活时画布上的输入框）。\n右键点击该按钮仍可在本次会话中切换。",
+    "options": {
+      "Fill": "填充",
+      "Fill, closing small gaps": "填充并封闭小缝隙",
+      "Gradient fill, linear": "线性渐变填充",
+      "Gradient fill, radial": "径向渐变填充"
+    }
+  },
+  "RegionGenie_Tools_FillGap": {
+    "name": "填充：缝隙大小（px）",
+    "tooltip": "填充并封闭小缝隙：宽度小于约两倍此像素数的开口会被封闭。"
+  },
+  "RegionGenie_Select_Model": {
+    "name": "模型",
+    "tooltip": "“Select object”（选择对象）工具使用的 SAM 3.1 检查点（ComfyUI 原生的 SAM 3 支持）。将 sam3.1_multiplex_fp16.safetensors 从 huggingface.co/Comfy-Org/sam3.1 下载到 ComfyUI/models/checkpoints。该文件不存在时，使用该文件夹中的其他 SAM 3 检查点。开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的检查点。"
+  },
+  "RegionGenie_Select_KeepLoaded": {
+    "name": "选择完成后",
+    "tooltip": "保持加载：模型在本次会话中留在内存里（约 1.7 GB）。工作流需要空间时，ComfyUI 仍会把它从显存移到系统内存，下次点击时再移回。\n卸载：接受或取消选择时释放模型（空闲 3 分钟后也会释放），因此每次新的选择都要重新从磁盘加载。",
+    "options": {
+      "Keep the model loaded (faster next time)": "保持模型加载（下次更快）",
+      "Unload the model after each selection": "每次选择后卸载模型"
+    }
+  },
+  "RegionGenie_Select_Threshold": {
+    "name": "Find all：置信度",
+    "tooltip": "Find all（输入文字）：SAM 要多确定某物匹配才选中它。越低找到的越多（错选也越多），越高找到的越少。"
+  },
+  "RegionGenie_Text_NodeScene": {
+    "name": "节点内：场景提示词",
+    "tooltip": "三个场景提示词输入框的文字大小（px；0 = ComfyUI 自己的大小）；也用于“区域 LoRA”节点的正面 / 负面输入框。适用于所有节点。"
+  },
+  "RegionGenie_Text_NodeRegion": {
+    "name": "节点内：区域提示词",
+    "tooltip": "区域列表中提示词字段的文字大小（px；0 = 常规的 12 px）；也用于“区域 LoRA”节点各行的提示词。适用于所有节点。"
+  },
+  "RegionGenie_Text_NodeText": {
+    "name": "节点内：要渲染的文字",
+    "tooltip": "区域列表中“要渲染的文字”字段的文字大小（px；0 = 常规的 12 px）。适用于所有节点。"
+  },
+  "RegionGenie_Text_PopupScene": {
+    "name": "弹出编辑器：场景提示词",
+    "tooltip": "场景提示词弹出编辑器中文本框的文字大小（px；其标题栏中的 A− / A+ 也可更改）；也用于“区域 LoRA”节点正面 / 负面输入框的弹出编辑器。适用于所有节点。"
+  },
+  "RegionGenie_Text_PopupRegion": {
+    "name": "弹出编辑器：区域提示词",
+    "tooltip": "区域弹出编辑器中 Prompt 框的文字大小（px；其标题栏中的 A− / A+ 也可更改）；也用于“区域 LoRA”节点各行提示词的弹出编辑器。适用于所有节点。"
+  },
+  "RegionGenie_Text_PopupText": {
+    "name": "弹出编辑器：要渲染的文字",
+    "tooltip": "区域弹出编辑器中 Text 框的文字大小（px；正在使用 Text 框时，其标题栏中的 A− / A+ 也可更改）。适用于所有节点。"
+  },
+  "RegionGenie_Popup_PrevKey": {
+    "name": "弹出编辑器：上一个文本字段的按键",
+    "tooltip": "在弹出编辑器中输入时跳到节点的上一个 / 下一个文本字段，与其 ◀ / ▶ 按钮相同。默认：Page Up。\n按浏览器的命名方式填写按键，修饰键写在前面：PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn 和 Ctrl / Alt / Shift 也可以）。\n留空：不设按键。适用于所有 Region Genie 和“区域 LoRA”节点。"
+  },
+  "RegionGenie_Popup_NextKey": {
+    "name": "弹出编辑器：下一个文本字段的按键",
+    "tooltip": "在弹出编辑器中输入时跳到节点的上一个 / 下一个文本字段，与其 ◀ / ▶ 按钮相同。默认：Page Down。\n按浏览器的命名方式填写按键，修饰键写在前面：PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn 和 Ctrl / Alt / Shift 也可以）。\n留空：不设按键。适用于所有 Region Genie 和“区域 LoRA”节点。"
+  },
+  "RegionGenie_Popup_EscKeeps": {
+    "name": "弹出编辑器中的 Esc",
+    "tooltip": "Esc 在弹出文本编辑器中的作用（所有 Region Genie 和“区域 LoRA”节点）。\n恢复原文本：Esc 关闭编辑器，文本恢复为打开时的样子（Enter 和 ✕ 保留编辑）。\n保留编辑：Esc、Enter 和 ✕ 都会关闭编辑器并保留文本。",
+    "options": {
+      "put the text back": "恢复原文本",
+      "keep the edits": "保留编辑"
+    }
+  },
+  "RegionGenie_Wildcards_PerField": {
+    "name": "每个字段一个种子",
+    "tooltip": "关闭：节点的每个提示词字段都直接使用节点的通配符种子（如同共用一个种子的 Impact Pack 节点），因此两个字段中的同一个通配符通常会选到相同的值。\n开启：每个字段都有自己的种子，由通配符种子和字段推导得出，因此各自独立选取（相同的种子仍得到相同的结果）。"
+  },
+  "RegionGenie_Size_Mode": {
+    "name": "图像尺寸：模式",
+    "tooltip": "新节点的图像尺寸如何设定。\n宽高比：宽高比加百万像素数（类似 ComfyUI 的“分辨率选择器”）。\n预设：从预设列表中选一个尺寸。\n手动：直接输入宽度和高度。\n适用于此后添加的节点；工作流中已有的节点保留各自的值。",
+    "options": {
+      "aspect ratio": "宽高比",
+      "presets": "预设",
+      "manual": "手动"
+    }
+  },
+  "RegionGenie_Size_Aspect": {
+    "name": "宽高比",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。",
+    "options": {
+      "1:1 (Square)": "1:1（正方形）",
+      "2:3 (Portrait Photo)": "2:3（竖版照片）",
+      "3:2 (Photo)": "3:2（照片）",
+      "3:4 (Portrait Standard)": "3:4（竖版标准）",
+      "4:3 (Standard)": "4:3（标准）",
+      "9:16 (Portrait Widescreen)": "9:16（竖版宽屏）",
+      "16:9 (Widescreen)": "16:9（宽屏）",
+      "21:9 (Ultrawide)": "21:9（超宽屏）"
+    }
+  },
+  "RegionGenie_Size_Megapixels": {
+    "name": "百万像素",
+    "tooltip": "目标总百万像素数（正方形时 1.0 MP = 1024 x 1024）。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Size_Multiple": {
+    "name": "倍数",
+    "tooltip": "宽度和高度会取整到此值的倍数。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Size_Presets": {
+    "name": "预设",
+    "tooltip": "每个 Region Genie 节点预设列表中的尺寸，以“;”分隔，每项为 WIDTHxHEIGHT 加可选的名称（例如“1216x832 landscape”）。从节点上编辑更方便：使用其预设列表的最后一项“Edit list…”。"
+  },
+  "RegionGenie_Main_Width": {
+    "name": "手动：宽度",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Main_Height": {
+    "name": "手动：高度",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Main_ImageMode": {
+    "name": "图像模式",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。",
+    "options": {
+      "backdrop (trace over)": "底图（用于描摹）",
+      "use as color map": "用作颜色图"
+    }
+  },
+  "RegionGenie_Main_MinRegionPixels": {
+    "name": "颜色图：区域最小像素",
+    "tooltip": "图像用作颜色图时，一种颜色至少有这么多纯色像素才成为区域（混合的边缘归入最近的区域，其他颜色的零星杂点成为未指定）。在下次运行时适用于每个 Region Genie 节点；选中“color map”时，节点的图像控件也会显示它。"
+  },
+  "RegionGenie_Main_ImportMode": {
+    "name": "画布不为空时的“导入JSON”",
+    "tooltip": "替换前询问：本次运行保留画布，节点会询问（Replace canvas / Keep canvas）。\n始终替换：新布局立即替换画布。\n空画布总是会被填入。在下次运行时适用于每个 Region Genie 节点。",
+    "options": {
+      "ask before replacing": "替换前询问",
+      "always replace": "始终替换"
+    }
+  },
+  "RegionGenie_Main_Feather": {
+    "name": "羽化（px，联动的区域）",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Main_RegionSeparation": {
+    "name": "LoRA 区域分离",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Main_SeparationUntil": {
+    "name": "LoRA 分离截止",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Main_AllRegionsApart": {
+    "name": "分离所有区域（不仅是带 LoRA 的区域）",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Main_ShareBackground": {
+    "name": "区域分离：共享背景",
+    "tooltip": "被分离的区域彼此保持分离，但不与周围的图像分离，因此光照和环境保持为同一幅画面。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Main_AutoApart": {
+    "name": "纯文本提示词：自动分离所有区域",
+    "tooltip": "Krea 2、Flux、Flux 3、Anima 和 SDXL / SD1.5（以及标准模式和编辑模式下的 MOSS-Image）以普通句子的形式得到各区域。Region Genie 节点通过在注意力中把每个区域的句子绑定到其区域来安放各区域（“keep all regions apart”）。\n开启：当“模型”上连接了这类模型、已连接 clip 且至少有一个区域提示词时，运行时会分离所有区域，除非节点的按钮设为“Off for this node”。\n关闭：只有按钮已开启的节点才分离区域。\n下面的设置可针对单个模型更改。在下次运行时适用于每个 Region Genie 节点。"
+  },
+  "RegionGenie_Main_AutoApart_MOSS": {
+    "name": "MOSS-Image（标准模式、编辑模式）：自动分离所有区域",
+    "tooltip": "仅用于 MOSS-Image 模型。“按所有模型的设置”遵循上面的设置。",
+    "options": {
+      "As set for all models (above)": "按所有模型的设置（上方）",
+      "On": "开启",
+      "Off": "关闭"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Krea2": {
+    "name": "Krea 2：自动分离所有区域",
+    "tooltip": "仅用于 Krea 2 模型。“按所有模型的设置”遵循上面的设置。",
+    "options": {
+      "As set for all models (above)": "按所有模型的设置（上方）",
+      "On": "开启",
+      "Off": "关闭"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux": {
+    "name": "Flux：自动分离所有区域",
+    "tooltip": "仅用于 Flux 模型。“按所有模型的设置”遵循上面的设置。",
+    "options": {
+      "As set for all models (above)": "按所有模型的设置（上方）",
+      "On": "开启",
+      "Off": "关闭"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux3": {
+    "name": "Flux 3：自动分离所有区域",
+    "tooltip": "仅用于 Flux 3 模型。“按所有模型的设置”遵循上面的设置。",
+    "options": {
+      "As set for all models (above)": "按所有模型的设置（上方）",
+      "On": "开启",
+      "Off": "关闭"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Anima": {
+    "name": "Anima：自动分离所有区域",
+    "tooltip": "仅用于 Anima 模型。“按所有模型的设置”遵循上面的设置。",
+    "options": {
+      "As set for all models (above)": "按所有模型的设置（上方）",
+      "On": "开启",
+      "Off": "关闭"
+    }
+  },
+  "RegionGenie_Main_AutoApart_SDXL": {
+    "name": "SDXL / SD1.5：自动分离所有区域",
+    "tooltip": "仅用于 SDXL / SD1.5 模型。“按所有模型的设置”遵循上面的设置。",
+    "options": {
+      "As set for all models (above)": "按所有模型的设置（上方）",
+      "On": "开启",
+      "Off": "关闭"
+    }
+  },
+  "RegionGenie_Main_Snap": {
+    "name": "开启网格吸附",
+    "tooltip": "在添加 Region Genie 节点或打开工作流时生效。"
+  },
+  "RegionGenie_Main_Grid": {
+    "name": "网格大小（图像 px）",
+    "tooltip": "在添加 Region Genie 节点或打开工作流时生效。"
+  },
+  "RegionGenie_Control_MOSS": {
+    "name": "MOSS-Image：颜色 / 深度控制 LoRA",
+    "tooltip": "MOSS-Image 的颜色 / 深度控制适配器（一个 LoRA）。它读取区域的颜色图和 / 或深度图，这些图经 VAE 编码后与图像并列（需要“vae”）。\n节点的 Control 行对 MOSS-Image 模型使用它（作为模型上的 LoRA）。\n将 moss_image_color_depth_control.safetensors 放入 ComfyUI/models/loras：https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_Flux1Depth": {
+    "name": "Flux.1：深度 LoRA（例如 flux1-depth-dev-lora）",
+    "tooltip": "Black Forest Labs 为 Flux.1 [dev] 提供的结构控制 LoRA。控制图经 VAE 编码后与图像并列（需要“vae”）。\n节点的 Control 行对 Flux.1 模型使用它（作为模型上的 LoRA），强度取该行的强度。\n将 flux1-depth-dev-lora.safetensors 放入 ComfyUI/models/loras：https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/split_files/loras/flux1-depth-dev-lora.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_Flux1Canny": {
+    "name": "Flux.1：canny LoRA（例如 flux1-canny-dev-lora）",
+    "tooltip": "Black Forest Labs 为 Flux.1 [dev] 提供的结构控制 LoRA。控制图经 VAE 编码后与图像并列（需要“vae”）。\n节点的 Control 行对 Flux.1 模型使用它（作为模型上的 LoRA），强度取该行的强度。\n将 flux1-canny-dev-lora.safetensors 放入 ComfyUI/models/loras（Black Forest Labs 的页面会要求你先接受 FLUX.1 [dev] 许可）：https://huggingface.co/black-forest-labs/FLUX.1-Canny-dev-lora/resolve/main/flux1-canny-dev-lora.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_Flux1_depth": {
+    "name": "Flux.1：深度 ControlNet",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 Flux.1 且未设置 Flux.1 深度 LoRA 时由 Control 行使用（LoRA 优先）。\n将 flux-depth-controlnet-v3.safetensors 放入 ComfyUI/models/controlnet：https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-depth-controlnet-v3.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_Flux1_canny": {
+    "name": "Flux.1：canny ControlNet",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 Flux.1 且未设置 Flux.1 canny LoRA 时由 Control 行使用（LoRA 优先）。\n将 flux-canny-controlnet-v3.safetensors 放入 ComfyUI/models/controlnet：https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_Flux1_other": {
+    "name": "Flux.1：用于“控制图像”的 ControlNet（姿态、线稿、union …）",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 Flux.1 时由 Control 行使用。\n将 diffusion_pytorch_model.safetensors 放入 ComfyUI/models/controlnet（InstantX 的 union ControlNet（姿态、深度、canny、tile …）；请重命名，例如 instantx-flux-union.safetensors）：https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_SDXL_depth": {
+    "name": "SDXL：深度 ControlNet",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 SDXL 时由 Control 行使用。\n将 control-lora-depth-rank128.safetensors 放入 ComfyUI/models/controlnet：https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_SDXL_canny": {
+    "name": "SDXL：canny ControlNet",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 SDXL 时由 Control 行使用。\n将 control-lora-canny-rank128.safetensors 放入 ComfyUI/models/controlnet：https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_SDXL_other": {
+    "name": "SDXL：用于“控制图像”的 ControlNet（姿态、线稿、union …）",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 SDXL 时由 Control 行使用。\n将 diffusion_pytorch_model_promax.safetensors 放入 ComfyUI/models/controlnet（Xinsir 的 union ControlNet（姿态、深度、canny、线稿 …）；请重命名，例如 controlnet-union-sdxl-promax.safetensors）：https://huggingface.co/xinsir/controlnet-union-sdxl-1.0/resolve/main/diffusion_pytorch_model_promax.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_SD15_depth": {
+    "name": "SD1.5：深度 ControlNet",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 SD1.5 时由 Control 行使用。\n将 control_v11f1p_sd15_depth_fp16.safetensors 放入 ComfyUI/models/controlnet：https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11f1p_sd15_depth_fp16.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_SD15_canny": {
+    "name": "SD1.5：canny ControlNet",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 SD1.5 时由 Control 行使用。\n将 control_v11p_sd15_canny_fp16.safetensors 放入 ComfyUI/models/controlnet：https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_canny_fp16.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_SD15_other": {
+    "name": "SD1.5：用于“控制图像”的 ControlNet（姿态、线稿、union …）",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 SD1.5 时由 Control 行使用。\n将 control_v11p_sd15_openpose_fp16.safetensors 放入 ComfyUI/models/controlnet（这是姿态的；线稿、scribble、softedge … 在同一仓库中）：https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_Anima_depth": {
+    "name": "Anima：深度 LLLite 补丁",
+    "tooltip": "Anima LLLite 补丁是加在模型上的小型控制网络，使用 Control 行的强度和开始 / 结束。\n模型为 Anima 时由 Control 行使用。\n将 anima-lllite-depth-1.safetensors 放入 ComfyUI/models/model_patches（或 models/controlnet）：https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-depth-1.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_Anima_canny": {
+    "name": "Anima：canny LLLite 补丁",
+    "tooltip": "Anima LLLite 补丁是加在模型上的小型控制网络，使用 Control 行的强度和开始 / 结束。\n模型为 Anima 时由 Control 行使用。\n将 anima-lllite-lineart-1.safetensors 放入 ComfyUI/models/model_patches（或 models/controlnet）（没有 canny 的 LLLite；线稿版读取的边缘线条与 canny 的类似（未用 canny 图测试过））：https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-lineart-1.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_Anima_other": {
+    "name": "Anima：用于“控制图像”的 LLLite 补丁",
+    "tooltip": "Anima LLLite 补丁是加在模型上的小型控制网络，使用 Control 行的强度和开始 / 结束。\n模型为 Anima 时由 Control 行使用。\n将 anima-lllite-pose-1.safetensors 放入 ComfyUI/models/model_patches（或 models/controlnet）（这是姿态的；线稿、scribble 和一个通用的“any-test-like”补丁在同一仓库中）：https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_DA3": {
+    "name": "Depth Anything 3 模型（从“图像”生成深度图）",
+    "tooltip": "ComfyUI 的 Depth Anything 3。未连接“控制图像”时，由它从“图像”生成深度图（近 = 白）。\n将 depth_anything_3_mono_large.safetensors 放入 ComfyUI/models/geometry_estimation：https://huggingface.co/Comfy-Org/Depth-Anything-3/resolve/main/geometry_estimation/depth_anything_3_mono_large.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Edit_LoRA_MOSS": {
+    "name": "MOSS-Image：编辑 LoRA",
+    "tooltip": "模型为 MOSS-Image 时，Region Genie 节点在编辑模式下使用的编辑 LoRA。\nEdit 行（在节点上，Whole image 下方）：显示并设置这同一个文件；其 ✕ 表示该节点不使用它。\nMOSS-Image：例如 Moss-Image-Edit LoRA；其文件决定编辑布局（见下文）。\nBrowse…：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的 LoRA。"
+  },
+  "RegionGenie_Edit_LoRA_Krea2": {
+    "name": "Krea 2：编辑 LoRA",
+    "tooltip": "模型为 Krea 2 时，Region Genie 节点在编辑模式下使用的编辑 LoRA。\nEdit 行（在节点上，Whole image 下方）：显示并设置这同一个文件；其 ✕ 表示该节点不使用它。\nBrowse…：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的 LoRA。"
+  },
+  "RegionGenie_Edit_LoRA_Ideogram4": {
+    "name": "Ideogram 4：编辑 LoRA",
+    "tooltip": "模型为 Ideogram 4 时，Region Genie 节点在编辑模式下使用的编辑 LoRA。\nEdit 行（在节点上，Whole image 下方）：显示并设置这同一个文件；其 ✕ 表示该节点不使用它。\nBrowse…：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的 LoRA。"
+  },
+  "RegionGenie_Edit_LoRA_Flux1": {
+    "name": "Flux.1：编辑 LoRA",
+    "tooltip": "模型为 Flux.1 时，Region Genie 节点在编辑模式下使用的编辑 LoRA。\nEdit 行（在节点上，Whole image 下方）：显示并设置这同一个文件；其 ✕ 表示该节点不使用它。\nBrowse…：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的 LoRA。"
+  },
+  "RegionGenie_Edit_LoRA_Flux2": {
+    "name": "Flux.2：编辑 LoRA",
+    "tooltip": "模型为 Flux.2 时，Region Genie 节点在编辑模式下使用的编辑 LoRA。\nEdit 行（在节点上，Whole image 下方）：显示并设置这同一个文件；其 ✕ 表示该节点不使用它。\nBrowse…：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的 LoRA。"
+  },
+  "RegionGenie_Edit_LoRA_Flux3": {
+    "name": "Flux 3：编辑 LoRA",
+    "tooltip": "模型为 Flux 3 时，Region Genie 节点在编辑模式下使用的编辑 LoRA。\nEdit 行（在节点上，Whole image 下方）：显示并设置这同一个文件；其 ✕ 表示该节点不使用它。\nBrowse…：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的 LoRA。"
+  },
+  "RegionGenie_Edit_LoRA_Anima": {
+    "name": "Anima：编辑 LoRA",
+    "tooltip": "模型为 Anima 时，Region Genie 节点在编辑模式下使用的编辑 LoRA。\nEdit 行（在节点上，Whole image 下方）：显示并设置这同一个文件；其 ✕ 表示该节点不使用它。\nBrowse…：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的 LoRA。"
+  },
+  "RegionGenie_Edit_LoRA_SDXL": {
+    "name": "SDXL：编辑 LoRA",
+    "tooltip": "模型为 SDXL 时，Region Genie 节点在编辑模式下使用的编辑 LoRA。\nEdit 行（在节点上，Whole image 下方）：显示并设置这同一个文件；其 ✕ 表示该节点不使用它。\nBrowse…：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的 LoRA。"
+  },
+  "RegionGenie_Edit_LoRA_SD15": {
+    "name": "SD1.5：编辑 LoRA",
+    "tooltip": "模型为 SD1.5 时，Region Genie 节点在编辑模式下使用的编辑 LoRA。\nEdit 行（在节点上，Whole image 下方）：显示并设置这同一个文件；其 ✕ 表示该节点不使用它。\nBrowse…：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的 LoRA。"
+  },
+  "RegionGenie_Edit_Reference_MOSS": {
+    "name": "MOSS-Image：将源图像作为参考图像发送",
+    "tooltip": "开启：在编辑模式下，源图像（“图像”上的）也会作为参考图像提供给 MOSS-Image（“正面条件”和“负面条件”上的 reference_latents），这是 MOSS-Image Edit 等编辑模型所需要的。\n关闭：仅从 Latent 进行图生图。"
+  },
+  "RegionGenie_Edit_Reference_Krea2": {
+    "name": "Krea 2：将源图像作为参考图像发送",
+    "tooltip": "开启：在编辑模式下，源图像（“图像”上的）也会作为参考图像提供给 Krea 2（“正面条件”和“负面条件”上的 reference_latents），这是 Krea 2 编辑包 等编辑模型所需要的。\n关闭：仅从 Latent 进行图生图。"
+  },
+  "RegionGenie_Edit_Reference_Flux1": {
+    "name": "Flux.1：将源图像作为参考图像发送",
+    "tooltip": "开启：在编辑模式下，源图像（“图像”上的）也会作为参考图像提供给 Flux.1（“正面条件”和“负面条件”上的 reference_latents），这是 Flux.1 Kontext 等编辑模型所需要的。\n关闭：仅从 Latent 进行图生图。\nFlux.1 dev 和 Kontext 无法区分；使用普通的 Flux.1 dev 时请关闭此项。"
+  },
+  "RegionGenie_Edit_Reference_Flux2": {
+    "name": "Flux.2：将源图像作为参考图像发送",
+    "tooltip": "开启：在编辑模式下，源图像（“图像”上的）也会作为参考图像提供给 Flux.2（“正面条件”和“负面条件”上的 reference_latents），这是 Flux.2 / Klein 等编辑模型所需要的。\n关闭：仅从 Latent 进行图生图。"
+  },
+  "RegionGenie_Edit_Reference_Flux3": {
+    "name": "Flux 3：将源图像作为参考图像发送",
+    "tooltip": "开启：在编辑模式下，源图像（“图像”上的）也会作为参考图像提供给 Flux 3（“正面条件”和“负面条件”上的 reference_latents），这是 Flux 3 等编辑模型所需要的。\n关闭：仅从 Latent 进行图生图。"
+  },
+  "RegionGenie_Edit_ReferenceSize": {
+    "name": "参考图像尺寸（长边，px；0 = 输出尺寸）",
+    "tooltip": "参考图像在编码前会缩小到此长边（绝不放大）。越大越慢。"
+  },
+  "RegionGenie_Edit_MossFormat": {
+    "name": "MOSS-Image 编辑布局",
+    "tooltip": "参考图像提供给 MOSS-Image 的方式（同 ComfyUI 的“文本编码 MOSS-Image 编辑”节点）。自动：用 ai-toolkit 训练的 LoRA（融合的 qkv 权重）使用“ai-toolkit”，其他的（例如 Moss-Image-Edit LoRA）使用“Moss-Image-Edit”。",
+    "options": {
+      "Auto (from the edit LoRA file)": "自动（根据编辑 LoRA 文件）",
+      "Moss-Image-Edit": "Moss-Image-Edit",
+      "ai-toolkit": "ai-toolkit",
+      "ai-toolkit (kv_cache off)": "ai-toolkit（kv_cache 关闭）"
+    }
+  },
+  "RegionGenie_Edit_MaskGrow": {
+    "name": "编辑遮罩：扩展（px；负值为收缩）",
+    "tooltip": "编辑遮罩（编辑模式下采样器可以改变的部分）向区域外扩展这么多像素，使编辑的内容与周围融合；负值则收缩。绝不会扩展进保留的区域。用于列表标题栏未自行设值的节点。"
+  },
+  "RegionGenie_Edit_MaskFeather": {
+    "name": "编辑遮罩：羽化（px）",
+    "tooltip": "将编辑遮罩的边缘柔化这么多像素（在扩展之后），与区域自身的羽化无关。用于列表标题栏未自行设值的节点。"
+  },
+  "RegionGenie_RegionalLoRAs_Feather": {
+    "name": "羽化",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_RegionalLoRAs_LoraMasking": {
+    "name": "LoRA遮罩方式",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。",
+    "options": {
+      "inside the model (one pass)": "模型内（单次推理）",
+      "separate passes (classic hooks)": "分开推理（经典约束）"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_RegionSeparation": {
+    "name": "区域分离",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_RegionalLoRAs_SeparateAllRegions": {
+    "name": "分离所有区域",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_RegionalLoRAs_ShareBackground": {
+    "name": "共享背景",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Save_Format": {
+    "name": "格式",
+    "tooltip": "png：无损。\nwebp：无损或指定质量，小得多。\njpeg：指定质量，体积小。\navif：指定质量，体积最小。\nexr：16 / 32-bit 浮点，场景线性（用于合成和 HDR；体积并不更小）。\n适用于此后添加的节点；工作流中已有的节点保留各自的值。",
+    "options": {
+      "png": "png",
+      "webp": "webp",
+      "jpeg": "jpeg",
+      "avif": "avif",
+      "exr": "exr"
+    }
+  },
+  "RegionGenie_Save_PngLevel": {
+    "name": "PNG压缩",
+    "tooltip": "0-9，每一级都是无损的。越高 = 文件越小、保存越慢。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Save_WebpLossless": {
+    "name": "WebP无损",
+    "tooltip": "像素完全一致，通常比 PNG 小 25-35%；关闭：由“WebP质量”决定。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Save_WebpQuality": {
+    "name": "WebP质量",
+    "tooltip": "1-100。越低 = 文件越小、细节损失越多。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Save_JpegQuality": {
+    "name": "JPEG质量",
+    "tooltip": "1-100。越低 = 文件越小、细节损失越多。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Save_JpegExtension": {
+    "name": "JPEG扩展名",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。",
+    "options": {
+      "_jpg": ".jpg",
+      "_jpeg": ".jpeg"
+    }
+  },
+  "RegionGenie_Save_JpegWorkflow": {
+    "name": "JPEG工作流",
+    "tooltip": "ComfyUI 无法从 JPEG 加载工作流。\n附带 .json：工作流保存在每个 JPEG 旁边的一个小 .json 文件中（把该文件拖进 ComfyUI 即可加载）。\n无：不保存工作流。\n写入 JPEG（EXIF）：其他工具可读取，ComfyUI 不能。\n适用于此后添加的节点；工作流中已有的节点保留各自的值。",
+    "options": {
+      "sidecar _json": "附带 .json",
+      "none": "无",
+      "inside the JPEG (EXIF)": "写入 JPEG（EXIF）"
+    }
+  },
+  "RegionGenie_Save_AvifQuality": {
+    "name": "AVIF质量",
+    "tooltip": "1-100。越低 = 文件越小、细节损失越多。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  },
+  "RegionGenie_Save_ExrBitDepth": {
+    "name": "EXR位深度",
+    "tooltip": "16-bit 浮点：半精度，体积约为一半。\n32-bit 浮点：全精度。\n适用于此后添加的节点；工作流中已有的节点保留各自的值。",
+    "options": {
+      "16-bit float": "16-bit 浮点",
+      "32-bit float": "32-bit 浮点"
+    }
+  },
+  "RegionGenie_Save_ExrColorSpace": {
+    "name": "EXR色彩空间",
+    "tooltip": "输入图像的色彩空间（EXR 始终为场景线性）。\nsRGB：sRGB 编码的 Rec.709，常规。\nHDR：HLG 编码的 Rec.2020。\n线性：已是场景线性 Rec.709。\n线性 ACEScg：已是场景线性 ACEScg。\n适用于此后添加的节点；工作流中已有的节点保留各自的值。",
+    "options": {
+      "sRGB": "sRGB",
+      "HDR": "HDR",
+      "linear": "线性",
+      "linear ACEScg": "线性 ACEScg"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_SeparationUntil": {
+    "name": "分离截止",
+    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+  }
+}

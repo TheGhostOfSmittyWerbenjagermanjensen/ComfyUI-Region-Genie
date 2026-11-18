@@ -1,0 +1,614 @@
+{
+  "RegionGenie_ModelFiles_Browse": {
+    "name": "モデルファイルの Browse…",
+    "tooltip": "オフ（デフォルト）: モデルファイルの欄をクリックすると、ComfyUI のモデルフォルダー内のファイルを並べた ComfyUI のメニューが開きます。\nオン: 各欄にフォルダーボタン（Browse…）も付き、ComfyUI マシン上の任意の場所にあるファイルを選べます（フルパスで保存）。この設定画面（ダイアログを開き直した後）、ノードの Edit 行、LLM 設定で使えます。これで選んだファイルは、オフに戻しても引き続き使えます。"
+  },
+  "RegionGenie_ModelFiles_Check": {
+    "name": "モデルファイルを確認",
+    "tooltip": "この設定画面（コントロール、編集モード、オブジェクトを選択）と LLM プリセットに設定されたすべてのモデルファイルを調べ、ComfyUI が見つけられないもの（移動、名前変更、削除されたもの）を一覧表示します。"
+  },
+  "RegionGenie_Autocomplete_DefaultOn": {
+    "name": "新しい Region Genie ノードでタグのオートコンプリートをオンにする",
+    "tooltip": "Region Genie ノードと 領域別LoRA ノードの「autocomplete」スイッチのデフォルト（自分でスイッチを切り替えたノードは、その選択を保持します）。オートコンプリート自体は ComfyUI-Custom-Scripts（有効な場合はこちらを優先）または ComfyUI-Lora-Manager の機能で、そのパックの設定に従います。"
+  },
+  "RegionGenie_LLM_Context": {
+    "name": "LLMプロンプトエンハンサーに渡す内容",
+    "tooltip": "LLM Settings が「Settings default」になっている Region Genie ノードのデフォルト。コンテキスト付きの場合、LLM は「シーンプロンプト（ポジティブ）」と他の領域のプロンプトも受け取りますが（一貫性を保つため）、書き換えるのは対象のプロンプト 1 つだけです。",
+    "options": {
+      "Only the prompt": "プロンプトのみ",
+      "The prompt + the scene and the other regions": "プロンプト + シーンと他の領域"
+    }
+  },
+  "RegionGenie_LLM_NewRegionsOn": {
+    "name": "新しい領域は LLMプロンプトエンハンサーをオンにして作成"
+  },
+  "RegionGenie_LLM_Default_character": {
+    "name": "デフォルトプリセット: キャラクター",
+    "tooltip": "LLM 設定で別のプリセットを選んでいないすべての Region Genie ノードで、キャラクタープロンプトに使うプリセット。"
+  },
+  "RegionGenie_LLM_Default_object": {
+    "name": "デフォルトプリセット: オブジェクト",
+    "tooltip": "LLM 設定で別のプリセットを選んでいないすべての Region Genie ノードで、オブジェクトプロンプトに使うプリセット。"
+  },
+  "RegionGenie_LLM_Default_text": {
+    "name": "デフォルトプリセット: テキスト",
+    "tooltip": "LLM 設定で別のプリセットを選んでいないすべての Region Genie ノードで、テキストプロンプトに使うプリセット。"
+  },
+  "RegionGenie_LLM_Default_scene": {
+    "name": "デフォルトプリセット: シーン",
+    "tooltip": "LLM 設定で別のプリセットを選んでいないすべての Region Genie ノードで、シーンプロンプトに使うプリセット。"
+  },
+  "RegionGenie_LLM_EditPreset": {
+    "name": "編集するプリセット",
+    "tooltip": "下の各行に表示され、変更の対象になるプリセット（変更は即座に保存され、すべてのワークフローに反映されます）。\nNew: このプリセットを新しい名前で複製します。\nDelete: 削除します（上でデフォルトに指定されている間は不可。2 回クリックします）。"
+  },
+  "RegionGenie_LLM_Preset_name": {
+    "name": "プリセット: 名前",
+    "tooltip": "プリセットの名前。Enter を押す（または欄から離れる）と名前が変更され、上のデフォルトにも反映されます。"
+  },
+  "RegionGenie_LLM_Preset_llm": {
+    "name": "プリセット: LLM",
+    "tooltip": "プロンプトを書き換える LLM。\n接続された clip: そのまま使います（追加のメモリは不要）。\nファイル: ComfyUI の text_encoders フォルダーから選びます（「モデルファイルの Browse…」がオンなら任意の場所から。モデルファイル）。一度読み込まれ、使用中は保持されます。"
+  },
+  "RegionGenie_LLM_Preset_llm_type": {
+    "name": "プリセット: LLM タイプ",
+    "tooltip": "LLM ファイル用。CLIPを読み込む の「タイプ」と同じです。通常の Qwen3 / Qwen3.5 / Gemma ファイルなら Auto で動作します。"
+  },
+  "RegionGenie_LLM_Preset_loras": {
+    "name": "プリセット: LLM LoRA",
+    "tooltip": "LLM だけに適用する LoRA（LoRAを読み込む（テキストエンコーダー） と同様）。画像モデルと、条件付けに使う clip は変更されません。 \n各行: オン / オフ、ファイル（クリックで ComfyUI のメニューが開きます。「モデルファイルの Browse…」がオンならフォルダーボタンも表示）、強度、✕ で削除。"
+  },
+  "RegionGenie_LLM_Preset_system_prompt": {
+    "name": "プリセット: システムプロンプト",
+    "tooltip": "システムプロンプトとして送信されます（テキストを生成 の system_prompt）。プリセットの「デフォルトテンプレート」がオフの場合は無視されます。"
+  },
+  "RegionGenie_LLM_Preset_max_length": {
+    "name": "プリセット: max_length",
+    "tooltip": "LLM が出力するトークン数の上限。"
+  },
+  "RegionGenie_LLM_Preset_sampling": {
+    "name": "プリセット: サンプリング",
+    "tooltip": "オン: 下の設定でサンプリングします。\nオフ（デフォルト）: 貪欲デコード。同じ入力に対して常に同じテキストになります。温度、top_k、top_p、min_p、各ペナルティ、シードは使われません。"
+  },
+  "RegionGenie_LLM_Preset_temperature": {
+    "name": "プリセット: 温度",
+    "tooltip": "サンプリングの温度。\nプリセットの「サンプリング」がオンの間だけ使われます（それ以外はグレー表示）。"
+  },
+  "RegionGenie_LLM_Preset_top_k": {
+    "name": "プリセット: top_k",
+    "tooltip": "確率の高い上位 k 個のトークンからサンプリングします（0 = すべて）。\nプリセットの「サンプリング」がオンの間だけ使われます（それ以外はグレー表示）。"
+  },
+  "RegionGenie_LLM_Preset_top_p": {
+    "name": "プリセット: top_p",
+    "tooltip": "確率の高いトークンから順に、累積確率がこの値に達するまでを対象にサンプリングします。\nプリセットの「サンプリング」がオンの間だけ使われます（それ以外はグレー表示）。"
+  },
+  "RegionGenie_LLM_Preset_min_p": {
+    "name": "プリセット: min_p",
+    "tooltip": "最も確率の高いトークンに対する比率がこの値未満のトークンを除外します。\nプリセットの「サンプリング」がオンの間だけ使われます（それ以外はグレー表示）。"
+  },
+  "RegionGenie_LLM_Preset_repetition_penalty": {
+    "name": "プリセット: repetition_penalty",
+    "tooltip": "トークンの繰り返しに対するペナルティ（1 = なし）。\nプリセットの「サンプリング」がオンの間だけ使われます（それ以外はグレー表示）。"
+  },
+  "RegionGenie_LLM_Preset_presence_penalty": {
+    "name": "プリセット: presence_penalty",
+    "tooltip": "すでに使われたトークンに対するペナルティ（0 = なし）。\nプリセットの「サンプリング」がオンの間だけ使われます（それ以外はグレー表示）。"
+  },
+  "RegionGenie_LLM_Preset_seed": {
+    "name": "プリセット: シード",
+    "tooltip": "シード（領域の右クリックメニュー「Run again with a new seed」を使うと、その領域ではこの値に加算されます）。\nプリセットの「サンプリング」がオンの間だけ使われます（それ以外はグレー表示）。"
+  },
+  "RegionGenie_LLM_Preset_thinking": {
+    "name": "プリセット: 思考",
+    "tooltip": "思考モード（モデルが対応している場合）。推論の内容はスパークルボタンのツールチップに表示されるだけで、結果には使われません。"
+  },
+  "RegionGenie_LLM_Preset_use_default_template": {
+    "name": "プリセット: デフォルトテンプレート",
+    "tooltip": "モデルに組み込まれたチャットテンプレートを使います（システムプロンプトに必要）。"
+  },
+  "RegionGenie_LLM_Preset_mtp": {
+    "name": "プリセット: mtp",
+    "tooltip": "モデルのマルチトークン予測（MTP）ヘッドを使った投機的デコード（MTP の重みがない場合は効果なし）。"
+  },
+  "RegionGenie_LLM_CacheOnDisk": {
+    "name": "ComfyUI の再起動後も LLM の結果をディスクに保持",
+    "tooltip": "オフ（デフォルト）: エンハンスされたプロンプトは、このセッションの間メモリに保持され、それを使った各ワークフローにも保存されます（保存したワークフローを開くと、その結果も復元されます）。そのため、ワークフローを再実行しても LLM は不要です。\nオン: <ComfyUI user dir>/region_genie/llm_cache.json にも保存されます。これが役立つのは、ワークフローを開かずに API 経由でキューに入れる場合だけです。オフにすると、このファイルは削除されます。"
+  },
+  "RegionGenie_LLM_CacheDays": {
+    "name": "LLM の結果を破棄するまでの日数（0 = 破棄しない）",
+    "tooltip": "これより古い結果はキャッシュ（メモリとディスク）から削除されます。"
+  },
+  "RegionGenie_LLM_CacheMaxEntries": {
+    "name": "保持する LLM の結果の最大数",
+    "tooltip": "これを超えると、最も古い結果から順に削除されます（メモリとディスク）。"
+  },
+  "RegionGenie_Tools_Lasso": {
+    "name": "なげなわ: デフォルト",
+    "tooltip": "すべての Region Genie ノードで、なげなわボタンが最初に選んでいるなげなわの種類。ボタンを右クリックすれば、そのセッションの間は切り替えられます。",
+    "options": {
+      "Lasso (straight lines)": "なげなわ（直線）",
+      "Spline lasso (smooth curve)": "スプラインなげなわ（滑らかな曲線）",
+      "Magnetic lasso (follows edges in the image)": "マグネットなげなわ（画像のエッジに沿う）"
+    }
+  },
+  "RegionGenie_Tools_LassoErase": {
+    "name": "なげなわ消去: デフォルト",
+    "tooltip": "すべての Region Genie ノードで、消しゴムボタンのリストが最初に選んでいるなげなわ消去の種類。ボタンを右クリックすれば、そのセッションの間は切り替えられます。",
+    "options": {
+      "Lasso erase (straight lines)": "なげなわ消去（直線）",
+      "Spline lasso erase (smooth curve)": "スプラインなげなわ消去（滑らかな曲線）",
+      "Magnetic lasso erase (follows edges in the image)": "マグネットなげなわ消去（画像のエッジに沿う）"
+    }
+  },
+  "RegionGenie_Tools_Wand": {
+    "name": "マジックワンド: デフォルト",
+    "tooltip": "マジックワンドでクリックしたとき、画像のどこが選択されるか。\n近い色のつながった範囲: クリックした周囲の範囲だけ。\n画像内の近い色すべて: つながっているかどうかに関係なく、その色のすべてのピクセル。\nボタンを右クリックすれば、そのセッションの間は切り替えられます。",
+    "options": {
+      "Connected area of similar color": "近い色のつながった範囲",
+      "Every similar color in the image": "画像内の近い色すべて"
+    }
+  },
+  "RegionGenie_Tools_WandTolerance": {
+    "name": "マジックワンド: 許容値",
+    "tooltip": "クリックした色とどれだけ違っていても選択されるか（チャンネルごとに 0〜255）。キャンバス上の欄（左上、マジックワンドの使用中に表示）で変更すると、そのセッションの間だけ有効です。"
+  },
+  "RegionGenie_Tools_Fill": {
+    "name": "塗りつぶし: デフォルト",
+    "tooltip": "小さな隙間を閉じる: 隙間サイズ（塗りつぶしの使用中にキャンバス上に表示される欄）の約 2 倍より狭い開口部からは、塗りつぶしが漏れ出しません。\nボタンを右クリックすれば、そのセッションの間は切り替えられます。",
+    "options": {
+      "Fill": "塗りつぶし",
+      "Fill, closing small gaps": "塗りつぶし（小さな隙間を閉じる）",
+      "Gradient fill, linear": "グラデーション塗りつぶし（線形）",
+      "Gradient fill, radial": "グラデーション塗りつぶし（円形）"
+    }
+  },
+  "RegionGenie_Tools_FillGap": {
+    "name": "塗りつぶし: 隙間サイズ（px）",
+    "tooltip": "塗りつぶし（小さな隙間を閉じる）: このピクセル数の約 2 倍より狭い開口部が閉じられます。"
+  },
+  "RegionGenie_Select_Model": {
+    "name": "モデル",
+    "tooltip": "「オブジェクトを選択」ツールが使う SAM 3.1 チェックポイント（ComfyUI 標準の SAM 3 対応）。sam3.1_multiplex_fp16.safetensors を huggingface.co/Comfy-Org/sam3.1 から ComfyUI/models/checkpoints にダウンロードしてください。このファイルがない場合は、同じフォルダー内の別の SAM 3 チェックポイントが使われます。「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にあるチェックポイントを選べます。"
+  },
+  "RegionGenie_Select_KeepLoaded": {
+    "name": "選択の後",
+    "tooltip": "読み込んだままにする: モデルはセッションの間メモリに残ります（約 1.7 GB）。ワークフローが空きを必要とするときは、ComfyUI が VRAM からシステム RAM へ移し、次のクリックで戻します。\nアンロード: 選択を確定またはキャンセルしたとき（および 3 分間操作がないとき）にモデルが解放されるため、新しい選択のたびにディスクから読み込み直します。",
+    "options": {
+      "Keep the model loaded (faster next time)": "モデルを読み込んだままにする（次回が速い）",
+      "Unload the model after each selection": "選択のたびにモデルをアンロードする"
+    }
+  },
+  "RegionGenie_Select_Threshold": {
+    "name": "Find all: 信頼度",
+    "tooltip": "Find all（入力したテキストで検索）: 一致していると SAM がどれだけ確信したときに選択するか。低いほど多く見つかり（誤検出も増えます）、高いほど少なくなります。"
+  },
+  "RegionGenie_Text_NodeScene": {
+    "name": "ノード内: シーンプロンプト",
+    "tooltip": "3 つのシーンプロンプト欄の文字サイズ（px。0 = ComfyUI 標準のサイズ）。領域別LoRA ノードのポジティブ / ネガティブ欄にも使われます。すべてのノードに適用されます。"
+  },
+  "RegionGenie_Text_NodeRegion": {
+    "name": "ノード内: 領域プロンプト",
+    "tooltip": "領域リストのプロンプト欄の文字サイズ（px。0 = 通常の 12 px）。領域別LoRA ノードの各行のプロンプトにも使われます。すべてのノードに適用されます。"
+  },
+  "RegionGenie_Text_NodeText": {
+    "name": "ノード内: 描画するテキスト",
+    "tooltip": "領域リストの「描画するテキスト」欄の文字サイズ（px。0 = 通常の 12 px）。すべてのノードに適用されます。"
+  },
+  "RegionGenie_Text_PopupScene": {
+    "name": "ポップアップエディタ: シーンプロンプト",
+    "tooltip": "シーンプロンプト用ポップアップエディタのテキストボックスの文字サイズ（px。ヘッダーの A− / A+ でも変更できます）。領域別LoRA ノードのポジティブ / ネガティブ欄用ポップアップにも使われます。すべてのノードに適用されます。"
+  },
+  "RegionGenie_Text_PopupRegion": {
+    "name": "ポップアップエディタ: 領域プロンプト",
+    "tooltip": "領域ポップアップエディタの Prompt ボックスの文字サイズ（px。ヘッダーの A− / A+ でも変更できます）。領域別LoRA ノードの各行のプロンプト用ポップアップにも使われます。すべてのノードに適用されます。"
+  },
+  "RegionGenie_Text_PopupText": {
+    "name": "ポップアップエディタ: 描画するテキスト",
+    "tooltip": "領域ポップアップエディタの Text ボックスの文字サイズ（px。Text ボックスの使用中は、ヘッダーの A− / A+ でも変更できます）。すべてのノードに適用されます。"
+  },
+  "RegionGenie_Popup_PrevKey": {
+    "name": "ポップアップエディタ: 前のテキスト欄へ移動するキー",
+    "tooltip": "ポップアップエディタで入力中に、ノードの前 / 次のテキスト欄へ移動します（エディタの ◀ / ▶ ボタンと同じ）。デフォルト: Page Up。\nキーはブラウザでの名前で書き、修飾キーを前に付けます: PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn、Ctrl / Alt / Shift も使えます）。\n空欄: キーなし。すべての Region Genie ノードと 領域別LoRA ノードに適用されます。"
+  },
+  "RegionGenie_Popup_NextKey": {
+    "name": "ポップアップエディタ: 次のテキスト欄へ移動するキー",
+    "tooltip": "ポップアップエディタで入力中に、ノードの前 / 次のテキスト欄へ移動します（エディタの ◀ / ▶ ボタンと同じ）。デフォルト: Page Down。\nキーはブラウザでの名前で書き、修飾キーを前に付けます: PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn、Ctrl / Alt / Shift も使えます）。\n空欄: キーなし。すべての Region Genie ノードと 領域別LoRA ノードに適用されます。"
+  },
+  "RegionGenie_Popup_EscKeeps": {
+    "name": "ポップアップエディタでの Esc",
+    "tooltip": "ポップアップのテキストエディタで Esc を押したときの動作（すべての Region Genie ノードと 領域別LoRA ノード）。\nテキストを元に戻す: Esc で閉じ、テキストは開いたときの状態に戻ります（Enter と ✕ は編集を保持）。\n編集を保持: Esc、Enter、✕ のどれでも閉じ、テキストを保持します。",
+    "options": {
+      "put the text back": "テキストを元に戻す",
+      "keep the edits": "編集を保持"
+    }
+  },
+  "RegionGenie_Wildcards_PerField": {
+    "name": "欄ごとに別のシード",
+    "tooltip": "オフ: ノードのすべてのプロンプト欄が、ノードのワイルドカードシードをそのまま使います（1 つのシードを共有する Impact Pack のノードと同様）。そのため、2 つの欄にある同じワイルドカードは、たいてい同じ値になります。\nオン: 各欄が、ワイルドカードシードと欄から導いた専用のシードを使うため、それぞれ独立して選ばれます（同じシードなら結果は同じです）。"
+  },
+  "RegionGenie_Size_Mode": {
+    "name": "画像サイズ: モード",
+    "tooltip": "新しいノードの画像サイズの決め方。\nアスペクト比: アスペクト比とメガピクセルで指定（ComfyUI の 解像度セレクター と同様）。\nプリセット: プリセットリストからサイズを選択。\n手動: 幅と高さを直接入力。\n今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。",
+    "options": {
+      "aspect ratio": "アスペクト比",
+      "presets": "プリセット",
+      "manual": "手動"
+    }
+  },
+  "RegionGenie_Size_Aspect": {
+    "name": "アスペクト比",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。",
+    "options": {
+      "1:1 (Square)": "1:1（正方形）",
+      "2:3 (Portrait Photo)": "2:3（縦長写真）",
+      "3:2 (Photo)": "3:2（写真）",
+      "3:4 (Portrait Standard)": "3:4（縦長スタンダード）",
+      "4:3 (Standard)": "4:3（スタンダード）",
+      "9:16 (Portrait Widescreen)": "9:16（縦長ワイドスクリーン）",
+      "16:9 (Widescreen)": "16:9（ワイドスクリーン）",
+      "21:9 (Ultrawide)": "21:9（ウルトラワイド）"
+    }
+  },
+  "RegionGenie_Size_Megapixels": {
+    "name": "メガピクセル",
+    "tooltip": "目標とする総メガピクセル数（正方形の場合、1.0 MP = 1024 x 1024）。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Size_Multiple": {
+    "name": "倍数",
+    "tooltip": "幅と高さは、この値の倍数に丸められます。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Size_Presets": {
+    "name": "プリセット",
+    "tooltip": "すべての Region Genie ノードのプリセットリストに並ぶサイズ。「;」で区切り、それぞれ 幅x高さ と任意の名前で書きます（例: 「1216x832 landscape」）。ノードのプリセットリストの最後の項目「Edit list…」から編集するほうが簡単です。"
+  },
+  "RegionGenie_Main_Width": {
+    "name": "手動: 幅",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Main_Height": {
+    "name": "手動: 高さ",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Main_ImageMode": {
+    "name": "画像モード",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。",
+    "options": {
+      "backdrop (trace over)": "下絵（なぞり描き）",
+      "use as color map": "カラーマップとして使用"
+    }
+  },
+  "RegionGenie_Main_MinRegionPixels": {
+    "name": "カラーマップ: 領域の最小ピクセル数",
+    "tooltip": "画像をカラーマップとして使う場合、ある色のフラットなピクセルがこの数以上あると、その色が領域になります（色が混ざった境界は最も近い領域に割り当てられ、他の色の小さな点は未指定になります）。すべての Region Genie ノードに、次回の実行から適用されます。「color map」を選んでいる間は、ノードの画像コントロールにも表示されます。"
+  },
+  "RegionGenie_Main_ImportMode": {
+    "name": "キャンバスが空でないときの「インポートJSON」",
+    "tooltip": "置き換える前に確認: その実行ではキャンバスを保持し、ノードが確認します（Replace canvas / Keep canvas）。\n常に置き換える: 新しいレイアウトがすぐにキャンバスを置き換えます。\n空のキャンバスには常に読み込まれます。すべての Region Genie ノードに、次回の実行から適用されます。",
+    "options": {
+      "ask before replacing": "置き換える前に確認",
+      "always replace": "常に置き換える"
+    }
+  },
+  "RegionGenie_Main_Feather": {
+    "name": "フェザー（px、リンクした領域）",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Main_RegionSeparation": {
+    "name": "LoRA の領域の分離",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Main_SeparationUntil": {
+    "name": "LoRA の分離期間",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Main_AllRegionsApart": {
+    "name": "すべての領域を分離（LoRA のある領域だけでなく）",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Main_ShareBackground": {
+    "name": "領域の分離: 背景を共有",
+    "tooltip": "分離される領域は互いには分離されますが、周囲の画像とは分離されないため、光や舞台が 1 枚の絵としてまとまります。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Main_AutoApart": {
+    "name": "プレーンテキストのプロンプト: すべての領域を自動的に分離",
+    "tooltip": "Krea 2、Flux、Flux 3、Anima、SDXL / SD1.5（および標準モードと編集モードの MOSS-Image）には、領域が通常の文として渡されます。Region Genie ノードは、アテンションで各領域の文をその領域に結び付けることで、領域を配置します（「すべての領域を分離」、keep all regions apart）。\nオン: 「モデル」にこうしたモデルが接続され、clip も接続され、領域プロンプトが 1 つ以上あれば、実行時にすべての領域を分離します。ただし、ノードのボタンが「Off for this node」のときは除きます。\nオフ: ボタンがオンになっているノードだけが分離します。\n下の設定で、モデルごとに変更できます。すべての Region Genie ノードに、次回の実行から適用されます。"
+  },
+  "RegionGenie_Main_AutoApart_MOSS": {
+    "name": "MOSS-Image（標準モード、編集モード）: すべての領域を自動的に分離",
+    "tooltip": "MOSS-Image モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
+    "options": {
+      "As set for all models (above)": "モデル全体の設定に従う（上）",
+      "On": "オン",
+      "Off": "オフ"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Krea2": {
+    "name": "Krea 2: すべての領域を自動的に分離",
+    "tooltip": "Krea 2 モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
+    "options": {
+      "As set for all models (above)": "モデル全体の設定に従う（上）",
+      "On": "オン",
+      "Off": "オフ"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux": {
+    "name": "Flux: すべての領域を自動的に分離",
+    "tooltip": "Flux モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
+    "options": {
+      "As set for all models (above)": "モデル全体の設定に従う（上）",
+      "On": "オン",
+      "Off": "オフ"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Flux3": {
+    "name": "Flux 3: すべての領域を自動的に分離",
+    "tooltip": "Flux 3 モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
+    "options": {
+      "As set for all models (above)": "モデル全体の設定に従う（上）",
+      "On": "オン",
+      "Off": "オフ"
+    }
+  },
+  "RegionGenie_Main_AutoApart_Anima": {
+    "name": "Anima: すべての領域を自動的に分離",
+    "tooltip": "Anima モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
+    "options": {
+      "As set for all models (above)": "モデル全体の設定に従う（上）",
+      "On": "オン",
+      "Off": "オフ"
+    }
+  },
+  "RegionGenie_Main_AutoApart_SDXL": {
+    "name": "SDXL / SD1.5: すべての領域を自動的に分離",
+    "tooltip": "SDXL / SD1.5 モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
+    "options": {
+      "As set for all models (above)": "モデル全体の設定に従う（上）",
+      "On": "オン",
+      "Off": "オフ"
+    }
+  },
+  "RegionGenie_Main_Snap": {
+    "name": "グリッドにスナップをオン",
+    "tooltip": "Region Genie ノードを追加したとき、またはワークフローを開いたときの状態。"
+  },
+  "RegionGenie_Main_Grid": {
+    "name": "グリッドサイズ（画像の px）",
+    "tooltip": "Region Genie ノードを追加したとき、またはワークフローを開いたときの値。"
+  },
+  "RegionGenie_Control_MOSS": {
+    "name": "MOSS-Image: カラー / 深度コントロール LoRA",
+    "tooltip": "MOSS-Image のカラー / 深度コントロールアダプター（LoRA）。領域のカラーマップと深度マップの一方または両方を読み取ります。マップは画像と並べて VAE エンコードされます（「vae」が必要）。\nノードの Control 行が、MOSS-Image モデルに対して（モデルへの LoRA として）使います。\nmoss_image_color_depth_control.safetensors を ComfyUI/models/loras に入れてください: https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_Flux1Depth": {
+    "name": "Flux.1: 深度 LoRA（例: flux1-depth-dev-lora）",
+    "tooltip": "Black Forest Labs による Flux.1 [dev] 用の構造 LoRA。マップは画像と並べて VAE エンコードされます（「vae」が必要）。\nノードの Control 行が、Flux.1 モデルに対して（モデルへの LoRA として）行の強度で使います。\nflux1-depth-dev-lora.safetensors を ComfyUI/models/loras に入れてください: https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/split_files/loras/flux1-depth-dev-lora.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_Flux1Canny": {
+    "name": "Flux.1: canny LoRA（例: flux1-canny-dev-lora）",
+    "tooltip": "Black Forest Labs による Flux.1 [dev] 用の構造 LoRA。マップは画像と並べて VAE エンコードされます（「vae」が必要）。\nノードの Control 行が、Flux.1 モデルに対して（モデルへの LoRA として）行の強度で使います。\nflux1-canny-dev-lora.safetensors を ComfyUI/models/loras に入れてください（Black Forest Labs のページで、先に FLUX.1 [dev] ライセンスへの同意が求められます）: https://huggingface.co/black-forest-labs/FLUX.1-Canny-dev-lora/resolve/main/flux1-canny-dev-lora.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_Flux1_depth": {
+    "name": "Flux.1: 深度 ControlNet",
+    "tooltip": "ControlNet（マップを読み取り、各ステップでモデルを誘導する別個のネットワーク）。Control 行の強度と開始 / 終了が適用されます（Control-LoRA や union ファイルも使えます）。\nモデルが Flux.1 で、Flux.1 の深度 LoRA が設定されていないとき、Control 行で使われます（LoRA が優先されます）。\nflux-depth-controlnet-v3.safetensors を ComfyUI/models/controlnet に入れてください: https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-depth-controlnet-v3.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_Flux1_canny": {
+    "name": "Flux.1: canny ControlNet",
+    "tooltip": "ControlNet（マップを読み取り、各ステップでモデルを誘導する別個のネットワーク）。Control 行の強度と開始 / 終了が適用されます（Control-LoRA や union ファイルも使えます）。\nモデルが Flux.1 で、Flux.1 の canny LoRA が設定されていないとき、Control 行で使われます（LoRA が優先されます）。\nflux-canny-controlnet-v3.safetensors を ComfyUI/models/controlnet に入れてください: https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_Flux1_other": {
+    "name": "Flux.1: コントロール画像用の ControlNet（ポーズ、線画、union …）",
+    "tooltip": "ControlNet（マップを読み取り、各ステップでモデルを誘導する別個のネットワーク）。Control 行の強度と開始 / 終了が適用されます（Control-LoRA や union ファイルも使えます）。\nモデルが Flux.1 のとき、Control 行で使われます。\ndiffusion_pytorch_model.safetensors を ComfyUI/models/controlnet に入れてください（InstantX の union ControlNet（ポーズ、深度、canny、タイル …）。名前を変更してください。例: instantx-flux-union.safetensors）: https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_SDXL_depth": {
+    "name": "SDXL: 深度 ControlNet",
+    "tooltip": "ControlNet（マップを読み取り、各ステップでモデルを誘導する別個のネットワーク）。Control 行の強度と開始 / 終了が適用されます（Control-LoRA や union ファイルも使えます）。\nモデルが SDXL のとき、Control 行で使われます。\ncontrol-lora-depth-rank128.safetensors を ComfyUI/models/controlnet に入れてください: https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_SDXL_canny": {
+    "name": "SDXL: canny ControlNet",
+    "tooltip": "ControlNet（マップを読み取り、各ステップでモデルを誘導する別個のネットワーク）。Control 行の強度と開始 / 終了が適用されます（Control-LoRA や union ファイルも使えます）。\nモデルが SDXL のとき、Control 行で使われます。\ncontrol-lora-canny-rank128.safetensors を ComfyUI/models/controlnet に入れてください: https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_SDXL_other": {
+    "name": "SDXL: コントロール画像用の ControlNet（ポーズ、線画、union …）",
+    "tooltip": "ControlNet（マップを読み取り、各ステップでモデルを誘導する別個のネットワーク）。Control 行の強度と開始 / 終了が適用されます（Control-LoRA や union ファイルも使えます）。\nモデルが SDXL のとき、Control 行で使われます。\ndiffusion_pytorch_model_promax.safetensors を ComfyUI/models/controlnet に入れてください（Xinsir の union ControlNet（ポーズ、深度、canny、線画 …）。名前を変更してください。例: controlnet-union-sdxl-promax.safetensors）: https://huggingface.co/xinsir/controlnet-union-sdxl-1.0/resolve/main/diffusion_pytorch_model_promax.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_SD15_depth": {
+    "name": "SD1.5: 深度 ControlNet",
+    "tooltip": "ControlNet（マップを読み取り、各ステップでモデルを誘導する別個のネットワーク）。Control 行の強度と開始 / 終了が適用されます（Control-LoRA や union ファイルも使えます）。\nモデルが SD1.5 のとき、Control 行で使われます。\ncontrol_v11f1p_sd15_depth_fp16.safetensors を ComfyUI/models/controlnet に入れてください: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11f1p_sd15_depth_fp16.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_SD15_canny": {
+    "name": "SD1.5: canny ControlNet",
+    "tooltip": "ControlNet（マップを読み取り、各ステップでモデルを誘導する別個のネットワーク）。Control 行の強度と開始 / 終了が適用されます（Control-LoRA や union ファイルも使えます）。\nモデルが SD1.5 のとき、Control 行で使われます。\ncontrol_v11p_sd15_canny_fp16.safetensors を ComfyUI/models/controlnet に入れてください: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_canny_fp16.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_SD15_other": {
+    "name": "SD1.5: コントロール画像用の ControlNet（ポーズ、線画、union …）",
+    "tooltip": "ControlNet（マップを読み取り、各ステップでモデルを誘導する別個のネットワーク）。Control 行の強度と開始 / 終了が適用されます（Control-LoRA や union ファイルも使えます）。\nモデルが SD1.5 のとき、Control 行で使われます。\ncontrol_v11p_sd15_openpose_fp16.safetensors を ComfyUI/models/controlnet に入れてください（ポーズ用。線画、scribble、softedge … も同じリポジトリにあります）: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_Anima_depth": {
+    "name": "Anima: 深度 LLLite パッチ",
+    "tooltip": "Anima LLLite パッチ（モデルに付ける小さなコントロールネットワーク）。Control 行の強度と開始 / 終了が適用されます。\nモデルが Anima のとき、Control 行で使われます。\nanima-lllite-depth-1.safetensors を ComfyUI/models/model_patches（または models/controlnet） に入れてください: https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-depth-1.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_Anima_canny": {
+    "name": "Anima: canny LLLite パッチ",
+    "tooltip": "Anima LLLite パッチ（モデルに付ける小さなコントロールネットワーク）。Control 行の強度と開始 / 終了が適用されます。\nモデルが Anima のとき、Control 行で使われます。\nanima-lllite-lineart-1.safetensors を ComfyUI/models/model_patches（または models/controlnet） に入れてください（canny 用の LLLite はありません。線画用のパッチは canny と同じようなエッジ線を読み取ります（canny マップでは未検証））: https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-lineart-1.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_Anima_other": {
+    "name": "Anima: コントロール画像用の LLLite パッチ",
+    "tooltip": "Anima LLLite パッチ（モデルに付ける小さなコントロールネットワーク）。Control 行の強度と開始 / 終了が適用されます。\nモデルが Anima のとき、Control 行で使われます。\nanima-lllite-pose-1.safetensors を ComfyUI/models/model_patches（または models/controlnet） に入れてください（ポーズ用。線画、scribble、汎用の「any-test-like」パッチも同じリポジトリにあります）: https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Control_DA3": {
+    "name": "Depth Anything 3 モデル（「画像」から深度マップを作成）",
+    "tooltip": "ComfyUI の Depth Anything 3。「コントロール画像」が接続されていないとき、「画像」から深度マップ（近い = 白）を作ります。\ndepth_anything_3_mono_large.safetensors を ComfyUI/models/geometry_estimation に入れてください: https://huggingface.co/Comfy-Org/Depth-Anything-3/resolve/main/geometry_estimation/depth_anything_3_mono_large.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
+  },
+  "RegionGenie_Edit_LoRA_MOSS": {
+    "name": "MOSS-Image: 編集用 LoRA",
+    "tooltip": "編集モードで、モデルが MOSS-Image のときに Region Genie ノードが使う編集用 LoRA。\nEdit 行（ノード上、Whole image の下）: 同じファイルを表示・設定します。行の ✕ を押すと、そのノードでは使われません。\nMOSS-Image: たとえば Moss-Image-Edit LoRA。編集レイアウトはファイルによって決まります（下記参照）。\nBrowse…: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にある LoRA を選べます。"
+  },
+  "RegionGenie_Edit_LoRA_Krea2": {
+    "name": "Krea 2: 編集用 LoRA",
+    "tooltip": "編集モードで、モデルが Krea 2 のときに Region Genie ノードが使う編集用 LoRA。\nEdit 行（ノード上、Whole image の下）: 同じファイルを表示・設定します。行の ✕ を押すと、そのノードでは使われません。\nBrowse…: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にある LoRA を選べます。"
+  },
+  "RegionGenie_Edit_LoRA_Ideogram4": {
+    "name": "Ideogram 4: 編集用 LoRA",
+    "tooltip": "編集モードで、モデルが Ideogram 4 のときに Region Genie ノードが使う編集用 LoRA。\nEdit 行（ノード上、Whole image の下）: 同じファイルを表示・設定します。行の ✕ を押すと、そのノードでは使われません。\nBrowse…: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にある LoRA を選べます。"
+  },
+  "RegionGenie_Edit_LoRA_Flux1": {
+    "name": "Flux.1: 編集用 LoRA",
+    "tooltip": "編集モードで、モデルが Flux.1 のときに Region Genie ノードが使う編集用 LoRA。\nEdit 行（ノード上、Whole image の下）: 同じファイルを表示・設定します。行の ✕ を押すと、そのノードでは使われません。\nBrowse…: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にある LoRA を選べます。"
+  },
+  "RegionGenie_Edit_LoRA_Flux2": {
+    "name": "Flux.2: 編集用 LoRA",
+    "tooltip": "編集モードで、モデルが Flux.2 のときに Region Genie ノードが使う編集用 LoRA。\nEdit 行（ノード上、Whole image の下）: 同じファイルを表示・設定します。行の ✕ を押すと、そのノードでは使われません。\nBrowse…: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にある LoRA を選べます。"
+  },
+  "RegionGenie_Edit_LoRA_Flux3": {
+    "name": "Flux 3: 編集用 LoRA",
+    "tooltip": "編集モードで、モデルが Flux 3 のときに Region Genie ノードが使う編集用 LoRA。\nEdit 行（ノード上、Whole image の下）: 同じファイルを表示・設定します。行の ✕ を押すと、そのノードでは使われません。\nBrowse…: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にある LoRA を選べます。"
+  },
+  "RegionGenie_Edit_LoRA_Anima": {
+    "name": "Anima: 編集用 LoRA",
+    "tooltip": "編集モードで、モデルが Anima のときに Region Genie ノードが使う編集用 LoRA。\nEdit 行（ノード上、Whole image の下）: 同じファイルを表示・設定します。行の ✕ を押すと、そのノードでは使われません。\nBrowse…: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にある LoRA を選べます。"
+  },
+  "RegionGenie_Edit_LoRA_SDXL": {
+    "name": "SDXL: 編集用 LoRA",
+    "tooltip": "編集モードで、モデルが SDXL のときに Region Genie ノードが使う編集用 LoRA。\nEdit 行（ノード上、Whole image の下）: 同じファイルを表示・設定します。行の ✕ を押すと、そのノードでは使われません。\nBrowse…: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にある LoRA を選べます。"
+  },
+  "RegionGenie_Edit_LoRA_SD15": {
+    "name": "SD1.5: 編集用 LoRA",
+    "tooltip": "編集モードで、モデルが SD1.5 のときに Region Genie ノードが使う編集用 LoRA。\nEdit 行（ノード上、Whole image の下）: 同じファイルを表示・設定します。行の ✕ を押すと、そのノードでは使われません。\nBrowse…: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にある LoRA を選べます。"
+  },
+  "RegionGenie_Edit_Reference_MOSS": {
+    "name": "MOSS-Image: 元画像を参照画像として渡す",
+    "tooltip": "オン: 編集モードで、元画像（「画像」に接続）を参照画像としても MOSS-Image に渡します（ポジティブとネガティブの reference_latents）。MOSS-Image Edit などの編集モデルが想定する形です。\nオフ: 潜在のみからの image-to-image。"
+  },
+  "RegionGenie_Edit_Reference_Krea2": {
+    "name": "Krea 2: 元画像を参照画像として渡す",
+    "tooltip": "オン: 編集モードで、元画像（「画像」に接続）を参照画像としても Krea 2 に渡します（ポジティブとネガティブの reference_latents）。Krea 2 の編集パック などの編集モデルが想定する形です。\nオフ: 潜在のみからの image-to-image。"
+  },
+  "RegionGenie_Edit_Reference_Flux1": {
+    "name": "Flux.1: 元画像を参照画像として渡す",
+    "tooltip": "オン: 編集モードで、元画像（「画像」に接続）を参照画像としても Flux.1 に渡します（ポジティブとネガティブの reference_latents）。Flux.1 Kontext などの編集モデルが想定する形です。\nオフ: 潜在のみからの image-to-image。\nFlux.1 dev と Kontext は区別できません。通常の Flux.1 dev ではオフにしてください。"
+  },
+  "RegionGenie_Edit_Reference_Flux2": {
+    "name": "Flux.2: 元画像を参照画像として渡す",
+    "tooltip": "オン: 編集モードで、元画像（「画像」に接続）を参照画像としても Flux.2 に渡します（ポジティブとネガティブの reference_latents）。Flux.2 / Klein などの編集モデルが想定する形です。\nオフ: 潜在のみからの image-to-image。"
+  },
+  "RegionGenie_Edit_Reference_Flux3": {
+    "name": "Flux 3: 元画像を参照画像として渡す",
+    "tooltip": "オン: 編集モードで、元画像（「画像」に接続）を参照画像としても Flux 3 に渡します（ポジティブとネガティブの reference_latents）。Flux 3 などの編集モデルが想定する形です。\nオフ: 潜在のみからの image-to-image。"
+  },
+  "RegionGenie_Edit_ReferenceSize": {
+    "name": "参照画像のサイズ（長辺、px。0 = 出力サイズ）",
+    "tooltip": "参照画像は、エンコードの前に長辺がこの値になるよう縮小されます（拡大はしません）。大きいほど遅くなります。"
+  },
+  "RegionGenie_Edit_MossFormat": {
+    "name": "MOSS-Image の編集レイアウト",
+    "tooltip": "MOSS-Image への参照画像の渡し方（ComfyUI の TextEncodeMOSSImageEdit ノードと同じ）。自動: ai-toolkit で学習した LoRA（qkv が結合された重み）には「ai-toolkit」、それ以外（Moss-Image-Edit LoRA など）には「Moss-Image-Edit」が使われます。",
+    "options": {
+      "Auto (from the edit LoRA file)": "自動（編集用 LoRA ファイルから判定）",
+      "Moss-Image-Edit": "Moss-Image-Edit",
+      "ai-toolkit": "ai-toolkit",
+      "ai-toolkit (kv_cache off)": "ai-toolkit（kv_cache オフ）"
+    }
+  },
+  "RegionGenie_Edit_MaskGrow": {
+    "name": "編集マスク: 拡張（px。負の値で縮小）",
+    "tooltip": "編集マスク（編集モードでサンプラーが変更してよい範囲）を、領域の外側へこのピクセル数だけ広げ、編集が周囲になじむようにします。負の値では縮小します。保持する領域には広がりません。リストのヘッダーで独自の値を設定していないノードに適用されます。"
+  },
+  "RegionGenie_Edit_MaskFeather": {
+    "name": "編集マスク: フェザー（px）",
+    "tooltip": "編集マスクの縁を（拡張の後で）このピクセル数だけぼかします。領域自体のフェザーとは独立しています。リストのヘッダーで独自の値を設定していないノードに適用されます。"
+  },
+  "RegionGenie_RegionalLoRAs_Feather": {
+    "name": "フェザー",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_RegionalLoRAs_LoraMasking": {
+    "name": "LoRAマスキング",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。",
+    "options": {
+      "inside the model (one pass)": "モデル内（1パス）",
+      "separate passes (classic hooks)": "個別パス（従来のフック）"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_RegionSeparation": {
+    "name": "領域の分離",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_RegionalLoRAs_SeparateAllRegions": {
+    "name": "すべての領域を分離",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_RegionalLoRAs_ShareBackground": {
+    "name": "背景を共有",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Save_Format": {
+    "name": "フォーマット",
+    "tooltip": "png: ロスレス。\nwebp: ロスレスまたは品質指定。大幅に小さい。\njpeg: 品質指定。小さいファイル。\navif: 品質指定。最も小さい。\nexr: 16 / 32-bit 浮動小数点のシーンリニア（合成や HDR 向け。小さくはなりません）。\n今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。",
+    "options": {
+      "png": "png",
+      "webp": "webp",
+      "jpeg": "jpeg",
+      "avif": "avif",
+      "exr": "exr"
+    }
+  },
+  "RegionGenie_Save_PngLevel": {
+    "name": "PNG 圧縮",
+    "tooltip": "0〜9。どのレベルでもロスレスです。高いほどファイルが小さく、保存が遅くなります。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Save_WebpLossless": {
+    "name": "WebP ロスレス",
+    "tooltip": "ピクセルを完全に保持。通常 PNG より 25〜35% 小さくなります。オフ: WebP 品質で決まります。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Save_WebpQuality": {
+    "name": "WebP 品質",
+    "tooltip": "1〜100。低いほどファイルが小さく、失われるディテールが増えます。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Save_JpegQuality": {
+    "name": "JPEG 品質",
+    "tooltip": "1〜100。低いほどファイルが小さく、失われるディテールが増えます。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Save_JpegExtension": {
+    "name": "JPEG 拡張子",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。",
+    "options": {
+      "_jpg": ".jpg",
+      "_jpeg": ".jpeg"
+    }
+  },
+  "RegionGenie_Save_JpegWorkflow": {
+    "name": "JPEG ワークフロー",
+    "tooltip": "ComfyUI は JPEG からワークフローを読み込めません。\nサイドカー .json: 各 JPEG の隣の小さな .json ファイルにワークフローを保存します（そのファイルを ComfyUI にドラッグすると読み込めます）。\nなし: ワークフローを保存しません。\nJPEG内（EXIF）: 他のツールでは読めますが、ComfyUI では読めません。\n今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。",
+    "options": {
+      "sidecar _json": "サイドカー .json",
+      "none": "なし",
+      "inside the JPEG (EXIF)": "JPEG内（EXIF）"
+    }
+  },
+  "RegionGenie_Save_AvifQuality": {
+    "name": "AVIF 品質",
+    "tooltip": "1〜100。低いほどファイルが小さく、失われるディテールが増えます。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Save_ExrBitDepth": {
+    "name": "EXR ビット深度",
+    "tooltip": "16-bit 浮動小数点: 半精度。サイズは約半分。\n32-bit 浮動小数点: 完全な精度。\n今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。",
+    "options": {
+      "16-bit float": "16-bit 浮動小数点",
+      "32-bit float": "32-bit 浮動小数点"
+    }
+  },
+  "RegionGenie_Save_ExrColorSpace": {
+    "name": "EXR カラースペース",
+    "tooltip": "入力される画像のカラースペース（EXR は常にシーンリニアです）。\nsRGB: sRGB エンコードの Rec.709（通常はこちら）。\nHDR: HLG エンコードの Rec.2020。\nリニア: すでにシーンリニアの Rec.709。\nリニア ACEScg: すでにシーンリニアの ACEScg。\n今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。",
+    "options": {
+      "sRGB": "sRGB",
+      "HDR": "HDR",
+      "linear": "リニア",
+      "linear ACEScg": "リニア ACEScg"
+    }
+  },
+  "RegionGenie_RegionalLoRAs_SeparationUntil": {
+    "name": "分離期間",
+    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  }
+}

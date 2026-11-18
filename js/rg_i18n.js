@@ -19,6 +19,12 @@ export function choiceLabel(value) {
     return typeof t === "string" && t ? t : (value ?? "");
 }
 
+// The name of a node input in ComfyUI's language (the English name when there is no translation).
+export function inputLabel(nodeClass, input) {
+    const t = all?.[locale()]?.nodeDefs?.[nodeClass]?.inputs?.[input]?.name;
+    return typeof t === "string" && t ? t : input;
+}
+
 app.registerExtension({
     name: "RegionGenie.I18n",
     async init() {
