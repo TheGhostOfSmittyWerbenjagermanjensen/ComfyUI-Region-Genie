@@ -2,6 +2,11 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 28 (Nov 18): the tag autocomplete switch in the pop-up editors
+- Asked for: the tag autocomplete toggle in the pop-up text boxes, acting on every text box of the node.
+- `autocompleteToggle(node, mk, keepFocus)` (rg_shared.js) now also returns `dispose()`, and a click refreshes every toggle button at once (they all read the node's one `rg_autocomplete` property). The Region Genie pop-ups (`popFrame`, js/editor/popups.js) and the shared floating pop-up (`openFloatPopup`, used by Regional LoRAs) add one after A+; `keepFocus` leaves the text box focused. Hidden, like the bottom bar's, while no autocomplete pack is installed.
+- Tests: ui_rows_popups (the button's place, both buttons switching together); real ComfyUI with ComfyUI-Custom-Scripts, legacy and Nodes 2.0: off in the pop-up stops the list and switches the bottom bar's button, on again brings it back, the text box keeps the focus; the Regional LoRAs pop-up's switch changes only its own node. Version 0.26.0.
+
 ## Round 27 (Nov 18): MOSS-Image edit settings in the manual
 - Asked for: how to get good results from the MOSS-Image edit LoRAs (researched online), then the manual's CFG advice updated.
 - `docs/edit-mode.md`: "30 steps, cfg 4, shift 5" replaced by per-LoRA advice: CFG 5 for chinoll's Moss-Image-Edit, CFG 3 for MOSS-Image-Edit-HQ, strength 1, SFT model, reference size, how to write the instruction. Sources: the PedroMarinhoDev/Moss-Image-Edit-ComfyUI card and its node pack's README, the akhaliq/MOSS-Image-Edit-HQ card, comfyui-wiki.com's Oct 25 article.

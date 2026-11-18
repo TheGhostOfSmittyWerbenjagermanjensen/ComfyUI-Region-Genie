@@ -1,6 +1,6 @@
 # Region Genie (ComfyUI node pack): handoff summary
 
-**State (Nov 17, 2026):** version 0.25.0 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
+**State (Nov 17, 2026):** version 0.26.0 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
 
 The pack used to be called **Regional Mask Kit** (renamed Nov 10, 2026). The compatibility code for the old names was removed in round 24 (section 7).
 
