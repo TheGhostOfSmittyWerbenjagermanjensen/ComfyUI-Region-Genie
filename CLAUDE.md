@@ -28,7 +28,7 @@ GitHub Actions (`.github/workflows/tests.yml`) runs the syntax checks, `tests/ru
 
 - `node --check --input-type=module < js/<file>.js` for every changed JS file (also in `js/editor/`); `python3 -m py_compile` for Python.
 - `tests/run_py.sh`; `tests/run_ui.sh` when the editor changed; `tests/test_select.py` when `region_select.py` changed; `tests/test_control.py` when `control.py` changed; `tests/real_save_image.cjs [vue]` when the save node changed; `tests/real_tooltips.cjs [vue]` when a tooltip changed; `tests/real_settings.cjs` when a Setting changed; `tests/real_llm_settings.cjs [vue]` when the LLM settings (pop-up or Settings rows) changed.
-- When a node text (name, input, output, tooltip, dropdown choice) or a Setting changed: `node tests/i18n_extract.cjs` (rewrites the English reference `tests/i18n_en/`), update the changed entries in every `locales/<language>/`, then `tests/real_i18n.cjs [vue]` (restart ComfyUI first: it reads locale files at start).
+- When a node text (name, input, output, tooltip, dropdown choice) or a Setting changed: `node tests/i18n_extract.cjs` (rewrites the English reference `tests/i18n_en/`), `python3 tests/test_i18n.py --todo` lists exactly the entries whose English is new or changed: translate only those in every `locales/<language>/` (never re-translate or re-review the rest), `python3 tests/test_i18n.py --done`, then `tests/real_i18n.cjs [vue]` (restart ComfyUI first: it reads locale files at start).
 
 ## Never commit
 

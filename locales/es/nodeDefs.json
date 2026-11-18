@@ -11,7 +11,7 @@
       },
       "scene_prompt_positive": {
         "name": "prompt_escena_positivo",
-        "tooltip": "La descripción de toda la escena.\nMOSS JSON: La descripción resumida.\nIdeogram JSON: El campo high_level_description.\nPrompt de texto: La primera frase."
+        "tooltip": "La descripción de toda la escena.\nMOSS JSON: La descripción resumida.\nIdeogram JSON: El campo high_level_description.\ntexto: La primera frase."
       },
       "scene_prompt_negative": {
         "name": "prompt_escena_negativo",
@@ -23,7 +23,7 @@
       },
       "min_region_pixels": {
         "name": "píxeles_mín_región",
-        "tooltip": "Solo con 'usar como mapa de color'. Un color se convierte en región cuando tiene al menos esta cantidad de píxeles planos (píxeles iguales a sus 4 vecinos, al tamaño propio de la imagen). Los bordes mezclados van a la región más cercana; las motas de otros colores quedan sin especificar. Se ajusta en Configuración > Region Genie (el editor lo envía en cada ejecución); este valor oculto es solo un respaldo."
+        "tooltip": "Solo con 'usar como mapa de color'. Un color se convierte en región cuando tiene al menos esta cantidad de píxeles planos (píxeles iguales a sus 4 vecinos, al tamaño propio de la imagen). Los bordes mezclados van a la región más cercana; las motas de otros colores quedan sin especificar. Se ajusta en Configuración > Region Genie > Nodo Region Genie (el editor lo envía en cada ejecución); este valor oculto es solo un respaldo."
       },
       "paint_data": {
         "name": "datos_de_pintura"
@@ -50,11 +50,11 @@
       },
       "size_from_latent": {
         "name": "tamaño_desde_latente",
-        "tooltip": "Toma ancho/alto de este latente (detecta automáticamente 16x para latentes de MOSS-Image / Flux 2, 8x para SD/SDXL/Flux 1)."
+        "tooltip": "Toma ancho/alto de este latente (detecta automáticamente 16x para latentes de MOSS-Image / Flux.2, 8x para SD/SDXL/Flux.1)."
       },
       "import_mode": {
         "name": "modo_de_importación",
-        "tooltip": "Qué hace un nuevo importar_json cuando el lienzo ya tiene capas.\npreguntar antes de reemplazar: El nodo pregunta primero (esta ejecución conserva el lienzo).\nreemplazar siempre: El nuevo diseño reemplaza el lienzo de inmediato.\nUn lienzo vacío siempre se rellena. Se ajusta en Configuración > Region Genie (el editor lo envía en cada ejecución); este valor oculto es solo un respaldo."
+        "tooltip": "Qué hace un nuevo importar_json cuando el lienzo ya tiene capas.\npreguntar antes de reemplazar: El nodo pregunta primero (esta ejecución conserva el lienzo).\nreemplazar siempre: El nuevo diseño reemplaza el lienzo de inmediato.\nUn lienzo vacío siempre se rellena. Se ajusta en Configuración > Region Genie > Nodo Region Genie (el editor lo envía en cada ejecución); este valor oculto es solo un respaldo."
       },
       "scene_prompt_background": {
         "name": "prompt_escena_fondo",
@@ -112,7 +112,7 @@
       },
       "4": {
         "name": "prompt",
-        "tooltip": "El prompt como texto, en el formato del modelo.\nMOSS-Image: JSON de diseño (texto plano en modo estándar, sin regiones y en Modo edición).\nIdeogram 4: JSON de descripción.\nOtros modelos: Texto plano (la escena y, después, el prompt de cada región).\nEl desplegable de modelo del nodo elige el formato; en auto: El modelo conectado; si no lo hay, el clip; si tampoco, el codificador de texto al que va esta salida. El JSON también sirve como import_json para MOSS-Image Prompt Builder KJ o (Deno) Ideogram Director.\nEl texto plano no indica dónde están las regiones: 'mantener todas las regiones separadas' (necesita modelo y clip) vincula la frase de cada región a su región."
+        "tooltip": "El prompt como texto, en el formato del modelo.\nMOSS-Image: JSON de diseño (texto plano en su lugar en modo estándar, cuando no hay regiones y en Modo edición).\nIdeogram 4: JSON de descripción.\nOtros modelos: Texto plano (la escena y, después, el prompt de cada región).\nEl desplegable de modelo del nodo elige el formato; en auto: El modelo conectado; si no lo hay, el clip; si tampoco, el codificador de texto al que va esta salida. El JSON también sirve como import_json para MOSS-Image Prompt Builder KJ o (Deno) Ideogram Director.\nEl texto plano no indica dónde están las regiones: El botón del nodo para mantener todas las regiones separadas (necesita modelo y clip) vincula la frase de cada región a su región."
       },
       "5": {
         "name": "mapa_de_color",
@@ -181,7 +181,7 @@
       },
       "size_from_latent": {
         "name": "tamaño_desde_latente",
-        "tooltip": "Redimensiona las máscaras al tamaño de imagen de este latente (16x para latentes de MOSS-Image / Flux 2, 8x para SD/SDXL/Flux 1)."
+        "tooltip": "Redimensiona las máscaras al tamaño de imagen de este latente (16x para latentes de MOSS-Image / Flux.2, 8x para SD/SDXL/Flux.1)."
       }
     },
     "outputs": {
@@ -240,7 +240,7 @@
       },
       "latent_scale": {
         "name": "escala_latente",
-        "tooltip": "Píxeles por celda del latente para tamaño_desde_latente. auto: 16 para latentes de MOSS-Image / Flux 2, 8 para SD/SDXL/Flux 1."
+        "tooltip": "Píxeles por celda del latente para tamaño_desde_latente. auto: 16 para latentes de MOSS-Image / Flux.2, 8 para SD/SDXL/Flux.1."
       },
       "feather_canvas_edges": {
         "name": "difuminar_bordes_lienzo",

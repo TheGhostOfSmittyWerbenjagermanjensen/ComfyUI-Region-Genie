@@ -1,7 +1,7 @@
 {
   "RegionGenie_ModelFiles_Browse": {
     "name": "Browse… for model files",
-    "tooltip": "Off (default): A model-file field opens ComfyUI's menu of the files in ComfyUI's model folders.\nOn: Each field also gets a folder button (Browse…) that picks a file anywhere on the ComfyUI machine (saved by its full path), in these Settings (once the dialog is opened again), on the node's Edit rows and in the LLM settings. Files picked with it keep working when it is off."
+    "tooltip": "Off (default): A model-file field opens ComfyUI's menu of the files in ComfyUI's model folders.\nOn: Each field also gets a folder button (Browse…) that picks a file anywhere on the ComfyUI machine (saved by its full path), in these Settings (once the dialog is opened again), on the node's Edit rows and in the LLM Settings pop-up. Files picked with it keep working when it is off."
   },
   "RegionGenie_ModelFiles_Check": {
     "name": "Check model files",
@@ -24,19 +24,19 @@
   },
   "RegionGenie_LLM_Default_character": {
     "name": "Default preset: Character",
-    "tooltip": "The preset for character prompts in every Region Genie node whose LLM settings don't choose another."
+    "tooltip": "The preset for character prompts in every Region Genie node whose LLM Settings don't choose another."
   },
   "RegionGenie_LLM_Default_object": {
     "name": "Default preset: Object",
-    "tooltip": "The preset for object prompts in every Region Genie node whose LLM settings don't choose another."
+    "tooltip": "The preset for object prompts in every Region Genie node whose LLM Settings don't choose another."
   },
   "RegionGenie_LLM_Default_text": {
     "name": "Default preset: Text",
-    "tooltip": "The preset for text prompts in every Region Genie node whose LLM settings don't choose another."
+    "tooltip": "The preset for text prompts in every Region Genie node whose LLM Settings don't choose another."
   },
   "RegionGenie_LLM_Default_scene": {
     "name": "Default preset: Scene",
-    "tooltip": "The preset for scene prompts in every Region Genie node whose LLM settings don't choose another."
+    "tooltip": "The preset for scene prompts in every Region Genie node whose LLM Settings don't choose another."
   },
   "RegionGenie_LLM_EditPreset": {
     "name": "Preset to edit",
@@ -52,11 +52,11 @@
   },
   "RegionGenie_LLM_Preset_llm_type": {
     "name": "Preset: LLM type",
-    "tooltip": "As the 'type' of Load CLIP, for an LLM file. Auto works for plain Qwen3 / Qwen3.5 / Gemma files."
+    "tooltip": "As the 'type' of Load CLIP, for an LLM file. 'auto (detect)' works for plain Qwen3 / Qwen3.5 / Gemma files."
   },
   "RegionGenie_LLM_Preset_loras": {
     "name": "Preset: LLM LoRAs",
-    "tooltip": "LoRAs applied to the LLM only (like Load LoRA (Text Encoder)); the image model and the clip used for conditioning are not changed. \nEach row: On / off, the file (a click opens ComfyUI's menu; a folder button with 'Browse… for model files' on), strength, ✕ removes it."
+    "tooltip": "LoRAs applied to the LLM only (like Load LoRA (Text Encoder)); the image model and the clip used for conditioning are not changed.\nEach row: On / off, the file (a click opens ComfyUI's menu; a folder button with 'Browse… for model files' on), strength, ✕ removes it."
   },
   "RegionGenie_LLM_Preset_system_prompt": {
     "name": "Preset: system prompt",
@@ -100,7 +100,7 @@
   },
   "RegionGenie_LLM_Preset_thinking": {
     "name": "Preset: thinking",
-    "tooltip": "Thinking mode, if the model supports it (the reasoning is shown in the sparkles button's tooltip, not used)."
+    "tooltip": "Thinking mode, if the model supports it (the reasoning is shown in the tooltip of the LLM button, the one with the sparkles icon; it is not used)."
   },
   "RegionGenie_LLM_Preset_use_default_template": {
     "name": "Preset: default template",
@@ -154,7 +154,7 @@
   },
   "RegionGenie_Tools_Fill": {
     "name": "Fill: default",
-    "tooltip": "Closing small gaps: The fill doesn't leak out through openings narrower than about twice the gap size (the field on the canvas while Fill is active).\nRight-clicking the button still switches it for the session.",
+    "tooltip": "Fill, closing small gaps: The fill doesn't leak out through openings narrower than about twice the gap size (the field on the canvas while Fill is active).\nRight-clicking the button still switches it for the session.",
     "options": {
       "Fill": "Fill",
       "Fill, closing small gaps": "Fill, closing small gaps",
@@ -172,7 +172,7 @@
   },
   "RegionGenie_Select_KeepLoaded": {
     "name": "After a selection",
-    "tooltip": "Keep loaded: The model stays in memory for the session (about 1.7 GB). ComfyUI still moves it out of VRAM into system RAM when a workflow needs the room, and back on the next click.\nUnload: The model is freed when you accept or cancel a selection (and after 3 idle minutes), so each new selection loads it from disk again.",
+    "tooltip": "Keep the model loaded: The model stays in memory for the session (about 1.7 GB). ComfyUI still moves it out of VRAM into system RAM when a workflow needs the room, and back on the next click.\nUnload the model: The model is freed when you accept or cancel a selection (and after 3 idle minutes), so each new selection loads it from disk again.",
     "options": {
       "Keep the model loaded (faster next time)": "Keep the model loaded (faster next time)",
       "Unload the model after each selection": "Unload the model after each selection"
@@ -279,11 +279,11 @@
   },
   "RegionGenie_Main_MinRegionPixels": {
     "name": "Color map: min region pixels",
-    "tooltip": "With the image used as a color map, a color becomes a region when it has at least this many flat pixels (blended edges go to the nearest region, specks of other colors become unspecified). Applies to every Region Genie node at its next run; the node's image control shows it too while 'color map' is chosen."
+    "tooltip": "With the image used as a color map, a color becomes a region when it has at least this many flat pixels (blended edges go to the nearest region, specks of other colors become unspecified). Applies to every Region Genie node at its next run; the node's image control shows it too while the image is used as a color map."
   },
   "RegionGenie_Main_ImportMode": {
     "name": "import_json when the canvas isn't empty",
-    "tooltip": "Ask before replacing: The run keeps the canvas and the node asks (Replace canvas / Keep canvas).\nAlways replace: The new layout replaces the canvas right away.\nAn empty canvas is always filled. Applies to every Region Genie node at its next run.",
+    "tooltip": "ask before replacing: The run keeps the canvas and the node asks (Replace canvas / Keep canvas).\nalways replace: The new layout replaces the canvas right away.\nAn empty canvas is always filled. Applies to every Region Genie node at its next run.",
     "options": {
       "ask before replacing": "ask before replacing",
       "always replace": "always replace"
@@ -291,7 +291,7 @@
   },
   "RegionGenie_Main_Feather": {
     "name": "Feather (px, linked regions)",
-    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+    "tooltip": "The mask feather that linked regions share (regions start linked). Applies to nodes added from now on; nodes already in a workflow keep their own value."
   },
   "RegionGenie_Main_RegionSeparation": {
     "name": "LoRA region separation",
@@ -311,7 +311,7 @@
   },
   "RegionGenie_Main_AutoApart": {
     "name": "Plain-text prompts: keep all regions apart automatically",
-    "tooltip": "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get the regions as plain sentences. The Region Genie node places each region by tying its sentence to its region in attention ('keep all regions apart').\nOn: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, unless the node's button is set to 'Off for this node'.\nOff: Only a node whose button is on keeps them apart.\nThe settings below change it for one model. Applies to every Region Genie node at its next run."
+    "tooltip": "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get the regions as plain sentences. The Region Genie node places each region by tying its sentence to its region in attention (keeping all regions apart).\nOn: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, unless the node's button is set to 'Off for this node'.\nOff: Only a node whose button is on keeps them apart.\nThe settings below change it for one model. Applies to every Region Genie node at its next run."
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image (standard mode, Edit Mode): keep all regions apart automatically",
@@ -369,11 +369,11 @@
   },
   "RegionGenie_Main_Snap": {
     "name": "Snap to grid on",
-    "tooltip": "When a Region Genie node is added or a workflow is opened."
+    "tooltip": "Whether snap to grid is on when a Region Genie node is added or a workflow is opened."
   },
   "RegionGenie_Main_Grid": {
     "name": "Grid size (image px)",
-    "tooltip": "When a Region Genie node is added or a workflow is opened."
+    "tooltip": "The grid size when a Region Genie node is added or a workflow is opened."
   },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: color / depth control LoRA",
@@ -481,7 +481,7 @@
   },
   "RegionGenie_Edit_Reference_Krea2": {
     "name": "Krea 2: send the source image as a reference",
-    "tooltip": "On: In Edit Mode, the source image (on 'image') is also given to Krea 2 as a reference image (reference_latents on positive and negative), as edit models such as Krea 2 edit packs expect.\nOff: Image-to-image from the latent only."
+    "tooltip": "On: In Edit Mode, the source image (on 'image') is also given to Krea 2 as a reference image (reference_latents on positive and negative), as the edit packs for Krea 2 expect.\nOff: Image-to-image from the latent only."
   },
   "RegionGenie_Edit_Reference_Flux1": {
     "name": "Flux.1: send the source image as a reference",

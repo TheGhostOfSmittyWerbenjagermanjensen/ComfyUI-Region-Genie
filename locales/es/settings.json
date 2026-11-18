@@ -1,7 +1,7 @@
 {
   "RegionGenie_ModelFiles_Browse": {
     "name": "Browse… para archivos de modelo",
-    "tooltip": "Desactivado (predeterminado): Un campo de archivo de modelo abre el menú de ComfyUI con los archivos de las carpetas de modelos de ComfyUI.\nActivado: Cada campo recibe además un botón de carpeta (Browse…) que selecciona un archivo en cualquier lugar del equipo de ComfyUI (se guarda con su ruta completa), en esta Configuración (cuando se vuelva a abrir el diálogo), en las filas Edit del nodo y en los ajustes de LLM. Los archivos elegidos con él siguen funcionando cuando está desactivado."
+    "tooltip": "Desactivado (predeterminado): Un campo de archivo de modelo abre el menú de ComfyUI con los archivos de las carpetas de modelos de ComfyUI.\nActivado: Cada campo recibe además un botón de carpeta (Browse…) que selecciona un archivo en cualquier lugar del equipo de ComfyUI (se guarda con su ruta completa), en esta Configuración (cuando se vuelva a abrir el diálogo), en las filas Edit del nodo y en la ventana emergente LLM Settings. Los archivos elegidos con él siguen funcionando cuando está desactivado."
   },
   "RegionGenie_ModelFiles_Check": {
     "name": "Comprobar archivos de modelo",
@@ -24,19 +24,19 @@
   },
   "RegionGenie_LLM_Default_character": {
     "name": "Preajuste predeterminado: Personaje",
-    "tooltip": "El preajuste para los prompts de personaje en todos los nodos Region Genie cuyos ajustes de LLM no eligen otro."
+    "tooltip": "El preajuste para los prompts de personaje en todos los nodos Region Genie cuyos LLM Settings no eligen otro."
   },
   "RegionGenie_LLM_Default_object": {
     "name": "Preajuste predeterminado: Objeto",
-    "tooltip": "El preajuste para los prompts de objeto en todos los nodos Region Genie cuyos ajustes de LLM no eligen otro."
+    "tooltip": "El preajuste para los prompts de objeto en todos los nodos Region Genie cuyos LLM Settings no eligen otro."
   },
   "RegionGenie_LLM_Default_text": {
     "name": "Preajuste predeterminado: Texto",
-    "tooltip": "El preajuste para los prompts de texto en todos los nodos Region Genie cuyos ajustes de LLM no eligen otro."
+    "tooltip": "El preajuste para los prompts de texto en todos los nodos Region Genie cuyos LLM Settings no eligen otro."
   },
   "RegionGenie_LLM_Default_scene": {
     "name": "Preajuste predeterminado: Escena",
-    "tooltip": "El preajuste para los prompts de escena en todos los nodos Region Genie cuyos ajustes de LLM no eligen otro."
+    "tooltip": "El preajuste para los prompts de escena en todos los nodos Region Genie cuyos LLM Settings no eligen otro."
   },
   "RegionGenie_LLM_EditPreset": {
     "name": "Preajuste a editar",
@@ -52,11 +52,11 @@
   },
   "RegionGenie_LLM_Preset_llm_type": {
     "name": "Preajuste: tipo de LLM",
-    "tooltip": "Como el 'tipo' de Cargar CLIP, para un archivo de LLM. Auto funciona con archivos normales de Qwen3 / Qwen3.5 / Gemma."
+    "tooltip": "Como el 'tipo' de Cargar CLIP, para un archivo de LLM. 'auto (detect)' funciona con archivos normales de Qwen3 / Qwen3.5 / Gemma."
   },
   "RegionGenie_LLM_Preset_loras": {
     "name": "Preajuste: LoRAs del LLM",
-    "tooltip": "LoRAs aplicadas solo al LLM (como Cargar LoRA (codificador de texto)); el modelo de imagen y el clip usado para el acondicionamiento no se modifican. \nCada fila: Activar / desactivar, el archivo (un clic abre el menú de ComfyUI; un botón de carpeta con 'Browse… para archivos de modelo' activado), fuerza, ✕ la elimina."
+    "tooltip": "LoRAs aplicadas solo al LLM (como Cargar LoRA (codificador de texto)); el modelo de imagen y el clip usado para el acondicionamiento no se modifican.\nCada fila: Activar / desactivar, el archivo (un clic abre el menú de ComfyUI; un botón de carpeta con 'Browse… para archivos de modelo' activado), fuerza, ✕ la elimina."
   },
   "RegionGenie_LLM_Preset_system_prompt": {
     "name": "Preajuste: prompt de sistema",
@@ -100,7 +100,7 @@
   },
   "RegionGenie_LLM_Preset_thinking": {
     "name": "Preajuste: pensamiento",
-    "tooltip": "Modo de pensamiento, si el modelo lo admite (el razonamiento se muestra en la descripción emergente del botón de destellos, no se usa)."
+    "tooltip": "Modo de pensamiento, si el modelo lo admite (el razonamiento se muestra en la descripción emergente del botón LLM, el del icono de destellos; no se usa)."
   },
   "RegionGenie_LLM_Preset_use_default_template": {
     "name": "Preajuste: plantilla predeterminada",
@@ -154,7 +154,7 @@
   },
   "RegionGenie_Tools_Fill": {
     "name": "Relleno: predeterminado",
-    "tooltip": "Cerrando huecos pequeños: El relleno no se escapa por aberturas más estrechas que aproximadamente el doble del tamaño de hueco (el campo del lienzo mientras Relleno está activo).\nUn clic derecho en el botón lo sigue cambiando durante la sesión.",
+    "tooltip": "Relleno, cerrando huecos pequeños: El relleno no se escapa por aberturas más estrechas que aproximadamente el doble del tamaño de hueco (el campo del lienzo mientras Relleno está activo).\nUn clic derecho en el botón lo sigue cambiando durante la sesión.",
     "options": {
       "Fill": "Relleno",
       "Fill, closing small gaps": "Relleno, cerrando huecos pequeños",
@@ -172,7 +172,7 @@
   },
   "RegionGenie_Select_KeepLoaded": {
     "name": "Tras una selección",
-    "tooltip": "Mantener cargado: El modelo permanece en memoria durante la sesión (unos 1.7 GB). ComfyUI lo sigue pasando de la VRAM a la RAM del sistema cuando un flujo de trabajo necesita el espacio, y lo devuelve en el siguiente clic.\nLiberar: El modelo se libera cuando aceptas o cancelas una selección (y tras 3 minutos de inactividad), así que cada nueva selección vuelve a cargarlo desde el disco.",
+    "tooltip": "Mantener el modelo cargado: El modelo permanece en memoria durante la sesión (unos 1.7 GB). ComfyUI lo sigue pasando de la VRAM a la RAM del sistema cuando un flujo de trabajo necesita el espacio, y lo devuelve en el siguiente clic.\nLiberar el modelo: El modelo se libera cuando aceptas o cancelas una selección (y tras 3 minutos de inactividad), así que cada nueva selección vuelve a cargarlo desde el disco.",
     "options": {
       "Keep the model loaded (faster next time)": "Mantener el modelo cargado (más rápido la próxima vez)",
       "Unload the model after each selection": "Liberar el modelo tras cada selección"
@@ -279,11 +279,11 @@
   },
   "RegionGenie_Main_MinRegionPixels": {
     "name": "Mapa de color: píxeles mínimos de región",
-    "tooltip": "Con la imagen usada como mapa de color, un color se convierte en región cuando tiene al menos esta cantidad de píxeles planos (los bordes mezclados van a la región más cercana, las motas de otros colores quedan sin especificar). Se aplica a todos los nodos Region Genie en su próxima ejecución; el control de imagen del nodo también lo muestra mientras está elegido el mapa de color."
+    "tooltip": "Con la imagen usada como mapa de color, un color se convierte en región cuando tiene al menos esta cantidad de píxeles planos (los bordes mezclados van a la región más cercana, las motas de otros colores quedan sin especificar). Se aplica a todos los nodos Region Genie en su próxima ejecución; el control de imagen del nodo también lo muestra mientras la imagen se usa como mapa de color."
   },
   "RegionGenie_Main_ImportMode": {
     "name": "importar_json cuando el lienzo no está vacío",
-    "tooltip": "Preguntar antes de reemplazar: La ejecución conserva el lienzo y el nodo pregunta (Replace canvas / Keep canvas).\nReemplazar siempre: El nuevo diseño reemplaza el lienzo de inmediato.\nUn lienzo vacío siempre se rellena. Se aplica a todos los nodos Region Genie en su próxima ejecución.",
+    "tooltip": "preguntar antes de reemplazar: La ejecución conserva el lienzo y el nodo pregunta (Replace canvas / Keep canvas).\nreemplazar siempre: El nuevo diseño reemplaza el lienzo de inmediato.\nUn lienzo vacío siempre se rellena. Se aplica a todos los nodos Region Genie en su próxima ejecución.",
     "options": {
       "ask before replacing": "preguntar antes de reemplazar",
       "always replace": "reemplazar siempre"
@@ -291,7 +291,7 @@
   },
   "RegionGenie_Main_Feather": {
     "name": "Difuminado (px, regiones vinculadas)",
-    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+    "tooltip": "El difuminado de máscara que comparten las regiones vinculadas (las regiones empiezan vinculadas). Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
   "RegionGenie_Main_RegionSeparation": {
     "name": "Separación de regiones LoRA",
@@ -311,7 +311,7 @@
   },
   "RegionGenie_Main_AutoApart": {
     "name": "Prompts de texto plano: mantener todas las regiones separadas automáticamente",
-    "tooltip": "Krea 2, Flux, Flux 3, Anima y SDXL / SD1.5 (y MOSS-Image en su modo estándar y en Modo edición) reciben las regiones como frases de texto plano. El nodo Region Genie coloca cada región vinculando su frase a su región en la atención ('mantener todas las regiones separadas').\nActivado: Con uno de esos modelos en 'modelo', clip conectado y al menos un prompt de región, una ejecución mantiene todas las regiones separadas, salvo que el botón del nodo esté en 'Off for this node'.\nDesactivado: Solo las mantiene separadas un nodo cuyo botón esté activado.\nLos ajustes de abajo lo cambian para un modelo concreto. Se aplica a todos los nodos Region Genie en su próxima ejecución."
+    "tooltip": "Krea 2, Flux, Flux 3, Anima y SDXL / SD1.5 (y MOSS-Image en su modo estándar y en Modo edición) reciben las regiones como frases de texto plano. El nodo Region Genie coloca cada región vinculando su frase a su región en la atención (manteniendo todas las regiones separadas).\nActivado: Con uno de esos modelos en 'modelo', clip conectado y al menos un prompt de región, una ejecución mantiene todas las regiones separadas, salvo que el botón del nodo esté en 'Off for this node'.\nDesactivado: Solo las mantiene separadas un nodo cuyo botón esté activado.\nLos ajustes de abajo lo cambian para un modelo concreto. Se aplica a todos los nodos Region Genie en su próxima ejecución."
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image (modo estándar, Modo edición): mantener todas las regiones separadas automáticamente",
@@ -369,11 +369,11 @@
   },
   "RegionGenie_Main_Snap": {
     "name": "Ajuste a la cuadrícula activado",
-    "tooltip": "Cuando se añade un nodo Region Genie o se abre un flujo de trabajo."
+    "tooltip": "Si el ajuste a la cuadrícula está activado cuando se añade un nodo Region Genie o se abre un flujo de trabajo."
   },
   "RegionGenie_Main_Grid": {
     "name": "Tamaño de la cuadrícula (px de imagen)",
-    "tooltip": "Cuando se añade un nodo Region Genie o se abre un flujo de trabajo."
+    "tooltip": "El tamaño de la cuadrícula cuando se añade un nodo Region Genie o se abre un flujo de trabajo."
   },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: LoRA de control de color / profundidad",
@@ -481,7 +481,7 @@
   },
   "RegionGenie_Edit_Reference_Krea2": {
     "name": "Krea 2: enviar la imagen de origen como referencia",
-    "tooltip": "Activado: En Modo edición, la imagen de origen (en 'imagen') también se entrega a Krea 2 como imagen de referencia (reference_latents en positivo y negativo), como esperan modelos de edición como los paquetes de edición de Krea 2.\nDesactivado: Imagen a imagen solo a partir del latente."
+    "tooltip": "Activado: En Modo edición, la imagen de origen (en 'imagen') también se entrega a Krea 2 como imagen de referencia (reference_latents en positivo y negativo), como esperan los paquetes de edición para Krea 2.\nDesactivado: Imagen a imagen solo a partir del latente."
   },
   "RegionGenie_Edit_Reference_Flux1": {
     "name": "Flux.1: enviar la imagen de origen como referencia",

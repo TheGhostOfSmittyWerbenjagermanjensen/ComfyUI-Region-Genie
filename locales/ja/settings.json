@@ -1,7 +1,7 @@
 {
   "RegionGenie_ModelFiles_Browse": {
     "name": "モデルファイルの Browse…",
-    "tooltip": "オフ（デフォルト）: モデルファイルの欄をクリックすると、ComfyUI のモデルフォルダー内のファイルを並べた ComfyUI のメニューが開きます。\nオン: 各欄にフォルダーボタン（Browse…）も付き、ComfyUI マシン上の任意の場所にあるファイルを選べます（フルパスで保存）。この設定画面（ダイアログを開き直した後）、ノードの Edit 行、LLM 設定で使えます。これで選んだファイルは、オフに戻しても引き続き使えます。"
+    "tooltip": "オフ（デフォルト）: モデルファイルの欄をクリックすると、ComfyUI のモデルフォルダー内のファイルを並べた ComfyUI のメニューが開きます。\nオン: 各欄にフォルダーボタン（Browse…）も付き、ComfyUI マシン上の任意の場所にあるファイルを選べます（フルパスで保存）。この設定画面（ダイアログを開き直した後）、ノードの Edit 行、LLM Settings ポップアップで使えます。これで選んだファイルは、オフに戻しても引き続き使えます。"
   },
   "RegionGenie_ModelFiles_Check": {
     "name": "モデルファイルを確認",
@@ -24,19 +24,19 @@
   },
   "RegionGenie_LLM_Default_character": {
     "name": "デフォルトプリセット: キャラクター",
-    "tooltip": "LLM 設定で別のプリセットを選んでいないすべての Region Genie ノードで、キャラクタープロンプトに使うプリセット。"
+    "tooltip": "LLM Settings で別のプリセットを選んでいないすべての Region Genie ノードで、キャラクタープロンプトに使うプリセット。"
   },
   "RegionGenie_LLM_Default_object": {
     "name": "デフォルトプリセット: オブジェクト",
-    "tooltip": "LLM 設定で別のプリセットを選んでいないすべての Region Genie ノードで、オブジェクトプロンプトに使うプリセット。"
+    "tooltip": "LLM Settings で別のプリセットを選んでいないすべての Region Genie ノードで、オブジェクトプロンプトに使うプリセット。"
   },
   "RegionGenie_LLM_Default_text": {
     "name": "デフォルトプリセット: テキスト",
-    "tooltip": "LLM 設定で別のプリセットを選んでいないすべての Region Genie ノードで、テキストプロンプトに使うプリセット。"
+    "tooltip": "LLM Settings で別のプリセットを選んでいないすべての Region Genie ノードで、テキストプロンプトに使うプリセット。"
   },
   "RegionGenie_LLM_Default_scene": {
     "name": "デフォルトプリセット: シーン",
-    "tooltip": "LLM 設定で別のプリセットを選んでいないすべての Region Genie ノードで、シーンプロンプトに使うプリセット。"
+    "tooltip": "LLM Settings で別のプリセットを選んでいないすべての Region Genie ノードで、シーンプロンプトに使うプリセット。"
   },
   "RegionGenie_LLM_EditPreset": {
     "name": "編集するプリセット",
@@ -52,11 +52,11 @@
   },
   "RegionGenie_LLM_Preset_llm_type": {
     "name": "プリセット: LLM タイプ",
-    "tooltip": "LLM ファイル用。CLIPを読み込む の「タイプ」と同じです。通常の Qwen3 / Qwen3.5 / Gemma ファイルなら Auto で動作します。"
+    "tooltip": "LLM ファイル用。CLIPを読み込む の「タイプ」と同じです。通常の Qwen3 / Qwen3.5 / Gemma ファイルなら「auto (detect)」で動作します。"
   },
   "RegionGenie_LLM_Preset_loras": {
     "name": "プリセット: LLM LoRA",
-    "tooltip": "LLM だけに適用する LoRA（LoRAを読み込む（テキストエンコーダー） と同様）。画像モデルと、条件付けに使う clip は変更されません。 \n各行: オン / オフ、ファイル（クリックで ComfyUI のメニューが開きます。「モデルファイルの Browse…」がオンならフォルダーボタンも表示）、強度、✕ で削除。"
+    "tooltip": "LLM だけに適用する LoRA（LoRAを読み込む（テキストエンコーダー） と同様）。画像モデルと、条件付けに使う clip は変更されません。\n各行: オン / オフ、ファイル（クリックで ComfyUI のメニューが開きます。「モデルファイルの Browse…」がオンならフォルダーボタンも表示）、強度、✕ で削除。"
   },
   "RegionGenie_LLM_Preset_system_prompt": {
     "name": "プリセット: システムプロンプト",
@@ -100,7 +100,7 @@
   },
   "RegionGenie_LLM_Preset_thinking": {
     "name": "プリセット: 思考",
-    "tooltip": "思考モード（モデルが対応している場合）。推論の内容はスパークルボタンのツールチップに表示されるだけで、結果には使われません。"
+    "tooltip": "思考モード（モデルが対応している場合）。推論の内容は LLM ボタン（スパークルアイコンのボタン）のツールチップに表示されるだけで、結果には使われません。"
   },
   "RegionGenie_LLM_Preset_use_default_template": {
     "name": "プリセット: デフォルトテンプレート",
@@ -154,7 +154,7 @@
   },
   "RegionGenie_Tools_Fill": {
     "name": "塗りつぶし: デフォルト",
-    "tooltip": "小さな隙間を閉じる: 隙間サイズ（塗りつぶしの使用中にキャンバス上に表示される欄）の約 2 倍より狭い開口部からは、塗りつぶしが漏れ出しません。\nボタンを右クリックすれば、そのセッションの間は切り替えられます。",
+    "tooltip": "塗りつぶし（小さな隙間を閉じる）: 隙間サイズ（塗りつぶしの使用中にキャンバス上に表示される欄）の約 2 倍より狭い開口部からは、塗りつぶしが漏れ出しません。\nボタンを右クリックすれば、そのセッションの間は切り替えられます。",
     "options": {
       "Fill": "塗りつぶし",
       "Fill, closing small gaps": "塗りつぶし（小さな隙間を閉じる）",
@@ -172,7 +172,7 @@
   },
   "RegionGenie_Select_KeepLoaded": {
     "name": "選択の後",
-    "tooltip": "読み込んだままにする: モデルはセッションの間メモリに残ります（約 1.7 GB）。ワークフローが空きを必要とするときは、ComfyUI が VRAM からシステム RAM へ移し、次のクリックで戻します。\nアンロード: 選択を確定またはキャンセルしたとき（および 3 分間操作がないとき）にモデルが解放されるため、新しい選択のたびにディスクから読み込み直します。",
+    "tooltip": "モデルを読み込んだままにする: モデルはセッションの間メモリに残ります（約 1.7 GB）。ワークフローが空きを必要とするときは、ComfyUI が VRAM からシステム RAM へ移し、次のクリックで戻します。\nモデルをアンロードする: 選択を確定またはキャンセルしたとき（および 3 分間操作がないとき）にモデルが解放されるため、新しい選択のたびにディスクから読み込み直します。",
     "options": {
       "Keep the model loaded (faster next time)": "モデルを読み込んだままにする（次回が速い）",
       "Unload the model after each selection": "選択のたびにモデルをアンロードする"
@@ -279,7 +279,7 @@
   },
   "RegionGenie_Main_MinRegionPixels": {
     "name": "カラーマップ: 領域の最小ピクセル数",
-    "tooltip": "画像をカラーマップとして使う場合、ある色のフラットなピクセルがこの数以上あると、その色が領域になります（色が混ざった境界は最も近い領域に割り当てられ、他の色の小さな点は未指定になります）。すべての Region Genie ノードに、次回の実行から適用されます。「color map」を選んでいる間は、ノードの画像コントロールにも表示されます。"
+    "tooltip": "画像をカラーマップとして使う場合、ある色のフラットなピクセルがこの数以上あると、その色が領域になります（色が混ざった境界は最も近い領域に割り当てられ、他の色の小さな点は未指定になります）。すべての Region Genie ノードに、次回の実行から適用されます。画像をカラーマップとして使っている間は、ノードの画像コントロールにも表示されます。"
   },
   "RegionGenie_Main_ImportMode": {
     "name": "キャンバスが空でないときの「インポートJSON」",
@@ -291,7 +291,7 @@
   },
   "RegionGenie_Main_Feather": {
     "name": "フェザー（px、リンクした領域）",
-    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+    "tooltip": "リンクした領域が共有するマスクのフェザー（領域は最初はリンクされています）。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
   },
   "RegionGenie_Main_RegionSeparation": {
     "name": "LoRA の領域の分離",
@@ -311,7 +311,7 @@
   },
   "RegionGenie_Main_AutoApart": {
     "name": "プレーンテキストのプロンプト: すべての領域を自動的に分離",
-    "tooltip": "Krea 2、Flux、Flux 3、Anima、SDXL / SD1.5（および標準モードと編集モードの MOSS-Image）には、領域が通常の文として渡されます。Region Genie ノードは、アテンションで各領域の文をその領域に結び付けることで、領域を配置します（「すべての領域を分離」、keep all regions apart）。\nオン: 「モデル」にこうしたモデルが接続され、clip も接続され、領域プロンプトが 1 つ以上あれば、実行時にすべての領域を分離します。ただし、ノードのボタンが「Off for this node」のときは除きます。\nオフ: ボタンがオンになっているノードだけが分離します。\n下の設定で、モデルごとに変更できます。すべての Region Genie ノードに、次回の実行から適用されます。"
+    "tooltip": "Krea 2、Flux、Flux 3、Anima、SDXL / SD1.5（および標準モードと編集モードの MOSS-Image）には、領域が通常の文として渡されます。Region Genie ノードは、アテンションで各領域の文をその領域に結び付けることで、領域を配置します（すべての領域を分離します）。\nオン: 「モデル」にこうしたモデルが接続され、clip も接続され、領域プロンプトが 1 つ以上あれば、実行時にすべての領域を分離します。ただし、ノードのボタンが「Off for this node」のときは除きます。\nオフ: ボタンがオンになっているノードだけが分離します。\n下の設定で、モデルごとに変更できます。すべての Region Genie ノードに、次回の実行から適用されます。"
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image（標準モード、編集モード）: すべての領域を自動的に分離",
@@ -369,11 +369,11 @@
   },
   "RegionGenie_Main_Snap": {
     "name": "グリッドにスナップをオン",
-    "tooltip": "Region Genie ノードを追加したとき、またはワークフローを開いたときの状態。"
+    "tooltip": "Region Genie ノードを追加したとき、またはワークフローを開いたときに、グリッドにスナップをオンにするかどうか。"
   },
   "RegionGenie_Main_Grid": {
     "name": "グリッドサイズ（画像の px）",
-    "tooltip": "Region Genie ノードを追加したとき、またはワークフローを開いたときの値。"
+    "tooltip": "Region Genie ノードを追加したとき、またはワークフローを開いたときのグリッドサイズ。"
   },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: カラー / 深度コントロール LoRA",
@@ -481,7 +481,7 @@
   },
   "RegionGenie_Edit_Reference_Krea2": {
     "name": "Krea 2: 元画像を参照画像として渡す",
-    "tooltip": "オン: 編集モードで、元画像（「画像」に接続）を参照画像としても Krea 2 に渡します（ポジティブとネガティブの reference_latents）。Krea 2 の編集パック などの編集モデルが想定する形です。\nオフ: 潜在のみからの image-to-image。"
+    "tooltip": "オン: 編集モードで、元画像（「画像」に接続）を参照画像としても Krea 2 に渡します（ポジティブとネガティブの reference_latents）。Krea 2 用の編集パックが想定する形です。\nオフ: 潜在のみからの image-to-image。"
   },
   "RegionGenie_Edit_Reference_Flux1": {
     "name": "Flux.1: 元画像を参照画像として渡す",

@@ -11,7 +11,7 @@
       },
       "scene_prompt_positive": {
         "name": "场景正面提示词",
-        "tooltip": "整个场景的描述。\nMOSS JSON：概要描述（summary caption）。\nIdeogram JSON：high_level_description。\n文本提示词：第一句。"
+        "tooltip": "整个场景的描述。\nMOSS JSON：概要描述（summary caption）。\nIdeogram JSON：high_level_description。\n文本：第一句。"
       },
       "scene_prompt_negative": {
         "name": "场景负面提示词",
@@ -23,7 +23,7 @@
       },
       "min_region_pixels": {
         "name": "区域最小像素",
-        "tooltip": "仅用于“用作颜色图”。一种颜色至少有这么多纯色像素（在图像原始尺寸下，与上下左右 4 个相邻像素都相同的像素）时才成为区域。混合的边缘归入最近的区域；其他颜色的零星杂点成为未指定。在 设置 > Region Genie 中设定（编辑器每次运行都会发送该值）；此隐藏值仅作后备。"
+        "tooltip": "仅用于“用作颜色图”。一种颜色至少有这么多纯色像素（在图像原始尺寸下，与上下左右 4 个相邻像素都相同的像素）时才成为区域。混合的边缘归入最近的区域；其他颜色的零星杂点成为未指定。在 设置 > Region Genie > Region Genie 节点 中设定（编辑器每次运行都会发送该值）；此隐藏值仅作后备。"
       },
       "paint_data": {
         "name": "绘制数据"
@@ -50,11 +50,11 @@
       },
       "size_from_latent": {
         "name": "尺寸来自Latent",
-        "tooltip": "从此 Latent 获取宽度 / 高度（自动识别：MOSS-Image / Flux 2 的 Latent 为 16 倍，SD / SDXL / Flux 1 为 8 倍）。"
+        "tooltip": "从此 Latent 获取宽度 / 高度（自动识别：MOSS-Image / Flux.2 的 Latent 为 16 倍，SD / SDXL / Flux.1 为 8 倍）。"
       },
       "import_mode": {
         "name": "导入模式",
-        "tooltip": "画布上已有图层时，新的“导入JSON”如何处理。\n替换前询问：节点先询问（本次运行保留画布）。\n始终替换：新布局立即替换画布。\n空画布总是会被填入。在 设置 > Region Genie 中设定（编辑器每次运行都会发送该值）；此隐藏值仅作后备。"
+        "tooltip": "画布上已有图层时，新的“导入JSON”如何处理。\n替换前询问：节点先询问（本次运行保留画布）。\n始终替换：新布局立即替换画布。\n空画布总是会被填入。在 设置 > Region Genie > Region Genie 节点 中设定（编辑器每次运行都会发送该值）；此隐藏值仅作后备。"
       },
       "scene_prompt_background": {
         "name": "场景背景提示词",
@@ -112,7 +112,7 @@
       },
       "4": {
         "name": "提示词",
-        "tooltip": "文本形式的提示词，采用模型的格式。\nMOSS-Image：布局 JSON（在标准模式下、没有区域时以及编辑模式下为纯文本）。\nIdeogram 4：描述 JSON。\n其他模型：纯文本（先是场景，然后是各区域的提示词）。\n格式由节点的模型下拉框选择；为 auto 时：依次按所连接的模型、clip、此输出所连接的文本编码器决定。该 JSON 也可用作 MOSS-Image Prompt Builder KJ 或 (Deno) Ideogram Director 的 import_json。\n纯文本不包含区域的位置：“keep all regions apart”（需要模型和 clip）会把每个区域的句子绑定到它的区域。"
+        "tooltip": "文本形式的提示词，采用模型的格式。\nMOSS-Image：布局 JSON（在标准模式下、没有区域时以及编辑模式下改为纯文本）。\nIdeogram 4：描述 JSON。\n其他模型：纯文本（先是场景，然后是各区域的提示词）。\n格式由节点的模型下拉框选择；为 auto 时：依次按所连接的模型、clip、此输出所连接的文本编码器决定。该 JSON 也可用作 MOSS-Image Prompt Builder KJ 或 (Deno) Ideogram Director 的 import_json。\n纯文本不包含区域的位置：节点上的分离所有区域按钮（需要模型和 clip）会把每个区域的句子绑定到它的区域。"
       },
       "5": {
         "name": "颜色图",
@@ -181,7 +181,7 @@
       },
       "size_from_latent": {
         "name": "尺寸来自Latent",
-        "tooltip": "将遮罩缩放到此 Latent 对应的图像尺寸（MOSS-Image / Flux 2 的 Latent 为 16 倍，SD / SDXL / Flux 1 为 8 倍）。"
+        "tooltip": "将遮罩缩放到此 Latent 对应的图像尺寸（MOSS-Image / Flux.2 的 Latent 为 16 倍，SD / SDXL / Flux.1 为 8 倍）。"
       }
     },
     "outputs": {
@@ -240,7 +240,7 @@
       },
       "latent_scale": {
         "name": "Latent缩放",
-        "tooltip": "“尺寸来自Latent”中每个 Latent 单元对应的像素数。自动：MOSS-Image / Flux 2 的 Latent 为 16，SD / SDXL / Flux 1 为 8。"
+        "tooltip": "“尺寸来自Latent”中每个 Latent 单元对应的像素数。自动：MOSS-Image / Flux.2 的 Latent 为 16，SD / SDXL / Flux.1 为 8。"
       },
       "feather_canvas_edges": {
         "name": "羽化画布边缘",

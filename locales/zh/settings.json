@@ -1,7 +1,7 @@
 {
   "RegionGenie_ModelFiles_Browse": {
     "name": "浏览…选取模型文件",
-    "tooltip": "关闭（默认）：模型文件字段打开 ComfyUI 的菜单，列出 ComfyUI 模型文件夹中的文件。\n开启：每个字段还会多一个文件夹按钮（Browse…），可选取 ComfyUI 所在机器上任意位置的文件（按完整路径保存），适用于本设置（重新打开对话框后生效）、节点的 Edit 行以及 LLM 设置。关闭后，用它选取的文件仍然有效。"
+    "tooltip": "关闭（默认）：模型文件字段打开 ComfyUI 的菜单，列出 ComfyUI 模型文件夹中的文件。\n开启：每个字段还会多一个文件夹按钮（Browse…），可选取 ComfyUI 所在机器上任意位置的文件（按完整路径保存），适用于本设置（重新打开对话框后生效）、节点的 Edit 行以及 LLM Settings 弹出窗口。关闭后，用它选取的文件仍然有效。"
   },
   "RegionGenie_ModelFiles_Check": {
     "name": "检查模型文件",
@@ -24,19 +24,19 @@
   },
   "RegionGenie_LLM_Default_character": {
     "name": "默认预设：角色",
-    "tooltip": "用于角色提示词的预设，适用于 LLM 设置中未另选预设的每个 Region Genie 节点。"
+    "tooltip": "用于角色提示词的预设，适用于 LLM Settings 中未另选预设的每个 Region Genie 节点。"
   },
   "RegionGenie_LLM_Default_object": {
     "name": "默认预设：对象",
-    "tooltip": "用于对象提示词的预设，适用于 LLM 设置中未另选预设的每个 Region Genie 节点。"
+    "tooltip": "用于对象提示词的预设，适用于 LLM Settings 中未另选预设的每个 Region Genie 节点。"
   },
   "RegionGenie_LLM_Default_text": {
     "name": "默认预设：文字",
-    "tooltip": "用于文字提示词的预设，适用于 LLM 设置中未另选预设的每个 Region Genie 节点。"
+    "tooltip": "用于文字提示词的预设，适用于 LLM Settings 中未另选预设的每个 Region Genie 节点。"
   },
   "RegionGenie_LLM_Default_scene": {
     "name": "默认预设：场景",
-    "tooltip": "用于场景提示词的预设，适用于 LLM 设置中未另选预设的每个 Region Genie 节点。"
+    "tooltip": "用于场景提示词的预设，适用于 LLM Settings 中未另选预设的每个 Region Genie 节点。"
   },
   "RegionGenie_LLM_EditPreset": {
     "name": "要编辑的预设",
@@ -52,11 +52,11 @@
   },
   "RegionGenie_LLM_Preset_llm_type": {
     "name": "预设：LLM 类型",
-    "tooltip": "同“加载CLIP”的“类型”，用于 LLM 文件。auto 适用于普通的 Qwen3 / Qwen3.5 / Gemma 文件。"
+    "tooltip": "同“加载CLIP”的“类型”，用于 LLM 文件。“auto (detect)”适用于普通的 Qwen3 / Qwen3.5 / Gemma 文件。"
   },
   "RegionGenie_LLM_Preset_loras": {
     "name": "预设：LLM LoRA",
-    "tooltip": "仅应用于 LLM 的 LoRA（类似“加载 LoRA（文本编码器）”）；图像模型和用于条件的 clip 不受影响。 \n每一行：开 / 关、文件（点击打开 ComfyUI 的菜单；开启“浏览…选取模型文件”后有文件夹按钮）、强度，✕ 用于移除。"
+    "tooltip": "仅应用于 LLM 的 LoRA（类似“加载 LoRA（文本编码器）”）；图像模型和用于条件的 clip 不受影响。\n每一行：开 / 关、文件（点击打开 ComfyUI 的菜单；开启“浏览…选取模型文件”后有文件夹按钮）、强度，✕ 用于移除。"
   },
   "RegionGenie_LLM_Preset_system_prompt": {
     "name": "预设：系统提示词",
@@ -100,7 +100,7 @@
   },
   "RegionGenie_LLM_Preset_thinking": {
     "name": "预设：思考模式",
-    "tooltip": "思考模式（如果模型支持；推理过程显示在闪光按钮的提示中，不会被使用）。"
+    "tooltip": "思考模式，如果模型支持（推理过程显示在带闪光图标的 LLM 按钮的提示中；不会被使用）。"
   },
   "RegionGenie_LLM_Preset_use_default_template": {
     "name": "预设：默认模板",
@@ -172,7 +172,7 @@
   },
   "RegionGenie_Select_KeepLoaded": {
     "name": "选择完成后",
-    "tooltip": "保持加载：模型在本次会话中留在内存里（约 1.7 GB）。工作流需要空间时，ComfyUI 仍会把它从显存移到系统内存，下次点击时再移回。\n卸载：接受或取消选择时释放模型（空闲 3 分钟后也会释放），因此每次新的选择都要重新从磁盘加载。",
+    "tooltip": "保持模型加载：模型在本次会话中留在内存里（约 1.7 GB）。工作流需要空间时，ComfyUI 仍会把它从显存移到系统内存，下次点击时再移回。\n卸载模型：接受或取消选择时释放模型（空闲 3 分钟后也会释放），因此每次新的选择都要重新从磁盘加载。",
     "options": {
       "Keep the model loaded (faster next time)": "保持模型加载（下次更快）",
       "Unload the model after each selection": "每次选择后卸载模型"
@@ -279,7 +279,7 @@
   },
   "RegionGenie_Main_MinRegionPixels": {
     "name": "颜色图：区域最小像素",
-    "tooltip": "图像用作颜色图时，一种颜色至少有这么多纯色像素才成为区域（混合的边缘归入最近的区域，其他颜色的零星杂点成为未指定）。在下次运行时适用于每个 Region Genie 节点；选中“color map”时，节点的图像控件也会显示它。"
+    "tooltip": "图像用作颜色图时，一种颜色至少有这么多纯色像素才成为区域（混合的边缘归入最近的区域，其他颜色的零星杂点成为未指定）。在下次运行时适用于每个 Region Genie 节点；图像用作颜色图期间，节点的图像控件也会显示它。"
   },
   "RegionGenie_Main_ImportMode": {
     "name": "画布不为空时的“导入JSON”",
@@ -291,7 +291,7 @@
   },
   "RegionGenie_Main_Feather": {
     "name": "羽化（px，联动的区域）",
-    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+    "tooltip": "联动的区域共用的遮罩羽化（区域初始为联动）。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
   },
   "RegionGenie_Main_RegionSeparation": {
     "name": "LoRA 区域分离",
@@ -311,7 +311,7 @@
   },
   "RegionGenie_Main_AutoApart": {
     "name": "纯文本提示词：自动分离所有区域",
-    "tooltip": "Krea 2、Flux、Flux 3、Anima 和 SDXL / SD1.5（以及标准模式和编辑模式下的 MOSS-Image）以普通句子的形式得到各区域。Region Genie 节点通过在注意力中把每个区域的句子绑定到其区域来安放各区域（“keep all regions apart”）。\n开启：当“模型”上连接了这类模型、已连接 clip 且至少有一个区域提示词时，运行时会分离所有区域，除非节点的按钮设为“Off for this node”。\n关闭：只有按钮已开启的节点才分离区域。\n下面的设置可针对单个模型更改。在下次运行时适用于每个 Region Genie 节点。"
+    "tooltip": "Krea 2、Flux、Flux 3、Anima 和 SDXL / SD1.5（以及标准模式和编辑模式下的 MOSS-Image）以普通句子的形式得到各区域。Region Genie 节点通过在注意力中把每个区域的句子绑定到其区域来安放各区域（即分离所有区域）。\n开启：当“模型”上连接了这类模型、已连接 clip 且至少有一个区域提示词时，运行时会分离所有区域，除非节点的按钮设为“Off for this node”。\n关闭：只有按钮已开启的节点才分离区域。\n下面的设置可针对单个模型更改。在下次运行时适用于每个 Region Genie 节点。"
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image（标准模式、编辑模式）：自动分离所有区域",
@@ -369,11 +369,11 @@
   },
   "RegionGenie_Main_Snap": {
     "name": "开启网格吸附",
-    "tooltip": "在添加 Region Genie 节点或打开工作流时生效。"
+    "tooltip": "添加 Region Genie 节点或打开工作流时网格吸附是否开启。"
   },
   "RegionGenie_Main_Grid": {
     "name": "网格大小（图像 px）",
-    "tooltip": "在添加 Region Genie 节点或打开工作流时生效。"
+    "tooltip": "添加 Region Genie 节点或打开工作流时的网格大小。"
   },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image：颜色 / 深度控制 LoRA",
@@ -481,7 +481,7 @@
   },
   "RegionGenie_Edit_Reference_Krea2": {
     "name": "Krea 2：将源图像作为参考图像发送",
-    "tooltip": "开启：在编辑模式下，源图像（“图像”上的）也会作为参考图像提供给 Krea 2（“正面条件”和“负面条件”上的 reference_latents），这是 Krea 2 编辑包 等编辑模型所需要的。\n关闭：仅从 Latent 进行图生图。"
+    "tooltip": "开启：在编辑模式下，源图像（“图像”上的）也会作为参考图像提供给 Krea 2（“正面条件”和“负面条件”上的 reference_latents），这是 Krea 2 的编辑包所需要的。\n关闭：仅从 Latent 进行图生图。"
   },
   "RegionGenie_Edit_Reference_Flux1": {
     "name": "Flux.1：将源图像作为参考图像发送",

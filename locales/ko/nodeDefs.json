@@ -11,7 +11,7 @@
       },
       "scene_prompt_positive": {
         "name": "장면 긍정 프롬프트",
-        "tooltip": "장면 전체에 대한 설명입니다.\nMOSS JSON: 요약 캡션입니다.\nIdeogram JSON: high_level_description입니다.\n텍스트 프롬프트: 첫 문장입니다."
+        "tooltip": "장면 전체에 대한 설명입니다.\nMOSS JSON: 요약 캡션입니다.\nIdeogram JSON: high_level_description입니다.\n텍스트: 첫 문장입니다."
       },
       "scene_prompt_negative": {
         "name": "장면 부정 프롬프트",
@@ -23,7 +23,7 @@
       },
       "min_region_pixels": {
         "name": "영역 최소 픽셀",
-        "tooltip": "'색상 맵으로 사용'에서만 적용됩니다. 평탄한 픽셀(이미지 원본 크기에서 상하좌우 4개 이웃과 모두 같은 픽셀)이 이 개수 이상인 색이 영역이 됩니다. 섞인 가장자리는 가장 가까운 영역에 포함되고, 다른 색의 작은 점은 미지정이 됩니다. 설정 > Region Genie에서 지정하며(편집기가 실행할 때마다 값을 보냅니다), 이 숨겨진 값은 대체값일 뿐입니다."
+        "tooltip": "'색상 맵으로 사용'에서만 적용됩니다. 평탄한 픽셀(이미지 원본 크기에서 상하좌우 4개 이웃과 모두 같은 픽셀)이 이 개수 이상인 색이 영역이 됩니다. 섞인 가장자리는 가장 가까운 영역에 포함되고, 다른 색의 작은 점은 미지정이 됩니다. 설정 > Region Genie > Region Genie 노드에서 지정하며(편집기가 실행할 때마다 값을 보냅니다), 이 숨겨진 값은 대체값일 뿐입니다."
       },
       "paint_data": {
         "name": "페인트 데이터"
@@ -50,11 +50,11 @@
       },
       "size_from_latent": {
         "name": "잠재 데이터에서 크기",
-        "tooltip": "이 잠재 데이터에서 너비/높이를 가져옵니다(MOSS-Image / Flux 2 잠재 데이터는 16배, SD/SDXL/Flux 1은 8배로 자동 감지)."
+        "tooltip": "이 잠재 데이터에서 너비/높이를 가져옵니다(MOSS-Image / Flux.2 잠재 데이터는 16배, SD/SDXL/Flux.1은 8배로 자동 감지)."
       },
       "import_mode": {
         "name": "가져오기 모드",
-        "tooltip": "캔버스에 이미 레이어가 있을 때 새 '가져올 JSON'이 하는 일입니다.\n교체 전에 묻기: 노드가 먼저 묻습니다(이번 실행에서는 캔버스를 유지).\n항상 교체: 새 레이아웃이 즉시 캔버스를 교체합니다.\n빈 캔버스는 항상 채워집니다. 설정 > Region Genie에서 지정하며(편집기가 실행할 때마다 값을 보냅니다), 이 숨겨진 값은 대체값일 뿐입니다."
+        "tooltip": "캔버스에 이미 레이어가 있을 때 새 '가져올 JSON'이 하는 일입니다.\n교체 전에 묻기: 노드가 먼저 묻습니다(이번 실행에서는 캔버스를 유지).\n항상 교체: 새 레이아웃이 즉시 캔버스를 교체합니다.\n빈 캔버스는 항상 채워집니다. 설정 > Region Genie > Region Genie 노드에서 지정하며(편집기가 실행할 때마다 값을 보냅니다), 이 숨겨진 값은 대체값일 뿐입니다."
       },
       "scene_prompt_background": {
         "name": "장면 배경 프롬프트",
@@ -112,7 +112,7 @@
       },
       "4": {
         "name": "프롬프트",
-        "tooltip": "모델의 형식에 맞춘 텍스트 프롬프트입니다.\nMOSS-Image: 레이아웃 JSON(표준 모드, 영역이 없을 때, 편집 모드에서는 일반 텍스트).\nIdeogram 4: 캡션 JSON.\n기타 모델: 일반 텍스트(장면, 이어서 각 영역의 프롬프트).\n형식은 노드의 모델 드롭다운으로 정합니다. 자동(auto)일 때는 연결된 모델, 없으면 clip, 그것도 없으면 이 출력이 연결된 텍스트 인코더를 따릅니다. 이 JSON은 MOSS-Image Prompt Builder KJ나 (Deno) Ideogram Director의 import_json으로도 쓸 수 있습니다.\n일반 텍스트에는 영역의 위치 정보가 없습니다. 'keep all regions apart'(모델과 clip 필요)를 켜면 각 영역의 문장이 해당 영역에 묶입니다."
+        "tooltip": "모델의 형식에 맞춘 텍스트 프롬프트입니다.\nMOSS-Image: 레이아웃 JSON(표준 모드, 영역이 없을 때, 편집 모드에서는 대신 일반 텍스트).\nIdeogram 4: 캡션 JSON.\n기타 모델: 일반 텍스트(장면, 이어서 각 영역의 프롬프트).\n형식은 노드의 모델 드롭다운으로 정합니다. 자동(auto)일 때는 연결된 모델, 없으면 clip, 그것도 없으면 이 출력이 연결된 텍스트 인코더를 따릅니다. 이 JSON은 MOSS-Image Prompt Builder KJ나 (Deno) Ideogram Director의 import_json으로도 쓸 수 있습니다.\n일반 텍스트에는 영역의 위치 정보가 없습니다. 노드의 모든 영역 분리 버튼(모델과 clip 필요)을 켜면 각 영역의 문장이 해당 영역에 묶입니다."
       },
       "5": {
         "name": "색상 맵",
@@ -181,7 +181,7 @@
       },
       "size_from_latent": {
         "name": "잠재 데이터에서 크기",
-        "tooltip": "마스크를 이 잠재 데이터의 이미지 크기로 조정합니다(MOSS-Image / Flux 2 잠재 데이터는 16배, SD/SDXL/Flux 1은 8배)."
+        "tooltip": "마스크를 이 잠재 데이터의 이미지 크기로 조정합니다(MOSS-Image / Flux.2 잠재 데이터는 16배, SD/SDXL/Flux.1은 8배)."
       }
     },
     "outputs": {
@@ -240,7 +240,7 @@
       },
       "latent_scale": {
         "name": "잠재 배율",
-        "tooltip": "'잠재 데이터에서 크기'에 쓰는 잠재 셀당 픽셀 수입니다. 자동: MOSS-Image / Flux 2 잠재 데이터는 16, SD/SDXL/Flux 1은 8."
+        "tooltip": "'잠재 데이터에서 크기'에 쓰는 잠재 셀당 픽셀 수입니다. 자동: MOSS-Image / Flux.2 잠재 데이터는 16, SD/SDXL/Flux.1은 8."
       },
       "feather_canvas_edges": {
         "name": "캔버스 가장자리 페더",

@@ -17,6 +17,8 @@ ComfyUI reads these folders when it starts and shows the texts in the language c
 - `main.json`: the Settings section names (`settingsCategories`) and the choices of the nodes' dropdowns
   (`regionGenie.choices`; ComfyUI has no key for those, `js/rg_i18n.js` applies them).
 - `glossary.json`: the terms a language settled on. ComfyUI does not read it; it keeps the wording consistent.
+- `translated_from.json`: per entry, a fingerprint of the English text its translation was made from (written by
+  the test's `--done`; ComfyUI does not read it). It is how only changed texts get reported for translation.
 
 Not translated yet: the Region Genie editor itself (toolbar, region list, pop-ups, menus, hints), the buttons the pack
 draws inside Settings (Check, New, Delete, the model-file fields), and the texts made during a run (`region_info`,
@@ -51,5 +53,19 @@ With ComfyUI running in English (see `tests/README.md`):
 node tests/i18n_extract.cjs
 ```
 
-It rewrites `tests/i18n_en/`. `git diff tests/i18n_en` then shows what changed; update those entries in every
-language, and `python3 tests/test_i18n.py` reports entries that are missing or no longer exist.
+It rewrites `tests/i18n_en/`. Only the entries whose English is new or changed need work; everything else stays
+as it is and is not looked at again:
+
+```bash
+python3 tests/test_i18n.py --todo
+```
+
+lists them per language with their new English (`git diff tests/i18n_en` shows the old next to the new). Update
+those entries, remove entries the pack no longer has, then mark the language as up to date:
+
+```bash
+python3 tests/test_i18n.py --done zh
+```
+
+Until then `python3 tests/test_i18n.py` fails with the number of entries still to update. A correction to a
+translation alone (the English unchanged) needs none of this: edit the text and run the test.

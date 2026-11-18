@@ -1,7 +1,7 @@
 {
   "RegionGenie_ModelFiles_Browse": {
     "name": "모델 파일 찾아보기 (Browse…)",
-    "tooltip": "끔 (기본값): 모델 파일 입력란은 ComfyUI 모델 폴더에 있는 파일을 보여 주는 ComfyUI 메뉴를 엽니다.\n켬: 각 입력란에 폴더 버튼(Browse…)도 생겨, ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 파일을 고를 수 있습니다(전체 경로로 저장). 이 설정 화면(대화 상자를 다시 연 뒤부터), 노드의 Edit 행, LLM 설정에 적용됩니다. 이 버튼으로 고른 파일은 설정을 꺼도 계속 동작합니다."
+    "tooltip": "끔 (기본값): 모델 파일 입력란은 ComfyUI 모델 폴더에 있는 파일을 보여 주는 ComfyUI 메뉴를 엽니다.\n켬: 각 입력란에 폴더 버튼(Browse…)도 생겨, ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 파일을 고를 수 있습니다(전체 경로로 저장). 이 설정 화면(대화 상자를 다시 연 뒤부터), 노드의 Edit 행, LLM Settings 팝업에 적용됩니다. 이 버튼으로 고른 파일은 설정을 꺼도 계속 동작합니다."
   },
   "RegionGenie_ModelFiles_Check": {
     "name": "모델 파일 검사",
@@ -24,19 +24,19 @@
   },
   "RegionGenie_LLM_Default_character": {
     "name": "기본 프리셋: 캐릭터",
-    "tooltip": "LLM 설정에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 캐릭터 프롬프트에 쓰는 프리셋입니다."
+    "tooltip": "LLM Settings에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 캐릭터 프롬프트에 쓰는 프리셋입니다."
   },
   "RegionGenie_LLM_Default_object": {
     "name": "기본 프리셋: 개체",
-    "tooltip": "LLM 설정에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 개체 프롬프트에 쓰는 프리셋입니다."
+    "tooltip": "LLM Settings에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 개체 프롬프트에 쓰는 프리셋입니다."
   },
   "RegionGenie_LLM_Default_text": {
     "name": "기본 프리셋: 텍스트",
-    "tooltip": "LLM 설정에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 텍스트 프롬프트에 쓰는 프리셋입니다."
+    "tooltip": "LLM Settings에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 텍스트 프롬프트에 쓰는 프리셋입니다."
   },
   "RegionGenie_LLM_Default_scene": {
     "name": "기본 프리셋: 장면",
-    "tooltip": "LLM 설정에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 장면 프롬프트에 쓰는 프리셋입니다."
+    "tooltip": "LLM Settings에서 다른 프리셋을 고르지 않은 모든 Region Genie 노드에서 장면 프롬프트에 쓰는 프리셋입니다."
   },
   "RegionGenie_LLM_EditPreset": {
     "name": "편집할 프리셋",
@@ -52,11 +52,11 @@
   },
   "RegionGenie_LLM_Preset_llm_type": {
     "name": "프리셋: LLM 유형",
-    "tooltip": "LLM 파일에 대해 'CLIP 로드'의 '유형'과 같습니다. 일반 Qwen3 / Qwen3.5 / Gemma 파일은 Auto로 동작합니다."
+    "tooltip": "LLM 파일에 대해 'CLIP 로드'의 '유형'과 같습니다. 일반 Qwen3 / Qwen3.5 / Gemma 파일은 'auto (detect)'로 동작합니다."
   },
   "RegionGenie_LLM_Preset_loras": {
     "name": "프리셋: LLM LoRA",
-    "tooltip": "LLM에만 적용되는 LoRA입니다('LoRA 불러오기 (텍스트 인코더)'와 같음). 이미지 모델과 조건 생성에 쓰는 clip은 변경되지 않습니다. \n각 행: 켬 / 끔, 파일(클릭하면 ComfyUI 메뉴가 열리고, '모델 파일 찾아보기 (Browse…)'를 켜면 폴더 버튼이 표시됨), 강도, ✕로 제거."
+    "tooltip": "LLM에만 적용되는 LoRA입니다('LoRA 불러오기 (텍스트 인코더)'와 같음). 이미지 모델과 조건 생성에 쓰는 clip은 변경되지 않습니다.\n각 행: 켬 / 끔, 파일(클릭하면 ComfyUI 메뉴가 열리고, '모델 파일 찾아보기 (Browse…)'를 켜면 폴더 버튼이 표시됨), 강도, ✕로 제거."
   },
   "RegionGenie_LLM_Preset_system_prompt": {
     "name": "프리셋: 시스템 프롬프트",
@@ -100,7 +100,7 @@
   },
   "RegionGenie_LLM_Preset_thinking": {
     "name": "프리셋: 사고",
-    "tooltip": "모델이 지원하는 경우의 사고 모드입니다(추론 내용은 반짝이 버튼의 툴팁에 표시될 뿐, 사용되지는 않습니다)."
+    "tooltip": "모델이 지원하는 경우의 사고 모드입니다(추론 내용은 LLM 버튼, 즉 반짝이 아이콘이 있는 버튼의 툴팁에 표시되며, 사용되지는 않습니다)."
   },
   "RegionGenie_LLM_Preset_use_default_template": {
     "name": "프리셋: 기본 템플릿",
@@ -154,7 +154,7 @@
   },
   "RegionGenie_Tools_Fill": {
     "name": "채우기: 기본값",
-    "tooltip": "작은 틈 닫기: 틈 크기(채우기가 활성화된 동안 캔버스에 표시되는 입력란)의 약 두 배보다 좁은 틈으로는 채우기가 새어 나가지 않습니다.\n버튼을 우클릭하면 세션 동안 다른 것으로 바꿀 수 있습니다.",
+    "tooltip": "채우기, 작은 틈 닫기: 틈 크기(채우기가 활성화된 동안 캔버스에 표시되는 입력란)의 약 두 배보다 좁은 틈으로는 채우기가 새어 나가지 않습니다.\n버튼을 우클릭하면 세션 동안 다른 것으로 바꿀 수 있습니다.",
     "options": {
       "Fill": "채우기",
       "Fill, closing small gaps": "채우기, 작은 틈 닫기",
@@ -172,7 +172,7 @@
   },
   "RegionGenie_Select_KeepLoaded": {
     "name": "선택 후",
-    "tooltip": "로드 유지: 모델이 세션 동안 메모리에 남습니다(약 1.7 GB). 워크플로에 공간이 필요하면 ComfyUI가 모델을 VRAM에서 시스템 RAM으로 옮기고, 다음 클릭 때 다시 가져옵니다.\n언로드: 선택을 확정하거나 취소하면(그리고 3분간 사용하지 않으면) 모델을 해제하므로, 새로 선택할 때마다 디스크에서 다시 로드합니다.",
+    "tooltip": "모델 로드 유지: 모델이 세션 동안 메모리에 남습니다(약 1.7 GB). 워크플로에 공간이 필요하면 ComfyUI가 모델을 VRAM에서 시스템 RAM으로 옮기고, 다음 클릭 때 다시 가져옵니다.\n모델 언로드: 선택을 확정하거나 취소하면(그리고 3분간 사용하지 않으면) 모델을 해제하므로, 새로 선택할 때마다 디스크에서 다시 로드합니다.",
     "options": {
       "Keep the model loaded (faster next time)": "모델 로드 유지 (다음에 더 빠름)",
       "Unload the model after each selection": "선택할 때마다 모델 언로드"
@@ -279,7 +279,7 @@
   },
   "RegionGenie_Main_MinRegionPixels": {
     "name": "색상 맵: 영역 최소 픽셀",
-    "tooltip": "이미지를 색상 맵으로 사용할 때, 평탄한 픽셀이 이 개수 이상인 색이 영역이 됩니다(섞인 가장자리는 가장 가까운 영역에 포함되고, 다른 색의 작은 점은 미지정이 됩니다). 모든 Region Genie 노드에 다음 실행부터 적용됩니다. 'color map'이 선택되어 있는 동안에는 노드의 이미지 컨트롤에도 표시됩니다."
+    "tooltip": "이미지를 색상 맵으로 사용할 때, 평탄한 픽셀이 이 개수 이상인 색이 영역이 됩니다(섞인 가장자리는 가장 가까운 영역에 포함되고, 다른 색의 작은 점은 미지정이 됩니다). 모든 Region Genie 노드에 다음 실행부터 적용됩니다. 이미지를 색상 맵으로 사용하는 동안에는 노드의 이미지 컨트롤에도 표시됩니다."
   },
   "RegionGenie_Main_ImportMode": {
     "name": "캔버스가 비어 있지 않을 때의 '가져올 JSON'",
@@ -291,7 +291,7 @@
   },
   "RegionGenie_Main_Feather": {
     "name": "페더 (px, 연결된 영역)",
-    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+    "tooltip": "연결된 영역이 공유하는 마스크 페더입니다(영역은 처음에 연결된 상태입니다). 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
   },
   "RegionGenie_Main_RegionSeparation": {
     "name": "LoRA 영역 분리",
@@ -311,7 +311,7 @@
   },
   "RegionGenie_Main_AutoApart": {
     "name": "일반 텍스트 프롬프트: 모든 영역을 자동으로 분리",
-    "tooltip": "Krea 2, Flux, Flux 3, Anima, SDXL / SD1.5(그리고 표준 모드와 편집 모드의 MOSS-Image)는 영역을 일반 문장으로 받습니다. Region Genie 노드는 어텐션에서 각 영역의 문장을 해당 영역에 묶는 방식으로 영역을 배치합니다('keep all regions apart').\n켬: 이런 모델이 '모델'에 연결되고, clip이 연결되고, 영역 프롬프트가 하나 이상 있으면 실행 시 모든 영역을 분리합니다. 단, 노드의 버튼이 'Off for this node'로 설정된 경우는 제외합니다.\n끔: 버튼이 켜진 노드만 영역을 분리합니다.\n아래 설정으로 모델별로 바꿀 수 있습니다. 모든 Region Genie 노드에 다음 실행부터 적용됩니다."
+    "tooltip": "Krea 2, Flux, Flux 3, Anima, SDXL / SD1.5(그리고 표준 모드와 편집 모드의 MOSS-Image)는 영역을 일반 문장으로 받습니다. Region Genie 노드는 어텐션에서 각 영역의 문장을 해당 영역에 묶는 방식으로 영역을 배치합니다(모든 영역을 분리).\n켬: 이런 모델이 '모델'에 연결되고, clip이 연결되고, 영역 프롬프트가 하나 이상 있으면 실행 시 모든 영역을 분리합니다. 단, 노드의 버튼이 'Off for this node'로 설정된 경우는 제외합니다.\n끔: 버튼이 켜진 노드만 영역을 분리합니다.\n아래 설정으로 모델별로 바꿀 수 있습니다. 모든 Region Genie 노드에 다음 실행부터 적용됩니다."
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image (표준 모드, 편집 모드): 모든 영역을 자동으로 분리",
@@ -369,11 +369,11 @@
   },
   "RegionGenie_Main_Snap": {
     "name": "그리드에 스냅 켜기",
-    "tooltip": "Region Genie 노드를 추가하거나 워크플로를 열 때 적용됩니다."
+    "tooltip": "Region Genie 노드를 추가하거나 워크플로를 열 때 그리드에 스냅이 켜져 있을지 정합니다."
   },
   "RegionGenie_Main_Grid": {
     "name": "그리드 크기 (이미지 px)",
-    "tooltip": "Region Genie 노드를 추가하거나 워크플로를 열 때 적용됩니다."
+    "tooltip": "Region Genie 노드를 추가하거나 워크플로를 열 때의 그리드 크기입니다."
   },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: 색상 / 깊이 컨트롤 LoRA",
@@ -481,7 +481,7 @@
   },
   "RegionGenie_Edit_Reference_Krea2": {
     "name": "Krea 2: 원본 이미지를 참조로 전달",
-    "tooltip": "켬: 편집 모드에서 원본 이미지('이미지' 입력)를 Krea 2에 참조 이미지로도 전달합니다(긍정 조건과 부정 조건의 reference_latents). Krea 2 편집 팩 같은 편집 모델이 이를 필요로 합니다.\n끔: 잠재 데이터만으로 이미지-투-이미지를 수행합니다."
+    "tooltip": "켬: 편집 모드에서 원본 이미지('이미지' 입력)를 Krea 2에 참조 이미지로도 전달합니다(긍정 조건과 부정 조건의 reference_latents). Krea 2용 편집 팩이 이를 필요로 합니다.\n끔: 잠재 데이터만으로 이미지-투-이미지를 수행합니다."
   },
   "RegionGenie_Edit_Reference_Flux1": {
     "name": "Flux.1: 원본 이미지를 참조로 전달",

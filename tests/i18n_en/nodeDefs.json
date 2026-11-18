@@ -11,7 +11,7 @@
       },
       "scene_prompt_positive": {
         "name": "scene_prompt_positive",
-        "tooltip": "The whole-scene description.\nMOSS JSON: The summary caption.\nIdeogram JSON: The high_level_description.\nText prompt: The first sentence."
+        "tooltip": "The whole-scene description.\nMOSS JSON: The summary caption.\nIdeogram JSON: The high_level_description.\ntext: The first sentence."
       },
       "scene_prompt_negative": {
         "name": "scene_prompt_negative",
@@ -23,7 +23,7 @@
       },
       "min_region_pixels": {
         "name": "min_region_pixels",
-        "tooltip": "'use as color map' only. A color becomes a region when it has at least this many flat pixels (pixels matching all 4 neighbours, at the image's own size). Blended edges go to the nearest region; specks of other colors become unspecified. Set in Settings > Region Genie (the editor sends it with each run); this hidden value is only a fallback."
+        "tooltip": "'use as color map' only. A color becomes a region when it has at least this many flat pixels (pixels matching all 4 neighbours, at the image's own size). Blended edges go to the nearest region; specks of other colors become unspecified. Set in Settings > Region Genie > Region Genie node (the editor sends it with each run); this hidden value is only a fallback."
       },
       "paint_data": {
         "name": "paint_data"
@@ -50,11 +50,11 @@
       },
       "size_from_latent": {
         "name": "size_from_latent",
-        "tooltip": "Take width/height from this latent (auto-detects 16x for MOSS-Image / Flux 2 latents, 8x for SD/SDXL/Flux 1)."
+        "tooltip": "Take width/height from this latent (auto-detects 16x for MOSS-Image / Flux.2 latents, 8x for SD/SDXL/Flux.1)."
       },
       "import_mode": {
         "name": "import_mode",
-        "tooltip": "What a new import_json does when the canvas already has layers.\nask before replacing: The node asks first (this run keeps the canvas).\nalways replace: The new layout replaces the canvas right away.\nAn empty canvas is always filled. Set in Settings > Region Genie (the editor sends it with each run); this hidden value is only a fallback."
+        "tooltip": "What a new import_json does when the canvas already has layers.\nask before replacing: The node asks first (this run keeps the canvas).\nalways replace: The new layout replaces the canvas right away.\nAn empty canvas is always filled. Set in Settings > Region Genie > Region Genie node (the editor sends it with each run); this hidden value is only a fallback."
       },
       "scene_prompt_background": {
         "name": "scene_prompt_background",
@@ -112,7 +112,7 @@
       },
       "4": {
         "name": "prompt",
-        "tooltip": "The prompt as text, in the model's format.\nMOSS-Image: Layout JSON (plain text in standard mode, without regions and in Edit Mode).\nIdeogram 4: Caption JSON.\nOther models: Plain text (the scene, then each region's prompt).\nThe node's model dropdown picks the format; on auto: The connected model, else the clip, else the text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director.\nPlain text doesn't say where the regions are: 'keep all regions apart' (needs model and clip) ties each region's sentence to its region."
+        "tooltip": "The prompt as text, in the model's format.\nMOSS-Image: Layout JSON (plain text instead in standard mode, when there are no regions, and in Edit Mode).\nIdeogram 4: Caption JSON.\nOther models: Plain text (the scene, then each region's prompt).\nThe node's model dropdown picks the format; on auto: The connected model, else the clip, else the text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director.\nPlain text doesn't say where the regions are: The node's keep-all-regions-apart button (needs model and clip) ties each region's sentence to its region."
       },
       "5": {
         "name": "color_map",
@@ -181,7 +181,7 @@
       },
       "size_from_latent": {
         "name": "size_from_latent",
-        "tooltip": "Resize the masks to this latent's image size (16x for MOSS-Image / Flux 2 latents, 8x for SD/SDXL/Flux 1)."
+        "tooltip": "Resize the masks to this latent's image size (16x for MOSS-Image / Flux.2 latents, 8x for SD/SDXL/Flux.1)."
       }
     },
     "outputs": {
@@ -240,7 +240,7 @@
       },
       "latent_scale": {
         "name": "latent_scale",
-        "tooltip": "Pixels per latent cell for size_from_latent. auto: 16 for MOSS-Image / Flux 2 latents, 8 for SD/SDXL/Flux 1."
+        "tooltip": "Pixels per latent cell for size_from_latent. auto: 16 for MOSS-Image / Flux.2 latents, 8 for SD/SDXL/Flux.1."
       },
       "feather_canvas_edges": {
         "name": "feather_canvas_edges",

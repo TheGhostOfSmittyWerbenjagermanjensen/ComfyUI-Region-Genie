@@ -1,6 +1,6 @@
 # Region Genie (ComfyUI node pack): handoff summary
 
-**State (Nov 17, 2026):** version 0.27.0 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
+**State (Nov 17, 2026):** version 0.27.1 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
 
 The pack used to be called **Regional Mask Kit** (renamed Nov 10, 2026). The compatibility code for the old names was removed in round 24 (section 7).
 
@@ -172,7 +172,7 @@ The reasons behind the parts a new session is most likely to trip over. Each end
 - `@ { } |` in a translated text must be written `{'@'}` `{'{'}` `{'}'}` `{'|'}` (vue-i18n syntax; raw, the text throws). The test enforces it.
 - Identity never changes: input names, option values, Setting ids and the node class names stay English in workflows, API prompts and the pack's code (`w.name`, `inp.name`); only labels change. Code must never look a widget or input up by its label.
 - Phase 2 (not started): a `t()` helper for everything the pack draws itself (the editor, Regional LoRAs rows, LLM pop-up, the buttons and file fields inside Settings), following the same `Comfy.Locale`. Phase 3 (optional): run-time texts from Python. Until then the translated tooltips name editor labels in English on purpose; when phase 2 translates a label, the tooltips quoting it must follow.
-- After changing an English node text or Setting: `node tests/i18n_extract.cjs`, update the entries in every language, `python3 tests/test_i18n.py`, restart ComfyUI, `node tests/real_i18n.cjs [vue]`.
+- Only changed texts are translated again. `locales/<language>/translated_from.json` holds, per entry, a fingerprint of the English its translation was made from. After changing an English node text or Setting: `node tests/i18n_extract.cjs`, `python3 tests/test_i18n.py --todo` (exactly the new / changed entries, per language), translate those, `--done`, restart ComfyUI, `node tests/real_i18n.cjs [vue]`. The automatic checks do run over every entry on each push (under a second, in CI), but they only compare files; nobody re-reads unchanged translations.
 
 ## 5. Open items and offered ideas
 

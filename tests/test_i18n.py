@@ -3,7 +3,15 @@
 Every language must have exactly the reference's entries, with the same number of lines in each text, the special
 characters of ComfyUI's translation engine written its literal way, and one translation per name / dropdown choice.
 The reference itself is checked against a running ComfyUI by tests/real_i18n.cjs (node tests/i18n_extract.cjs rewrites it).
+
+Only changed texts need work: locales/<language>/translated_from.json records, per entry, a fingerprint of the English
+text its translation was made from. When an English text changes, exactly that entry is reported here until it is
+updated and marked:
+
+    python3 tests/test_i18n.py --todo          list, per language, the entries to translate (new or changed English)
+    python3 tests/test_i18n.py --done [lang]   mark the present translations as made from the current English
 """
+import hashlib
 import json
 import os
 import re
@@ -44,7 +52,54 @@ def plain(text):
     return LITERAL.sub(lambda m: m.group(0)[2:-2], text)
 
 
+def mark(text):
+    return hashlib.sha1(text.encode("utf-8")).hexdigest()[:10]
+
+
+def stale(lang):
+    """[(file, key, English)] of the entries whose translation is missing or was made from another English text."""
+    folder = os.path.join(LOC, lang)
+    try:
+        made = load(folder, "translated_from.json")
+    except (OSError, ValueError):
+        made = {}
+    out = []
+    for name in FILES:
+        try:
+            got = dict(flat(load(folder, name)))
+        except (OSError, ValueError):
+            got = {}
+        for k, english in ref[name].items():
+            if k not in got or made.get(name + k) != mark(english):
+                out.append((name, k, english))
+    return out
+
+
 ref = {name: dict(flat(load(REF, name))) for name in FILES}
+_langs = sorted(d for d in os.listdir(LOC) if os.path.isdir(os.path.join(LOC, d))) if os.path.isdir(LOC) else []
+
+if "--todo" in sys.argv:
+    for lang in _langs:
+        todo = stale(lang)
+        print(f"== {lang}: {len(todo)} to translate")
+        for name, k, english in todo:
+            print(f"{name}{k}\n    {english!r}")
+    sys.exit(0)
+
+if "--done" in sys.argv:
+    only = sys.argv[sys.argv.index("--done") + 1:]
+    for lang in only or _langs:
+        folder = os.path.join(LOC, lang)
+        made = {}
+        for name in FILES:
+            got = dict(flat(load(folder, name)))
+            made.update({name + k: mark(english) for k, english in ref[name].items() if k in got})
+        with open(os.path.join(folder, "translated_from.json"), "w", encoding="utf-8") as f:
+            json.dump(made, f, indent=0, sort_keys=True)
+            f.write("\n")
+        print(f"{lang}: {len(made)} entries marked as translated from the current English")
+    sys.exit(0)
+
 check("the English reference has node texts, Settings and dropdown choices",
       len(ref["nodeDefs.json"]) > 150 and len(ref["settings.json"]) > 200 and len(ref["main.json"]) > 30)
 
@@ -84,6 +139,9 @@ for lang in langs:
             for k in both:
                 if re.search(r"/(inputs|outputs)/[^/]+/name$", k):
                     names.setdefault(want[k], set()).add(got[k])
+    todo = stale(lang)
+    check(f"{lang}: every translation was made from the current English text ({len(todo)} to update; --todo lists them)", not todo,
+          "; ".join(name + k for name, k, _ in todo[:5]))
     bad = [f"{k}: {' / '.join(sorted(v))}" for k, v in names.items() if len(v) > 1]
     check(f"{lang}: an input / output name has one translation on every node", not bad, "; ".join(bad[:5]))
     # a dropdown choice reads the same on the node and in Settings
