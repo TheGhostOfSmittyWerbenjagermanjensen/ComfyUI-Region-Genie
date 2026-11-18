@@ -4,7 +4,7 @@
 set -e
 cd "$(dirname "$0")"
 mkdir -p harness/extensions/rg out
-cp ../js/*.js harness/extensions/rg/
+rm -rf harness/extensions/rg && mkdir -p harness/extensions/rg && cp -r ../js/. harness/extensions/rg/
 python3 -m http.server 8765 --bind 127.0.0.1 --directory harness >/dev/null 2>&1 & SERVER=$!
 trap 'kill $SERVER 2>/dev/null' EXIT
 sleep 1
