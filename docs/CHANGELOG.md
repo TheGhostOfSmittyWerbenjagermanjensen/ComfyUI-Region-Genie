@@ -2,6 +2,11 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 29 (Nov 18): Alt+drag on a handle resizes from the centre
+- Asked for: a way to resize an existing layer from its centre (Alt only did that while drawing a new shape).
+- `js/editor/pointer.js`: the scale drag keeps the box's centre (`drag.cl`, `drag.C`) next to the opposite side / corner (`drag.A`); with Alt held the centre is the fixed point and the span is the half box. Read on every move, so Alt can be pressed or let go during the drag; Shift (proportions) still applies.
+- Tests: ui_editor (a corner with and without Alt: fixed point, size, Shift+Alt; a side handle with Alt). Version 0.26.1.
+
 ## Round 28 (Nov 18): the tag autocomplete switch in the pop-up editors
 - Asked for: the tag autocomplete toggle in the pop-up text boxes, acting on every text box of the node.
 - `autocompleteToggle(node, mk, keepFocus)` (rg_shared.js) now also returns `dispose()`, and a click refreshes every toggle button at once (they all read the node's one `rg_autocomplete` property). The Region Genie pop-ups (`popFrame`, js/editor/popups.js) and the shared floating pop-up (`openFloatPopup`, used by Regional LoRAs) add one after A+; `keepFocus` leaves the text box focused. Hidden, like the bottom bar's, while no autocomplete pack is installed.

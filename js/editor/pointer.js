@@ -114,7 +114,9 @@ export function* pointer(E) {
                         const K = E.layerToImg(L, ...kc);
                         E.drag = { mode: "rotate", L, L0, kc, K, a0: Math.atan2(iy - K[1], ix - K[0]), before };
                     } else {
-                        E.drag = { mode: "scale", L, L0, hd, A: E.layerToImg(L, hd.ax, hd.ay), before };
+                        // A: the opposite side / corner (stays in place); C: the box's centre (stays in place with Alt)
+                        const cl = [(hd.lx + hd.ax) / 2, (hd.ly + hd.ay) / 2];
+                        E.drag = { mode: "scale", L, L0, hd, A: E.layerToImg(L, hd.ax, hd.ay), cl, C: E.layerToImg(L, ...cl), before };
                     }
                     return;
                 }
@@ -183,17 +185,19 @@ export function* pointer(E) {
                 }
             }
         } else if (E.drag.mode === "scale") {
-            const { L, L0, hd, A } = E.drag, th = L0.rot * Math.PI / 180;
+            const { L, L0, hd } = E.drag, th = L0.rot * Math.PI / 180;
+            // Alt: resize from the centre (the centre stays put, both sides move); else the opposite side stays put
+            const [fx, fy] = e.altKey ? E.drag.cl : [hd.ax, hd.ay], A = e.altKey ? E.drag.C : E.drag.A;
             const mx = E.snapV(ix), my = E.snapV(iy);
             const qx = mx - A[0], qy = my - A[1];
             const rx = Math.cos(th) * qx + Math.sin(th) * qy, ry = -Math.sin(th) * qx + Math.cos(th) * qy;
             let nsx = L0.sx, nsy = L0.sy;
-            const spanX = hd.lx - hd.ax, spanY = hd.ly - hd.ay;
+            const spanX = hd.lx - fx, spanY = hd.ly - fy;
             if (hd.ex && spanX) nsx = Math.max(1e-3, rx / (spanX * s));
             if (hd.ey && spanY) nsy = Math.max(1e-3, ry / (spanY * s));
             if (e.shiftKey && hd.ex && hd.ey) { const k = Math.max(nsx / L0.sx, nsy / L0.sy); nsx = L0.sx * k; nsy = L0.sy * k; }
             L.sx = nsx; L.sy = nsy;
-            const ox = (hd.ax - L.bw / 2) * L.sx * s, oy = (hd.ay - L.bh / 2) * L.sy * s;
+            const ox = (fx - L.bw / 2) * L.sx * s, oy = (fy - L.bh / 2) * L.sy * s;
             L.ox = (A[0] - (Math.cos(th) * ox - Math.sin(th) * oy) - W / 2) / s;
             L.oy = (A[1] - (Math.sin(th) * ox + Math.cos(th) * oy) - H / 2) / s;
         } else if (E.drag.mode === "rotate") {
