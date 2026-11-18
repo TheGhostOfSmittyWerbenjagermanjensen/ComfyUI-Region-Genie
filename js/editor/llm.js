@@ -126,7 +126,7 @@ export function* llm(E) {
                 if (v?.v === "on") setLlmOn(key, true);
                 else if (v?.v === "again") {
                     E.change(() => { if (key === LLM_SCENE) E.state.sceneLlmSalt = (E.state.sceneLlmSalt || 0) + 1; else t.r.llmSalt = (t.r.llmSalt || 0) + 1; });
-                    E.hint("A new seed: the prompt is rewritten on the next run");
+                    E.hint("A new seed: The prompt is rewritten on the next run");
                 } else if (v?.v === "copy") navigator.clipboard?.writeText(t.res.text).catch(() => {});
                 else if (v?.v === "think") navigator.clipboard?.writeText(t.res.thinking).catch(() => {});
                 else if (v?.v === "keep") keepEnhanced(key);
@@ -230,7 +230,7 @@ export function* llm(E) {
             const pick = () => { if (E.activateRegion(r.id)) { markRegionRows(); E.requestDraw(); } };
             row.addEventListener("pointerdown", (e) => { if (e.target === row || e.target.classList.contains("rg-idx") || e.target.classList.contains("rg-cnt")) pick(); });
             const sw = E.regionSwatch(r, pick);
-            const ty = E.el("select", "rg-sel"); ty.title = "MOSS item type";
+            const ty = E.el("select", "rg-sel"); ty.title = "Region type.\nobject: A thing or area.\ncharacter: A person or character (also listed in character_boxes).\ntext: Text rendered in the image.";
             for (const v of TYPES) ty.appendChild(E.opt(v, v));
             ty.value = r.type;
             ty.addEventListener("change", () => E.change(() => { r.type = ty.value; }));

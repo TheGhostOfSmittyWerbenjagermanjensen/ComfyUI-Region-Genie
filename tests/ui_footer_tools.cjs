@@ -131,7 +131,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[2]));
     check("linear gradient picked: the button says so", /^Fill \(linear gradient\)/.test(await fill.getAttribute("title")));
     await clickImg(64, 128);
-    check("a click without a drag fills nothing and says what to do", !(await st()).layers.some((l) => l.grad) && /drag a line/.test(await page.evaluate(() => [...document.querySelectorAll(".rg-wrap *")].filter((e) => e.childElementCount === 0).map((e) => e.textContent).join(" | "))));
+    check("a click without a drag fills nothing and says what to do", !(await st()).layers.some((l) => l.grad) && /Drag a line/.test(await page.evaluate(() => [...document.querySelectorAll(".rg-wrap *")].filter((e) => e.childElementCount === 0).map((e) => e.textContent).join(" | "))));
     await dragImg([[30, 128], [100, 128]]);
     let gl = (await st()).layers.find((l) => l.grad);
     check("drag: a layer of its own for the active region, with the line as its gradient", !!gl && /^Gradient/.test(gl.name) && gl.region === (await st()).regions[0].id

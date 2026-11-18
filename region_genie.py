@@ -693,7 +693,7 @@ def _prompt_family(model, clip, choice, hint, pick):
     if pick in MODEL_PICKS:
         return MODEL_FAMILY.get(pick, "plain"), pick + " (picked on the node)"
     if choice in FAMILY_OF_FORMAT:
-        return FAMILY_OF_FORMAT[choice], "set on the node"
+        return FAMILY_OF_FORMAT[choice], "the hidden prompt_format input"
     from . import regional_lora as hl
     arch = hl.model_arch(model) if model is not None else None
     if arch is not None:
@@ -996,8 +996,8 @@ class RegionGenie:
                                                          "top).")}),
                 "min_region_pixels": ("INT", {"default": 64, "min": 1, "max": 1000000,
                                               "tooltip": ("'use as color map' only. A color becomes a region when it has at least this many flat pixels "
-                                                          "(pixels matching all 4 neighbours, at the image's own size). Blended edges and specks go to the "
-                                                          "nearest region. Set in Settings > Region Genie (the editor sends it with each run); this hidden "
+                                                          "(pixels matching all 4 neighbours, at the image's own size). Blended edges go to the nearest region; specks of "
+                                                          "other colors become unspecified. Set in Settings > Region Genie (the editor sends it with each run); this hidden "
                                                           "value is only a fallback.")}),
                 "paint_data": ("STRING", {"default": "", "multiline": False}),
             },
@@ -1010,10 +1010,12 @@ class RegionGenie:
                                               "LoRA also act on its own region's caption (trigger words).")}),
                 "vae": ("VAE", {"tooltip": ("Edit mode: Encodes the source image (the 'image' input) for the 'latent' output, and as a "
                                             "reference image for models that read one.\n"
+                                            "Control: Encodes the maps for MOSS-Image's control LoRA and Flux.1's depth / canny LoRAs.\n"
                                             "It also sets the 'latent' format when no model is connected.")}),
                 "image": ("IMAGE", {"tooltip": ("Optional.\n"
                                                 "Generate mode: A backdrop to trace over, or the color map itself (see image_mode).\n"
-                                                "Edit mode: The picture to change.")}),
+                                                "Edit mode: The picture to change.\n"
+                                                "Control: Depth and canny maps are made from it when control_image isn't connected.")}),
                 "size_from_image": ("IMAGE", {"tooltip": "Take width/height from this image. Takes priority over "
                                                          "size_from_latent and the width/height widgets."}),
                 "size_from_latent": ("LATENT", {"tooltip": "Take width/height from this latent (auto-detects 16x for "
@@ -1037,7 +1039,8 @@ class RegionGenie:
                                  "tooltip": ("generate: A new image.\n"
                                              "edit: The image on the 'image' input is the source to change (image-to-image). 'latent' is that "
                                              "image (connect vae), models that read a reference image get it on 'positive' / 'negative', and "
-                                             "the edit LoRA set for the model in Settings is added to Whole image.")}),
+                                             "the Edit rows' LoRAs are used (the one set for the model in Settings, and those added "
+                                             "with ＋Edit).")}),
                 "edit_area": (EDIT_AREAS, {"default": EDIT_AREAS[0],
                                            "tooltip": ("Edit mode: What may change.\n"
                                                        "only the regions: 'latent' carries a mask of the regions set to change (like inpainting); the "
@@ -1050,9 +1053,10 @@ class RegionGenie:
                                                        "(e.g. through a Load Text node), MOSS-Image layout JSON, Ideogram caption JSON / elements, or "
                                                        "bboxes. Each new import_json is used once; edits made afterwards are kept.")}),
                 # before width / height, which stay the last inputs (as asked)
-                "control_image": ("IMAGE", {"tooltip": "Optional control map for the 'Control' row (a depth, canny, pose, "
-                                                       "lineart ... map from any preprocessor). Without it, the node makes "
-                                                       "a depth or canny map from 'image'."}),
+                "control_image": ("IMAGE", {"tooltip": "Optional. A control map (depth, canny, pose, lineart ... from any preprocessor) "
+                                                       "for the Control rows; every row except 'color map' uses it. Without it, "
+                                                       "canny and depth maps are made from 'image' (depth: With the Depth Anything 3 "
+                                                       "model set in Settings > Region Genie > Control)."}),
                 # shown as "width" / "height" (the size row at the top sets the hidden width / height widgets)
                 "width_in": ("INT", {"forceInput": True, "min": 16, "max": 16384,
                                      "tooltip": ("Optional. The image width from another node. It overrides the size row at the top "
@@ -1072,11 +1076,12 @@ class RegionGenie:
     RETURN_NAMES = ("model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes", "elements",
                     "character_boxes", "region_info", "width", "height")
     OUTPUT_TOOLTIPS = (
-        ("The connected model with the regions' LoRAs, each acting only inside its region (one pass; MOSS-Image, "
-         "Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with "
-         "'positive' as the prompt. Passed through unchanged when no LoRA is set and the regions aren't "
-         "kept apart."),
-        "'prompt' encoded with the connected clip. Empty when no clip is connected.",
+        ("The connected model with the LoRAs: Whole image's merged in, each region's acting only inside its region "
+         "(one pass; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with "
+         "'positive' as the prompt. Unchanged when no LoRA is set, the regions aren't kept apart and no Anima "
+         "Control row is used."),
+        ("'prompt' encoded with the connected clip, with the Edit Mode reference image and the Control rows on it. "
+         "Empty when no clip is connected."),
         ("scene_prompt_negative encoded with the connected clip (like CLIP Text Encode), the negative "
          "prompt for the sampler. Empty when no clip is connected."),
         ("The latent for the sampler.\n"
@@ -1085,24 +1090,24 @@ class RegionGenie:
          "what may change (the regions set to change, or everything but the kept regions; grown and "
          "feathered as set in the region list header). Set the sampler's denoise below 1 to keep more of "
          "the source."),
-        ("The prompt as text, in the format the model takes.\n"
-         "MOSS-Image: MOSS-Image layout JSON (plain text in its standard mode, with no regions, and in "
-         "Edit Mode).\n"
-         "Ideogram 4: Ideogram 4 caption JSON.\n"
-         "Krea 2, Flux, Anima, SDXL / SD1.5 and other models: Plain text.\n"
-         "The node's model dropdown picks the format; on auto, the connected model does, else the clip, "
-         "else the text encoder this output is connected to. It also works as import_json for MOSS-Image "
-         "Prompt Builder KJ or (Deno) Ideogram Director. Plain text alone doesn't say where the regions "
-         "are; with the model on 'model' and clip connected, 'keep all regions apart' ties each region's "
-         "sentence to its region (on automatically, see Settings > Region Genie)."),
+        ("The prompt as text, in the model's format.\n"
+         "MOSS-Image: Layout JSON (plain text in standard mode, without regions and in Edit Mode).\n"
+         "Ideogram 4: Caption JSON.\n"
+         "Other models: Plain text (the scene, then each region's prompt).\n"
+         "The node's model dropdown picks the format; on auto: The connected model, else the clip, else the "
+         "text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ "
+         "or (Deno) Ideogram Director.\n"
+         "Plain text doesn't say where the regions are: 'keep all regions apart' (needs model and clip) ties "
+         "each region's sentence to its region."),
         "Flat color region map (black = unspecified), e.g. for MOSS-Image Color/Depth Control. A region with a color "
         "palette is shown in its first palette color.",
-        "One mask per region, in region order, as a batch (feathered as set on each region).",
+        "One mask per region that has pixels, in region order, as a batch. Feathered as set on each region; a gradient fill fades it.",
         "Tight pixel bbox per region: MOSS-Image Prompt Builder KJ, Create Bounding Boxes, BBoxes to Masks.",
         "Elements with each region's prompt and type: MOSS-Image Layout Prompt (element), Create Bounding Boxes, "
         "BBoxes to Masks.",
         "Numbers of the character regions (e.g. \"1, 3\"): MOSS-Image Layout Prompt character_boxes.",
-        "Text list of the regions with their index, color, prompt and bbox.",
+        ("The regions (index, color, bbox, prompt), the prompt format, and what Edit Mode, the LoRAs and Control did. "
+         "Lines starting with NOTE say what was left out and why."),
         "Output width.",
         "Output height.",
     )
@@ -1131,7 +1136,7 @@ class RegionGenie:
         if edit and image is not None and size_from_image is None and size_from_latent is None:
             # the canvas takes the source's shape, at the pixel count of width x height
             width, height = edit_size(int(image.shape[2]), int(image.shape[1]), int(width), int(height))
-            edit_notes.append(f"edit: canvas {width}x{height} (the source's shape at width x height pixels)")
+            edit_notes.append(f"edit: canvas {width}x{height} (the source's aspect ratio, at the pixel count of width x height)")
         width, height, _src = _resolve_size(int(width), int(height), "auto", size_from_image, size_from_latent)
         regions, ops, layers = parse_paint_data(paint_data)
         # min region pixels and import mode are Settings now (Settings > Region Genie); the editor sends them in
@@ -1464,7 +1469,7 @@ class RegionGenie:
                                       + (f"; keep: {', '.join(map(str, kept))}" if kept else ""))
                     if not whole and not changed:
                         edit_notes.append("NOTE: edit mode: every region is set to keep, so nothing may change; set a "
-                                          "region to change, or 'change' to whole image")
+                                          "region to change, or edit_area to 'whole image'")
         else:
             latent = empty_latent(width, height, model, vae)
         # Control (the list's 'Control' row): ControlNet / control LoRA for the connected model
@@ -1480,8 +1485,8 @@ class RegionGenie:
                 try:
                     if ctl.uses_concat(ccfg, aname):
                         if concat_used is not None:
-                            notes.append(f"NOTE: control row {k + 1} ({ccfg['kind']}) not used: {aname} takes one map through "
-                                         f"its control LoRA, and row {concat_used + 1} already uses it")
+                            notes.append(f"NOTE: control row {k + 1} ({ctl.KIND_LABEL.get(ccfg['kind'], ccfg['kind'])}) not used: {aname}'s "
+                                         f"control LoRA takes one Control row per run, and row {concat_used + 1} already uses it")
                             maps.append(None)
                             continue
                         concat_used = k
@@ -1526,8 +1531,9 @@ class RegionGenie:
         rows = [x for x in (pdata.get("sceneLoras") or []) if isinstance(x, dict) and x.get("edit") == "MOSS-Image"
                 and x.get("on", True) and x.get("lora")]
         if not rows:
-            notes.append("NOTE: MOSS-Image edit needs an edit LoRA (set one in Settings > Region Genie > Edit Mode, or "
-                         "add it to Whole image); used the Moss-Image-Edit layout")
+            notes.append("NOTE: MOSS-Image edit: no edit LoRA is set for MOSS-Image in Settings > Region Genie > Edit Mode (or "
+                         "its Edit row was removed), so the layout can't be read from it; used the Moss-Image-Edit layout "
+                         "(Settings > Region Genie > Edit Mode > MOSS-Image edit layout sets it)")
             return "Moss-Image-Edit"
         found = lora_edit_format(str(rows[0]["lora"]))
         return found or "Moss-Image-Edit"
@@ -1602,8 +1608,9 @@ class RegionGenie:
                 all_apart = True
                 if status is not None:
                     status["auto_apart"] = True
-                notes.append(f"keep all regions apart: on automatically for {arch.name} (a region has a prompt; "
-                             "Settings > Region Genie > keep all regions apart automatically)")
+                notes.append(f"keep all regions apart: on automatically for {arch.name} (a region has a prompt). "
+                             "Off: The node's keep-apart button > Off for this node, or Settings > Region Genie > "
+                             "Region Genie node")
         if all_apart and model is not None and not hl.one_pass_ok(model):
             notes.append(f"NOTE: 'keep all regions apart' needs a {hl.ONE_PASS_MODELS} model; it was not used")
             all_apart = False
@@ -1613,7 +1620,7 @@ class RegionGenie:
         if not scene and not regional and not all_apart:
             return model, []
         if model is None:
-            notes.append("NOTE: LoRAs are set on regions, but no model is connected to the 'model' input")
+            notes.append("NOTE: LoRAs are set, but no model is connected to the 'model' input; they are not used")
             return model, []
         if regional and not hl.one_pass_ok(model):
             raise ValueError(f"Region Genie: regional LoRAs on the 'model' output need a {hl.ONE_PASS_MODELS} model. "
@@ -1644,5 +1651,5 @@ class RegionGenie:
             saved = nodes.PreviewImage().save_images(image[:1], prefix)
             return saved["ui"]["images"]
         except Exception as e:  # preview is a convenience only
-            logging.warning(f"{LOG} could not save the backdrop preview: {e}")
+            logging.warning(f"{LOG} could not save the preview image: {e}")
             return []

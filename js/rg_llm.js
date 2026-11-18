@@ -274,7 +274,7 @@ export async function openLlmSettings(anchor, host) {
         ctxSel.append(opt("", `Settings default (${gdef})`), opt("prompt", "Only the prompt"), opt("context", "The prompt + the scene and the other regions"));
         ctxSel.value = L.ctxMode === "prompt" || L.ctxMode === "context" ? L.ctxMode : "";
         ctxSel.title = "With context, the LLM also gets scene_prompt_positive and the other regions' prompts (to keep them "
-            + "consistent), but rewrites only the one prompt. The default is in Settings > Region Genie.";
+            + "consistent), but rewrites only the one prompt. The default is in Settings > Region Genie > LLM Prompt Enhancer.";
         ctxSel.addEventListener("change", () => host.setLlm((l) => { if (ctxSel.value) l.ctxMode = ctxSel.value; else delete l.ctxMode; }));
         ctxRow.append(ctxSel); pop.append(ctxRow);
 
@@ -337,7 +337,10 @@ export async function openLlmSettings(anchor, host) {
         const delB = mk("button", null, "Delete");
         const inUseBy = LLM_TYPES.filter((t) => lib.defaults[t] === editName);
         delB.disabled = !lib.presets[editName] || Object.keys(lib.presets).length < 2 || inUseBy.length > 0;
-        delB.title = inUseBy.length ? `The default for ${inUseBy.join(", ")}. Choose another default first.` : "Delete this preset from your library";
+        delB.title = inUseBy.length ? `The default for ${inUseBy.join(", ")}. Choose another default first.`
+            : !lib.presets[editName] ? "Only in this workflow: Nothing to delete in your library."
+            : Object.keys(lib.presets).length < 2 ? "The only preset: It can't be deleted."
+            : "Delete this preset from your library (click twice).";
         delB.addEventListener("click", () => {
             if (delB.dataset.armed !== "1") { delB.dataset.armed = "1"; delB.textContent = "Delete?"; return; }
             delete lib.presets[editName];
@@ -378,7 +381,7 @@ export async function openLlmSettings(anchor, host) {
             lbox.textContent = "";
             draft.loras.forEach((x, i) => {
                 const r = mk("div", "lora");
-                const on = mk("input"); on.type = "checkbox"; on.checked = x.on !== false; on.title = "on/off";
+                const on = mk("input"); on.type = "checkbox"; on.checked = x.on !== false; on.title = "On / off";
                 on.addEventListener("change", () => { x.on = on.checked; touch(); });
                 const nm = loraPicker(x.lora, (name) => { x.lora = name; touch(); });
                 const st = mk("input"); st.type = "number"; st.step = "0.05"; st.min = "-100"; st.max = "100"; st.value = String(x.strength); st.title = "Strength";
@@ -411,7 +414,7 @@ export async function openLlmSettings(anchor, host) {
             l.append(mk("span", null, label), i); grid.append(l); return i;
         };
         numIn("max_length", "max_length", 1, 1, 32768, "Most tokens the LLM writes");
-        chk("sampling", "sampling", "Sampling mode.\nOff (default): Greedy decoding, always the same text for the same input; temperature, top_k, top_p, min_p, the penalties and the seed are not used (Generate Text hides them too)");
+        chk("sampling", "sampling", "On: Sampling with the settings below.\nOff (default): Greedy decoding, always the same text for the same input; temperature, top_k, top_p, min_p, the penalties and the seed are not used (hidden, as in Generate Text).");
         const sampled = [
             numIn("temperature", "temperature", 0.05, 0.01, 2),
             numIn("top_k", "top_k", 1, 0, 1000),
@@ -424,7 +427,7 @@ export async function openLlmSettings(anchor, host) {
         // as Generate Text: with sampling off these are hidden and not used (greedy decoding, no seed)
         function syncSampling() { for (const i of sampled) i.__label.style.display = draft.sampling ? "" : "none"; }
         syncSampling();
-        chk("thinking", "thinking", "Thinking mode, if the model supports it (the reasoning is shown in the button's tooltip, not used)");
+        chk("thinking", "thinking", "Thinking mode, if the model supports it (the reasoning is shown in the sparkles button's tooltip, not used)");
         chk("use_default_template", "default template", "Use the model's built-in chat template (needed for the system prompt)");
         const mtpL = mk("label"); mtpL.title = "Speculative decoding with the model's multi-token-prediction head (no effect without MTP weights)";
         const mtpSel = mk("select"); for (const m of MTP) mtpSel.append(opt(m, m)); mtpSel.value = draft.mtp;

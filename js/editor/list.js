@@ -197,7 +197,7 @@ export function* list(E) {
             dup.addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
             dup.addEventListener("contextmenu", (e) => {
                 e.preventDefault(); e.stopPropagation();
-                const items = [{ content: "Duplicate to this Region", rid: L.region }];
+                const items = [{ content: "Duplicate in this region", rid: L.region }];
                 for (const it of E.regionTargets(L.region)) items.push({ content: `Duplicate to ${it.label}`, rid: it.rid });
                 contextMenu(e, items, "Duplicate layer", (v) => { if (v && v.rid != null) E.duplicateTo(L, v.rid); E.focusSink(); });
             });
@@ -310,9 +310,9 @@ export function* list(E) {
         const b = E.el("button", "rg-btn mini toggle" + (r.paletteOn ? " on" : ""));
         b.innerHTML = svgIcon("palette");
         const n = normPalette(r.palette).length;
-        b.title = r.paletteOn ? `Color palette on (${n} color${n === 1 ? "" : "s"}): Sent with the region in elements, `
-            + "the MOSS and Ideogram JSON prompts; the first color shows the region. Click to turn it off."
-            : "Color palette: Give this region up to 5 colors (MOSS 'palette' / Ideogram 'color_palette'). Click to turn it on.";
+        b.title = r.paletteOn ? `Color palette on (${n} color${n === 1 ? "" : "s"}): Sent with the region in 'elements' and in `
+            + "the MOSS-Image and Ideogram 4 JSON prompts; the first color shows the region. Click to turn it off."
+            : "Color palette: Give this region up to 5 colors (MOSS-Image 'palette' / Ideogram 4 'color_palette'). Click to turn it on.";
         b.addEventListener("pointerdown", (e) => e.stopPropagation());
         b.addEventListener("click", (e) => {
             e.preventDefault();

@@ -46,14 +46,14 @@ export function* footer(E) {
     // ---- image_mode (top bar, only while an image is connected and not in Edit Mode)
     const imgLinked = () => (E.node.inputs || []).some((i) => i.name === "image" && i.link != null);
     const imgSeg = segmented([
-        ["backdrop (trace over)", svgIcon("imgBackdrop"), "Image as a backdrop: The connected image is shown under the canvas to trace over "
-            + "(image_mode; the default for new nodes is in Settings > Region Genie)."],
+        ["backdrop (trace over)", svgIcon("imgBackdrop"), "Image as a backdrop: The connected image is shown under the canvas to trace over (image_mode).\n"
+            + "Default for new nodes: Settings > Region Genie > Region Genie node > image_mode."],
         ["use as color map", svgIcon("imgColorMap"), "Image as a color map: The connected image's colors become the regions; painting "
             + "goes on top.\nThe field next to it sets the min region pixels (image_mode)."],
     ], (v) => { E.setWidget(E.modeW, v); syncSettings(); E.requestDraw(); });
     const minIn = E.el("input", "rg-num"); minIn.type = "number"; minIn.min = "1"; minIn.max = "1000000"; minIn.step = "1";
     minIn.title = "Min region pixels (color map). A color becomes a region when it has at least this many flat pixels; "
-        + "blended edges and specks go to the nearest region. It is one setting for every node "
+        + "blended edges go to the nearest region, specks of other colors become unspecified. It is one setting for every node "
         + "(Settings > Region Genie > Region Genie node).";
     minIn.addEventListener("keydown", (e) => e.stopPropagation());
     minIn.addEventListener("change", () => {
@@ -68,16 +68,16 @@ export function* footer(E) {
     // ---- mode: generate / edit
     const editSeg = segmented([
         ["generate", "Generate", "Generate a new image (mode)."],
-        ["edit", "Edit", "Edit the image on 'image' (image-to-image). Connect 'vae' too, and use the 'latent' output (sampler "
-            + "denoise below 1 for models without a reference image). The canvas takes the image's shape at width x height "
-            + "pixels, the image is the backdrop, the model gets it as a reference image where it reads one (Settings > "
-            + "Region Genie > Edit Mode), and the edit LoRA set there for the model is used (the Edit row under Whole image; "
-            + "＋Edit adds more)."],
+        ["edit", "Edit", "Edit: Change the image on 'image' (image-to-image).\n"
+            + "Connect: 'vae' too, and use the 'latent' output (sampler denoise below 1 for models without a reference image).\n"
+            + "Size: The image's shape at the pixel count of width x height; the image is the backdrop.\n"
+            + "Reference image: Sent to models that read one (Settings > Region Genie > Edit Mode).\n"
+            + "Edit LoRA: The one set there for the model (the Edit row under Whole image; ＋Edit adds more)."],
     ], (v) => { if (E.editW?.value === v) return; E.setWidget(E.editW, v); E.onEditModeChanged(); syncSettings(); });
     const areaCtl = setSel(E.areaW, "", [["only the regions", "regions only"], ["whole image", "whole image"]],
-        "edit_area (Edit Mode): What the sampler may change.\nOnly the regions: The 'latent' output carries a mask of "
-        + "all regions, so the rest of the image is kept (like inpainting).\nWhole image: No mask; the regions still "
-        + "steer where each prompt goes.");
+        "edit_area (Edit Mode): What the sampler may change.\nRegions only: The 'latent' output carries a mask of "
+        + "the regions set to change; the rest is kept (like inpainting).\nWhole image: Everything except the regions "
+        + "set to keep (no mask when none is kept); the regions still steer where each prompt goes.");
     // the model dropdown (and MOSS-Image's layout / standard switch) go here; they also set the prompt format
     // (the old 'format' select is gone: the hidden prompt_format widget stays "auto", see migrateFormat)
     const modelBox = E.el("span", "rg-modelbox"); E.modelBox = modelBox;

@@ -50,7 +50,7 @@ _ALIASES = {
     RegionalLoRAs: ["regional LoRAs", "LoRA", "LoRAs", "multi LoRA", "LoRA mask", "masked LoRA",
                     "hook LoRA", "hook LoRAs", "runtime LoRA", "quantized LoRA",
                     "int8", "fp8", "trigger words"],
-    SaveImageRG: ["save", "save image", "export image", "output image", "png", "jpeg", "jpg", "webp", "avif",
+    SaveImageRG: ["save", "save image", "export image", "output image", "png", "jpeg", "jpg", "webp", "avif", "exr", "hdr",
                   "compression", "compress", "quality", "file size", "transparency", "alpha"],
     CreateHookLoRAQuantized: ["hook LoRA", "LoRA", "regional LoRA", "LoRA mask", "masked LoRA", "runtime LoRA",
                               "quantized LoRA", "int8", "fp8", "LoRA hook", "Create Hook LoRA"],

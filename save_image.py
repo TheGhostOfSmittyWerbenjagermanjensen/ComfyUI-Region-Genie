@@ -277,7 +277,7 @@ JPEG_WORKFLOW = ("sidecar .json", "none", "inside the JPEG (EXIF)")
 NOTE_JPEG_MASK = "JPEG has no transparency: the mask was ignored"
 NOTE_EXIF = "The workflow was too big for the JPEG's EXIF (about 64 KB): saved as a .json next to it"
 NOTE_EXIF_NOT_SAVED = "The prompt was too big for the JPEG's EXIF (about 64 KB) and there is no workflow for a .json: not saved"
-NOTE_AVIF_ALPHA = "This AVIF encoder has no transparency (update Pillow to 11.3+): saved without the mask"
+NOTE_AVIF_ALPHA = "This AVIF encoder has no transparency (update Pillow to 11.3+): saved without it"
 
 
 def next_counter(folder, prefix):
@@ -379,7 +379,8 @@ class SaveImageRG:
             "optional": {
                 "mask": ("MASK", {"tooltip": (
                     "Transparency (PNG, WebP, AVIF, EXR; JPEG has none). As ComfyUI's Load Image mask: 1 = transparent. "
-                    "A mask of another size is resized; one mask applies to every image.")}),
+                    "A mask of another size is resized. One mask applies to every image; a batch goes image by image. "
+                    "Without a mask, an RGBA image keeps its own alpha.")}),
                 "invert_mask": ("BOOLEAN", {"default": False, "tooltip": (
                     "On: Mask 1 = opaque instead. Use it for a region mask from Region Genie or Mask Picker, to keep "
                     "the region and clear the rest.")}),

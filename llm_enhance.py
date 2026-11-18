@@ -334,7 +334,8 @@ def load_llm(settings, connected_clip):
         path = full_path("text_encoders", settings["llm"])
         if path is None:
             raise FileNotFoundError(f"Region Genie: the LLM file '{settings['llm']}' isn't found (in ComfyUI's "
-                                    "text_encoders folders or at that path); choose it again in the LLM settings")
+                                    "text_encoders folders or at that path): choose it again in the preset's LLM field (LLM Settings on the "
+                                    "node, or Settings > Region Genie > LLM Prompt Enhancer)")
         t = settings["llm_type"]
         key = (path, t)
         base = _llm_files.get(key)
@@ -351,7 +352,8 @@ def load_llm(settings, connected_clip):
     else:
         if connected_clip is None:
             raise ValueError("Region Genie: the LLM Prompt Enhancer uses the connected clip, but no clip is "
-                             "connected. Connect the text encoder to 'clip', or choose an LLM file in LLM Settings.")
+                             "connected. Connect the text encoder to 'clip', or choose an LLM file in the preset's LLM field "
+                             "(LLM Settings on the node, or Settings > Region Genie > LLM Prompt Enhancer).")
         base = connected_clip
         ident = "clip:" + _clip_identity(connected_clip)
     loras = tuple((x["lora"], round(x["strength"], 6)) for x in settings["loras"] if x["on"] and x["strength"] != 0)

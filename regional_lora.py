@@ -1226,7 +1226,7 @@ def load_runtime_lora(model, lora_name):
     from .model_paths import full_path            # a name in models/loras, or a full path set with Settings' Browse…
     lora_path = full_path("loras", lora_name)
     if lora_path is None:
-        raise FileNotFoundError(f"LoRA '{lora_name}' not found in ComfyUI's loras folders")
+        raise FileNotFoundError(f"LoRA '{lora_name}' isn't found (in ComfyUI's loras folders or at that path)")
     lora_sd = comfy.utils.load_torch_file(lora_path, safe_load=True)
     runtime_lora = build_runtime_lora(model, lora_sd, lora_name)
     del lora_sd
@@ -1395,9 +1395,9 @@ class RegionalLoRAs:
                 # was 'prompt' before round 11 (the editor moves old values and links over)
                 "positive_prompt": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
                                       "tooltip": ("The positive prompt. Connect 'prompt' of the Region Genie node (MOSS JSON, Ideogram JSON or "
-                                                  "text, in the model's format), or type a prompt. Each row's words are added to the caption of its "
-                                                  "region (for index -1, to the scene caption); with a plain-text prompt they are added as their "
-                                                  "own sentence.")}),
+                                                  "text, in the model's format), or type one. Each row's words are added to its region's caption "
+                                                  "(for index -1, to the scene caption).\n"
+                                                  "Plain-text prompt: Region words are added as their own sentence, index -1 words after a comma.")}),
                 "negative_prompt": ("STRING", {"default": "", "multiline": True, "pysssss.autocomplete": False,
                                                "tooltip": "Negative prompt, encoded as 'negative' (like CLIP Text "
                                                           "Encode)."}),

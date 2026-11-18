@@ -194,7 +194,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const o = out?.outputs?.[String(rg.id)], img = Object.values(out?.outputs || {}).find((x) => x.images)?.images?.[0];
         return { status: out?.status?.status_str, info: o?.region_info?.[0] || "", img };
     });
-    check(`${M}: a run with control on and no model: runs, and says why control isn't used`, c11.status === "success" && /control is on, but no model is connected/.test(c11.info));
+    check(`${M}: a run with control on and no model: runs, and says why control isn't used`, c11.status === "success" && /control: no model is connected/.test(c11.info));
     // the map overlay: hand the editor a run's image as its control map
     const ov = await page.evaluate(async (img) => {
         const rg = window.__rg;

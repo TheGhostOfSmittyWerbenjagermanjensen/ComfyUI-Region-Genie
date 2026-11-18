@@ -84,8 +84,8 @@ export function* selectTools(E) {
         const R = rasterSize(), { W, H, w, h, r } = R, [ix, iy] = d.start, s = Math.min(W, H);
         if (ix < 0 || iy < 0 || ix >= W || iy >= H) { E.hint("Gradient fill starts inside the image"); return; }
         if (Math.hypot(d.cur[0] - ix, d.cur[1] - iy) * E.view.z < 4 * E.dprNow()) {
-            E.hint(d.kind === "radial" ? "Gradient fill: drag outward from the point where the region is strongest"
-                : "Gradient fill: drag a line from where the region is strongest to where it ends");
+            E.hint(d.kind === "radial" ? "Gradient fill: Drag outward from the point where the region is strongest"
+                : "Gradient fill: Drag a line from where the region is strongest to where it ends");
             return;
         }
         const lab = regionLabels(R);
@@ -144,7 +144,7 @@ export function* selectTools(E) {
             return bdPix.data;
         } catch (e) { return null; }                          // a cross-origin image can't be read
     }
-    const NEEDS_IMAGE = "needs an image under the canvas: connect a Load Image node to 'image' (or run once)"; E.NEEDS_IMAGE = NEEDS_IMAGE;
+    const NEEDS_IMAGE = "needs an image under the canvas: Connect a Load Image node to 'image' (or run once)"; E.NEEDS_IMAGE = NEEDS_IMAGE;
     function wandAt(ix, iy) {
         const R = rasterSize(), { W, H, w, h, r } = R;
         if (ix < 0 || iy < 0 || ix >= W || iy >= H) { E.hint("The magic wand works inside the image"); return; }
