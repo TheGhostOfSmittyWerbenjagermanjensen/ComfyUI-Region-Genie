@@ -1161,7 +1161,9 @@ export function openFloatPopup(o) {
     const prev = btn("rg-nav", "◀", popNavTip(-1, o.navWhat || "in order"), () => o.nav(-1, geom()));
     const next = btn("rg-nav", "▶", popNavTip(1, o.navWhat || "in order"), () => o.nav(1, geom()));
     if (!o.nav) prev.style.display = next.style.display = "none";
-    head.append(title, prev, next, fm, fp, use, wc, x);
+    // the node's tag autocomplete switch (the same one as in the node's bottom bar: it acts on every field of the node)
+    const ac = o.node ? autocompleteToggle(o.node, (tag, cls) => mk(tag, cls), true) : null;
+    head.append(title, prev, next, fm, fp, ...(ac ? [ac.el] : []), use, wc, x);
     head.title = "Drag to move (anywhere on the screen).\nDouble-click: Back next to the field.";
     const foot = mk("div", "rg-fpop-foot", o.hint || popFootText(!!o.nav));
     const grip = mk("div", "rg-fpop-grip"); grip.title = "Drag to resize (remembered).\nDouble-click: Back to the default size.";
@@ -1225,6 +1227,7 @@ export function openFloatPopup(o) {
     // closes when its node leaves the canvas (another workflow tab, a subgraph, the node removed)
     const watch = setInterval(() => { if (o.node && nodeOffCanvas(o.node)) close(true); else if (!box.isConnected) close(true); }, 300);
     function close(commit) {
+        ac?.dispose();
         if (fpop !== api_) return;
         fpop = null;
         clearInterval(watch);
@@ -1412,7 +1415,8 @@ export function detachAutocomplete(el) {
 export function autocompleteOnFocus(el, node) { attachAutocomplete(el, node); }
 
 // the switch shown on the nodes: a tag icon, lit when on and slashed when off (hidden while neither pack is installed)
-export function autocompleteToggle(node, mk) {
+// keepFocus: in a pop-up editor, a click on it leaves the text box focused (typing goes on)
+export function autocompleteToggle(node, mk, keepFocus = false) {
     const b = mk("button", "rg-ac-btn");
     b.type = "button";
     b.style.display = "none";
@@ -1433,11 +1437,13 @@ export function autocompleteToggle(node, mk) {
         b.setAttribute("aria-pressed", String(on));
     };
     b.addEventListener("pointerdown", (e) => e.stopPropagation());
-    b.addEventListener("click", (e) => { e.preventDefault(); setAutocompleteFor(node, !autocompleteEnabledFor(node)); refresh(); });
+    if (keepFocus) b.addEventListener("mousedown", (e) => e.preventDefault());
+    // the switch is the node's: every button of it (the footer's, a pop-up's) follows at once
+    b.addEventListener("click", (e) => { e.preventDefault(); setAutocompleteFor(node, !autocompleteEnabledFor(node)); for (const f of toggles) f(); });
     loadAutocompleteEngines().then(refresh);
     toggles.add(refresh);
     refresh();
-    return { el: b, refresh };
+    return { el: b, refresh, dispose: () => toggles.delete(refresh) };
 }
 const toggles = new Set();
 setInterval(() => { for (const f of toggles) f(); }, 2000);      // engines can be switched on/off in their settings
@@ -1985,6 +1991,8 @@ export const AC_CSS = `
 .rg-ac-btn svg { width:16px; height:16px; display:block; }
 .rg-ac-btn:not(.on) { opacity:.55; }
 .rg-ac-btn.on { background:#3a6ea5; border-color:#5b8fd0; color:#fff; }
+.rg-pop-head .rg-ac-btn, .rg-fpop-head .rg-ac-btn { padding:1px 3px; }
+.rg-pop-head .rg-ac-btn svg, .rg-fpop-head .rg-ac-btn svg { width:14px; height:14px; }
 `;
 (function injectAcCss() {
     if (document.getElementById("rg-ac-style")) return;

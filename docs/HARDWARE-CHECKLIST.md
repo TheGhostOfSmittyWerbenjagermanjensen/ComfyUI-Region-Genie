@@ -58,6 +58,7 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] Each model you edit with: the Edit row shows the Settings edit LoRA and the run changes only the chosen regions
 - [ ] ＋Edit rows of the node's own are applied
 - [ ] MOSS-Image with a LoRA trained with ai-toolkit
+- [ ] MOSS-Image editing with the manual's settings (CFG 5 for Moss-Image-Edit, 3 for Edit-HQ; reference size 0 / 512), with *regions only* and with *whole image*; with and without a Skip Layer Guidance node (layer 22) on `model`
 - [ ] The edit mask's grow / feather, keep / change per region
 
 ## 6. LoRAs per region

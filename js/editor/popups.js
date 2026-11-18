@@ -1,7 +1,7 @@
 // The pop-up editors for prompts, and the editor's keyboard shortcuts.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import {
-    svgIcon, escReverts, popFootText, naturalHeight, popNavDir, popNavTip, appendWord, autocompleteOnFocus, autocompleteOpen, SET,
+    svgIcon, escReverts, popFootText, naturalHeight, popNavDir, popNavTip, appendWord, autocompleteOnFocus, autocompleteOpen, autocompleteToggle, SET,
     pickWildcard, insertAtCursor, wildcardsInstalled,
 } from "../rg_shared.js";
 import { recentSetting, rememberSetting, CLIPBOARD } from "./shared.js";
@@ -92,6 +92,9 @@ export function* popups(E) {
         head.insertBefore(fp, x?.previousElementSibling?.classList.contains("rg-wc-pick") ? x.previousElementSibling : x);
         head.insertBefore(fm, fp);
         head.insertBefore(prev, fm); head.insertBefore(next, fm);
+        // the node's tag autocomplete switch (the same one as in the bottom bar: it acts on every field of the node)
+        ed.acCtl = autocompleteToggle(E.node, E.el, true);
+        head.insertBefore(ed.acCtl.el, fp.nextSibling);
         head.title = "Drag to move (anywhere on the screen).\nDouble-click: Back next to the field.";
         const drag = (e, onMove, onEnd) => {
             e.preventDefault(); e.stopPropagation();
@@ -155,6 +158,7 @@ export function* popups(E) {
         const ed = E.editor;
         if (ed.field) ed.endField(!commit);
         E.editor = null;
+        ed.acCtl?.dispose();
         ed.box.remove();
         E.refreshUI();
         E.focusSink();
