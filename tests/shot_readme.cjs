@@ -15,7 +15,7 @@ const { chromium } = require("playwright");
   await page.waitForTimeout(800);
   await page.evaluate(async () => {
     const app = window.app, LG = window.LiteGraph; app.graph.clear();
-    const rg = LG.createNode("Region-Genie_Main"); rg.pos = [400, 150]; app.graph.add(rg); rg.size = [700, 1400];
+    const rg = LG.createNode("Region-Genie_Main"); rg.pos = [90, 110]; app.graph.add(rg); rg.size = [700, 1400];
     app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true); window.__rg = rg;
     await new Promise((r) => setTimeout(r, 1800));
   });
