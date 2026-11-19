@@ -135,6 +135,7 @@ export function* canvasUi(E) {
         E.setTool("shape");                          // the next thing to do is usually drawing its box
         setTimeout(() => regList.querySelector(`textarea[data-rid="${E.curRegion}"]`)?.focus(), 0);
     });
+    E.addRegionBtn = addRegionBtn;
     // show / hide one kind of subsection (layers, LoRAs, palettes) in every region at once, or everything
     // + Layer: an empty layer on top of the active region's layers (then paint, lasso or fill into it)
     const addLayerBtn = E.btn("", "Add an empty layer on top of the active region's layers; brush, lasso and fill then go into it", () => {

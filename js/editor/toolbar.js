@@ -329,6 +329,7 @@ export function* toolbar(E) {
         E.node.properties.rg_labels = E.node.properties.rg_labels === false;
         setLabIcon(); E.requestDraw();
     }, "toggle");
+    E.labBtn = labBtn;
     function setLabIcon() {
         const on = E.node.properties.rg_labels !== false;
         setHTML(labBtn, svgIcon(on ? "eye" : "eyeOff"));

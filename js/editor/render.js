@@ -6,7 +6,7 @@ import { hexRgb } from "./colors.js";
 
 export function* render(E) {
     Object.assign(E, {
-        paintLocal, drawLayerOn, renderComposite, requestDraw, handles, hitLayer, insideBox, outputIndexMap, updateRegionIndices,
+        paintLocal, drawLayerOn, renderComposite, requestDraw, handles, hitLayer, hitLayers, insideBox, outputIndexMap, updateRegionIndices,
     });
     yield;
 
@@ -294,17 +294,19 @@ export function* render(E) {
     }
 
     // ---------------- hit testing ----------------
-    function hitLayer(dx, dy) {
+    function hitLayers(dx, dy, first = false) {          // every shown layer under the point, the top one first
+        const out = [];
         for (let i = E.state.layers.length - 1; i >= 0; i--) {
             const L = E.state.layers[i];
             if (!E.isShown(L)) continue;
             E.hctx.setTransform(1, 0, 0, 1, 0, 0);
             E.hctx.clearRect(0, 0, 1, 1);
             drawLayerOn(E.hctx, L, null, [1, 0, 0, 1, -dx, -dy]);
-            if (E.hctx.getImageData(0, 0, 1, 1).data[3] > 0) return L;
+            if (E.hctx.getImageData(0, 0, 1, 1).data[3] > 0) { out.push(L); if (first) break; }
         }
-        return null;
+        return out;
     }
+    function hitLayer(dx, dy) { return hitLayers(dx, dy, true)[0] || null; }
     function insideBox(L, ix, iy) {
         const box = E.contentBox(L);
         if (!box) return false;

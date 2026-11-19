@@ -114,6 +114,80 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`each tool key in the list picks its tool (${listed.length} keys; ${wrong.join(", ")})`, listed.length === Object.keys(wantTool).length && !wrong.length);
     await page.evaluate(() => window.__node.__rgSetTool("select"));
 
+    // ---- the canvas's right-click menu
+    const menu = () => page.evaluate(() => { const m = document.querySelector(".rg-menu"); if (!m) return null; const r = m.getBoundingClientRect();
+        return { head: [...m.querySelectorAll(".rg-menu-head")].map((h) => h.textContent), items: [...m.querySelectorAll(".rg-menu-item")].map((i) => i.querySelector(".rg-menu-label").textContent),
+            off: [...m.querySelectorAll(".rg-menu-item.off")].map((i) => i.querySelector(".rg-menu-label").textContent), keys: [...m.querySelectorAll(".rg-menu-key")].map((k) => k.textContent),
+            ticks: [...m.querySelectorAll('.rg-menu-item[aria-checked="true"]')].map((i) => i.querySelector(".rg-menu-label").textContent), at: [r.left, r.top], in: r.right <= innerWidth && r.bottom <= innerHeight, onPage: m.parentElement === document.body }; });
+    const item = (label) => page.locator(".rg-menu-item", { hasText: label }).first();
+    // a second region overlapping the first (the first was drawn at 60..160 x 60..150 from the canvas's corner)
+    await page.locator('[title^="Add a region with a new color"]').click(); await page.waitForTimeout(120);
+    await page.evaluate(() => document.activeElement?.blur?.());
+    await page.mouse.move(bx + 120, by + 110); await page.mouse.down(); await page.mouse.move(bx + 230, by + 200, { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(150);
+    await page.evaluate(() => window.__node.__rgSetTool("select"));
+    let s0 = await st();
+    const [ridA, ridB] = [s0.regions[1].id, s0.regions[0].id];           // B was added last: it is on top (first in the list)
+    check("two regions to test with, the newer one in front", s0.regions.length === 2 && s0.layers.length === 2);
+    // empty canvas
+    await page.mouse.click(bx + 30, by + 30, { button: "right" }); await page.waitForTimeout(120);
+    let m = await menu();
+    check(`right-click on empty canvas: the canvas menu, at the pointer, on the page (${m?.items.join(" | ")})`, !!m && m.onPage && m.in && Math.abs(m.at[0] - (bx + 30)) < 3 && Math.abs(m.at[1] - (by + 30)) < 3
+        && ["Add a region", "Paste layer", "Fit the image in view", "Labels on the canvas", "Snap to grid", "Large editor", "Shortcuts"].every((x) => m.items.includes(x)));
+    check("nothing copied yet: Paste is greyed; Labels is ticked; keys at the right end", !!m && m.off.join() === "Paste layer" && m.ticks.includes("Labels on the canvas") && ["Ctrl+V", "Home", "G", "?"].every((k) => m.keys.includes(k)));
+    await item("Labels on the canvas").click(); await page.waitForTimeout(100);
+    check("Labels on the canvas: the menu closes and the labels go", !(await menu()) && await page.evaluate(() => window.__node.properties.rg_labels === false));
+    await page.mouse.click(bx + 30, by + 30, { button: "right" }); await page.waitForTimeout(100);
+    check("…the menu shows it unticked now", !(await menu()).ticks.includes("Labels on the canvas"));
+    await item("Labels on the canvas").click(); await page.waitForTimeout(80);
+    await page.mouse.click(bx + 30, by + 30, { button: "right" }); await page.waitForTimeout(100);
+    await page.keyboard.press("Escape"); await page.waitForTimeout(60);
+    check("Esc closes the menu", !(await menu()));
+    await page.mouse.click(bx + 30, by + 30, { button: "right" }); await page.waitForTimeout(100);
+    await page.mouse.click(bx + 300, by + 30); await page.waitForTimeout(80);
+    check("a click elsewhere closes it", !(await menu()));
+    // on a region (where only the first one is)
+    await page.mouse.click(bx + 80, by + 80, { button: "right" }); await page.waitForTimeout(120);
+    m = await menu();
+    check(`right-click on a region: its menu, the region named at the top (${m?.head.join(" / ")}; ${m?.items.join(" | ")})`, !!m && m.head.length === 1 && /\(no prompt\)/.test(m.head[0])
+        && ["Edit prompt…", "Hide region", "Move up (in front)", "Move down (behind)", "Duplicate this layer", "Delete this layer", "Delete region"].every((x) => m.items.includes(x)));
+    check("…it is the active region now, its layer selected", await page.evaluate(() => window.__node.__rgActive()) === ridA && await page.locator(".rg-row.region.active, .rg-row.region.cur").count() >= 0);
+    check("the last region in the list can't move down", !!m && m.off.join() === "Move down (behind)");
+    await item("Move up (in front)").click(); await page.waitForTimeout(120);
+    s0 = await st();
+    check("Move up: the region is first in the list now", s0.regions[0].id === ridA);
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
+    check("one undo step takes it back", (await st()).regions[0].id === ridB);
+    // where both overlap: the top one, the other listed
+    await page.mouse.click(bx + 140, by + 130, { button: "right" }); await page.waitForTimeout(120);
+    m = await menu();
+    check(`where two regions overlap: the one in front, the other under "Also here" (${m?.head.join(" / ")})`, !!m && m.head.length === 2 && m.head[1] === "Also here"
+        && await page.evaluate(() => window.__node.__rgActive()) === ridB && m.items.filter((x) => /\(no prompt\)/.test(x)).length === 1);
+    await page.locator(".rg-menu-item", { hasText: "(no prompt)" }).last().click(); await page.waitForTimeout(100);
+    check("picking the other one makes it the active region", !(await menu()) && await page.evaluate(() => window.__node.__rgActive()) === ridA);
+    // duplicate / delete layer, hide, delete region
+    await page.mouse.click(bx + 80, by + 80, { button: "right" }); await page.waitForTimeout(100);
+    await item("Duplicate this layer").click(); await page.waitForTimeout(120);
+    check("Duplicate this layer: one more layer in that region", (await st()).layers.filter((l) => l.region === ridA).length === 2);
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(100);
+    await page.mouse.click(bx + 80, by + 80, { button: "right" }); await page.waitForTimeout(100);
+    await item("Hide region").click(); await page.waitForTimeout(120);
+    check("Hide region: hidden, and no longer under the pointer", (await st()).regions.find((r) => r.id === ridA).hidden === true);
+    await page.mouse.click(bx + 80, by + 80, { button: "right" }); await page.waitForTimeout(100);
+    check("…a right-click there now gives the empty-canvas menu", (await menu())?.items.includes("Add a region"));
+    await page.keyboard.press("Escape"); await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
+    await page.mouse.click(bx + 80, by + 80, { button: "right" }); await page.waitForTimeout(100);
+    await item("Delete region").click(); await page.waitForTimeout(120);
+    s0 = await st();
+    check("Delete region: the region and its layer go", s0.regions.length === 1 && s0.layers.length === 1 && s0.regions[0].id === ridB);
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
+    check("…and one undo brings both back", (await st()).regions.length === 2 && (await st()).layers.length === 2);
+    // keyboard in the menu
+    await page.mouse.click(bx + 30, by + 30, { button: "right" }); await page.waitForTimeout(100);
+    await page.keyboard.press("ArrowDown"); await page.keyboard.press("Enter"); await page.waitForTimeout(150);
+    check("arrow down and Enter run the first entry (Add a region)", !(await menu()) && (await st()).regions.length === 3);
+    await page.evaluate(() => document.activeElement?.blur?.()); await page.keyboard.press("Control+z"); await page.waitForTimeout(100);
+    await page.evaluate(() => window.__node.__rgSetTool("select"));
+
     // every button with a drawn icon: no text glyph left as a label
     const glyphs = await page.evaluate(() => [...document.querySelectorAll(".rg-wrap button")].filter((b) => /^[✕↑↓▲◉○✂⧉⤓⇄⌫🗑⇊↺⬆＋⚠ⓘ×]$/u.test(b.textContent.trim())).map((b) => b.textContent.trim() + " " + (b.title || "").slice(0, 30)));
     check(`no button is labelled with a bare symbol any more (${glyphs.join("; ")})`, !glyphs.length);
