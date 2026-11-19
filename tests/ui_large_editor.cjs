@@ -29,7 +29,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await add.click(); await page.waitForTimeout(100); await box(20, 20, 120, 120);
     await page.evaluate(() => { window.__node.widgets.find((w) => w.name === "scene_prompt_positive").value = "from the node"; });
     const small = await cvSize();
-    check("the tool bar has the Large editor button, off", await btn.count() === 1 && !(await btn.evaluate((b) => b.classList.contains("on"))) && /Key: Alt\+Enter/.test(await btn.getAttribute("title")));
+    check("the tool bar has the Large editor button, off", await btn.count() === 1 && !(await btn.evaluate((b) => b.classList.contains("on"))) && /\(Alt\+Enter\)/.test(await btn.getAttribute("title")));
     check("the node's own order of parts", await order() === ORDER);
 
     // ---- open

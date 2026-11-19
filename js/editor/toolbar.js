@@ -272,8 +272,8 @@ export function* toolbar(E) {
     function setSnapIcon() {
         setHTML(snapBtn, svgIcon(E.snap ? "magnet" : "magnetOff"));
         snapBtn.classList.toggle("on", E.snap);
-        snapBtn.title = E.snap ? "Snap to grid on: Points, shapes and moves snap to the grid (click or G to turn off)"
-            : "Snap to grid off: Click (or G) to snap points, shapes and moves to the grid";
+        snapBtn.title = E.snap ? "Snap to grid: On. Points, shapes and moves snap to the grid; click to turn it off (G)."
+            : "Snap to grid: Off. Click to snap points, shapes and moves to the grid (G).";
     }
     setSnapIcon();
     const gridIn = E.el("input", "rg-num");

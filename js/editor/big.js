@@ -29,7 +29,7 @@ export function* big(E) {
         bigBtn.title = (E.big ? "Large editor: ON. Click to put the editor back in the node."
             : "Large editor: Open this editor in a large window over ComfyUI, with the canvas on the left and the size, the scene prompts and the region list on the right.")
             + "\nClose: This button again, ✕ in the window's corner, or Esc with nothing selected."
-            + (k ? `\nKey: ${k} (Settings > Region Genie > Region Genie node).` : "");
+            + (k ? `\nShortcut: Pressed while the pointer is over the editor; change it in Settings > Region Genie > Region Genie node (${k}).` : "");
     }
     setBigBtn();
 

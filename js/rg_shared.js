@@ -3,6 +3,7 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 import { openColorPicker } from "./rg_colorpicker.js";
+import "./rg_tooltip.js";                 // the pack's own tooltip takes over every title in the pack's elements
 
 // ---------------------------------------------------------------- icons (16x16, stroke = text color)
 export const ICONS = {
@@ -1210,7 +1211,7 @@ export function popNavTip(dir, what) {
     const k = keyLabel(popKeyText(dir));
     return (dir < 0 ? `The previous text field of this node (${what}), opened in this place and size; from the first it goes to the last.`
                     : `The next text field of this node (${what}), opened in this place and size; from the last it goes to the first.`)
-        + (k ? `\nKey: ${k} (Settings > Region Genie > Text size).` : "");
+        + (k ? `\nShortcut: Change it in Settings > Region Genie > Text size (${k}).` : "");
 }
 // the owner node is gone, or not on the canvas any more (another workflow tab, or into / out of a subgraph)
 export const nodeOffCanvas = (node) => !node?.graph || (app.canvas?.graph != null && app.canvas.graph !== node.graph);
