@@ -480,6 +480,7 @@ export function* popups(E) {
         else if (k === "r" || k === "o" || k === "t") {
             E.shapeKind = { r: "rect", o: "ellipse", t: "triangle" }[k]; E.setTool("shape");
         } else if (k === "g") { E.snap = !E.snap; E.setSnapIcon(); E.requestDraw(); }
+        else if (e.key === "?") E.toggleKeys();
         else if (k === "home") { E.userView = false; E.fitView(); E.requestDraw(); }
         else if (k === "[" || k === "]") { E.brush = Math.min(0.3, Math.max(0.002, E.brush * (k === "]" ? 1.2 : 1 / 1.2))); E.updateBrushSlider(); E.requestDraw(); }
         else if (L && k.startsWith("arrow")) {

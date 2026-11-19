@@ -77,6 +77,43 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         check("a text box's tooltip opens next to the pointer", !!t && Math.abs(t.r[0] - tx) < 60 && Math.abs(t.r[1] - ty) < 60);
         await away();
     }
+    // ---- the shortcut list
+    const sheet = () => page.evaluate(() => { const b = document.querySelector(".rg-keys"); if (!b) return null; const r = b.getBoundingClientRect();
+        return { groups: [...b.querySelectorAll("h4")].map((h) => h.textContent), rows: b.querySelectorAll(".rg-keys-row").length, in: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight,
+            onPage: b.parentElement === document.body, tools: [...b.querySelector("section").querySelectorAll(".rg-keys-row")].map((x) => [[...x.querySelectorAll("kbd")].map((k) => k.textContent), x.lastChild.textContent]) }; });
+    const kb = page.locator(".rg-keys-btn");
+    check("a keyboard button in the bottom bar, its tooltip names the key", await kb.count() === 1 && /\(\?\)/.test(await kb.getAttribute("title")));
+    await kb.click(); await page.waitForTimeout(120);
+    let sh = await sheet();
+    check(`the button opens the shortcut list on the page, inside the window (${sh?.groups.join(", ")}; ${sh?.rows} rows)`, !!sh && sh.onPage && sh.in && sh.groups.join("|") === "Tools|While drawing|Layers and regions|View|Text" && sh.rows > 30);
+    check("the button is lit while the list is open", await kb.evaluate((b) => b.classList.contains("on")));
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
+    check("Esc closes it", !(await sheet()) && !(await kb.evaluate((b) => b.classList.contains("on"))));
+    // "?" over the editor opens it, "?" again closes it
+    const [cx0, cy0] = await page.evaluate(() => { const c = document.querySelector(".rg-cv canvas").getBoundingClientRect(); return [c.x + 20, c.y + 20]; });
+    await away(); await page.evaluate(() => document.activeElement?.blur?.());
+    await page.mouse.move(cx0, cy0); await page.keyboard.press("?"); await page.waitForTimeout(120);
+    sh = await sheet();
+    check("? while pointing at the editor opens it", !!sh);
+    await page.keyboard.press("?"); await page.waitForTimeout(80);
+    check("? again closes it", !(await sheet()));
+    await page.mouse.move(cx0, cy0); await page.keyboard.press("?"); await page.waitForTimeout(100);
+    await page.mouse.click(880, 1090); await page.waitForTimeout(80);
+    check("a click outside closes it", !(await sheet()));
+    // every single key the list names under Tools picks that tool
+    const wantTool = { V: "select", R: "shape", O: "shape", T: "shape", B: "brush", E: "erase", L: "lasso", "Shift+L": "lassoErase", F: "fill", W: "wand", Q: "object" };
+    const listed = (sh?.tools || []).flatMap(([ks]) => ks).filter((k) => wantTool[k]);
+    const wrong = [];
+    for (const k of listed) {
+        await page.evaluate(() => window.__node.__rgSetTool(window.__node.__rgTool() === "select" ? "brush" : "select"));
+        await page.mouse.move(cx0, cy0); await page.keyboard.press(k); await page.waitForTimeout(40);
+        const now = await page.evaluate(() => window.__node.__rgTool());
+        if (now !== wantTool[k]) wrong.push(`${k}: ${now}`);
+        if (k === "Q") { await page.keyboard.press("Escape"); }
+    }
+    check(`each tool key in the list picks its tool (${listed.length} keys; ${wrong.join(", ")})`, listed.length === Object.keys(wantTool).length && !wrong.length);
+    await page.evaluate(() => window.__node.__rgSetTool("select"));
+
     // every button with a drawn icon: no text glyph left as a label
     const glyphs = await page.evaluate(() => [...document.querySelectorAll(".rg-wrap button")].filter((b) => /^[✕↑↓▲◉○✂⧉⤓⇄⌫🗑⇊↺⬆＋⚠ⓘ×]$/u.test(b.textContent.trim())).map((b) => b.textContent.trim() + " " + (b.title || "").slice(0, 30)));
     check(`no button is labelled with a bare symbol any more (${glyphs.join("; ")})`, !glyphs.length);
