@@ -35,7 +35,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
 
     // ---- the row itself
     const inRow = await page.evaluate(() => [...document.querySelectorAll(".rg-row.region")].map((r) => ({
-        feather: !!r.querySelector(".rg-feather"), del: [...r.querySelectorAll("button")].some((b) => b.textContent.trim() === "✕"),
+        feather: !!r.querySelector(".rg-feather"), del: [...r.querySelectorAll("button")].some((b) => b.dataset.ic === "close"),
         move: [...r.querySelectorAll("button")].some((b) => ["↑", "↓", "⇊"].includes(b.textContent.trim())),
         lora: [...r.querySelectorAll("button")].some((b) => b.textContent.trim() === "＋LoRA"), llm: !!r.querySelector(".rg-llm-btn"),
         cnt: !!r.querySelector(".rg-cnt"), eye: !!r.querySelector(".rg-reye"), type: !!r.querySelector("select"),
@@ -52,9 +52,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await chev(0).click(); await chev(1).click(); await page.waitForTimeout(80);
     const line = await page.evaluate(() => { const o = document.querySelector(".rg-row.opts"); return { after: o.previousElementSibling.classList.contains("region"), before: o.nextElementSibling?.classList.contains("sub"),
         words: [...o.querySelectorAll(".rg-word")].map((w) => w.textContent), tips: [...o.querySelectorAll(".rg-word")].every((w) => w.title),
-        btns: [...o.querySelectorAll("button")].map((b) => b.textContent.trim()).filter(Boolean), feather: !!o.querySelector(".rg-feather input") }; });
+        btns: [...o.querySelectorAll("button")].map((b) => b.dataset.ic).filter(Boolean), feather: !!o.querySelector(".rg-feather input") }; });
     check("the options line sits between the region's row and its Layers header", line.after && line.before);
-    check(`it holds feather, palette, merge, move and delete (${line.words.join(", ")}; ${line.btns.join(" ")})`, line.feather && line.words.join("|") === "feather|palette" && line.tips && ["⇊", "↑", "↓", "✕"].every((b) => line.btns.includes(b)));
+    check(`it holds feather, palette, merge, move and delete (${line.words.join(", ")}; ${line.btns.join(" ")})`, line.feather && line.words.join("|") === "feather|palette" && line.tips && ["mergeAll", "up", "down", "close"].every((b) => line.btns.includes(b)));
 
     // ---- they work from there
     const rid = (await st()).regions[1].id;
@@ -62,9 +62,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("feather set on the options line", (await st()).feather === 12);
     await opts.locator('button[title^="Color palette"]').click(); await page.waitForTimeout(150); await page.keyboard.press("Escape"); await page.waitForTimeout(80);
     check("palette switched on from the options line; its section shows under it", (await st()).regions.find((r) => r.id === rid).paletteOn === true && await page.locator(".rg-row.sub", { hasText: "Color palette" }).count() === 1);
-    await opts.locator("button", { hasText: "↓" }).click(); await page.waitForTimeout(100);
+    await opts.locator('button[data-ic="down"]').click(); await page.waitForTimeout(100);
     check("↓ moves the region down, and it stays open", (await st()).regions[2].id === rid && await opts.count() === 1);
-    await opts.locator("button", { hasText: "✕" }).click(); await page.waitForTimeout(100);
+    await opts.locator('button[data-ic="close"]').click(); await page.waitForTimeout(100);
     check("✕ deletes the region and its layers", (await st()).regions.length === 2 && !(await st()).regions.some((r) => r.id === rid));
     const [cx, cy] = await toClient(120, 120); await page.mouse.move(cx, cy); await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
     check("Ctrl+Z brings it back", (await st()).regions.length === 3);

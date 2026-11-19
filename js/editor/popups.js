@@ -185,7 +185,7 @@ export function* popups(E) {
         const num = E.el("span", "rg-idx");
         const title = E.el("span"); title.textContent = "Edit region";
         const sw = E.el("span", "rg-sw"); sw.dataset.swatch = String(r.id);
-        const x = E.el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close, keeping the edits (Enter).";
+        const x = E.el("button", "rg-btn ico rg-x"); x.innerHTML = svgIcon("close"); x.title = "Close, keeping the edits (Enter).";
         x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
         let lastTa = null;                         // the field the picker inserts into
         const wcPick = E.el("button", "rg-btn ico rg-wc-pick"); wcPick.innerHTML = svgIcon("wildcard");
@@ -330,7 +330,7 @@ export function* popups(E) {
         const title = E.el("span");
         title.textContent = { positive: "Scene prompt (scene_prompt_positive)", negative: "Negative scene prompt (scene_prompt_negative)",
                               background: "Background (scene_prompt_background)" }[which];
-        const x = E.el("button", "rg-btn ico rg-x"); x.textContent = "✕"; x.title = "Close, keeping the edits (Enter).";
+        const x = E.el("button", "rg-btn ico rg-x"); x.innerHTML = svgIcon("close"); x.title = "Close, keeping the edits (Enter).";
         x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
         const wcPickS = E.el("button", "rg-btn ico rg-wc-pick"); wcPickS.innerHTML = svgIcon("wildcard");
         wcPickS.title = "Insert a wildcard (ComfyUI Impact Pack) at the cursor";

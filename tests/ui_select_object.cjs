@@ -232,7 +232,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator('.rg-bar .rg-btn.icon[title^="Brush"]').click(); await page.waitForTimeout(80);
     check("another tool closes the message", !await msg.isVisible());
     await objBtn.click(); await clickImg(80, 80);
-    await msg.locator("button", { hasText: "✕" }).click(); await page.waitForTimeout(80);
+    await msg.locator('button[data-ic="close"]').click(); await page.waitForTimeout(80);
     check("✕ closes the message", !await msg.isVisible());
     const ids = await page.evaluate(() => window.__settingsExt.settings.map((s) => s.id));
     check("Settings: Select object entries", ["RegionGenie.Select.Model", "RegionGenie.Select.KeepLoaded", "RegionGenie.Select.Threshold"].every((i) => ids.includes(i)));

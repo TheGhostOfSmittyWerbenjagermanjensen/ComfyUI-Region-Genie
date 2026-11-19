@@ -1,5 +1,5 @@
 import { app } from "../../scripts/app.js";
-import { getLoras, knownLoras, pickLora, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName, appendWord,
+import { svgIcon, getLoras, knownLoras, pickLora, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName, appendWord,
          autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, autocompleteToggle, getSetting, SET,
          wildcardSeedControl, WC_CSS, addExpandButton, openFloatPopup, FPOP_CSS } from "./rg_shared.js";
 
@@ -17,6 +17,7 @@ const CSS = `
   padding:2px 8px; cursor:pointer; font:inherit; white-space:nowrap; }
 .rg-rl-btn:hover { filter:brightness(1.25); }
 .rg-rl-btn.sm { padding:0 5px; min-width:20px; }
+.rg-rl-btn.sm.rg-ib { padding:0 2px; height:20px; vertical-align:middle; }
 .rg-rl-btn:disabled { opacity:.4; cursor:default; }
 .rg-rl-hint { opacity:.6; font-size:11px; }
 .rg-rl-row { display:flex; flex-direction:column; gap:3px; padding:4px; border:1px solid var(--border-color,#444); border-radius:5px;
@@ -286,9 +287,9 @@ function setup(node) {
             });
             const sw = el("span", "rg-rl-sw");
             const regText = el("span", "rg-rl-region");
-            const up = el("button", "rg-rl-btn sm", "↑"); up.title = "Move up"; up.disabled = i === 0;
-            const dn = el("button", "rg-rl-btn sm", "↓"); dn.title = "Move down"; dn.disabled = i === rows.length - 1;
-            const del = el("button", "rg-rl-btn sm", "×"); del.title = "Remove this LoRA";
+            const up = el("button", "rg-rl-btn sm rg-ib"); up.innerHTML = svgIcon("up"); up.title = "Move up"; up.disabled = i === 0;
+            const dn = el("button", "rg-rl-btn sm rg-ib"); dn.innerHTML = svgIcon("down"); dn.title = "Move down"; dn.disabled = i === rows.length - 1;
+            const del = el("button", "rg-rl-btn sm rg-ib"); del.innerHTML = svgIcon("close"); del.title = "Remove this LoRA";
             up.addEventListener("click", () => { [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]]; save(); render(); });
             dn.addEventListener("click", () => { [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]]; save(); render(); });
             del.addEventListener("click", () => { rows.splice(i, 1); save(); render(); fit(false); });

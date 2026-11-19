@@ -256,7 +256,7 @@ export function* list(E) {
             str.value = String(lo.strength); str.title = "LoRA strength";
             str.addEventListener("change", () => { const v = +str.value; if (Number.isFinite(v)) E.change(() => { lo.strength = v; }); });
             str.addEventListener("keydown", (e) => e.stopPropagation());
-            const del = ico("✕", "Remove this LoRA", () => E.change(() => { list.splice(i, 1); }));
+            const del = ico("@close", "Remove this LoRA", () => E.change(() => { list.splice(i, 1); }));
             row.append(tag, on, pick, E.rowWord("strength", str), str, del);
             frag.appendChild(row);
             const chips = E.el("div", "rg-trig");
@@ -277,10 +277,10 @@ export function* list(E) {
             const row = E.el("div", "rg-row lvl1 layer" + (L.id === E.selId ? " sel" : "") + (hole ? " hole" : ""));
             row.dataset.lid = String(L.id);
             row.addEventListener("pointerdown", (e) => { if (e.target === row || e.target.classList.contains("rg-sw")) E.selectLayer(L); });
-            const eye = ico(L.visible === false ? "○" : "◉", "Show / hide (hidden layers are not output)", () => E.change(() => { L.visible = L.visible === false; }));
+            const eye = ico(L.visible === false ? "@eyeOff" : "@eye", "Show / hide (hidden layers are not output)", () => E.change(() => { L.visible = L.visible === false; }));
             const sw = E.el("div", "rg-sw"); if (!hole) sw.style.background = E.colorOf(L.region) || "transparent";
             sw.title = hole ? "A hole: Select this layer" : "Select this layer";
-            const cut = ico("✂", hole ? "Hole: On. This layer cuts its area out of every layer below it (no region there; black in "
+            const cut = ico("@scissors", hole ? "Hole: On. This layer cuts its area out of every layer below it (no region there; black in "
                 + "color_map). Click to paint this region again." : "Hole: Off. Click to make this layer cut a hole through every "
                 + "layer below it (no region there).", () => E.toggleHole(L));
             cut.classList.toggle("on", hole);
@@ -288,11 +288,11 @@ export function* list(E) {
             name.addEventListener("focus", () => { if (E.selId !== L.id || E.hiddenSel === L.id) { E.selId = L.id; E.hiddenSel = null; E.curRegion = L.region; E.markLayerRows(); E.requestDraw(); } });
             name.addEventListener("change", () => E.change(() => { L.name = name.value; }));
             name.addEventListener("keydown", (e) => e.stopPropagation());
-            const up = ico("▲", L.region === UNSPEC ? "Move up one step in the stack (the hole then cuts through what it moved over)" : "Move up (in front of this region's other layers)", () => E.moveLayer(L, +1));
+            const up = ico("@up", L.region === UNSPEC ? "Move up one step in the stack (the hole then cuts through what it moved over)" : "Move up (in front of this region's other layers)", () => E.moveLayer(L, +1));
             up.disabled = E.moveTarget(L, +1) < 0;
-            const dn = ico("▼", L.region === UNSPEC ? "Move down one step in the stack (what it moved under is no longer cut)" : "Move down (behind this region's other layers)", () => E.moveLayer(L, -1));
+            const dn = ico("@down", L.region === UNSPEC ? "Move down one step in the stack (what it moved under is no longer cut)" : "Move down (behind this region's other layers)", () => E.moveLayer(L, -1));
             dn.disabled = E.moveTarget(L, -1) < 0;
-            const dup = ico("⧉", "Duplicate (Ctrl+D).\nRight-click: Duplicate into another region.", () => E.duplicate(L));
+            const dup = ico("@copy", "Duplicate (Ctrl+D).\nRight-click: Duplicate into another region.", () => E.duplicate(L));
             dup.classList.add("variants");
             dup.addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
             dup.addEventListener("contextmenu", (e) => {
@@ -302,14 +302,14 @@ export function* list(E) {
                 contextMenu(e, items, "Duplicate layer", (v) => { if (v && v.rid != null) E.duplicateTo(L, v.rid); E.focusSink(); });
             });
             const lower = (() => { const i = E.state.layers.indexOf(L); return E.state.layers.slice(0, i).reverse().find((l) => l.region === L.region && l.visible !== false); })();
-            const md = ico("⤓", "Merge down into the next lower layer of this region", () => E.mergeDown(L));
+            const md = ico("@mergeDown", "Merge down into the next lower layer of this region", () => E.mergeDown(L));
             md.disabled = !lower;
-            const mv = ico("⇄", "Move this layer to another region", (e) => {
+            const mv = ico("@moveTo", "Move this layer to another region", (e) => {
                 const items = E.regionTargets(L.region).map((it) => ({ content: `Move to ${it.label}`, rid: it.rid }));
                 contextMenu(e, items, "Move to region", (v) => { if (v && v.rid != null) E.moveLayerToRegion(L, v.rid); E.focusSink(); });
             });
-            const er = ico("⌫", "Erase layer: Remove its shapes and paint, keep the empty layer", () => E.eraseLayer(L));
-            const del = ico("🗑", "Delete layer (Del)", () => E.deleteSelected(L));
+            const er = ico("@eraseLayer", "Erase layer: Remove its shapes and paint, keep the empty layer", () => E.eraseLayer(L));
+            const del = ico("@clear", "Delete layer (Del)", () => E.deleteSelected(L));
             // the grip selects the layer the way its name field does (no rebuilt list under the pointer)
             const pickLayer = () => { if (E.selId !== L.id || E.hiddenSel === L.id) { E.selId = L.id; E.hiddenSel = null; E.curRegion = L.region; E.markLayerRows(); E.markRegionRows(); E.requestDraw(); } };
             row.append(grip("layer", L.id, pickLayer), eye, sw, name, cut, up, dn, dup, md, mv, er, del);
@@ -449,7 +449,7 @@ export function* list(E) {
         if (pal.length < PAL_MAX) {
             // "+" adds a white swatch in its place ("+" moves right, or hides at 5 colors), then opens the
             // color picker on that new swatch
-            const add = E.el("button", "rg-paladd"); add.type = "button"; add.textContent = "+";
+            const add = E.el("button", "rg-paladd"); add.type = "button"; add.innerHTML = svgIcon("plus");
             add.title = `Add a color (${pal.length}/${PAL_MAX})`;
             add.addEventListener("pointerdown", (e) => e.stopPropagation());
             add.addEventListener("click", (e) => {

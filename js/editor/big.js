@@ -69,7 +69,7 @@ export function* big(E) {
         E.closeArrange?.();
         const ov = E.el("div", "rg-big"), win = E.el("div", "rg-big-win"), head = E.el("div", "rg-big-head");
         const title = E.el("span", "rg-big-title");
-        const x = E.btn("✕", "Put the editor back in the node (Esc with nothing selected does it too)", () => closeBig());
+        const x = E.btn("@close", "Put the editor back in the node (Esc with nothing selected does it too)", () => closeBig());
         head.append(title, x);
         const hole = E.el("div", "rg-big-hole"), sizeHole = E.el("div", "rg-big-hole small");
         hole.textContent = "This node's editor is open in the large window. ";

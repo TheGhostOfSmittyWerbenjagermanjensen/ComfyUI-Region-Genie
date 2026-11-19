@@ -81,7 +81,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("no run yet: no notes button", !(await shown(".rg-notes")));
     const info = "2 region(s) on 1024x1024 canvas\nprompt: text (no model connected)\nNOTE: control: no model is connected to 'model'; control not used\nNOTE: region #ff0000 ('x') has no pixels, skipped";
     await page.evaluate((info) => window.__node.onExecuted({ region_info: [info] }), info); await page.waitForTimeout(80);
-    check("after a run with two notes: the button shows ⚠ 2", await shown(".rg-notes") && (await page.locator(".rg-notes").innerText()).trim() === "⚠ 2" && await page.locator(".rg-notes.warn").count() === 1);
+    check("after a run with two notes: the button shows ⚠ 2", await shown(".rg-notes") && (await page.locator(".rg-notes").innerText()).trim() === "2" && await page.locator(".rg-notes svg").count() === 1 && await page.locator(".rg-notes.warn").count() === 1);
     await page.locator(".rg-notes").click(); await page.waitForTimeout(80);
     const msg = await page.locator(".rg-msg-text").innerText();
     check("a click lists the notes first, then the rest of the report", await shown(".rg-msg") && /^• control: no model/.test(msg) && /• region #ff0000/.test(msg) && /The last run:\n2 region\(s\)/.test(msg) && !/NOTE:/.test(msg));
@@ -89,9 +89,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("a second click hides it", !(await shown(".rg-msg")));
     await page.locator(".rg-notes").click();
     await page.evaluate(() => window.__node.onExecuted({ region_info: ["1 region(s) on 1024x1024 canvas\nprompt: text"] })); await page.waitForTimeout(80);
-    check("a run without notes: ⓘ, and an open report follows the new run", (await page.locator(".rg-notes").innerText()).trim() === "ⓘ" && await page.locator(".rg-notes.warn").count() === 0
+    check("a run without notes: ⓘ, and an open report follows the new run", (await page.locator(".rg-notes").innerText()).trim() === "" && await page.locator(".rg-notes svg").count() === 1 && await page.locator(".rg-notes.warn").count() === 0
         && /1 region\(s\)/.test(await page.locator(".rg-msg-text").innerText()) && await page.locator(".rg-msg.info").count() === 1);
-    await page.locator(".rg-msg .rg-btn", { hasText: "✕" }).click();
+    await page.locator('.rg-msg .rg-btn[data-ic="close"]').click();
 
     await page.screenshot({ path: require("path").join(__dirname, "out", "ui_hints.png"), fullPage: false });
     await browser.close();

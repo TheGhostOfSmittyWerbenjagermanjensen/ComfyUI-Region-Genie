@@ -253,7 +253,7 @@ export function* llm(E) {
             const cnt = E.el("span", "rg-cnt"); cnt.title = `${lays.length} layer${lays.length === 1 ? "" : "s"} in this region (▶ at the start of the row shows them)`;
             if (lays.length) { cnt.innerHTML = svgIcon("layers"); cnt.append(String(lays.length)); }
             const kinds = E.subKinds(r);
-            const eye = E.ico(r.hidden ? "○" : "◉", r.hidden ? "Hidden: Not drawn and not output. Click to show it again (its layers keep their own show / hide)"
+            const eye = E.ico(r.hidden ? "@eyeOff" : "@eye", r.hidden ? "Hidden: Not drawn and not output. Click to show it again (its layers keep their own show / hide)"
                 : "Show / hide this region: A hidden region is not drawn and is left out of every output; its layers keep their own show / hide",
                 () => E.change(() => { if (r.hidden) delete r.hidden; else r.hidden = true; }));
             eye.classList.add("rg-reye");
@@ -280,15 +280,15 @@ export function* llm(E) {
                 E.addExpandButton(tx, "Open this region in the pop-up editor (its text to render)", openPop("text", tx));
             }
             const addL = E.ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { r.loras = r.loras || []; E.addLoraTo(r.loras, e, () => E.openSub(r.id, "loras")); }, "txt");
-            const mergeAll = E.ico("⇊", "Merge all visible layers of this region into one layer", () => E.mergeRegion(r.id));
+            const mergeAll = E.ico("@mergeAll", "Merge all visible layers of this region into one layer", () => E.mergeRegion(r.id));
             mergeAll.disabled = lays.filter((l) => l.visible !== false).length < 2;
-            const up = E.ico("↑", "Move up: Earlier in the output order, and its layers in front", () => E.change(() => {
+            const up = E.ico("@up", "Move up: Earlier in the output order, and its layers in front", () => E.change(() => {
                 [E.state.regions[i - 1], E.state.regions[i]] = [E.state.regions[i], E.state.regions[i - 1]]; E.sortLayersByRegions(); }));
             up.disabled = i === 0;
-            const down = E.ico("↓", "Move down: Later in the output order, and its layers behind", () => E.change(() => {
+            const down = E.ico("@down", "Move down: Later in the output order, and its layers behind", () => E.change(() => {
                 [E.state.regions[i + 1], E.state.regions[i]] = [E.state.regions[i], E.state.regions[i + 1]]; E.sortLayersByRegions(); }));
             down.disabled = i === E.state.regions.length - 1;
-            const del = E.ico("✕", "Delete region and its layers", () => E.change(() => {
+            const del = E.ico("@close", "Delete region and its layers", () => E.change(() => {
                 E.state.regions.splice(i, 1);
                 E.state.layers = E.state.layers.filter((l) => l.region !== r.id);
                 if (E.curRegion === r.id) E.curRegion = E.state.regions[0]?.id ?? null;

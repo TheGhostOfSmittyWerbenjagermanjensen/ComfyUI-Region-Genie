@@ -213,11 +213,11 @@ export function* sizeRow(E) {
                 name.addEventListener("keydown", (e) => e.stopPropagation());
                 const upd = () => { list[i] = { w: Math.round(clampNum(w.value, 16, 16384, p.w)), h: Math.round(clampNum(h.value, 16, 16384, p.h)), name: name.value.replace(/[;\n]/g, " ").trim() }; save(); };
                 for (const x of [w, h, name]) x.addEventListener("change", upd);
-                const up = btn("↑", "Move up", () => { if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; save(); render(); } });
+                const up = btn("@up", "Move up", () => { if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; save(); render(); } });
                 up.disabled = i === 0;
-                const dn = btn("↓", "Move down", () => { if (i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; save(); render(); } });
+                const dn = btn("@down", "Move down", () => { if (i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; save(); render(); } });
                 dn.disabled = i === list.length - 1;
-                const del = btn("✕", "Remove from the list", () => { list.splice(i, 1); save(); render(); });
+                const del = btn("@close", "Remove from the list", () => { list.splice(i, 1); save(); render(); });
                 row.append(w, tiny("×", ""), h, name, up, dn, del);
                 body.appendChild(row);
             });
@@ -225,7 +225,7 @@ export function* sizeRow(E) {
         };
         const head = el("div", "rg-presets-head");
         const title = el("span"); title.textContent = "Image size presets (every Region Genie node)";
-        head.append(title, btn("✕", "Close", () => closePresetEditor()));
+        head.append(title, btn("@close", "Close", () => closePresetEditor()));
         const foot = el("div", "rg-presets-foot");
         const addCur = btn("＋ Current size", "Add the node's current image size to the list (a size made in aspect ratio or "
             + "manual mode stays when you switch to presets mode, shown as 'not in the list', so it can be added here)", () => {
@@ -299,7 +299,9 @@ export function* sizeRow(E) {
     function opt(v, label) { const o = document.createElement("option"); o.value = String(v); o.textContent = label; return o; }
     function btn(label, title, fn) {
         const b = el("button", "rg-btn");
-        b.textContent = label; b.title = title;
+        // "@name": a drawn icon (svgIcon) in place of a text label
+        if (label[0] === "@") { b.innerHTML = svgIcon(label.slice(1)); b.classList.add("rg-ib"); b.dataset.ic = label.slice(1); } else b.textContent = label;
+        b.title = title;
         b.addEventListener("click", (e) => { e.preventDefault(); fn(e); });
         return b;
     }

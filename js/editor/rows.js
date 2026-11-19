@@ -208,7 +208,7 @@ export function* rows(E) {
         eye.addEventListener("pointerdown", (e) => e.stopPropagation());
         const gap = E.el("span"); gap.style.flex = "1 1 auto";
         if (unused) {
-            const warn = E.el("span", "rg-warn"); warn.textContent = "⚠";
+            const warn = E.el("span", "rg-warn"); warn.innerHTML = svgIcon("warn");
             warn.title = "Not used in a run: " + (E.modelArch() === "Flux.1" ? "Flux.1's depth / canny LoRAs take" : "MOSS-Image's control LoRA takes")
                 + " one map per run, and a Control row above this one already gives it.\nRemove one of the two rows, or change this row's kind.";
             row.append(warn);
@@ -255,7 +255,7 @@ export function* rows(E) {
         runInfo = String(text || "");
         const n = runNotes().length;
         notesBtn.style.display = runInfo.trim() ? "" : "none";
-        notesBtn.textContent = n ? `⚠ ${n}` : "ⓘ";
+        setHTML(notesBtn, n ? `${svgIcon("warn")}<span>${n}</span>` : svgIcon("info"));
         notesBtn.classList.toggle("warn", n > 0);
         notesBtn.title = (n ? `The last run left ${n} note${n > 1 ? "s" : ""} (something was skipped, missing or not connected).`
             : "The last run left no notes.")
@@ -285,13 +285,13 @@ export function* rows(E) {
     // message bar under the canvas (Select object errors): stays until closed, another tool is picked or the mode
     // changes. Its text can be selected and copied, links open in a new tab, "Copy link" copies the first link.
     const msgBar = E.el("div", "rg-msg"); E.msgBar = msgBar; msgBar.style.display = "none";
-    const msgIcon = E.el("span", "rg-msg-icon"); msgIcon.textContent = "⚠";
+    const msgIcon = E.el("span", "rg-msg-icon"); msgIcon.innerHTML = svgIcon("warn");
     const msgText = E.el("div", "rg-msg-text");
     let msgUrl = "";
     const msgCopy = E.btn("Copy link", "Copy the link to the clipboard", async () => {
         E.hint(await copyText(msgUrl) ? "Link copied" : "Couldn't copy: select the link and press Ctrl+C");
     });
-    const msgClose = E.btn("✕", "Close this message", () => { hideMsg(); E.focusSink(); });
+    const msgClose = E.btn("@close", "Close this message", () => { hideMsg(); E.focusSink(); });
     msgBar.append(msgIcon, msgText, msgCopy, msgClose);
     // keep LiteGraph / Nodes 2.0 from treating a text selection as a node drag; the browser's own menu on right-click
     for (const ev of ["pointerdown", "mousedown", "dblclick", "contextmenu", "wheel"]) msgBar.addEventListener(ev, (e) => e.stopPropagation());
@@ -299,7 +299,7 @@ export function* rows(E) {
         notesOpen = !!runReport;
         msgBar.classList.toggle("info", notesOpen && !runNotes().length);
         msgBar.classList.toggle("notes", notesOpen && runNotes().length > 0);
-        msgIcon.textContent = notesOpen && !runNotes().length ? "ⓘ" : "⚠";
+        setHTML(msgIcon, svgIcon(notesOpen && !runNotes().length ? "info" : "warn"));
         msgText.replaceChildren();
         msgUrl = "";
         const re = /https?:\/\/[^\s()<>"']+/g;

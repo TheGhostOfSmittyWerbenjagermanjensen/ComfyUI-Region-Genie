@@ -209,6 +209,12 @@ body:has(.rg-big):not(:has(.rg-llm-pop)) .litecontextmenu, body:has(.rg-big):not
 .rg-cnt svg { width:11px; height:11px; display:block; }
 .rg-row .rg-hint.rg-word, .rg-row.lora.edit > .rg-hint.rg-word { color:inherit; font-weight:normal; white-space:nowrap; }
 .rg-row .rg-btn.ico { padding:0 3px; min-width:20px; text-align:center; line-height:16px; }
+.rg-row .rg-btn.ico.rg-ib { height:18px; }
+.rg-row .rg-btn.ico.rg-ib > svg { width:13px; height:13px; }
+.rg-paladd > svg { width:10px; height:10px; display:block; margin:auto; }
+.rg-warn > svg, .rg-msg-icon > svg { width:14px; height:14px; display:block; }
+.rg-btn.rg-notes { display:inline-flex; align-items:center; gap:3px; }
+.rg-btn.rg-notes > svg { width:13px; height:13px; display:block; }
 .rg-row .rg-btn.txt { padding:0 5px; font-size:11px; }
 .rg-pick { flex:1 1 0; width:0; min-width:0; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px;

@@ -118,7 +118,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const added = await page.evaluate(() => ({ set: window.app.extensionManager.setting.get("RegionGenie.Size.Presets"),
         extra: !!document.querySelector("select.rg-size-pre option[data-extra]") }));
     check(`${M}: ＋ Current size adds it to the list`, /1000x760/.test(added.set) && !added.extra);
-    await page.evaluate(() => [...document.querySelectorAll(".rg-presets button")].find((b) => b.textContent === "✕" && /Close/.test(b.title))?.click());
+    await page.evaluate(() => [...document.querySelectorAll(".rg-presets button")].find((b) => b.dataset.ic === "close" && /Close/.test(b.title))?.click());
     await page.evaluate(() => window.app.extensionManager.setting.set("RegionGenie.Size.Presets", "1024x1024; 1152x896; 896x1152; 1216x832; 832x1216; 1344x768; 768x1344; 1536x640; 640x1536"));
 
     // ---------------- the model dropdown sets the format; MOSS layout switch; background only for Ideogram 4
@@ -197,15 +197,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const hidden = lay();
         delete st.regions[0].hidden; rg.__rgRefresh(); await wait(600);
         rg.__rgSelectLayer(1); await wait(500);
-        const cut = [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.textContent === "✂");
+        const cut = [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.dataset.ic === "scissors");
         const offTitle = cut?.title || "";
         cut?.click(); await wait(900);
         const L = rg.__rgState().layers[0];
         const row = document.querySelector('.rg-list .rg-row.layer[data-lid="1"]');
         const asHole = { region: L.region, owner: L.owner, listed: !!row, hatched: !!row?.classList.contains("hole"),
-                         on: !![...(row?.querySelectorAll("button") || [])].find((b) => b.textContent === "✂" && b.classList.contains("on")) };
+                         on: !![...(row?.querySelectorAll("button") || [])].find((b) => b.dataset.ic === "scissors" && b.classList.contains("on")) };
         const holeOnly = lay();
-        [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.textContent === "✂")?.click(); await wait(900);
+        [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.dataset.ic === "scissors")?.click(); await wait(900);
         const back = { region: rg.__rgState().layers[0].region, owner: rg.__rgState().layers[0].owner };
         const again = lay();
         // an old workflow's 'Unspecified' layer (region 0, no owner): listed under the region of the layer below it
