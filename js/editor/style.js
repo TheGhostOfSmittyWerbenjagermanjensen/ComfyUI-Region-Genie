@@ -150,6 +150,35 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-row.lvl1 { margin-left:24px; }
 .rg-row.sub { margin-left:31px; gap:4px; padding-top:0; padding-bottom:0; min-height:18px; font-size:11px; cursor:pointer; opacity:.9; }
 .rg-row.sub:hover { background:color-mix(in srgb, currentColor 6%, transparent); }
+.rg-big { position:fixed; inset:0; z-index:9000; box-sizing:border-box; padding:2vh 2vw; display:flex; background:rgba(0,0,0,.55); }
+/* ComfyUI's menus (tool versions, model files, LoRA lists: z-index 1700) open above the window */
+body:has(.rg-big):not(:has(.rg-llm-pop)) .litecontextmenu, body:has(.rg-big):not(:has(.rg-llm-pop)) .litegraph.litecontextmenu.dark { z-index:10500 !important; }
+.rg-big-win { flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; background:var(--comfy-menu-bg,#2b2b2b);
+  color:var(--input-text,#ddd); border:2px solid #5b8fd0; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,.7); overflow:hidden; }
+.rg-big-head { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:4px 8px 4px 12px; font:600 13px sans-serif;
+  border-bottom:1px solid var(--border-color,#555); }
+.rg-big-head .rg-big-title { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rg-big-head .rg-btn { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px;
+  padding:1px 8px; font:12px sans-serif; cursor:pointer; }
+.rg-wrap.rg-bigmode { flex:1 1 auto; width:auto; height:auto; min-height:0; display:grid; gap:4px 10px; padding:6px 8px 8px;
+  grid-template-columns:minmax(0,1fr) clamp(380px, 34vw, 560px); grid-template-rows:auto auto minmax(0,1fr) auto; }
+.rg-bigmode > .rg-bar { grid-column:1; grid-row:1; }
+.rg-bigmode > .rg-banner { grid-column:1; grid-row:2; }
+.rg-bigmode > .rg-cv { grid-column:1; grid-row:3; min-height:0; }
+.rg-bigmode > .rg-msg { grid-column:1; grid-row:4; }
+.rg-bigmode > .rg-split { display:none; }
+.rg-big-side { grid-column:2; grid-row:1 / 5; display:flex; flex-direction:column; gap:6px; min-width:0; min-height:0; }
+.rg-big-side > .rg-size { flex:0 0 auto; width:auto; height:auto; }
+.rg-big-side > .rg-tree { flex:1 1 auto; height:auto !important; min-height:0; }
+.rg-big-scene { flex:0 0 auto; display:flex; flex-direction:column; gap:4px; }
+.rg-big-ta { width:100%; box-sizing:border-box; resize:vertical; min-height:34px; background:var(--comfy-input-bg,#222); color:inherit;
+  border:1px solid var(--border-color,#555); border-radius:4px; padding:3px 6px; font:12px/1.35 sans-serif; scrollbar-width:thin; }
+.rg-big-ta:focus { border-color:#5b8fd0; outline:none; }
+.rg-big-hole { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:100%; min-height:40px; box-sizing:border-box;
+  font:12px sans-serif; color:var(--input-text,#ddd); opacity:.75; border:1px dashed var(--border-color,#555); border-radius:6px; pointer-events:auto; }
+.rg-big-hole.small { min-height:0; border:none; }
+.rg-big-hole .rg-btn { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px;
+  padding:1px 8px; font:inherit; cursor:pointer; }
 .rg-grip { flex:0 0 auto; width:11px; line-height:0; opacity:.4; cursor:grab; touch-action:none; user-select:none; }
 .rg-grip svg { width:11px; height:14px; display:block; }
 .rg-grip:hover { opacity:1; }

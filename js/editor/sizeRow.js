@@ -67,7 +67,7 @@ export function* sizeRow(E) {
         applySize();
     }
     E.sizeReady = false;                     // the editor below is set up (onDimsChanged can run)
-    const sizeRow = el("div", "rg-size");
+    const sizeRow = el("div", "rg-size"); E.sizeEl = sizeRow;
     const sizeSeg = E.segmented([
         ["aspect ratio", svgIcon("sizeRatio"), "Image size from an aspect ratio and megapixels, like ComfyUI's Resolution Selector"],
         ["presets", svgIcon("sizeList"), "Image size from the presets list (shared by every Region Genie node; 'Edit list…' at its end)"],

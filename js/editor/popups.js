@@ -469,7 +469,7 @@ export function* popups(E) {
         else if (mod && k === "x" && L) E.copyLayer(L, true);
         else if (mod && k === "v" && CLIPBOARD.layer) E.pasteLayer();
         else if (k === "delete" || k === "backspace") E.deleteSelected();
-        else if (k === "escape") E.selectLayer(null);
+        else if (k === "escape") { if (E.big && !E.selLayer()) E.closeBig(); else E.selectLayer(null); }      // large editor: Esc with nothing selected closes it
         else if (k === "v") E.setTool("select");
         else if (k === "b") E.setTool("brush");
         else if (k === "e") E.setTool("erase");

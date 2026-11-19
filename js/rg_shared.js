@@ -1163,6 +1163,7 @@ export function parseKey(text) {
 }
 const keyMatches = (e, k) => !!k && (e.key || "").toLowerCase() === k.key && e.ctrlKey === k.ctrl && e.altKey === k.alt && e.metaKey === k.meta
     && (e.shiftKey === k.shift || (k.key.length === 1 && !k.shift && /[^a-z0-9]/.test(k.key)));
+export const keyHit = (e, text) => keyMatches(e, parseKey(text));        // a key event is the key written as "Alt+Enter"
 export const popKeyText = (dir) => String(getSetting(dir < 0 ? SET.popPrevKey : SET.popNextKey, dir < 0 ? "PageUp" : "PageDown") ?? "");
 // -1 / 1 when the key event is the 'previous' / 'next' field key, else 0
 export function popNavDir(e) {
@@ -1593,6 +1594,7 @@ export const SET = {
     cmSnap: "RegionGenie.Main.Snap",
     cmGrid: "RegionGenie.Main.Grid",
     regionColors: "RegionGenie.Main.RegionColors",
+    bigKey: "RegionGenie.Main.LargeEditorKey",
     cmAllRegions: "RegionGenie.Main.AllRegionsApart",
     cmAutoApart: "RegionGenie.Main.AutoApart",
     cmShareBg: "RegionGenie.Main.ShareBackground",
@@ -1928,6 +1930,12 @@ const SETTINGS = [
                 + "always replace: The new layout replaces the canvas right away.\n"
                 + "An empty canvas is always filled. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "05 import"),
+        },
+        {
+            id: SET.bigKey, name: "Large editor: key", type: "text", defaultValue: "Alt+Enter",
+            tooltip: "The key that opens and closes the large editor while the pointer is over a Region Genie node's editor "
+                + "(the button next to the labels button does the same). Write it like Alt+Enter, F9 or Ctrl+Shift+L; empty = no key.",
+            category: CAT("Region Genie node", "11 large key"),
         },
         {
             id: SET.regionColors, name: "Region colors", type: regionColorsType(), defaultValue: REGION_COLORS_DEFAULT,

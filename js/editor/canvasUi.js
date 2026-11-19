@@ -126,7 +126,7 @@ export function* canvasUi(E) {
     const hctx = hit.getContext("2d", { willReadFrequently: true }); E.hctx = hctx;
 
     // bottom: one tree: regions, each with its LoRAs and (expandable) layers
-    const tree = E.el("div", "rg-tree");
+    const tree = E.el("div", "rg-tree"); E.tree = tree;
     const treeHead = E.el("div", "rg-head");
     const treeTitle = E.el("span"); treeTitle.textContent = "Regions";
     const addRegionBtn = E.btn("", "Add a region with a new color (it goes on top)", () => {
@@ -283,7 +283,7 @@ export function* canvasUi(E) {
     // the divider between the canvas and the Regions list: dragging moves room between them (the node keeps its
     // size); the list's height is this node's (node.properties.rg_list_h); double-click: the usual 220 px
     const LIST_H = 220, LIST_MIN = 90, CV_MIN = 120; E.CV_MIN = CV_MIN;
-    const split = E.el("div", "rg-split");
+    const split = E.el("div", "rg-split"); E.split = split;
     split.title = "Drag: More room for the canvas or for the Regions list (this node keeps its size).\nDouble-click: The usual height.";
     const applyListH = () => {
         const h = Math.round(+E.node.properties?.rg_list_h || LIST_H);
