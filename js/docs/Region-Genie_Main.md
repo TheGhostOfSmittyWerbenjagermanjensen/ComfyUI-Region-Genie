@@ -23,7 +23,8 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
 4. **Canvas**: the image area sits in a checkered margin. The line along its bottom edge shows the keys and gestures
    of the tool in use.
 5. **Regions**: one row per region, with its number (the `index` other nodes use), color, type and prompt. The
-   arrow at the start of a row shows its layers and LoRAs. *Whole image* holds LoRAs and Control for the whole picture.
+   arrow at the start of a row opens it: feather, palette, merge, move and delete, then its layers and LoRAs.
+   *Whole image* holds LoRAs and Control for the whole picture.
 6. **Bottom bar**: Generate / Edit, the model, the LLM Prompt Enhancer, tag autocomplete, the wildcard seed, and
    Export / Import. After a run, a button here shows what the run reported, with a ⚠ when something needs attention.
 

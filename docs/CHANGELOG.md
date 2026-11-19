@@ -2,6 +2,13 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 34 (Nov 19): UX batch 2, region rows with room for the prompt
+- Asked for: the region row declutter, with mock-ups first.
+- Mock-ups (made from the real node with its DOM rearranged): A, a ⋯ menu on each row; B, the moved controls on a line inside the opened region; C, a second line on the active region. The owner asked how a region becomes active (prompt, text, number, color, layer count, empty space, a layer picked on the canvas: yes; type, show / hide, ▶, LLM, ＋LoRA: no) and then chose **B**, with ✕ only among the moved controls.
+- Built (branch `claude/ux-2-row-declutter`, on top of batch 1): the row keeps show / hide, number, color, type, prompt, LLM, keep / Control switch, layer count and ＋LoRA; feather, palette, merge, move and delete are on the options line that opens with ▶. Every region can be opened, also one without layers; "▼ All" opens every region. The prompt field is about 400 px wide at the default node width (was 182).
+- Manual: *A region's row* and *Opening a region* in region-genie.md; the help page and its picture.
+- Tests: `tests/ui_region_rows.cjs` (new, in run_ui.sh). run_py, run_ui; real ComfyUI: real_tooltips, real_fields_popups, real_smoke, real_run_wildcards in both modes. Version 0.29.0.
+
 ## Round 33 (Nov 19): UI / UX review; batch 1, first-use help
 - Asked for: an assessment of the Region Genie node's UI and UX (friction for new users, efficiency for regular users, look and feel), then to pursue the suggestions in the order 1 (quick wins), 2 (region row declutter), 4 (region names, drag reorder, colours, theme), 3 (large editor mode), on separate branches, with mock-ups before the declutter and the large editor.
 - The review (screenshots of a fresh and a populated node in both modes, the manual, the code): nothing on a fresh node says what to do first; the node (700 × 1475) is taller than a 1080 px screen at 100 %; explanations live only in browser tooltips; many gestures are hidden; some controls are cryptic; run notes only reach `region_info`; a region row has eleven controls after a prompt that gets about 30 % of the width; shortcuts went to ComfyUI unless the pointer was over the canvas; Clear all sat next to Redo looking like a layer's delete; icons mix drawn and text glyphs; fixed greys ignore themes.

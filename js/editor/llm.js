@@ -257,7 +257,9 @@ export function* llm(E) {
                 : "Show / hide this region: A hidden region is not drawn and is left out of every output; its layers keep their own show / hide",
                 () => E.change(() => { if (r.hidden) delete r.hidden; else r.hidden = true; }));
             eye.classList.add("rg-reye");
-            row.append(E.chevron(r.id, kinds.length > 0, "this region's " + (kinds.map((k) => ({ layers: "layers", loras: "LoRAs", palette: "palette" })[k]).join(", ") || "layers")), eye, ix, sw, ty, prWrap);
+            // ▶ opens the region: its options line (feather, palette, merge, move, delete), then its layers, LoRAs, palette
+            row.append(E.chevron(r.id, true, "this region's options (feather, palette, merge, move, delete)"
+                + kinds.map((k) => ", " + ({ layers: "layers", loras: "LoRAs", palette: "color palette" })[k]).join("")), eye, ix, sw, ty, prWrap);
             E.addExpandButton(pr, "Open this region in the pop-up editor", openPop("prompt", pr));
             if (r.type === "text") {
                 // text to render: grows while edited, like the prompt (Shift+Enter = new line)
@@ -291,10 +293,17 @@ export function* llm(E) {
                 if (E.curRegion === r.id) E.curRegion = E.state.regions[0]?.id ?? null;
                 if (!E.selLayer()) E.selId = null;
             }));
-            row.append(llmButton(r.id), ...(E.isEdit() ? [E.keepToggle(r)] : []), ...(E.controls().length ? [E.controlToggle(r)] : []), cnt, E.featherBox(r), E.paletteToggle(r), addL,
-                       mergeAll, up, down, del);
+            // the row itself keeps what is used all the time, so the prompt gets the room (round 34); the rest is on
+            // the options line of the opened region
+            row.append(llmButton(r.id), ...(E.isEdit() ? [E.keepToggle(r)] : []), ...(E.controls().length ? [E.controlToggle(r)] : []), cnt, addL);
             E.regList.appendChild(row);
-            if (kinds.length && E.expanded.has(r.id)) {
+            if (E.expanded.has(r.id)) {
+                const opts = E.el("div", "rg-row opts"), gap = E.el("span"); gap.style.flex = "1 1 auto";
+                const fBox = E.featherBox(r), pal = E.paletteToggle(r);
+                const word = (text, forEl) => { const w = E.el("span", "rg-hint rg-word"); w.textContent = text; w.title = forEl.title || forEl.querySelector?.("[title]")?.title || ""; return w; };
+                opts.append(word("feather", fBox), fBox, word("palette", pal), pal, gap, mergeAll, up, down, del);
+                opts.addEventListener("pointerdown", (e) => { if (e.target === opts || e.target === gap) pick(); });
+                E.regList.appendChild(opts);
                 for (const k of kinds) {
                     E.regList.appendChild(E.subHeader(r, k));
                     if (!E.subOpen.has(`${r.id}:${k}`)) continue;

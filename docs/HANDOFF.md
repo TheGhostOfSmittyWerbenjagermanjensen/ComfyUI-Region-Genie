@@ -1,6 +1,6 @@
 # Region Genie (ComfyUI node pack): handoff summary
 
-**State (Nov 17, 2026):** version 0.28.0 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
+**State (Nov 17, 2026):** version 0.29.0 (`pyproject.toml`), GPL-3.0. The GitHub repository is the source of truth; work happens on branches and reaches `main` through pull requests the owner merges. The history of every development round is in `docs/CHANGELOG.md`; this file describes the pack as it is now.
 
 The pack used to be called **Regional Mask Kit** (renamed Nov 10, 2026). The compatibility code for the old names was removed in round 24 (section 7).
 
@@ -176,7 +176,7 @@ The reasons behind the parts a new session is most likely to trip over. Each end
 
 ### First-use help (round 33, the first of four UX batches)
 
-The owner asked for a UI / UX review (new users, regular users, look and feel) and chose the order: quick wins, region row declutter, then region names / drag reorder / colours / theme, then a large editor mode. Each batch has its own branch (`claude/ux-1-quick-wins` …), stacked. Mock-ups go to the owner before the row declutter and the large editor are built. Still open from that review: batches 2 to 4, the pack's own tooltip in place of the browser's, a shortcut sheet, a right-click menu on the canvas, the node's default height (700 × 1475).
+The owner asked for a UI / UX review (new users, regular users, look and feel) and chose the order: quick wins, region row declutter, then region names / drag reorder / colours / theme, then a large editor mode. Each batch has its own branch (`claude/ux-1-quick-wins` …), stacked. Mock-ups go to the owner before the row declutter and the large editor are built. Still open from that review: batches 3 and 4, the pack's own tooltip in place of the browser's, a shortcut sheet, a right-click menu on the canvas, the node's default height (700 × 1475).
 
 - **Hints on the canvas** (`syncTips`, js/editor/canvasUi.js): `.rg-tips` along the canvas's bottom edge lists the active tool's keys and gestures (`TIPS`, one function per tool, so Select differs with and without a selected layer and Fill by version); `.rg-start` shows three first steps while there is no layer and no region. Both have `pointer-events:none`; `.rg-cv.held` (a button held on the canvas) fades the tips and hides the card. One Setting turns both off for every node at once (`hintsListeners` in rg_shared.js). The texts are not tooltips, but follow the tooltip rules' capital after the key. When a tool's gestures change, change its `TIPS` entry and `tests/ui_hints_notes.cjs`.
 - **Run notes** (`setRunInfo`, js/editor/rows.js): Python already sent `region_info` to the editor with every run (`ui["region_info"]`); the editor now keeps it. A button left of Export shows `⚠ n` (n = lines starting with `NOTE:`) or `ⓘ`, and a click shows the notes first, then the rest, in the message bar (`showMsg(text, true)`; amber with notes, blue without). The bar is shared with Select object errors and missing control files, so picking a tool closes it. A new warning from Python needs the `NOTE:` prefix to be counted.
@@ -185,6 +185,15 @@ The owner asked for a UI / UX review (new users, regular users, look and feel) a
 - **Words** where an icon can't say it (the owner's choice, next to "separation" / "until"): `rowWord()` puts "strength" / "steps" before the bare numbers of Control, Edit and LoRA rows; the keep-all-regions-apart button says "apart" (class `rg-apart`).
 - **Clear all** is the toolbar's last button (class `danger`, red on hover), away from Undo / Redo.
 - **Scene prompt placeholders** are set on the text box in the `autocompleteWidgets` callback (core.js), in English only: legacy nodes show "name: what it is for", Nodes 2.0 (which has the name as a label) only the second part.
+
+### Region rows (round 34, UX batch 2)
+
+The owner chose layout B from three mock-ups (a ⋯ menu; inside the opened region; a second line on the active region), with ✕ only among the moved controls. The owner first asked how a region becomes active, then chose B over C, so nothing in the row depends on which region is active.
+
+- A region's row (`renderRegions`, js/editor/llm.js): ▶, show / hide, number, color, type, prompt (and text), LLM, keep (Edit Mode), Control switch (with a Control row), layer count, ＋LoRA. The prompt went from 182 to about 400 px at the default node width.
+- The **options line** (`.rg-row.opts`) is the first thing in an opened region: the words "feather" and "palette" with `featherBox(r)` and `paletteToggle(r)`, then ⇊ merge, ↑ ↓ move, ✕ delete on the right. Every region can be opened now (`chevron(r.id, true, …)`), also one without layers, and "▼ All" opens every region (`kindTargets("all")` adds each region's row).
+- Nothing about the data changed, and the pop-up region editor still has feather, palette and LoRAs.
+- `tests/ui_region_rows.cjs` checks the row, the line and that its controls work. The stub node's image is 256 px wide: test coordinates must stay inside it.
 
 ## 5. Open items and offered ideas
 

@@ -89,6 +89,7 @@ export function* list(E) {
     function kindTargets(kind) {
         const out = [];                                // [rowKey, subKey or null]
         for (const r of E.state.regions) {
+            if (kind === "all") out.push([r.id, null]);        // every region has its options line, also without layers
             for (const k of subKinds(r)) if (kind === "all" || kind === k) out.push([r.id, `${r.id}:${k}`]);
         }
         if ((kind === "loras" || kind === "all") && (E.state.sceneLoras || []).length) out.push([E.SCENE, null]);

@@ -101,3 +101,7 @@ Check once in legacy mode and once in Nodes 2.0.
 - After a real run: the button left of Export shows ⚠ with the number of notes (try a run without `clip`), and a click lists them under the canvas.
 - Node Info on a selected Region Genie node shows the guide and its picture.
 - R, V, B pressed while pointing at the toolbar or the region list pick the tool (and no longer trigger ComfyUI's own shortcuts).
+
+## 12. Region rows (round 34)
+
+- On the 4K display, both node modes: a region's prompt gets most of its row; ▶ opens the region to its options line (feather, palette, merge, move, delete) above its layers; feather and the palette set there act on the run as before.

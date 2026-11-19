@@ -150,6 +150,9 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-row.lvl1 { margin-left:24px; }
 .rg-row.sub { margin-left:20px; gap:4px; padding-top:0; padding-bottom:0; min-height:18px; font-size:11px; cursor:pointer; opacity:.9; }
 .rg-row.sub:hover { background:rgba(255,255,255,.05); }
+.rg-row.opts { margin-left:20px; gap:4px; padding-top:1px; padding-bottom:1px; min-height:22px; font-size:11px; }
+.rg-row.opts .rg-word { margin-left:4px; }
+.rg-row.opts .rg-word:first-child { margin-left:18px; }
 .rg-subname { user-select:none; }
 .rg-subbody .rg-row.lvl1, .rg-subbody .rg-row.lora, .rg-subbody .rg-row.pal { margin-left:38px; }
 .rg-subbody .rg-trig { margin-left:60px; }
