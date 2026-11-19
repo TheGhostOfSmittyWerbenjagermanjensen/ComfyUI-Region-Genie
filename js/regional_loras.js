@@ -106,6 +106,7 @@ function setup(node) {
         node.setDirtyCanvas?.(true, true);
     };
     autocompleteWidgets(node, ["positive_prompt", "negative_prompt"], (name, t) => {
+        t.dataset.rgField = name;                       // which field this text box is (tests/real_layering.cjs finds it by this)
         if (!WKEY[name]) return;
         widgetTA[name] = t;
         t.addEventListener("input", () => wcMark(t, WKEY[name], t.value));

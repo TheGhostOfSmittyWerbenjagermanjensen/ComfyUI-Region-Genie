@@ -8,7 +8,7 @@ import { normLoraOpts } from "./state.js";
 
 export function* llm(E) {
     Object.assign(E, {
-        syncLlm, llmButton, updateLlmButtons, storeLlmResults, pushLlmCache, regionLoraRows, renderRegions, markLayerRows,
+        syncLlm, llmButton, updateLlmButtons, storeLlmResults, pushLlmCache, regionLoraRows, renderRegions, markLayerRows, markRegionRows,
     });
     yield;
 
@@ -259,7 +259,7 @@ export function* llm(E) {
             eye.classList.add("rg-reye");
             // ▶ opens the region: its options line (feather, palette, merge, move, delete), then its layers, LoRAs, palette
             row.dataset.rid = String(r.id);
-            row.append(E.grip("region", r.id), E.chevron(r.id, true, "this region's options (feather, palette, merge, move, delete)"
+            row.append(E.grip("region", r.id, pick), E.chevron(r.id, true, "this region's options (feather, palette, merge, move, delete)"
                 + kinds.map((k) => ", " + ({ layers: "layers", loras: "LoRAs", palette: "color palette" })[k]).join("")), eye, ix, sw, ty, prWrap);
             E.addExpandButton(pr, "Open this region in the pop-up editor", openPop("prompt", pr));
             if (r.type === "text") {

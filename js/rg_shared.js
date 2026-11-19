@@ -1392,9 +1392,14 @@ export function setAutocompleteFor(node, on) {
 
 // element -> { node, engine, inst, pys }
 const attached = new Map();
+// Forget fields that left the page. A field registered before it is put on the page is kept (round 37: the large
+// editor's first two scene boxes lost their registration to the third one's sweep, so they never got a list);
+// it is dropped only once it has been on the page, or after a minute without ever getting there.
 function sweepAutocomplete() {
+    const now = performance.now();
     for (const [el, st] of attached) {
-        if (el.isConnected) continue;
+        if (el.isConnected) { st.seen = true; continue; }
+        if (!st.seen && now - st.t0 < 60000) continue;
         if (st.engine === "lm" && st.inst) { try { st.inst.destroy(); } catch (e) { /* ignore */ } }
         if (st.pys) { try { st.pys.dropdown?.remove(); } catch (e) { /* ignore */ } }
         attached.delete(el);
@@ -1448,7 +1453,12 @@ function syncElement(el) {
             st.inst = new engines.lm.AutoComplete(el, "prompt", { maxItems: 20, minChars: 1, debounceDelay: 200, itemHeight: 24 });
             st.inst.dropdown?.classList.add("rg-ac");
         } else if (want === "pysssss") {
-            if (!st.pys) { st.pys = new engines.pysssss(el); st.pys.dropdown?.classList.add("rg-ac"); }
+            if (!st.pys) {
+                st.pys = new engines.pysssss(el); st.pys.dropdown?.classList.add("rg-ac");
+                // Custom-Scripts places its list by the graph's zoom, which is right for a field on a node but not
+                // for one in a pop-up editor or the large editor (not zoomed): use the field's real scale
+                if (st.pys.helper) st.pys.helper.getScale = () => (el.offsetHeight ? el.getBoundingClientRect().height / el.offsetHeight : 1);
+            }
             st.pys.overrideWords = undefined;                // its global word list again
         }
     } catch (e) { console.warn("[Region Genie] autocomplete:", e); st.engine = null; }
@@ -1459,7 +1469,7 @@ export function attachAutocomplete(el, node) {
     if (!el) return;
     if (attached.has(el)) { attached.get(el).node = node || attached.get(el).node; return; }
     sweepAutocomplete();
-    const st = { node, engine: null, inst: null, pys: null };
+    const st = { node, engine: null, inst: null, pys: null, seen: el.isConnected, t0: performance.now() };
     attached.set(el, st);
     attachWildcardComplete(el);
     // our listeners come first, so moving the cursor or clicking in the text closes the list before the

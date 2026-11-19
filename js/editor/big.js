@@ -46,7 +46,6 @@ export function* big(E) {
             ta.addEventListener("input", () => E.setWidget(w(), ta.value));
             // Esc leaves the box (the keys are the editor's again); every other key is text
             ta.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Escape") { e.preventDefault(); ta.blur(); E.focusSink(); } });
-            try { autocompleteOnFocus(ta, E.node); } catch (e) { /* no autocomplete pack */ }
             fields.push({ which, w, ta });
             box.appendChild(ta);
         }
@@ -87,6 +86,8 @@ export function* big(E) {
         win.append(head, E.wrap);
         ov.appendChild(win);
         document.body.appendChild(ov);
+        // tag autocomplete and the wildcard list, once the boxes are on the page
+        for (const f of fields) { try { autocompleteOnFocus(f.ta, E.node); } catch (e) { /* no autocomplete pack */ } }
         E.big = { ov, win, side, hole, sizeHole, fields, title, timer: 0 };
         current = E;
         // the node left the screen (another workflow tab, a subgraph, removed), or ComfyUI took the element back:

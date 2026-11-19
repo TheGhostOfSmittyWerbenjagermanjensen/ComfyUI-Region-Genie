@@ -72,13 +72,14 @@ export function* list(E) {
     // A region lands between two regions (the list order is the output order and the stacking order). A layer lands
     // above or below another layer, also another region's, or on a region's row (on top of that region's layers).
     // A line (or the lit region row) shows where; letting go outside the list changes nothing. One undo step.
-    function grip(kind, id) {
+    function grip(kind, id, onPick) {
         const g = E.el("span", "rg-grip"); g.innerHTML = svgIcon("grip");
-        g.title = kind === "region" ? "Drag: Move this region up or down in the list (the output order; the top region is in front)."
-            : "Drag: Move this layer above or below another layer, or onto another region's row.";
+        g.title = kind === "region" ? "Click: Make this region the active one.\nDrag: Move it up or down in the list (the output order; the top region is in front)."
+            : "Click: Select this layer.\nDrag: Move it above or below another layer, or onto another region's row.";
         g.addEventListener("pointerdown", (e) => {
             if (e.button !== 0) return;
             e.preventDefault(); e.stopPropagation();
+            onPick?.();                                          // pressing the grip picks its row, as its prompt / name field does
             const line = E.el("div", "rg-dropline");
             let target = null;                                   // region: { to } | layer: { lid, after } or { rid }
             const self = () => E.regList.querySelector(kind === "region" ? `.rg-row.region[data-rid="${id}"]` : `.rg-row.layer[data-lid="${id}"]`);
@@ -309,7 +310,9 @@ export function* list(E) {
             });
             const er = ico("⌫", "Erase layer: Remove its shapes and paint, keep the empty layer", () => E.eraseLayer(L));
             const del = ico("🗑", "Delete layer (Del)", () => E.deleteSelected(L));
-            row.append(grip("layer", L.id), eye, sw, name, cut, up, dn, dup, md, mv, er, del);
+            // the grip selects the layer the way its name field does (no rebuilt list under the pointer)
+            const pickLayer = () => { if (E.selId !== L.id || E.hiddenSel === L.id) { E.selId = L.id; E.hiddenSel = null; E.curRegion = L.region; E.markLayerRows(); E.markRegionRows(); E.requestDraw(); } };
+            row.append(grip("layer", L.id, pickLayer), eye, sw, name, cut, up, dn, dup, md, mv, er, del);
             frag.appendChild(row);
         }
         return frag;

@@ -124,6 +124,7 @@ export function* core(E) {
         if (!SCENE_FIELDS[name]) return;
         sceneTA[SCENE_FIELDS[name]] = t;
         t.classList.add("rg-scene-ta");
+        t.dataset.rgField = name;                       // which field this text box is (tests/real_layering.cjs finds it by this)
         // an empty scene prompt says what it is for (English; another language keeps ComfyUI's own placeholder).
         // Legacy nodes show the input's name as the placeholder: it stays in front; Nodes 2.0 has it as a label.
         if (locale() === "en" && !t.dataset.rgPlaceholder) {
