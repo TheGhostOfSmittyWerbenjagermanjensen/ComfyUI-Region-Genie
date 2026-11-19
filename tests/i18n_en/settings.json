@@ -293,6 +293,10 @@
       "always replace": "always replace"
     }
   },
+  "RegionGenie_Main_RegionColors": {
+    "name": "Region colors",
+    "tooltip": "The colors new regions get, in this order (a color already on the canvas is skipped; when all are in use, the node picks one that looks different from them).\nClick a color: Change it.\nRight-click a color: Remove it.\n＋: Add one.\nDefaults: The built-in colors.\nRegions already drawn keep their colors. Black can't be used: It means 'no region' in color_map."
+  },
   "RegionGenie_Main_Feather": {
     "name": "Feather (px, linked regions)",
     "tooltip": "The mask feather that linked regions share (regions start linked). Applies to nodes added from now on; nodes already in a workflow keep their own value."

@@ -85,11 +85,12 @@ export function* list(E) {
             self()?.classList.add("dragging");
             E.wrap.classList.add("rg-sorting");
             const clear = () => { line.remove(); E.regList.querySelector(".rg-row.dropon")?.classList.remove("dropon"); };
+            let last = null;
             const move = (ev) => {
+                last = ev;
                 const box = E.regList.getBoundingClientRect(), y = ev.clientY;
                 clear(); target = null;
                 if (ev.clientX < box.left - 40 || ev.clientX > box.right + 40 || y < box.top - 30 || y > box.bottom + 30) return;
-                if (y < box.top + 14) E.regList.scrollTop -= 10; else if (y > box.bottom - 14) E.regList.scrollTop += 10;
                 const mid = (el) => { const r = el.getBoundingClientRect(); return (r.top + r.bottom) / 2; };
                 if (kind === "region") {
                     const rows = [...E.regList.querySelectorAll(".rg-row.region")];
@@ -110,7 +111,15 @@ export function* list(E) {
                 target = { lid: Number(best.dataset.lid), after };
                 if (after) best.after(line); else best.before(line);
             };
+            // held near the list's top or bottom edge: the list scrolls, so a row out of view can be reached
+            const scroller = setInterval(() => {
+                if (!last) return;
+                const box = E.regList.getBoundingClientRect(), y = last.clientY, was = E.regList.scrollTop;
+                if (y < box.top + 16 && y > box.top - 30) E.regList.scrollTop -= 8; else if (y > box.bottom - 16 && y < box.bottom + 30) E.regList.scrollTop += 8;
+                if (E.regList.scrollTop !== was) move(last);
+            }, 40);
             const done = (ev) => {
+                clearInterval(scroller);
                 for (const t of ["pointermove", "pointerup", "pointercancel"]) window.removeEventListener(t, t === "pointermove" ? move : done, true);
                 clear(); self()?.classList.remove("dragging"); E.wrap.classList.remove("rg-sorting");
                 if (ev.type === "pointerup" && target) (kind === "region" ? dropRegion : dropLayer)(id, target);

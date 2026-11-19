@@ -20,10 +20,12 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
 2. **Scene prompts**: the whole picture, and what to avoid. The corner button opens a larger editor.
 3. **Tools**: select, shapes, brush, lasso, fill, magic wand / Select object, eraser, arrange; then undo, redo, snap,
    fit and labels. A button with a small arrow holds more versions: click the arrow or right-click.
-4. **Canvas**: the image area sits in a checkered margin. The line along its bottom edge shows the keys and gestures
-   of the tool in use.
+4. **Canvas**: the image area sits in a checkered margin. Each region shows its number and as much of its prompt
+   as fits inside it; double-click that text to edit the region. The line along the bottom edge shows the keys and
+   gestures of the tool in use.
 5. **Regions**: one row per region, with its number (the `index` other nodes use), color, type and prompt. The
    arrow at the start of a row opens it: feather, palette, merge, move and delete, then its layers and LoRAs.
+   Drag a region or a layer by the six dots at the start of its row to reorder it.
    *Whole image* holds LoRAs and Control for the whole picture.
 6. **Bottom bar**: Generate / Edit, the model, the LLM Prompt Enhancer, tag autocomplete, the wildcard seed, and
    Export / Import. After a run, a button here shows what the run reported, with a ⚠ when something needs attention.

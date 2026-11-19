@@ -447,6 +447,8 @@
 "settings.json/RegionGenie_Main_ImportMode/tooltip": "05047f6ba9",
 "settings.json/RegionGenie_Main_MinRegionPixels/name": "b2e2cdb3a5",
 "settings.json/RegionGenie_Main_MinRegionPixels/tooltip": "9c896b44f0",
+"settings.json/RegionGenie_Main_RegionColors/name": "39359d905c",
+"settings.json/RegionGenie_Main_RegionColors/tooltip": "0d3074c6d4",
 "settings.json/RegionGenie_Main_RegionSeparation/name": "b68d14db64",
 "settings.json/RegionGenie_Main_RegionSeparation/tooltip": "1dd0ae9347",
 "settings.json/RegionGenie_Main_SeparationUntil/name": "1feb80dfcf",

@@ -5,7 +5,7 @@ None of these need a GPU. Screenshots go to `tests/out/` (not committed).
 | What | How | Needs |
 |---|---|---|
 | Python, stubbed (`test_edit_mode.py`, `test_shapes_import.py`, `test_hidden_regions.py`, `test_prompt_format.py`, `test_save_image.py`, `test_model_paths.py`: model files by full path, the folder browser's listing; `test_i18n.py`: every language in `locales/` against the English reference `tests/i18n_en/`) | `bash tests/run_py.sh` | numpy, Pillow, scipy |
-| Editor in a stub page (`ui_*.cjs`; `ui_hints_notes.cjs`: the hints on the canvas, the start card, Clear all, the run-notes button, shortcuts over the whole editor; `ui_region_rows.cjs`: the short region row and the options line of an opened region) | `bash tests/run_ui.sh` | Node, `npm i -D playwright`, `npx playwright install chromium` |
+| Editor in a stub page (`ui_*.cjs`; `ui_hints_notes.cjs`: the hints on the canvas, the start card, Clear all, the run-notes button, shortcuts over the whole editor; `ui_region_rows.cjs`: the short region row and the options line of an opened region; `ui_labels_colors_drag.cjs`: the prompt inside its region, the region colors and their Setting, drag to reorder) | `bash tests/run_ui.sh` | Node, `npm i -D playwright`, `npx playwright install chromium` |
 | Control against real ComfyUI code (`test_control.py`): MOSS / Flux.1 / ControlNet / Anima paths, maps, region masks | `COMFY_DIR=… python3 tests/test_control.py` | a ComfyUI checkout and torch (no model files) |
 | Select object against real ComfyUI code (`test_select.py`) | see below | a ComfyUI checkout, torch, the SAM 3.1 checkpoint (or the random-weight fixture) |
 | Smoke test in the real ComfyUI frontend (`real_smoke.cjs [vue]`) | see below | a running ComfyUI with this pack in `custom_nodes` |

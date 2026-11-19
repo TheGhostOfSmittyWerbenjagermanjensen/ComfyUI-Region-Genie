@@ -293,6 +293,10 @@
       "always replace": "reemplazar siempre"
     }
   },
+  "RegionGenie_Main_RegionColors": {
+    "name": "Colores de región",
+    "tooltip": "Los colores que reciben las regiones nuevas, en este orden (se omite un color que ya está en el lienzo; cuando todos están en uso, el nodo elige uno que se distinga de ellos).\nClic en un color: Cambiarlo.\nClic derecho en un color: Quitarlo.\n＋: Añadir uno.\nDefaults: Los colores integrados.\nLas regiones ya dibujadas conservan sus colores. No se puede usar el negro: Significa 'sin región' en mapa_de_color."
+  },
   "RegionGenie_Main_Feather": {
     "name": "Difuminado (px, regiones vinculadas)",
     "tooltip": "El difuminado de máscara que comparten las regiones vinculadas (las regiones empiezan vinculadas). Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."

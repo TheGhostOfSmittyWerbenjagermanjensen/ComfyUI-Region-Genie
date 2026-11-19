@@ -105,3 +105,11 @@ Check once in legacy mode and once in Nodes 2.0.
 ## 12. Region rows (round 34)
 
 - On the 4K display, both node modes: a region's prompt gets most of its row; ▶ opens the region to its options line (feather, palette, merge, move, delete) above its layers; feather and the palette set there act on the run as before.
+
+## 13. Labels, colors, dragging (round 35)
+
+- **MOSS-Image with a "color map" Control row and the new region colors** (purple, golden yellow, teal …): the regions are followed as before. The colors are only IDs to the control LoRA, but this was not run on a GPU.
+- On the 4K display, both node modes: each region shows its number and as much of its prompt as fits inside it, readable at your usual zoom; with an image connected (backdrop) the text gets its dark plate.
+- Drag a region and a layer by the six dots at the start of the row, also with the graph zoomed in or out: the line follows the pointer and the row lands where the line was.
+- Settings > Region Genie > Region Genie node > Region colors: clicking a swatch opens the color picker above the Settings dialog; a changed list is used by the next new region.
+- With ComfyUI's light theme: the region list, rows and pop-ups are readable.
