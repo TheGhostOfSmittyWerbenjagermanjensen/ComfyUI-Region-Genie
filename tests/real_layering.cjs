@@ -8,7 +8,8 @@
 // For each text field, in each place it can be typed in (on the node, in its pop-up editor, in the large editor):
 //   - the tag autocomplete list opens, lies inside the window, starts under the line being typed, and nothing covers it
 //   - the same for the wildcard list (__name)
-// Then the other things that pop up over the large editor: tool menu, LoRA menu, color picker, region pop-up editor,
+// Then the pack's own tooltip, shortcut list and canvas menu (on the node and over the large editor), and
+// the other things that pop up over the large editor: tool menu, LoRA menu, color picker, region pop-up editor,
 // LLM settings.
 //
 //   node tests/real_layering.cjs [vue]
@@ -149,6 +150,37 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
         else check(`${M}: Regional LoRAs, a row's words: the pop-up editor opened`, false);
     }
 
+    // ---------------- the pack's own tooltip, shortcut list and canvas menu, on the node ----------------
+    // (the tooltip is transparent to the pointer, so "on top" is asked with that switched off for a moment)
+    const tipTop = () => page.evaluate(() => { const t = document.querySelector(".rg-tip.on"); if (!t) return "not there"; const r = t.getBoundingClientRect();
+        t.style.pointerEvents = "auto"; const hit = document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2); t.style.pointerEvents = "";
+        return hit && t.contains(hit) && r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight ? true : "covered or outside the window"; });
+    const tipAt = async (sel, name) => {
+        const b = await page.locator(sel).first().boundingBox();
+        await page.mouse.move(5, 500); await sleep(700);
+        await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await sleep(800);
+        const t = await page.evaluate(() => { const t = document.querySelector(".rg-tip.on"); if (!t) return null; const r = t.getBoundingClientRect(); return { top: r.top, fs: parseFloat(getComputedStyle(t).fontSize), text: t.innerText }; });
+        check(`${M}: ${name}: the pack's tooltip shows, on top and in the window (${await tipTop()})`, await tipTop() === true);
+        check(`${M}: ${name}: right under the button, at its own text size whatever the graph zoom`, !!t && t.top >= b.y + b.height && t.top < b.y + b.height + 14 && t.fs >= 12 && t.text.length > 4);
+        await page.mouse.move(5, 500); await sleep(200);
+    };
+    await show("top");
+    await tipAt('.rg-bar [title^="Undo"]', "node");
+    const cv2 = await page.evaluate(() => { const r = document.querySelector(".rg-cv canvas").getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; });
+    await page.mouse.click(cv2[0] + cv2[2] * 0.06, cv2[1] + cv2[3] * 0.08, { button: "right" }); await sleep(400);
+    check(`${M}: node: right-click on the canvas opens the pack's menu, on top (${await onTop(".rg-menu")})`, await onTop(".rg-menu") === true);
+    check(`${M}: node: …and not ComfyUI's node menu`, await page.evaluate(() => !document.querySelector(".litecontextmenu, .p-contextmenu, .p-tieredmenu, [role='menu']:not(.rg-menu)")));
+    await page.keyboard.press("Escape"); await sleep(200);
+    await page.mouse.click(cv2[0] + cv2[2] * 0.5, cv2[1] + cv2[3] * 0.5, { button: "right" }); await sleep(400);
+    check(`${M}: node: right-click on the region: its menu`, await page.locator(".rg-menu-item", { hasText: "Edit prompt" }).count() === 1);
+    await page.keyboard.press("Escape"); await sleep(200);
+    await show("bottom");
+    await page.locator(".rg-keys-btn").click(); await sleep(400);
+    check(`${M}: node: the shortcut list opens on top, in the window (${await onTop(".rg-keys")})`, await onTop(".rg-keys") === true);
+    await page.keyboard.press("Escape"); await sleep(200);
+    check(`${M}: node: Esc closes the shortcut list`, await page.locator(".rg-keys").count() === 0);
+    await show("top");
+
     // ---------------- the large editor ----------------
     await page.locator('.rg-bar [title^="Large editor"]').click(); await sleep(700);
     check(`${M}: the large editor is on top (${await onTop(".rg-big-win")})`, await onTop(".rg-big-win") === true);
@@ -173,6 +205,15 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
     check(`${M}: large editor: the LLM settings open over the window (${await onTop(".rg-llm-pop")})`, await onTop(".rg-llm-pop") === true);
     await page.keyboard.press("Escape"); await sleep(300);
     await page.evaluate(() => document.querySelector(".rg-llm-pop")?.remove());
+    await tipAt('.rg-big .rg-bar [title^="Undo"]', "large editor");
+    const cv3 = await page.evaluate(() => { const r = document.querySelector(".rg-big .rg-cv canvas").getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; });
+    await page.mouse.click(cv3[0] + cv3[2] * 0.04, cv3[1] + cv3[3] * 0.06, { button: "right" }); await sleep(400);
+    check(`${M}: large editor: the canvas's right-click menu opens over the window (${await onTop(".rg-menu")})`, await onTop(".rg-menu") === true);
+    await page.keyboard.press("Escape"); await sleep(200);
+    await page.locator(".rg-big .rg-keys-btn").click(); await sleep(400);
+    check(`${M}: large editor: the shortcut list opens over the window (${await onTop(".rg-keys")})`, await onTop(".rg-keys") === true);
+    await page.keyboard.press("Escape"); await sleep(200);
+    check(`${M}: large editor: Esc closed the list, not the window`, await page.locator(".rg-keys").count() === 0 && await page.locator(".rg-big").count() === 1);
     fs.mkdirSync(path.join(__dirname, "out"), { recursive: true });
     await page.screenshot({ path: path.join(__dirname, "out", `layering_${vue ? "vue" : "legacy"}.png`) });
     await page.locator(".rg-big-head .rg-btn").click(); await sleep(400);

@@ -128,3 +128,13 @@ Check once in legacy mode and once in Nodes 2.0.
 - With the graph zoomed in and out (not 100 %): in a region's pop-up editor and in the large editor the tag list still starts right under the typed line, not on it and not far below.
 - **ComfyUI-Lora-Manager's autocomplete** (with Custom-Scripts' switched off): its list also opens over the large editor and the pop-up editors. The automatic test only covers Custom-Scripts' list.
 - Click (don't drag) the six dots of a region row: that region becomes the active one. Click a layer's six dots: the layer is selected and its region active. A drag still moves the row.
+
+## 16. Tooltip, shortcut list, canvas menu, icons, node size (round 38)
+
+- **On the 4K display, both node modes:** point at a tool button: after about half a second the pack's tooltip shows under it (dark box, the name in bold, the shortcut as a key), readable at your display scaling, and **no second, browser tooltip** appears next to it, also after you click a button and keep the pointer on it.
+- Point at a few controls in each place: the tool bar, a region row, a layer row, the bottom bar, a pop-up editor, the LLM settings, the Regional LoRAs node, the Region colors field in Settings. Each shows the pack's tooltip.
+- **?** while the pointer is over the node, and the keyboard button left of Export: the shortcut sheet opens over the node, readable, with your own keys for the large editor and previous / next field. Check that ? does not trigger something of ComfyUI or another pack.
+- **Right-click on the canvas** (region and empty area), both node modes: the pack's menu opens at the pointer, ComfyUI's node menu does not. Right-click outside the canvas (the node's title, the tool bar) still opens what it did before.
+- The icons: every button is readable at your usual zoom; none shows as an empty box or a colored emoji.
+- Add a new Region Genie node: it is 700 × 1040, nothing in the tool bar, the size row, the list header or the bottom bar wraps to a second line, and a workflow saved before keeps its node size.
+

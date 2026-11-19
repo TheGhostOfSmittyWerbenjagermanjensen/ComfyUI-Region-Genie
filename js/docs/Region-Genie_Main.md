@@ -41,7 +41,10 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
   over ComfyUI, with the region list beside the canvas. ✕ or Esc puts it back in the node.
 - **Nothing is lost by trying:** Ctrl+Z undoes every change in the editor, Clear all included.
 - **Shortcuts** work while the pointer is over the node: V select, R / O / T shapes, B brush, L lasso, F fill,
-  W magic wand, Q Select object, E eraser, G snap, Home fit, Space+drag pan, wheel zoom.
+  W magic wand, Q Select object, E eraser, G snap, Home fit, Space+drag pan, wheel zoom. **Press ?** (or the
+  keyboard button in the bottom bar) for the whole list.
+- **Right-click the canvas** for a menu: on a region, what you can do with it (edit its prompt, hide, reorder,
+  duplicate, delete); on empty canvas, add a region, paste, fit, labels, snap.
 - Every button explains itself when you point at it, and the defaults for new nodes are in
   **Settings > Region Genie**.
 

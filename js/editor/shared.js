@@ -36,7 +36,8 @@ export const UNSPEC = 0, ALL = "all";
 export const HISTORY = 100;
 export const DEFAULT_W = 700;                 // default node width (CSS px)
 export const CLIPBOARD = { layer: null };  // Ctrl+C / Ctrl+X: a copy of a layer, shared by all Region Genie nodes
-export const DEFAULT_H = 1429;                // default height: square canvas at DEFAULT_W in legacy mode (fine-tuned on creation)
+export const DEFAULT_H = 1040;                // default height of a new node: everything in view on a 1080 px screen at a slight zoom-out
+                                              // (the parts that aren't the canvas take about 700 px; the large editor is for more room)
 export const RASTER_MAX = 2048;          // longest side of fill / merge rasters
 
 export const LAYOUT_FORMAT = "region_genie_layout";

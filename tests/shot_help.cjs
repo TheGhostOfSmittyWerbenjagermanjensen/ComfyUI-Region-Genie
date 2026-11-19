@@ -17,10 +17,12 @@ const { chromium } = require("playwright");
   });
   const cv = async () => await page.evaluate(() => { const r = document.querySelector(".rg-cv canvas").getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; });
   const [x, y, w, h] = await cv();
-  const draw = async (a, b, c, d) => { await page.mouse.move(x + w * a, y + h * b); await page.mouse.down(); await page.mouse.move(x + w * c, y + h * d, { steps: 5 }); await page.mouse.up(); await page.waitForTimeout(300); };
+  // boxes in image pixels (the image is 1024 x 1024), so they stay inside the image whatever the canvas's shape
+  const at = (ix, iy) => page.evaluate(([ix, iy]) => window.__rg.__rgToClient(ix, iy), [ix, iy]);
+  const draw = async (a, b, c, d) => { const [x0, y0] = await at(a, b), [x1, y1] = await at(c, d); await page.mouse.move(x0, y0); await page.mouse.down(); await page.mouse.move(x1, y1, { steps: 5 }); await page.mouse.up(); await page.waitForTimeout(300); };
   await page.mouse.move(x + w / 2, y + h / 2); await page.keyboard.press("r");
-  await draw(0.56, 0.3, 0.76, 0.86);
-  await page.locator('[title^="Add a region with a new color"]').click(); await draw(0.26, 0.42, 0.5, 0.86);
+  await draw(560, 200, 960, 860);
+  await page.locator('[title^="Add a region with a new color"]').click(); await draw(70, 400, 500, 940);
   const tas = page.locator(".rg-list textarea.rg-prompt");
   await tas.nth(0).click(); await page.keyboard.type("a knight in silver armor"); await page.keyboard.press("Enter");
   await tas.nth(1).click(); await page.keyboard.type("a red dragon breathing fire"); await page.keyboard.press("Enter");
