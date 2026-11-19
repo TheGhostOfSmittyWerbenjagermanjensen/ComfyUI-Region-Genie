@@ -28,6 +28,8 @@ The pack needs nothing beyond what ComfyUI installs itself. Optional extras: [Co
 4. Write the overall scene in `scene_prompt_positive`.
 5. Connect the node's `model`, `positive`, `negative` and `latent` outputs to your sampler, and run.
 
+The node helps along the way: an empty canvas shows the first steps, the line along the canvas's bottom edge shows the keys of the tool in use, and **Node Info** (in ComfyUI's toolbar while the node is selected) opens a short guide with a numbered picture.
+
 A starter workflow is in [`examples/`](examples/): drag `region-genie-starter-sdxl.json` onto ComfyUI and pick your own SDXL checkpoint. For another model, replace the loader and pick the model in the node's bottom bar.
 
 ## Manual

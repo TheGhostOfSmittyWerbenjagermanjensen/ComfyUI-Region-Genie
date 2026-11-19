@@ -94,3 +94,10 @@ Check once in legacy mode and once in Nodes 2.0.
 - Longer names (Spanish, Japanese) on the nodes: nothing cut off or overlapping at the default node width, in both node modes.
 - A workflow saved in one language opens and runs unchanged in English, and the other way round.
 - The wording itself: every translation is machine-drafted. A native speaker should read at least the node names, the input names and the dropdown choices (`glossary.json` in each language folder lists them).
+
+## 11. First-use help (round 33)
+
+- On the 4K display, both node modes: the three first steps on an empty canvas and the hint line along the canvas's bottom edge are readable at the zoom you normally work at, and the hint line fades while you draw.
+- After a real run: the button left of Export shows ⚠ with the number of notes (try a run without `clip`), and a click lists them under the canvas.
+- Node Info on a selected Region Genie node shows the guide and its picture.
+- R, V, B pressed while pointing at the toolbar or the region list pick the tool (and no longer trigger ComfyUI's own shortcuts).

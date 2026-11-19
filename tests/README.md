@@ -5,7 +5,7 @@ None of these need a GPU. Screenshots go to `tests/out/` (not committed).
 | What | How | Needs |
 |---|---|---|
 | Python, stubbed (`test_edit_mode.py`, `test_shapes_import.py`, `test_hidden_regions.py`, `test_prompt_format.py`, `test_save_image.py`, `test_model_paths.py`: model files by full path, the folder browser's listing; `test_i18n.py`: every language in `locales/` against the English reference `tests/i18n_en/`) | `bash tests/run_py.sh` | numpy, Pillow, scipy |
-| Editor in a stub page (`ui_*.cjs`) | `bash tests/run_ui.sh` | Node, `npm i -D playwright`, `npx playwright install chromium` |
+| Editor in a stub page (`ui_*.cjs`; `ui_hints_notes.cjs`: the hints on the canvas, the start card, Clear all, the run-notes button, shortcuts over the whole editor) | `bash tests/run_ui.sh` | Node, `npm i -D playwright`, `npx playwright install chromium` |
 | Control against real ComfyUI code (`test_control.py`): MOSS / Flux.1 / ControlNet / Anima paths, maps, region masks | `COMFY_DIR=… python3 tests/test_control.py` | a ComfyUI checkout and torch (no model files) |
 | Select object against real ComfyUI code (`test_select.py`) | see below | a ComfyUI checkout, torch, the SAM 3.1 checkpoint (or the random-weight fixture) |
 | Smoke test in the real ComfyUI frontend (`real_smoke.cjs [vue]`) | see below | a running ComfyUI with this pack in `custom_nodes` |
@@ -46,3 +46,5 @@ COMFY_DIR=/tmp/comfy_src RG_MODELS=/tmp/comfy_models python3 tests/test_select.p
 Smoke test: start ComfyUI with `--cpu --listen 127.0.0.1 --port 8188` and an `extra_model_paths.yaml` pointing at `/tmp/comfy_models`, copy a test image to `input/rg_test.png`, then `node tests/real_smoke.cjs` (legacy) and `node tests/real_smoke.cjs vue` (Nodes 2.0).
 
 Round 9 (`real_run_wildcards.cjs`): clone ComfyUI-Impact-Pack into `custom_nodes` too (`pip install` its requirements without the two SAM lines, plus `segment-anything`), add a wildcard file `custom_nodes/ComfyUI-Impact-Pack/wildcards/rgtest/color.txt` (a few colors, one per line), start ComfyUI with `--cpu`, then `node tests/real_run_wildcards.cjs` and `node tests/real_run_wildcards.cjs vue`. No model files are needed (the run only produces the color map). Without Impact Pack the wildcard checks are skipped.
+
+**The help page's picture** (`js/docs/region-genie-parts.png`): `node tests/shot_help.cjs js/docs/region-genie-parts.png` with ComfyUI running (legacy mode, English). Retake it when the node's look changes.
