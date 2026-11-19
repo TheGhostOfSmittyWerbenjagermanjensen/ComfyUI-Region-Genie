@@ -293,6 +293,10 @@
       "always replace": "始终替换"
     }
   },
+  "RegionGenie_Main_LargeEditorKey": {
+    "name": "大编辑器：按键",
+    "tooltip": "指针位于 Region Genie 节点的编辑器上时，打开和关闭大编辑器的按键（标签按钮旁边的按钮作用相同）。填写方式如 Alt+Enter、F9 或 Ctrl+Shift+L；留空：不设按键。"
+  },
   "RegionGenie_Main_RegionColors": {
     "name": "区域颜色",
     "tooltip": "新区域按此顺序取用的颜色（画布上已有的颜色会被跳过；全部用完后，节点会选一种与它们看起来不同的颜色）。\n点击颜色：更改它。\n右键点击颜色：移除它。\n＋：添加一种。\nDefaults：恢复内置颜色。\n已绘制的区域保留其颜色。不能使用黑色：它在颜色图中表示“无区域”。"

@@ -293,6 +293,10 @@
       "always replace": "reemplazar siempre"
     }
   },
+  "RegionGenie_Main_LargeEditorKey": {
+    "name": "Editor grande: tecla",
+    "tooltip": "La tecla que abre y cierra el editor grande mientras el puntero está sobre el editor de un nodo Region Genie (el botón junto al de las etiquetas hace lo mismo). Escríbela como Alt+Enter, F9 o Ctrl+Shift+L; vacío = sin tecla."
+  },
   "RegionGenie_Main_RegionColors": {
     "name": "Colores de región",
     "tooltip": "Los colores que reciben las regiones nuevas, en este orden (se omite un color que ya está en el lienzo; cuando todos están en uso, el nodo elige uno que se distinga de ellos).\nClic en un color: Cambiarlo.\nClic derecho en un color: Quitarlo.\n＋: Añadir uno.\nDefaults: Los colores integrados.\nLas regiones ya dibujadas conservan sus colores. No se puede usar el negro: Significa 'sin región' en mapa_de_color."

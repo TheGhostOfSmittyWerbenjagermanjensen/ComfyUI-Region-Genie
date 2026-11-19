@@ -160,7 +160,7 @@ body:has(.rg-big):not(:has(.rg-llm-pop)) .litecontextmenu, body:has(.rg-big):not
 .rg-big-head .rg-big-title { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .rg-big-head .rg-btn { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px;
   padding:1px 8px; font:12px sans-serif; cursor:pointer; }
-.rg-wrap.rg-bigmode { flex:1 1 auto; width:auto; height:auto; min-height:0; display:grid; gap:4px 10px; padding:6px 8px 8px;
+.rg-wrap.rg-bigmode { flex:1 1 auto; width:auto !important; height:auto !important; min-height:0; display:grid; gap:4px 10px; padding:6px 8px 8px;
   grid-template-columns:minmax(0,1fr) clamp(380px, 34vw, 560px); grid-template-rows:auto auto minmax(0,1fr) auto; }
 .rg-bigmode > .rg-bar { grid-column:1; grid-row:1; }
 .rg-bigmode > .rg-banner { grid-column:1; grid-row:2; }
@@ -168,7 +168,7 @@ body:has(.rg-big):not(:has(.rg-llm-pop)) .litecontextmenu, body:has(.rg-big):not
 .rg-bigmode > .rg-msg { grid-column:1; grid-row:4; }
 .rg-bigmode > .rg-split { display:none; }
 .rg-big-side { grid-column:2; grid-row:1 / 5; display:flex; flex-direction:column; gap:6px; min-width:0; min-height:0; }
-.rg-big-side > .rg-size { flex:0 0 auto; width:auto; height:auto; }
+.rg-big-side > .rg-size { flex:0 0 auto; width:auto !important; height:auto !important; }
 .rg-big-side > .rg-tree { flex:1 1 auto; height:auto !important; min-height:0; }
 .rg-big-scene { flex:0 0 auto; display:flex; flex-direction:column; gap:4px; }
 .rg-big-ta { width:100%; box-sizing:border-box; resize:vertical; min-height:34px; background:var(--comfy-input-bg,#222); color:inherit;

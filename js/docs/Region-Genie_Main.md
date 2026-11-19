@@ -37,6 +37,8 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
 - **apart** (right of the list's header) keeps the regions from blending into each other on plain-text models. It
   turns on by itself when it is needed; click it to turn it off for this node.
 - **Edit** (bottom bar) changes an existing image on the `image` input instead of making a new one.
+- **More room:** the button with two arrows in the tool bar (or Alt+Enter) opens the same editor in a large window
+  over ComfyUI, with the region list beside the canvas. ✕ or Esc puts it back in the node.
 - **Nothing is lost by trying:** Ctrl+Z undoes every change in the editor, Clear all included.
 - **Shortcuts** work while the pointer is over the node: V select, R / O / T shapes, B brush, L lasso, F fill,
   W magic wand, Q Select object, E eraser, G snap, Home fit, Space+drag pan, wheel zoom.

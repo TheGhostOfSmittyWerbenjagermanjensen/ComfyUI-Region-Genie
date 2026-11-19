@@ -113,3 +113,11 @@ Check once in legacy mode and once in Nodes 2.0.
 - Drag a region and a layer by the six dots at the start of the row, also with the graph zoomed in or out: the line follows the pointer and the row lands where the line was.
 - Settings > Region Genie > Region Genie node > Region colors: clicking a swatch opens the color picker above the Settings dialog; a changed list is used by the next new region.
 - With ComfyUI's light theme: the region list, rows and pop-ups are readable.
+
+## 14. The large editor (round 36)
+
+- On the 4K display, both node modes: the button right of the labels button (or Alt+Enter over the editor) opens the editor in a window filling the page; drawing, the region list, pop-ups, the color picker and the tool menus all work in it and open above it.
+- Close it with ✕, the button, the key, or Esc with nothing selected: the editor is back in the node exactly as it was, at the node's size.
+- Type in the window's scene prompt boxes: the node's own fields have the text after closing.
+- Ctrl+Enter while the window is open queues the workflow; after the run the notes button in the window's bottom bar updates.
+- Switch to another workflow tab while it is open: the window closes and the editor is in its node when you come back.
