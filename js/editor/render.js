@@ -393,9 +393,36 @@ export function* render(E) {
             if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y; if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y;
         }
         const boxes = [];
-        bx.forEach((b, k) => { if (isFinite(b[0])) boxes.push({ k, x0: b[0] / r, y0: b[1] / r, x1: (b[2] + 1) / r, y1: (b[3] + 1) / r }); });
+        bx.forEach((b, k) => {
+            if (!isFinite(b[0])) return;
+            const q = inscribed(lab, w, k + 1, b);
+            boxes.push({ k, x0: b[0] / r, y0: b[1] / r, x1: (b[2] + 1) / r, y1: (b[3] + 1) / r,
+                         in: { x0: q[0] / r, y0: q[1] / r, x1: q[2] / r, y1: q[3] / r } });
+        });
         labelCache = { t: now, key, boxes };
         return boxes;
+    }
+    // The largest upright rectangle that lies inside one region's visible pixels: [x0, y0, x1, y1] in label map
+    // pixels (x1 / y1 exclusive). The region's prompt is written into it, so the text stays inside the region
+    // whatever its shape and whatever covers it. (Largest rectangle under a histogram, row by row, inside the
+    // region's bounding box b; a rectangle much taller than wide counts less: lines of text need width.)
+    function inscribed(lab, w, k1, b) {
+        const x0 = b[0], bw = b[2] - b[0] + 1, hgt = new Int32Array(bw + 1), stack = [];
+        let best = [x0, b[1], x0 + 1, b[1] + 1], bestScore = 0;
+        for (let y = b[1]; y <= b[3]; y++) {
+            const row = y * w + x0;
+            for (let i = 0; i < bw; i++) hgt[i] = lab[row + i] === k1 ? hgt[i] + 1 : 0;
+            stack.length = 0;
+            for (let i = 0; i <= bw; i++) {                 // hgt[bw] stays 0 and empties the stack at the row's end
+                while (stack.length && hgt[stack[stack.length - 1]] >= hgt[i]) {
+                    const hh = hgt[stack.pop()], left = stack.length ? stack[stack.length - 1] + 1 : 0, ww = i - left;
+                    const score = ww * hh * Math.min(1, ww / (0.45 * hh));
+                    if (score > bestScore) { bestScore = score; best = [x0 + left, y - hh + 1, x0 + i, y + 1]; }
+                }
+                stack.push(i);
+            }
+        }
+        return best;
     }
     function wrapText(c, text, maxW, maxLines) {
         const words = text.split(/\s+/).filter(Boolean), lines = [];
@@ -426,6 +453,7 @@ export function* render(E) {
             return [x, y];
         };
         for (const it of items) {
+            if (it.inside) { it.x = it.dx; it.y = it.dy; placed.push(it); continue; }      // written inside its region: stays
             let [x, y] = clamp(it.dx, it.dy, it);
             if (hits(x, y, it)) {
                 // spots touching each placed label, first and second order, plus a coarse ring
@@ -470,20 +498,34 @@ export function* render(E) {
             if (rg.keep && E.isEdit()) text = "🔒 " + text;            // Edit Mode: kept as it is in the source
             const [cx, cy] = E.toScr((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2);
             const [rx0, ry0] = E.toScr(b.x0, b.y0), [rx1, ry1] = E.toScr(b.x1, b.y1);
+            const num = imap[b.k] == null ? "" : String(imap[b.k]);
+            E.ctx.font = `bold ${11 * dpr}px sans-serif`;
+            const nw = num ? Math.max(lh + 2 * dpr, E.ctx.measureText(num).width + pad * 2) : 0, gap = num ? 3 * dpr : 0;
+            E.ctx.font = `${11 * dpr}px sans-serif`;
+            // inside the region (round 35): as much of the prompt as fits the largest rectangle inside the region's
+            // visible pixels (the part of it in view), with a margin, centred. A region too small for a line of
+            // text gets the compact label instead (index and up to three lines on a dark plate), as before.
+            const [qx0, qy0] = E.toScr(b.in.x0, b.in.y0), [qx1, qy1] = E.toScr(b.in.x1, b.in.y1);
+            const vx0 = Math.max(qx0, 0), vy0 = Math.max(qy0, 0), vx1 = Math.min(qx1, E.cv.width), vy1 = Math.min(qy1, E.cv.height);
+            const iw = vx1 - vx0, ih = vy1 - vy0, mg = Math.max(4 * dpr, Math.min(iw, ih) * 0.08);
+            const availW = iw - 2 * mg - nw - gap, maxLines = Math.floor((ih - 2 * mg) / lh);
+            if (availW >= 44 * dpr && maxLines >= 1) {
+                const lines = wrapText(E.ctx, text, availW, maxLines);
+                const tw = Math.max(...lines.map((l) => E.ctx.measureText(l).width));
+                const w = nw + gap + tw, h = lines.length * lh;
+                items.push({ k: b.k, rg, lines, num, nw, gap, bw: tw, w, h, dx: vx0 + (iw - w) / 2, dy: vy0 + (ih - h) / 2, rx0, ry0, rx1, ry1, inside: true });
+                continue;
+            }
             const regionW = (b.x1 - b.x0) * E.view.z;
             const maxW = Math.max(70 * dpr, Math.min(200 * dpr, regionW * 0.9));
             const lines = wrapText(E.ctx, text, maxW, 3);
             const tw = Math.max(...lines.map((l) => E.ctx.measureText(l).width));
             const bw = tw + pad * 2, bh = lines.length * lh + pad * 2 - 2 * dpr;
-            const num = imap[b.k] == null ? "" : String(imap[b.k]);
-            E.ctx.font = `bold ${11 * dpr}px sans-serif`;
-            const nw = num ? Math.max(lh + 2 * dpr, E.ctx.measureText(num).width + pad * 2) : 0, gap = num ? 2 * dpr : 0;
-            E.ctx.font = `${11 * dpr}px sans-serif`;
             const w = nw + gap + bw;
             items.push({ k: b.k, rg, lines, num, nw, gap, bw, w, h: bh, dx: cx - w / 2, dy: cy - bh / 2, rx0, ry0, rx1, ry1 });
         }
         // place from the top of the region list down (not by selection, so labels don't jump when you click)
-        const prio = [...items].sort((a, b) => a.k - b.k);
+        const prio = [...items].sort((a, b) => (b.inside ? 1 : 0) - (a.inside ? 1 : 0) || a.k - b.k);
         const [W, H] = E.dims();
         const [ix0, iy0] = E.toScr(0, 0), [ix1, iy1] = E.toScr(W, H);
         placeLabels(prio, { x0: Math.max(0, ix0), y0: Math.max(0, iy0), x1: Math.min(E.cv.width, ix1), y1: Math.min(E.cv.height, iy1) });
@@ -492,17 +534,38 @@ export function* render(E) {
         const act = order.findIndex((it) => it.rg.id === E.curRegion);
         if (act >= 0) order.push(order.splice(act, 1)[0]);
         E.labelRects = [];
+        // with an image showing through the regions, or a control map on the canvas, the color under the text is
+        // not the region's own: the text then gets a dark plate
+        const plate = (E.backdrop && E.backdropOpacity > 0.25) || E.controlShowK >= 0;
         for (const it of order) {
             const { rg, lines, num, nw, gap, bw, h: bh } = it;
             const x0 = it.x + nw + gap, y0 = it.y;
-            if (num) {                                   // index badge right before the prompt box
-                const shown = E.colorOf(rg.id), [rr, gg, bb] = hexRgb(shown);
-                E.ctx.globalAlpha = 0.9; E.ctx.fillStyle = shown; E.ctx.fillRect(it.x, y0, nw, bh);
-                E.ctx.globalAlpha = 1; E.ctx.strokeStyle = "#fff"; E.ctx.lineWidth = 1.5 * dpr; E.ctx.strokeRect(it.x, y0, nw, bh);
-                E.ctx.fillStyle = rr * 0.299 + gg * 0.587 + bb * 0.114 > 140 ? "#000" : "#fff";
+            const shown = E.colorOf(rg.id), [rr, gg, bb] = hexRgb(shown), light = rr * 0.299 + gg * 0.587 + bb * 0.114 > 140;
+            const badgeH = it.inside ? lh : bh;
+            if (it.inside && plate) {
+                E.ctx.globalAlpha = 0.6; E.ctx.fillStyle = "#000";
+                E.ctx.fillRect(it.x - pad, y0 - pad, it.w + pad * 2, bh + pad * 2);
+                E.ctx.globalAlpha = 1;
+            }
+            if (num) {                                   // index badge right before the prompt
+                E.ctx.globalAlpha = 0.9; E.ctx.fillStyle = shown; E.ctx.fillRect(it.x, y0, nw, badgeH);
+                E.ctx.globalAlpha = 1; E.ctx.strokeStyle = it.inside && light && !plate ? "#000" : "#fff"; E.ctx.lineWidth = 1.5 * dpr; E.ctx.strokeRect(it.x, y0, nw, badgeH);
+                E.ctx.fillStyle = light ? "#000" : "#fff";
                 E.ctx.font = `bold ${11 * dpr}px sans-serif`; E.ctx.textAlign = "center";
-                E.ctx.fillText(num, it.x + nw / 2, y0 + (bh - 11 * dpr) / 2);
+                E.ctx.fillText(num, it.x + nw / 2, y0 + (badgeH - 11 * dpr) / 2);
                 E.ctx.textAlign = "left"; E.ctx.font = `${11 * dpr}px sans-serif`;
+            }
+            if (it.inside) {
+                // straight on the region's color, in black or white, whichever reads better on it
+                E.labelRects.push({ rid: rg.id, x0: it.x - pad, y0: y0 - pad, x1: it.x + it.w + pad, y1: y0 + bh + pad, inside: true });
+                const dark = light && !plate;
+                E.ctx.save();
+                E.ctx.shadowColor = dark ? "rgba(255,255,255,.7)" : "rgba(0,0,0,.75)"; E.ctx.shadowBlur = 2.5 * dpr;
+                E.ctx.fillStyle = dark ? "#000" : "#fff";
+                E.ctx.globalAlpha = rg.prompt.trim() ? 1 : 0.6;
+                lines.forEach((l, i) => E.ctx.fillText(l, x0, y0 + 1 * dpr + i * lh));
+                E.ctx.restore();
+                continue;
             }
             E.labelRects.push({ rid: rg.id, x0: it.x, y0, x1: x0 + bw, y1: y0 + bh });
             const isAct = rg.id === E.curRegion;

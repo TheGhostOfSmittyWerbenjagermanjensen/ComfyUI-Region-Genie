@@ -197,7 +197,7 @@ export function* llm(E) {
         const nScene = ownLoras.length;
         const sGap = E.el("span"); sGap.style.flex = "1 1 auto";
         const sOpen = E.expanded.has(E.SCENE);
-        scene.append(E.chevron(E.SCENE, true, `the whole-image LoRAs (${nScene})`), sl, sGap, llmButton(LLM_SCENE), sceneAdd, ctlAdd, editAdd);
+        scene.append(E.el("span", "rg-grip pad"), E.chevron(E.SCENE, true, `the whole-image LoRAs (${nScene})`), sl, sGap, llmButton(LLM_SCENE), sceneAdd, ctlAdd, editAdd);
         // a click anywhere on the row (but its buttons) opens or closes it, like the chevron
         scene.title = `${sOpen ? "Hide" : "Show"} the LoRAs that act on the whole image (${nScene})`;
         scene.addEventListener("pointerdown", (e) => {
@@ -258,7 +258,8 @@ export function* llm(E) {
                 () => E.change(() => { if (r.hidden) delete r.hidden; else r.hidden = true; }));
             eye.classList.add("rg-reye");
             // ▶ opens the region: its options line (feather, palette, merge, move, delete), then its layers, LoRAs, palette
-            row.append(E.chevron(r.id, true, "this region's options (feather, palette, merge, move, delete)"
+            row.dataset.rid = String(r.id);
+            row.append(E.grip("region", r.id), E.chevron(r.id, true, "this region's options (feather, palette, merge, move, delete)"
                 + kinds.map((k) => ", " + ({ layers: "layers", loras: "LoRAs", palette: "color palette" })[k]).join("")), eye, ix, sw, ty, prWrap);
             E.addExpandButton(pr, "Open this region in the pop-up editor", openPop("prompt", pr));
             if (r.type === "text") {

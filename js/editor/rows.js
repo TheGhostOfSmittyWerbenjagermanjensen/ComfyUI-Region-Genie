@@ -116,7 +116,7 @@ export function* rows(E) {
     const rowLabel = (text, title) => {
         const pad = E.el("span", "rg-chev"); pad.style.visibility = "hidden"; pad.textContent = "▶";   // lines up with the regions
         const lbl = E.el("span", "rg-pseudo"); lbl.textContent = text; lbl.title = title;
-        return [pad, lbl];
+        return [E.el("span", "rg-grip pad"), pad, lbl];
     };
     const rowX = (title, fn) => { const x = E.iconBtn("close", title, fn); x.addEventListener("pointerdown", (e) => e.stopPropagation()); return x; };
     function editRows() {

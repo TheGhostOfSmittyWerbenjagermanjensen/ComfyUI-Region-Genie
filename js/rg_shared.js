@@ -2,6 +2,7 @@
 // tag autocomplete from ComfyUI-Lora-Manager). Not an extension by itself.
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
+import { openColorPicker } from "./rg_colorpicker.js";
 
 // ---------------------------------------------------------------- icons (16x16, stroke = text color)
 export const ICONS = {
@@ -27,6 +28,7 @@ export const ICONS = {
     feather: '<path d="M13.6 2.4C9.2 2.6 5 5.8 4.2 10.6L3.6 13"/><path d="M13.6 2.4c.4 4.6-2.6 8.8-7.9 9.6"/><path d="M4.3 10.2l4.6-4.6"/><path d="M6.4 11.6l3.3.1"/><path d="M8.4 5.2l3.4.2"/>',
     regionAdd: '<rect x="1.5" y="3" width="9" height="9" rx="1.5"/><path d="M13 1.8v4.4M10.8 4h4.4"/>',
     layerAdd: '<path d="M6.5 3.5L1.5 6l5 2.5 5-2.5z"/><path d="M1.5 9l5 2.5 5-2.5"/><path d="M13 9.5v4.4M10.8 11.7h4.4"/>',
+    grip: '<g fill="currentColor" stroke="none"><circle cx="5.5" cy="3.5" r="1.2"/><circle cx="10.5" cy="3.5" r="1.2"/><circle cx="5.5" cy="8" r="1.2"/><circle cx="10.5" cy="8" r="1.2"/><circle cx="5.5" cy="12.5" r="1.2"/><circle cx="10.5" cy="12.5" r="1.2"/></g>',
     layers: '<path d="M8 2.5L2 5.5l6 3 6-3z"/><path d="M2 8.5l6 3 6-3"/><path d="M2 11.2l6 3 6-3"/>',
     allApart: '<rect x="1.5" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="1.5" y="9.3" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="9.3" width="5.2" height="5.2" rx="1"/>',
     // the four tiles on a shaded backdrop: kept apart from each other, the background shared
@@ -558,6 +560,70 @@ const CHECK_CSS = `
 .rg-chk-out { align-self:stretch; font-size:12px; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; user-select:text; }
 .rg-chk-out.ok { color:#8c8; }
 .rg-chk-out.bad b { color:#e88; font-weight:600; }`;
+// ---- Settings > Region Genie > Region Genie node > Region colors (round 35): the colors new regions get, in
+// this order. Calm, clearly different tones by default (purple first, then golden yellow: the owner's choice);
+// a user who tells other colors apart better sets their own here. Stored as one text: "#RRGGBB, #RRGGBB, …".
+export const REGION_COLORS_DEFAULT = "#8F73D1, #E3B341, #3FA9A0, #DE7359, #5C9DDB, #7DB45C, #E08DB4, #4A58A6, #9BDDC0, #A27A52, #A8509C, #8496A6";
+const REGION_COLORS_MAX = 24;
+export function parseColorList(v) {
+    const out = [];
+    for (const m of String(v ?? "").toUpperCase().matchAll(/#?([0-9A-F]{6})\b/g)) {
+        const c = "#" + m[1];
+        const dark = Math.max(parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4, 6), 16)) < 32;
+        if (!dark && !out.includes(c)) out.push(c);             // black means "no region" in the color map
+        if (out.length >= REGION_COLORS_MAX) break;
+    }
+    return out;
+}
+export function regionColors() {
+    const list = parseColorList(getSetting(SET.regionColors, REGION_COLORS_DEFAULT));
+    return list.length ? list : parseColorList(REGION_COLORS_DEFAULT);
+}
+const COLORS_CSS = `
+.rg-colors { display:flex; flex-wrap:wrap; align-items:center; gap:5px; max-width:420px; justify-content:flex-end; }
+.rg-colors .sw { width:22px; height:22px; padding:0; border-radius:4px; border:1px solid rgba(128,128,128,.7); cursor:pointer; }
+.rg-colors .sw:hover, .rg-colors .sw:focus-visible { outline:2px solid var(--p-primary-color, #5b8fd0); outline-offset:1px; }
+.rg-colors .act { height:24px; padding:0 8px; border-radius:4px; border:1px solid var(--border-color, #555); background:var(--comfy-input-bg, #222);
+  color:inherit; font:inherit; cursor:pointer; }
+.rg-colors .act:disabled { opacity:.4; cursor:default; }`;
+const regionColorsType = () => (name, setter, value) => {
+    if (!document.getElementById("rg-colors-style")) { const s = document.createElement("style"); s.id = "rg-colors-style"; s.textContent = COLORS_CSS; document.head.appendChild(s); }
+    const box = document.createElement("div"); box.className = "rg-colors";
+    const defaults = parseColorList(REGION_COLORS_DEFAULT);
+    let list = parseColorList(value); if (!list.length) list = [...defaults];
+    const save = () => { const v = list.join(", "); try { setter(v); } catch (e) { /* the dialog is gone */ } setSetting(SET.regionColors, v); };
+    const render = () => {
+        box.replaceChildren();
+        list.forEach((c, i) => {
+            const b = document.createElement("button"); b.type = "button"; b.className = "sw"; b.style.background = c; b.dataset.color = c;
+            b.title = `${c}: Color ${i + 1} for new regions.\nClick: Change it.\nRight-click: Remove it.`;
+            b.addEventListener("click", (e) => {
+                e.preventDefault();
+                openColorPicker(b, list[i], {
+                    onInput: (hex) => { b.style.background = hex; },
+                    onClose: (hex, changed) => {
+                        const h = parseColorList(hex)[0];
+                        if (changed && h && !list.includes(h)) { list[i] = h; save(); }
+                        render();
+                    },
+                });
+            });
+            b.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); if (list.length > 1) { list.splice(i, 1); save(); render(); } });
+            box.appendChild(b);
+        });
+        const add = document.createElement("button"); add.type = "button"; add.className = "act"; add.textContent = "＋";
+        add.title = "Add a color at the end: The next of the built-in colors that isn't in the list (else white); click it to change it.";
+        add.disabled = list.length >= REGION_COLORS_MAX;
+        add.addEventListener("click", () => { list.push(defaults.find((c) => !list.includes(c)) || ["#FFFFFF", "#DDDDDD", "#BBBBBB", "#999999"].find((c) => !list.includes(c)) || "#777777"); save(); render(); });
+        const reset = document.createElement("button"); reset.type = "button"; reset.className = "act"; reset.textContent = "Defaults";
+        reset.title = "Put the built-in colors back.";
+        reset.disabled = list.join() === defaults.join();
+        reset.addEventListener("click", () => { list = [...defaults]; save(); render(); });
+        box.append(add, reset);
+    };
+    render();
+    return box;
+};
 const checkFilesType = () => () => {
     if (!document.getElementById("rg-chk-style")) { const s = document.createElement("style"); s.id = "rg-chk-style"; s.textContent = CHECK_CSS; document.head.appendChild(s); }
     const box = document.createElement("div"); box.className = "rg-chk";
@@ -1526,6 +1592,7 @@ export const SET = {
     cmUntil: "RegionGenie.Main.SeparationUntil",
     cmSnap: "RegionGenie.Main.Snap",
     cmGrid: "RegionGenie.Main.Grid",
+    regionColors: "RegionGenie.Main.RegionColors",
     cmAllRegions: "RegionGenie.Main.AllRegionsApart",
     cmAutoApart: "RegionGenie.Main.AutoApart",
     cmShareBg: "RegionGenie.Main.ShareBackground",
@@ -1861,6 +1928,13 @@ const SETTINGS = [
                 + "always replace: The new layout replaces the canvas right away.\n"
                 + "An empty canvas is always filled. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "05 import"),
+        },
+        {
+            id: SET.regionColors, name: "Region colors", type: regionColorsType(), defaultValue: REGION_COLORS_DEFAULT,
+            tooltip: "The colors new regions get, in this order (a color already on the canvas is skipped; when all are in use, the node picks one that looks different from them).\n"
+                + "Click a color: Change it.\nRight-click a color: Remove it.\n＋: Add one.\nDefaults: The built-in colors.\n"
+                + "Regions already drawn keep their colors. Black can't be used: It means 'no region' in color_map.",
+            category: CAT("Region Genie node", "055 colors"),
         },
         { id: SET.cmFeather, name: "Feather (px, linked regions)", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: "The mask feather that linked regions share (regions start linked). " + NEW_NODES, category: CAT("Region Genie node", "06 feather") },
         { id: SET.cmSeparation, name: "LoRA region separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "07 separation") },

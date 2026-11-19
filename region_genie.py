@@ -33,11 +33,12 @@ IMAGE_MODES = ["backdrop (trace over)", "use as color map"]
 IMPORT_MODES = ["ask before replacing", "always replace"]
 LAYOUT_FORMAT = "region_genie_layout"
 
-# distinct, saturated region-ID colors (none near black); the JS editor uses the same list
+# The colors a layout converted from another format gets, in order: calm, clearly different tones (none near black).
+# The same list as the editor's default "Region colors" setting (REGION_COLORS_DEFAULT in js/rg_shared.js); the
+# editor then recolors a converted layout with the user's own list (the state's "recolor" mark).
 PALETTE = [
-    "#E6194B", "#3CB44B", "#FFE119", "#4363D8", "#F58231", "#911EB4", "#42D4F4", "#F032E6",
-    "#BFEF45", "#FABED4", "#469990", "#DCBEFF", "#9A6324", "#FFFAC8", "#800000", "#AAFFC3",
-    "#808000", "#FFD8B1", "#000075", "#A9A9A9", "#FFFFFF", "#00FF7F", "#FF4500", "#1E90FF",
+    "#8F73D1", "#E3B341", "#3FA9A0", "#DE7359", "#5C9DDB", "#7DB45C",
+    "#E08DB4", "#4A58A6", "#9BDDC0", "#A27A52", "#A8509C", "#8496A6",
 ]
 
 
@@ -131,7 +132,7 @@ def effective_colors(regions):
 def _extra_color(i):
     """Colors beyond the fixed palette: golden-ratio hues."""
     h = (i * 0.618033988749895) % 1.0
-    r, g, b = colorsys.hsv_to_rgb(h, 0.85, 0.95)
+    r, g, b = colorsys.hsv_to_rgb(h, 0.55, 0.85)
     return _rgb_to_hex((r * 255, g * 255, b * 255))
 
 
@@ -943,7 +944,7 @@ def layout_from_json(text, width, height):
                        "oy": (y + h / 2.0 - height / 2.0) / short,
                        "ops": []})
     layers.reverse()                                     # stack is bottom -> top; the first box goes on top
-    return {"v": 2, "regions": regions, "layers": layers}, scene, None, bg
+    return {"v": 2, "regions": regions, "layers": layers, "recolor": True}, scene, None, bg
 
 
 def register_routes():

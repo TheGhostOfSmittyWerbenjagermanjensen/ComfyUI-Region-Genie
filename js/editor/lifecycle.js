@@ -2,7 +2,7 @@
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { nodeOffCanvas, getSetting, SET, editLoras, controlFiles, hintsListeners } from "../rg_shared.js";
+import { nodeOffCanvas, getSetting, SET, editLoras, controlFiles, hintsListeners, regionColors } from "../rg_shared.js";
 import { closeLlmSettings } from "../rg_llm.js";
 import { lassoRefreshers, ALL, DEFAULT_W, DEFAULT_H, LAYOUT_FORMAT } from "./shared.js";
 import { normLoraOpts, parseState } from "./state.js";
@@ -66,6 +66,13 @@ export function* lifecycle(E) {
     }
     function applyLayout(st, scene, sig, size, sceneNeg, madeFor, sceneBg) {
         E.hideBanner();
+        // a layout converted from another format (boxes, MOSS-Image / Ideogram JSON) has no colors of its own:
+        // its regions take the user's region colors, in order (Settings > Region Genie > Region Genie node)
+        if (st?.recolor && Array.isArray(st.regions)) {
+            const list = regionColors();
+            st = { ...st, regions: st.regions.map((r, i) => (i < list.length && !r.fromImage ? { ...r, color: list[i] } : r)) };
+            delete st.recolor;
+        }
         E.change(() => {
             E.state = parseState(JSON.stringify(st), ...(madeFor || E.dims()));     // madeFor: size of an older file
             if (sig) E.state.importSig = sig; else delete E.state.importSig;

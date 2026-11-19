@@ -5,12 +5,6 @@ import { getSetting, setSetting, toolDefault, onToolDefault, toolNumber, TOOL_NU
 const RG_RECENT = new Map();
 export const recentSetting = (id, dflt) => (RG_RECENT.has(id) ? RG_RECENT.get(id) : getSetting(id, dflt));
 export const rememberSetting = (id, v) => { RG_RECENT.set(id, v); setSetting(id, v); setTimeout(() => { if (RG_RECENT.get(id) === v) RG_RECENT.delete(id); }, 3000); };
-// distinct, saturated region-ID colors (none near black); Python uses the same list
-export const PALETTE = [
-    "#E6194B", "#3CB44B", "#FFE119", "#4363D8", "#F58231", "#911EB4", "#42D4F4", "#F032E6",
-    "#BFEF45", "#FABED4", "#469990", "#DCBEFF", "#9A6324", "#FFFAC8", "#800000", "#AAFFC3",
-    "#808000", "#FFD8B1", "#000075", "#A9A9A9", "#FFFFFF", "#00FF7F", "#FF4500", "#1E90FF",
-];
 // Lasso / Lasso erase: plain (straight lines) or spline (a smooth curve). They start as set in Settings > Region
 // Genie > Canvas tools; right-click either button to choose, which is kept for the rest of the session (all Region
 // Genie nodes on the page) until that setting is changed.
