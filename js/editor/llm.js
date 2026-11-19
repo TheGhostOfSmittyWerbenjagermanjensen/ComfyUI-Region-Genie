@@ -1,7 +1,7 @@
 // LLM Prompt Enhancer: the sparkle buttons, requests and results.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { api } from "../../../scripts/api.js";
-import { setHTML, contextMenu, appendWord, autocompleteOnFocus, autocompleteOpen } from "../rg_shared.js";
+import { setHTML, svgIcon, contextMenu, appendWord, autocompleteOnFocus, autocompleteOpen } from "../rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings } from "../rg_llm.js";
 import { TYPES } from "./shared.js";
 import { normLoraOpts } from "./state.js";
@@ -250,7 +250,8 @@ export function* llm(E) {
             });
             autocompleteOnFocus(pr, E.node);
             const ix = E.el("span", "rg-idx"); ix.dataset.k = String(i);
-            const cnt = E.el("span", "rg-cnt"); cnt.textContent = lays.length ? String(lays.length) : ""; cnt.title = `${lays.length} layer(s)`;
+            const cnt = E.el("span", "rg-cnt"); cnt.title = `${lays.length} layer${lays.length === 1 ? "" : "s"} in this region (▶ at the start of the row shows them)`;
+            if (lays.length) { cnt.innerHTML = svgIcon("layers"); cnt.append(String(lays.length)); }
             const kinds = E.subKinds(r);
             const eye = E.ico(r.hidden ? "○" : "◉", r.hidden ? "Hidden: Not drawn and not output. Click to show it again (its layers keep their own show / hide)"
                 : "Show / hide this region: A hidden region is not drawn and is left out of every output; its layers keep their own show / hide",

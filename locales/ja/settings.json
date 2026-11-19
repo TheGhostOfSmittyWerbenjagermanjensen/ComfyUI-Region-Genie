@@ -166,6 +166,10 @@
     "name": "塗りつぶし: 隙間サイズ（px）",
     "tooltip": "塗りつぶし（小さな隙間を閉じる）: このピクセル数の約 2 倍より狭い開口部が閉じられます。"
   },
+  "RegionGenie_Tools_Hints": {
+    "name": "キャンバス上のヒント",
+    "tooltip": "オン: キャンバスの下端に、使用中のツールのキーと操作方法を表示します。キャンバスが空のときは最初の手順も表示します。\nオフ: キャンバスにヒントを表示しません。\nすべての Region Genie ノードにすぐに適用されます。"
+  },
   "RegionGenie_Select_Model": {
     "name": "モデル",
     "tooltip": "「オブジェクトを選択」ツールが使う SAM 3.1 チェックポイント（ComfyUI 標準の SAM 3 対応）。sam3.1_multiplex_fp16.safetensors を huggingface.co/Comfy-Org/sam3.1 から ComfyUI/models/checkpoints にダウンロードしてください。このファイルがない場合は、同じフォルダー内の別の SAM 3 チェックポイントが使われます。「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にあるチェックポイントを選べます。"

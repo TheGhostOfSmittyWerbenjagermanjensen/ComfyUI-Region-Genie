@@ -568,6 +568,8 @@
 "settings.json/RegionGenie_Tools_Fill/tooltip": "d590a52075",
 "settings.json/RegionGenie_Tools_FillGap/name": "2f8f571e90",
 "settings.json/RegionGenie_Tools_FillGap/tooltip": "b8fcc69d04",
+"settings.json/RegionGenie_Tools_Hints/name": "c826f80b09",
+"settings.json/RegionGenie_Tools_Hints/tooltip": "e5f2b28cc6",
 "settings.json/RegionGenie_Tools_Lasso/name": "4e5ba46984",
 "settings.json/RegionGenie_Tools_Lasso/options/Lasso (straight lines)": "76efbd7b7c",
 "settings.json/RegionGenie_Tools_Lasso/options/Magnetic lasso (follows edges in the image)": "8c74ffc9ca",

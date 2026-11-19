@@ -120,7 +120,7 @@ export function* model(E) {
     });
     function syncModelSel() {
         const info = modelInfo(), pick = E.node.properties?.rg_model_pick || "";
-        const auto = !pick && info.arch ? `auto · ${info.arch}` : pick && info.guess ? `auto (${info.guess})` : "auto · model?";
+        const auto = !pick && info.arch ? `auto · ${info.arch}` : pick && info.guess ? `auto (${info.guess})` : "auto: no model yet";
         const opts = [["", auto], ...MODEL_NAMES.map((m) => [m, m])];
         const sig = JSON.stringify(opts);
         if (modelSel.dataset.sig !== sig) { modelSel.replaceChildren(...opts.map(([v, t]) => E.opt(v, t))); modelSel.dataset.sig = sig; }

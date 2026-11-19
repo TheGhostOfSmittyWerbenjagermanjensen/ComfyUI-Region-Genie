@@ -166,6 +166,10 @@
     "name": "Fill: gap size (px)",
     "tooltip": "Fill, closing small gaps: Openings narrower than about twice this many pixels are closed."
   },
+  "RegionGenie_Tools_Hints": {
+    "name": "Hints on the canvas",
+    "tooltip": "On: The canvas shows the active tool's keys and gestures along its bottom edge, and the first steps while it is empty.\nOff: No hints on the canvas.\nApplies to every Region Genie node right away."
+  },
   "RegionGenie_Select_Model": {
     "name": "Model",
     "tooltip": "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. When this file isn't there, another SAM 3 checkpoint in that folder is used. With 'Browse… for model files' on (Model files), a folder button picks a checkpoint anywhere on the ComfyUI machine."

@@ -283,9 +283,9 @@ export function* toolbar(E) {
     const undoBtn = iconBtn("undo", "Undo (Ctrl+Z)", E.undo); E.undoBtn = undoBtn;
     const redoBtn = iconBtn("redo", "Redo (Ctrl+Shift+Z / Ctrl+Y)", E.redo); E.redoBtn = redoBtn;
     const fitBtn = E.btn("Fit", "Fit the image in view (Home). Wheel zooms, middle-drag or Space+drag pans.", () => { E.userView = false; E.fitView(); E.requestDraw(); });
-    const clearBtn = iconBtn("clear", "Clear all: Remove every layer and region (undoable)", () => {
+    const clearBtn = iconBtn("clear", "Clear all: Remove every layer and region (Ctrl+Z brings them back)", () => {
         if (E.state.layers.length || E.state.regions.length || E.state.importSig) E.change(() => { E.state.layers = []; E.state.regions = []; delete E.state.importSig; E.selId = null; E.curRegion = null; E.filter = ALL; });
-    }); E.clearBtn = clearBtn;
+    }, "danger"); E.clearBtn = clearBtn;
     // image opacity: a vertical slider over the canvas's right edge while an image is shown under the regions
     const bdBox = E.el("div", "rg-oslider"); E.bdBox = bdBox; bdBox.style.display = "none";
     bdBox.innerHTML = '<svg viewBox="0 0 26 160" preserveAspectRatio="none"><rect x="11" y="14" width="4" height="132" rx="2" '
@@ -339,5 +339,6 @@ export function* toolbar(E) {
     setLabIcon();
     const dimsLbl = E.el("span", "rg-hint"); E.dimsLbl = dimsLbl; dimsLbl.style.marginLeft = "auto";
     dimsLbl.title = "The canvas size in pixels (the image size this node makes; set in the size row above)";
-    bar1.append(sep(), undoBtn, redoBtn, clearBtn, sep(), snapBtn, gridIn, fitBtn, labBtn, dimsLbl);
+    // Clear all sits at the right end, away from the tools and from Undo / Redo (it looks like a layer's delete button)
+    bar1.append(sep(), undoBtn, redoBtn, sep(), snapBtn, gridIn, fitBtn, labBtn, dimsLbl, clearBtn);
 }

@@ -166,6 +166,10 @@
     "name": "Relleno: tamaño de hueco (px)",
     "tooltip": "Relleno, cerrando huecos pequeños: Se cierran las aberturas más estrechas que aproximadamente el doble de esta cantidad de píxeles."
   },
+  "RegionGenie_Tools_Hints": {
+    "name": "Ayudas en el lienzo",
+    "tooltip": "Activado: El lienzo muestra en su borde inferior las teclas y los gestos de la herramienta activa, y los primeros pasos mientras está vacío.\nDesactivado: Sin ayudas en el lienzo.\nSe aplica de inmediato a todos los nodos Region Genie."
+  },
   "RegionGenie_Select_Model": {
     "name": "Modelo",
     "tooltip": "El checkpoint de SAM 3.1 que usa la herramienta Seleccionar objeto (el soporte nativo de SAM 3 de ComfyUI). Descarga sam3.1_multiplex_fp16.safetensors de huggingface.co/Comfy-Org/sam3.1 en ComfyUI/models/checkpoints. Cuando ese archivo no está, se usa otro checkpoint de SAM 3 de esa carpeta. Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona un checkpoint en cualquier lugar del equipo de ComfyUI."

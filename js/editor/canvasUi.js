@@ -1,15 +1,64 @@
 // The brush size slider on the canvas, the list header's options (keep apart, edit mask), sub-sections and the list height.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { app } from "../../../scripts/app.js";
-import { svgIcon, setHTML, contextMenu, editMaskDefaults } from "../rg_shared.js";
-import { UNSPEC } from "./shared.js";
+import { svgIcon, setHTML, contextMenu, editMaskDefaults, getSetting, SET, hintsListeners } from "../rg_shared.js";
+import { UNSPEC, LASSO_MODES } from "./shared.js";
 import { normLoraOpts, normEditMask } from "./state.js";
 
 export function* canvasUi(E) {
     Object.assign(E, {
-        updateBrushSlider, setAllApartBtn, syncEditMaskBox,
+        updateBrushSlider, setAllApartBtn, syncEditMaskBox, syncTips,
     });
     yield;
+
+    // ---- hints on the canvas (Settings > Region Genie > Canvas tools > Hints on the canvas): the active tool's
+    // gestures along the bottom edge, and the first steps while the canvas is empty. Neither takes clicks; the
+    // gestures fade while a button is held on the canvas, so they never cover what is being drawn.
+    const tips = E.el("div", "rg-tips"), startCard = E.el("div", "rg-start");
+    startCard.innerHTML = "<b>Start here</b>"
+        + "<span><i>1</i>Pick a shape (R) and drag a box on the canvas: that is your first region.</span>"
+        + "<span><i>2</i>Type what belongs there in the region's prompt, in the list under the canvas.</span>"
+        + "<span><i>3</i>Connect model and clip, send positive, negative and latent to the sampler, and run.</span>"
+        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span>";
+    E.cvBox.append(tips, startCard);
+    const VIEW_TIPS = [["Wheel", "Zoom"], ["Space+drag", "Pan"]];
+    const PICK_TIP = ["Alt+click", "Make the region under the pointer the active one"];
+    const LASSO_TIPS = [["Drag", "Freehand"], ["Click", "Add a point"], ["Enter / double-click", "Close the outline"], ["Backspace", "Remove the last point"], ["Esc", "Cancel"]];
+    const TIPS = {
+        select: () => (E.selLayer()
+            ? [["Drag", "Move"], ["Square handles", "Resize (Shift: Keep proportions, Alt: From the centre)"], ["Round handle", "Rotate (Shift: 15° steps)"],
+               ["Arrows", "Nudge (Shift: ×10)"], ["Ctrl+D", "Duplicate"], ["Ctrl+C / X / V", "Copy, cut, paste"]]
+            : [["Click", "Select a layer"], ["Double-click a label", "Edit that region"], ...VIEW_TIPS, ["Home", "Fit"]]),
+        shape: () => [["Drag", "Draw the shape"], ["Shift", "Equal sides"], ["Alt", "From the centre"], ["▾ on the button", "Other shapes"]],
+        brush: () => [["Drag", "Paint"], ["Shift+click", "A straight line from the last stroke"], ["[ ] or Alt+wheel", "Brush size"], PICK_TIP],
+        lasso: () => [...LASSO_TIPS, PICK_TIP],
+        lassoErase: () => LASSO_TIPS,
+        fill: () => (["linear", "radial"].includes(LASSO_MODES.fill)
+            ? [["Drag", LASSO_MODES.fill === "linear" ? "From full strength to nothing, along the line" : "Outward from full strength to nothing"], PICK_TIP]
+            : [["Click", "Fill that area with the active region"], PICK_TIP]),
+        wand: () => [["Click", "Add the area of similar color to the active region"], PICK_TIP],
+        object: () => [["Click", "The object"], ["Ctrl+click", "Not part of it"], ["Drag", "A box around it"], ["Enter", "Add the selection"],
+                       ["Shift+click", "Add it and start the next"], ["Backspace", "Remove the last point"], ["Esc", "Discard"]],
+        erase: () => [["Drag", "Erase from the selected layer"], ["Shift+click", "A straight line from the last stroke"], ["[ ] or Alt+wheel", "Eraser size"]],
+    };
+    let tipsShown = null;
+    function syncTips() {
+        const on = getSetting(SET.toolHints, true) !== false;
+        const empty = on && !E.state.layers.length && !E.state.regions.length && E.modeW?.value !== "use as color map";
+        const list = on ? (TIPS[E.tool]?.() || []) : [];
+        const key = `${empty}|${list.map((t) => t.join(":")).join("|")}`;
+        if (key === tipsShown) return;
+        tipsShown = key;
+        startCard.style.display = empty ? "" : "none";
+        tips.style.display = list.length ? "" : "none";
+        tips.replaceChildren(...list.map(([k, text]) => {
+            const s = E.el("span"), b = E.el("b"); b.textContent = k; s.append(b, " " + text); return s;
+        }));
+    }
+    hintsListeners.add(syncTips);
+    E.cv.addEventListener("pointerdown", () => E.cvBox.classList.add("held"));
+    E.tipsRelease = () => E.cvBox.classList.remove("held");
+    for (const ev of ["pointerup", "pointercancel"]) window.addEventListener(ev, E.tipsRelease, true);      // capture: the canvas keeps its own events from bubbling
 
     // ---- brush size: vertical slider over the left edge of the canvas (brush and eraser tools)
     const BMIN = 0.002, BMAX = 0.3;
@@ -123,7 +172,7 @@ export function* canvasUi(E) {
         });
         E.refreshUI();
     });
-    allApartBtn.classList.add("icon", "toggle", "variants");
+    allApartBtn.classList.add("mixed", "toggle", "variants", "rg-apart");
     // right-click: the two choices as check items (keep all regions apart / share the background)
     allApartBtn.addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
     allApartBtn.addEventListener("contextmenu", (e) => {
@@ -154,7 +203,7 @@ export function* canvasUi(E) {
         const key = `${own}|${auto}|${!!opts.autoOff}|${shared}`;
         if (allApartShown === key) return;
         allApartShown = key;
-        setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart"));
+        setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart") + "<span>apart</span>");
         allApartBtn.classList.toggle("on", on);
         allApartBtn.title = (own ? "Keep all regions apart: ON."
             : auto ? "Keep all regions apart: ON automatically in the last run."

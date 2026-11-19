@@ -166,6 +166,10 @@
     "name": "填充：缝隙大小（px）",
     "tooltip": "填充并封闭小缝隙：宽度小于约两倍此像素数的开口会被封闭。"
   },
+  "RegionGenie_Tools_Hints": {
+    "name": "画布上的提示",
+    "tooltip": "开启：画布底部边缘显示当前工具的按键和操作手势，画布为空时还显示入门步骤。\n关闭：画布上不显示提示。\n立即应用于每个 Region Genie 节点。"
+  },
   "RegionGenie_Select_Model": {
     "name": "模型",
     "tooltip": "“Select object”（选择对象）工具使用的 SAM 3.1 检查点（ComfyUI 原生的 SAM 3 支持）。将 sam3.1_multiplex_fp16.safetensors 从 huggingface.co/Comfy-Org/sam3.1 下载到 ComfyUI/models/checkpoints。该文件不存在时，使用该文件夹中的其他 SAM 3 检查点。开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的检查点。"

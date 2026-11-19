@@ -2,7 +2,7 @@
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { nodeOffCanvas, getSetting, SET, editLoras, controlFiles } from "../rg_shared.js";
+import { nodeOffCanvas, getSetting, SET, editLoras, controlFiles, hintsListeners } from "../rg_shared.js";
 import { closeLlmSettings } from "../rg_llm.js";
 import { lassoRefreshers, ALL, DEFAULT_W, DEFAULT_H, LAYOUT_FORMAT } from "./shared.js";
 import { normLoraOpts, parseState } from "./state.js";
@@ -129,6 +129,7 @@ export function* lifecycle(E) {
         E.onDimsChanged(); E.refreshUI();
     }
     chain(E.node, "onExecuted", function (message) {
+        if (Array.isArray(message?.region_info)) E.setRunInfo(message.region_info[0]);
         if (message?.dims) { E.execDims = message.dims; E.execGuess = E.guessInputDims(); E.onDimsChanged(); }
         if (Array.isArray(message?.prompt_format)) { E.lastFormat = String(message.prompt_format[0] || "") || null; E.syncModelSel(); }
         if (Array.isArray(message?.model_arch) && message.model_arch[0]) {
@@ -230,7 +231,7 @@ export function* lifecycle(E) {
         E.updateLlmButtons();
     }, 500);
     chain(E.node, "onRemoved", function () {
-        clearInterval(poll); E.closeEditor(true); ro.disconnect(); E.offLlmLib(); closeLlmSettings(); lassoRefreshers.delete(E.refreshVariantButtons); E.closeArrange(); if (E.pick) E.pickCancel();
+        clearInterval(poll); E.closeEditor(true); ro.disconnect(); E.offLlmLib(); closeLlmSettings(); lassoRefreshers.delete(E.refreshVariantButtons); hintsListeners.delete(E.syncTips); for (const ev of ["pointerup", "pointercancel"]) window.removeEventListener(ev, E.tipsRelease, true); E.closeArrange(); if (E.pick) E.pickCancel();
         for (const t of E.PAN_EVENTS) window.removeEventListener(t, E.midPan, true);
         window.removeEventListener("pointerdown", E.hideSelOutside, true);
         window.removeEventListener("mousedown", E.noAutoScroll, true);

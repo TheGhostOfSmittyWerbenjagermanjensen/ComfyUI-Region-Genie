@@ -26,6 +26,7 @@ export function* list(E) {
         if (L && L.shape === "roundrect" && document.activeElement !== E.radiusIn) E.radiusIn.value = String(L.radius ?? 20);
         E.renderRegions();
         E.editor?.refresh();
+        E.syncTips();
         E.requestDraw();
     }
     function ico(symbol, title, fn, cls = "ico") {
@@ -157,7 +158,7 @@ export function* list(E) {
             str.addEventListener("change", () => { const v = +str.value; if (Number.isFinite(v)) E.change(() => { lo.strength = v; }); });
             str.addEventListener("keydown", (e) => e.stopPropagation());
             const del = ico("✕", "Remove this LoRA", () => E.change(() => { list.splice(i, 1); }));
-            row.append(tag, on, pick, str, del);
+            row.append(tag, on, pick, E.rowWord("strength", str), str, del);
             frag.appendChild(row);
             const chips = E.el("div", "rg-trig");
             frag.appendChild(chips);

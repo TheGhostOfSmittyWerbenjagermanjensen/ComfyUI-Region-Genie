@@ -420,6 +420,9 @@ export function* popups(E) {
     }
     E.cv.addEventListener("pointerleave", () => { E.hover = null; E.requestDraw(); });
     E.cv.addEventListener("pointerenter", () => E.keepFocus());
+    // the toolbar, the list and the bottom bar too: a shortcut pressed while pointing anywhere at the editor is
+    // the editor's (R: rectangle), not ComfyUI's (R: refresh). A text field that has the focus keeps it.
+    E.wrap.addEventListener("pointerenter", () => E.keepFocus());
     for (const ev of ["mousedown", "mousemove", "mouseup", "pointerdown", "pointermove", "pointerup", "contextmenu", "dblclick"]) {
         E.cvBox.addEventListener(ev, (e) => { e.stopPropagation(); if (ev === "contextmenu") e.preventDefault(); });
     }

@@ -323,7 +323,7 @@ export function* regions(E) {
         for (const b of new Set(Object.values(E.toolBtns))) b.classList.toggle("on", E.toolBtns[t] === b);
         E.refreshVariantButtons();                       // the buttons show the tool in use; the strip its options
         E.bSlider.style.display = t === "brush" || t === "erase" ? "" : "none";
-        E.hideBTip(); E.updateBrushSlider();
+        E.hideBTip(); E.updateBrushSlider(); E.syncTips();
         if (performance.now() > keepHintUntil) hint("");       // a note just shown (e.g. region shown again) stays
         E.requestDraw();
     }

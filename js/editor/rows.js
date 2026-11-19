@@ -9,7 +9,7 @@ import {
 export function* rows(E) {
     Object.assign(E, {
         syncControlLoras, pruneManagedLoras, addControl, editRows, addEditRow, controlRow, controlToggle, keepToggle, hideBanner,
-        showMsg, hideMsg, notify,
+        showMsg, hideMsg, notify, setRunInfo,
     });
     yield;
 
@@ -111,6 +111,8 @@ export function* rows(E) {
         i.addEventListener("pointerdown", (e) => e.stopPropagation());
         return i;
     };
+    // a small grey word in front of a bare number ("strength", "steps"), with the number's own tooltip
+    const rowWord = (text, forEl) => { const w = E.el("span", "rg-hint rg-word"); w.textContent = text; w.title = forEl.title; return w; }; E.rowWord = rowWord;
     const rowLabel = (text, title) => {
         const pad = E.el("span", "rg-chev"); pad.style.visibility = "hidden"; pad.textContent = "▶";   // lines up with the regions
         const lbl = E.el("span", "rg-pseudo"); lbl.textContent = text; lbl.title = title;
@@ -141,7 +143,7 @@ export function* rows(E) {
                 const str = rowNum(lo ? lo.strength : 1, "Strength of the edit LoRA (1 = as trained)", -10, 10, 0.05,
                     (v) => E.change(() => { const x = (E.state.sceneLoras || []).find((y) => y.edit === arch); if (x) x.strength = v; }));
                 str.disabled = !lo;
-                row.append(t, f, str);
+                row.append(t, f, rowWord("strength", str), str);
             }
             row.append(rowX("Remove the Edit row: This node doesn't use the edit LoRA from Settings (the setting stays). ＋Edit brings it back.",
                 () => E.change(() => { E.state.editOff = true; E.syncEditLoras(); })));
@@ -156,7 +158,7 @@ export function* rows(E) {
                 title: "A LoRA used in Edit Mode only, in this node", onPick: (v) => E.change(() => { lo.lora = v; }),
             });
             const str = rowNum(lo.strength, "Strength (1 = as trained)", -10, 10, 0.05, (v) => E.change(() => { lo.strength = v; }));
-            row.append(f, str, rowX("Remove this Edit row", () => E.change(() => {
+            row.append(f, rowWord("strength", str), str, rowX("Remove this Edit row", () => E.change(() => {
                 E.state.editLoras.splice(k, 1); if (!E.state.editLoras.length) delete E.state.editLoras;
             })));
             frag.appendChild(row);
@@ -211,7 +213,7 @@ export function* rows(E) {
                 + " one map per run, and a Control row above this one already gives it.\nRemove one of the two rows, or change this row's kind.";
             row.append(warn);
         }
-        row.append(kind, str, a, dash, b, pct, gap, eye, rowX("Remove this Control row.\nThe last row removed: Its settings come back with the next ＋Control.", () => removeControl(k)));
+        row.append(kind, rowWord("strength", str), str, rowWord("steps", a), a, dash, b, pct, gap, eye, rowX("Remove this Control row.\nThe last row removed: Its settings come back with the next ＋Control.", () => removeControl(k)));
         return row;
     }
     function controlToggle(r) {
@@ -238,7 +240,35 @@ export function* rows(E) {
     }
     const foot = E.el("div", "rg-foot"); E.foot = foot;
     const footGap = E.el("span"); footGap.style.flex = "1 1 auto";
-    foot.append(E.settings, footGap, E.exportBtn, E.importBtn, E.fileIn);
+    // what the last run reported (the text of the region_info output reaches the editor with every run): a button
+    // that counts the run's notes (its "NOTE:" lines: something was skipped, missing or not connected) and shows
+    // the whole text in the message bar under the canvas
+    let runInfo = "", notesOpen = false;
+    const notesBtn = E.el("button", "rg-btn rg-notes"); notesBtn.type = "button"; notesBtn.style.display = "none"; E.notesBtn = notesBtn;
+    const isNote = (l) => /^\s*NOTE:/.test(l);
+    const runNotes = () => runInfo.split("\n").filter(isNote).map((l) => l.replace(/^\s*NOTE:\s*/, ""));
+    const notesText = () => {
+        const notes = runNotes(), rest = runInfo.split("\n").filter((l) => l.trim() && !isNote(l));
+        return (notes.length ? notes.map((n) => "• " + n).join("\n") + "\n\n" : "") + "The last run:\n" + rest.join("\n");
+    };
+    function setRunInfo(text) {
+        runInfo = String(text || "");
+        const n = runNotes().length;
+        notesBtn.style.display = runInfo.trim() ? "" : "none";
+        notesBtn.textContent = n ? `⚠ ${n}` : "ⓘ";
+        notesBtn.classList.toggle("warn", n > 0);
+        notesBtn.title = (n ? `The last run left ${n} note${n > 1 ? "s" : ""} (something was skipped, missing or not connected).`
+            : "The last run left no notes.")
+            + "\nClick: Show or hide what the run reported (the text of the region_info output).";
+        if (notesOpen) showMsg(notesText(), true);
+    }
+    notesBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+    notesBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (notesOpen && msgBar.style.display !== "none") hideMsg(); else showMsg(notesText(), true);
+        E.focusSink();
+    });
+    foot.append(E.settings, footGap, notesBtn, E.exportBtn, E.importBtn, E.fileIn);
 
     // banner shown when import_json brings a new layout while the canvas has content ("ask before replacing")
     const banner = E.el("div", "rg-banner"); E.banner = banner; banner.style.display = "none";
@@ -265,7 +295,11 @@ export function* rows(E) {
     msgBar.append(msgIcon, msgText, msgCopy, msgClose);
     // keep LiteGraph / Nodes 2.0 from treating a text selection as a node drag; the browser's own menu on right-click
     for (const ev of ["pointerdown", "mousedown", "dblclick", "contextmenu", "wheel"]) msgBar.addEventListener(ev, (e) => e.stopPropagation());
-    function showMsg(text) {
+    function showMsg(text, runReport = false) {
+        notesOpen = !!runReport;
+        msgBar.classList.toggle("info", notesOpen && !runNotes().length);
+        msgBar.classList.toggle("notes", notesOpen && runNotes().length > 0);
+        msgIcon.textContent = notesOpen && !runNotes().length ? "ⓘ" : "⚠";
         msgText.replaceChildren();
         msgUrl = "";
         const re = /https?:\/\/[^\s()<>"']+/g;
@@ -282,7 +316,7 @@ export function* rows(E) {
         msgCopy.style.display = msgUrl ? "" : "none";
         msgBar.style.display = "";
     }
-    function hideMsg() { if (msgBar.style.display !== "none") msgBar.style.display = "none"; }
+    function hideMsg() { notesOpen = false; if (msgBar.style.display !== "none") msgBar.style.display = "none"; }
     const msgSelected = () => {
         const sel = window.getSelection?.();
         return !!(sel && !sel.isCollapsed && msgBar.style.display !== "none" && msgBar.contains(sel.anchorNode));

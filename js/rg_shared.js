@@ -1535,6 +1535,7 @@ export const SET = {
     toolWandTolerance: "RegionGenie.Tools.WandTolerance",
     toolFill: "RegionGenie.Tools.Fill",
     toolFillGap: "RegionGenie.Tools.FillGap",
+    toolHints: "RegionGenie.Tools.Hints",
     samModel: "RegionGenie.Select.Model",
     filePickers: "RegionGenie.ModelFiles.Browse",
     checkFiles: "RegionGenie.ModelFiles.Check",
@@ -1606,6 +1607,7 @@ export function toolDefault(tool) {
     const v = getSetting(TOOL_SETTING[tool], TOOL_VARIANTS[tool][0]);
     return TOOL_VARIANTS[tool].includes(v) ? v : TOOL_VARIANTS[tool][0];
 }
+export const hintsListeners = new Set();        // each node's syncTips: 'Hints on the canvas' was switched in Settings
 const toolListeners = new Set();
 // fn(tool, variant): a tool's default variant was changed in Settings
 export const onToolDefault = (fn) => { toolListeners.add(fn); return () => toolListeners.delete(fn); };
@@ -1765,6 +1767,13 @@ const SETTINGS = [
             tooltip: "Fill, closing small gaps: Openings narrower than about twice this many pixels are closed.",
             category: CAT("Canvas tools", "6 fill gap"),
             onChange: (v) => toolChanged("fillGap", v),
+        },
+        {
+            id: SET.toolHints, name: "Hints on the canvas", type: "boolean", defaultValue: true,
+            tooltip: "On: The canvas shows the active tool's keys and gestures along its bottom edge, and the first steps while it is empty.\n"
+                + "Off: No hints on the canvas.\nApplies to every Region Genie node right away.",
+            category: CAT("Canvas tools", "7 hints"),
+            onChange: () => { for (const f of hintsListeners) f(); },
         },
         {
             id: SET.samModel, name: "Model", type: fileSettingType(["checkpoints"], SAM_DEFAULT, SET.samModel, "checkpoints", false), defaultValue: SAM_DEFAULT,

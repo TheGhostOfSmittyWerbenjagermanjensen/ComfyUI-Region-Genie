@@ -166,6 +166,10 @@
     "name": "채우기: 틈 크기 (px)",
     "tooltip": "채우기, 작은 틈 닫기: 이 픽셀 수의 약 두 배보다 좁은 틈은 닫힙니다."
   },
+  "RegionGenie_Tools_Hints": {
+    "name": "캔버스의 힌트",
+    "tooltip": "켬: 캔버스 아래쪽 가장자리에 현재 도구의 키와 조작 방법을 표시하고, 캔버스가 비어 있을 때는 첫 단계도 표시합니다.\n끔: 캔버스에 힌트를 표시하지 않습니다.\n모든 Region Genie 노드에 바로 적용됩니다."
+  },
   "RegionGenie_Select_Model": {
     "name": "모델",
     "tooltip": "개체 선택(Select object) 도구가 사용하는 SAM 3.1 체크포인트입니다(ComfyUI의 기본 SAM 3 지원). huggingface.co/Comfy-Org/sam3.1에서 sam3.1_multiplex_fp16.safetensors를 내려받아 ComfyUI/models/checkpoints에 넣으세요. 이 파일이 없으면 그 폴더의 다른 SAM 3 체크포인트가 사용됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 체크포인트를 고를 수 있습니다."
