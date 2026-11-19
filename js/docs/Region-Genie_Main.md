@@ -25,7 +25,7 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
    gestures of the tool in use.
 5. **Regions**: one row per region, with its number (the `index` other nodes use), color, type and prompt. The
    arrow at the start of a row opens it: feather, palette, merge, move and delete, then its layers and LoRAs.
-   Drag a region or a layer by the six dots at the start of its row to reorder it.
+   Drag a region or a layer by the six dots at the start of its row to reorder it; a click on them picks the row.
    *Whole image* holds LoRAs and Control for the whole picture.
 6. **Bottom bar**: Generate / Edit, the model, the LLM Prompt Enhancer, tag autocomplete, the wildcard seed, and
    Export / Import. After a run, a button here shows what the run reported, with a ⚠ when something needs attention.

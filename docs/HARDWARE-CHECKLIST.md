@@ -121,3 +121,10 @@ Check once in legacy mode and once in Nodes 2.0.
 - Type in the window's scene prompt boxes: the node's own fields have the text after closing.
 - Ctrl+Enter while the window is open queues the workflow; after the run the notes button in the window's bottom bar updates.
 - Switch to another workflow tab while it is open: the window closes and the editor is in its node when you come back.
+
+## 15. Pop-up lists and grips (round 37)
+
+- **Large editor, tag autocomplete on (ComfyUI-Custom-Scripts or ComfyUI-Lora-Manager):** type the start of a tag in the window's scene_prompt_positive and scene_prompt_negative boxes (and the background box with Ideogram 4): the list opens over the window, right under the line you type. Same for a wildcard (`__`).
+- With the graph zoomed in and out (not 100 %): in a region's pop-up editor and in the large editor the tag list still starts right under the typed line, not on it and not far below.
+- **ComfyUI-Lora-Manager's autocomplete** (with Custom-Scripts' switched off): its list also opens over the large editor and the pop-up editors. The automatic test only covers Custom-Scripts' list.
+- Click (don't drag) the six dots of a region row: that region becomes the active one. Click a layer's six dots: the layer is selected and its region active. A drag still moves the row.

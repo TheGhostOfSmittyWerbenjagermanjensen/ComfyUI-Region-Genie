@@ -92,6 +92,15 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const y = where === "top" ? t.y + 2 : where === "bottom" ? t.y + t.height - 2 : t.y + t.height / 2;
         await page.mouse.move(g.x + 8, (g.y + y) / 2, { steps: 4 }); await page.mouse.move(g.x + 8, y, { steps: 4 });
     };
+    // a click on a grip (no drag) picks its row, as the prompt field does
+    const lastRid = (await st()).regions.at(-1).id;
+    const gl = await rows.nth(before.length - 1).locator(".rg-grip").boundingBox();
+    await page.mouse.click(gl.x + gl.width / 2, gl.y + gl.height / 2); await page.waitForTimeout(120);
+    check("a click on a region's grip makes that region the active one (and moves nothing)", await page.evaluate(() => window.__node.__rgActive()) === lastRid
+        && await rows.nth(before.length - 1).evaluate((r) => r.classList.contains("sel")) && (await order()).join() === before.join());
+    const g1 = await rows.nth(1).locator(".rg-grip").boundingBox();
+    await page.mouse.click(g1.x + g1.width / 2, g1.y + g1.height / 2); await page.waitForTimeout(120);
+    check("and another region's grip makes that one active", await page.evaluate(() => window.__node.__rgActive()) === (await st()).regions[1].id && await page.locator(".rg-row.region.sel").count() === 1);
     await dragTo(rows.nth(before.length - 1).locator(".rg-grip"), rows.nth(0), "top");
     check("while dragging: a line shows where the region will land", await page.locator(".rg-list .rg-dropline").count() === 1 && await page.locator(".rg-row.region.dragging").count() === 1);
     await page.mouse.up(); await page.waitForTimeout(150);
@@ -114,6 +123,13 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const first = (await st()).layers.find((l) => l.region === knight.id && l.id !== 99).id;
     const stackOf = async (rid) => (await st()).layers.filter((l) => l.region === rid).map((l) => l.id);
     check("the copy is on top of the knight's layers", (await stackOf(knight.id)).join() === `${first},99`);
+    // a click on a layer's grip selects that layer, as its name field does
+    await page.evaluate(() => window.__node.__rgSelectLayer(null)); await page.waitForTimeout(80);
+    const lg = await lrow(first).locator(".rg-grip").boundingBox();
+    await page.mouse.click(lg.x + lg.width / 2, lg.y + lg.height / 2); await page.waitForTimeout(120);
+    check("a click on a layer's grip selects that layer and makes its region active", await lrow(first).evaluate((r) => r.classList.contains("sel"))
+        && await page.evaluate(() => window.__node.__rgActive()) === knight.id && await page.locator(`.rg-row.region.sel[data-rid="${knight.id}"]`).count() === 1
+        && (await stackOf(knight.id)).join() === `${first},99`);
     await dragTo(lrow(99).locator(".rg-grip"), lrow(first), "bottom"); await page.mouse.up(); await page.waitForTimeout(150);
     check("a layer dragged below another goes under it in the stack", (await stackOf(knight.id)).join() === `99,${first}`);
     await dragTo(lrow(99).locator(".rg-grip"), page.locator(`.rg-row.region[data-rid="${cliff.id}"]`), "middle");

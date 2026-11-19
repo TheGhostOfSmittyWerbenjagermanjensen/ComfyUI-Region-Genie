@@ -2,6 +2,15 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 37 (Nov 19): no tag list in the large editor's scene boxes; grip click; a layering test for every text field
+- Reported: the tag autocomplete lists don't show for scene_prompt_positive and scene_prompt_negative in the large editor (assumed to be under the window). Asked for: the fix, a layering test for the pop-up lists of each text field, to run when anything that could affect them changes; a click on a grip should make its region / layer active.
+- Cause (not layering): the lists were never made. Registering a text field for autocomplete swept away registrations of fields not on the page yet, and the large editor registered its three scene boxes before putting them on the page: the first two were dropped by the next one's sweep (the third, background, kept its list). Fixed in both places: the sweep keeps a field until it has been on the page, and the large editor registers its boxes once the window is up.
+- Found by the new test: in every pop-up editor and in the large editor the tag list of ComfyUI-Custom-Scripts started on the line being typed (or too far below it) unless the graph zoom was 100 %, because that pack places its list by the graph's zoom. The list now uses the field's real scale. This flaw is as old as the pop-up editors.
+- `tests/real_layering.cjs [vue]` (new): 53 checks per mode over every text field in every place it can be typed, both lists, plus the pop-ups over the large editor. With the two faults put back it fails 12 checks (2 "no list", 10 "not under the typed line"); with the fix it passes in both modes. `tests/setup_real_comfy.sh` now also installs ComfyUI-Custom-Scripts with a word list and makes an empty LoRA file. Text boxes got `data-rg-field` so tests find them in both modes.
+- Grips: a click on a region's grip makes that region active; a click on a layer's grip selects the layer (and so makes its region active), as their prompt / name fields do. Tooltips say so.
+- Not covered by the test: the LoRA Manager autocomplete engine (used when Custom-Scripts' is off); it gets the same stacking class, but its list was not exercised here.
+- Tests: real_layering in both modes; ui_labels_colors_drag (grip clicks); run_py, run_ui; real_tooltips, real_fields_popups, real_smoke, real_run_wildcards in both modes. Version 0.31.1.
+
 ## Round 36 (Nov 19): UX batch 4, the large editor
 - Asked for: the large editor mode, with mock-ups first.
 - Mock-ups (drawn): A, tools on the left like a photo editor; B, the node's tool row with the list beside the canvas; C, the node only larger. The owner chose **B**, a toolbar button plus a key that can be changed, and the scene prompts and size row in the right-hand panel.
