@@ -3,7 +3,8 @@
 // saved files and their sizes after a run. Design: docs/superpowers/specs/2026-11-13-save-image-design.md
 // Round 44: the node also writes what the image was made with as text for other interfaces (a1111_metadata; the
 // Python side reads it from the workflow that ran). Values the workflow doesn't show can be connected: those optional
-// inputs are hidden until they are ticked in the node's inputs list (the cable button at the end of its status line).
+// inputs are hidden until they are ticked in the node's inputs list (the cable button on the right of the node's input
+// rows, just above filename_prefix).
 import { app } from "../../scripts/app.js";
 import { getSetting, SET, keepWidgetValuesByName, svgIcon, socksStyle } from "./rg_shared.js";
 
@@ -30,13 +31,15 @@ const META = [
 ];
 const META_TYPE = Object.fromEntries(META.map(([n, t]) => [n, t]));
 let panel = null;                                    // one inputs list at a time, on the whole page
+const TOP_H = 0;                                     // the height of the row that carries the inputs-list button
 const CSS = `
 .rg-save-out { display:flex; align-items:center; gap:6px; height:20px; padding:0 4px; box-sizing:border-box; overflow:hidden;
   white-space:nowrap; text-overflow:ellipsis; font:12px sans-serif; color:var(--input-text,#ddd); opacity:.85; }
 .rg-save-out .rg-save-note { color:#d9a441; overflow:hidden; text-overflow:ellipsis; }
 .rg-save-out.stale { opacity:.45; }
 .rg-save-text { display:flex; align-items:center; gap:6px; flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
-.rg-save-out.stale .rg-save-socks { opacity:1; }
+.rg-save-top { position:relative; height:0; overflow:visible; pointer-events:none; }
+.rg-save-top .rg-save-socks { position:absolute; right:6px; bottom:3px; pointer-events:auto; }
 .rg-save-socks { flex:0 0 auto; margin-left:auto; width:20px; height:18px; padding:0; display:inline-flex; align-items:center; justify-content:center;
   background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer; }
 .rg-save-socks svg { width:13px; height:13px; display:block; pointer-events:none; }
@@ -194,7 +197,20 @@ app.registerExtension({
                 + "it, then connect it.\nA connected one always stays.";
             for (const ev of ["pointerdown", "mousedown", "dblclick"]) sockBtn.addEventListener(ev, (e) => e.stopPropagation());
             sockBtn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); toggleList(); });
-            out.appendChild(sockBtn);
+            // The button sits on the right of the node's input rows, just above filename_prefix (round 44b: the owner
+            // wanted it at the top, as on the Region Genie node, and away from the image shown at the bottom). The node's
+            // one output, 'images', is in the first row; the rows under it are free on that side. It is a widget of no
+            // height at the top of the node's fields, with the button lifted into the row above it.
+            const top = document.createElement("div");
+            top.className = "rg-save-top";
+            top.appendChild(sockBtn);
+            const topW = node.addDOMWidget("rg_inputs", "RgInputs", top, {
+                serialize: false, hideOnZoom: false, margin: 0, getMinHeight: () => TOP_H, getMaxHeight: () => TOP_H,
+            });
+            topW.serialize = false;
+            topW.computeSize = (w) => [w ?? node.size?.[0] ?? 300, TOP_H];
+            topW.computeLayoutSize = undefined;
+            { const i = node.widgets.indexOf(topW); if (i > 0) { node.widgets.splice(i, 1); node.widgets.unshift(topW); } }
             function toggleList() {
                 if (panel) { const mine = panel.node === node; panel.close(); if (mine) return; }
                 socksStyle();

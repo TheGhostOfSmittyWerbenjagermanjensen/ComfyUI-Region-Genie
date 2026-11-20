@@ -50,7 +50,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // only the chosen format's fields show
     const shown = () => page.evaluate((vue) => {
         const sv = window.__sv;
-        const names = sv.widgets.filter((w) => !w.hidden && w.name !== "rg_saved" && w.type !== "converted-widget").map((w) => w.name);
+        const names = sv.widgets.filter((w) => !w.hidden && w.name !== "rg_saved" && w.name !== "rg_inputs" && w.type !== "converted-widget").map((w) => w.name);
         let dom = null;
         if (vue) {
             const box = document.querySelector(`[data-node-id="${sv.id}"]`);
@@ -231,7 +231,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         }, "api.json");
         await new Promise((r) => setTimeout(r, 1200));
         const n = window.app.graph.nodes.find((x) => x.type === "Region-Genie_SaveImage");
-        return Object.fromEntries((n?.widgets || []).filter((w) => w.name !== "rg_saved").map((w) => [w.name, w.value]));
+        return Object.fromEntries((n?.widgets || []).filter((w) => w.name !== "rg_saved" && w.name !== "rg_inputs").map((w) => [w.name, w.value]));
     });
     check(`${M}: an API-format workflow keeps the node's values (${JSON.stringify(api)})`, api.format === "jpeg" && api.jpeg_quality === 60
         && api.jpeg_extension === ".jpeg" && api.jpeg_workflow === "none" && api.png_compression === 5 && api.webp_lossless === true && api.avif_quality === 33);
@@ -281,8 +281,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     check(`${M}: a new node: the switch for the settings text is on, and none of its optional inputs shows (${built.shown.join(", ") || "none"})`,
         built.sw === true && built.shown.length === 0 && !META.some((n) => built.inputs.includes(n)) && built.inputs.includes("images"));
-    const cable = page.locator(".rg-save-out .rg-save-socks").last();
-    check(`${M}: a cable button at the end of the node's status line, with a tooltip`, await cable.count() === 1 && await cable.isVisible() && /^Inputs: /.test(await cable.getAttribute("title") || ""));
+    const cable = page.locator(".rg-save-top .rg-save-socks").last();
+    check(`${M}: a cable button with a tooltip, and none in the status line any more`, await cable.count() === 1 && await cable.isVisible() && /^Inputs: /.test(await cable.getAttribute("title") || "")
+        && await page.locator(".rg-save-out .rg-save-socks").count() === 0);
+    // where it is: on the right of the input rows, directly above filename_prefix, on top (the owner's wish: as on the
+    // Region Genie node, and away from the image at the bottom)
+    const where = () => page.evaluate((vue) => {
+        const sv = window.__sv, b = [...document.querySelectorAll(".rg-save-top .rg-save-socks")].pop(), r = b.getBoundingClientRect();
+        const ds = window.app.canvas.ds, cr = window.app.canvas.canvas.getBoundingClientRect(), k = ds.scale;
+        const sy = (y) => cr.top + (y + ds.offset[1]) * k, sx = (x) => cr.left + (x + ds.offset[0]) * k;
+        const box = vue ? document.querySelector(`[data-node-id="${sv.id}"]`).getBoundingClientRect() : { left: sx(sv.pos[0]), right: sx(sv.pos[0] + sv.size[0]), top: sy(sv.pos[1]), bottom: sy(sv.pos[1] + sv.size[1]) };
+        const fw = sv.widgets.find((w) => w.name === "filename_prefix");
+        const fpTop = vue ? [...document.querySelectorAll(`[data-node-id="${sv.id}"] input, [data-node-id="${sv.id}"] textarea`)].find((e) => e.value === fw.value)?.getBoundingClientRect().top : sy(sv.pos[1] + fw.y);
+        const out = document.querySelector(".rg-save-out")?.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        const socketRows = sv.inputs.filter((i) => !sv.widgets.some((w) => w.name === i.name)).length;
+        return { aboveField: Math.round(fpTop - r.bottom), rightGap: Math.round(box.right - r.right), leftOfMiddle: r.left < (box.left + box.right) / 2, belowTop: r.top > box.top,
+                 aboveStatus: !out || r.bottom < out.top, onTop: hit === b || b.contains(hit), top: Math.round(r.top), socketRows }; }, vue);
+    const w0 = await where();
+    check(`${M}: it is on the right of the node's input rows, just above filename_prefix (${w0.aboveField} px above the field, ${w0.rightGap} px from the node's right edge), on top`,
+        w0.aboveField >= 0 && w0.aboveField <= 14 && w0.rightGap >= 2 && w0.rightGap <= 30 && !w0.leftOfMiddle && w0.belowTop && w0.aboveStatus && w0.onTop);
     await cable.click(); await sleep(400);
     const list = () => page.evaluate(() => { const b = document.querySelector(".rg-save-list"); if (!b) return null; const r = b.getBoundingClientRect();
         const top = document.elementFromPoint(r.left + r.width / 2, r.top + 12);
@@ -295,6 +313,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: ticking 'seed' gives the node a seed input (${st.inputs.filter((n) => n === "seed").length}); it is noted on the node; the list stays open`,
         st.inputs.includes("seed") && !st.inputs.includes("steps") && JSON.stringify(st.prop) === '["seed"]' && (await list())?.rows.find((r) => r.n === "seed").on === true);
     if (!vue) check(`${M}: the node grows by the new input's row (${built.h} -> ${st.h})`, st.h > built.h);
+    const w1 = await where();
+    check(`${M}: with one more input row the button is a row lower, still just above filename_prefix (${w0.top} -> ${w1.top}; ${w1.aboveField} px above the field)`,
+        w1.socketRows === w0.socketRows + 1 && w1.top > w0.top + 8 && w1.aboveField >= 0 && w1.aboveField <= 14 && w1.onTop);
     await page.locator('.rg-save-list label[data-sock="positive_prompt"]').click(); await sleep(300);
     await page.evaluate(() => { const sv = window.__sv; window.__seed.connect(0, sv, sv.inputs.findIndex((i) => i.name === "seed")); window.__txt.connect(0, sv, sv.inputs.findIndex((i) => i.name === "positive_prompt")); });
     await sleep(700);

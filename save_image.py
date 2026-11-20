@@ -271,7 +271,7 @@ class _Any(str):
 
 ANY = _Any("*")
 NOTE_SETTINGS = ("Settings text: {} not found in the workflow (another node sets {}); connect it at this node's inputs "
-                 "(the cable button)")
+                 "(the cable button above filename_prefix)")
 
 
 def _plain(v):
