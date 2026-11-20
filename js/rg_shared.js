@@ -3,6 +3,7 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 import { openColorPicker } from "./rg_colorpicker.js";
+import { shortcutsSettingType } from "./rg_keys.js";      // (the two files import each other: see the note in rg_keys.js)
 import "./rg_tooltip.js";                 // the pack's own tooltip takes over every title in the pack's elements
 
 // ---------------------------------------------------------------- icons (16x16, stroke = text color)
@@ -1177,7 +1178,7 @@ export const popFootText = (nav = true) => {
 // a key name as the browser gives it, with modifiers, e.g. "PageUp", "Alt+ArrowLeft", "Ctrl+PageDown", "F2"; empty = off
 const KEY_ALIASES = { pgup: "pageup", "page up": "pageup", pgdn: "pagedown", pgdown: "pagedown", "page down": "pagedown",
     left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown", "←": "arrowleft", "→": "arrowright", "↑": "arrowup",
-    "↓": "arrowdown", esc: "escape", del: "delete", ins: "insert", space: " ", spacebar: " " };
+    "↓": "arrowdown", esc: "escape", del: "delete", ins: "insert", space: " ", spacebar: " ", plus: "+" };
 const MOD = { ctrl: "ctrl", control: "ctrl", alt: "alt", option: "alt", opt: "alt", shift: "shift", meta: "meta", cmd: "meta", command: "meta", win: "meta" };
 export function parseKey(text) {
     // "Alt + Arrow Left" → { alt, key: "arrowleft" }: the last part is the key, the parts before it modifiers
@@ -1212,7 +1213,7 @@ export function popNavTip(dir, what) {
     const k = keyLabel(popKeyText(dir));
     return (dir < 0 ? `The previous text field of this node (${what}), opened in this place and size; from the first it goes to the last.`
                     : `The next text field of this node (${what}), opened in this place and size; from the last it goes to the first.`)
-        + (k ? `\nShortcut: Change it in Settings > Region Genie > Text size (${k}).` : "");
+        + (k ? `\nShortcut: Change it in the shortcut list (${k}).` : "");
 }
 // the owner node is gone, or not on the canvas any more (another workflow tab, or into / out of a subgraph)
 export const nodeOffCanvas = (node) => !node?.graph || (app.canvas?.graph != null && app.canvas.graph !== node.graph);
@@ -1633,6 +1634,7 @@ export const SET = {
     cmGrid: "RegionGenie.Main.Grid",
     regionColors: "RegionGenie.Main.RegionColors",
     bigKey: "RegionGenie.Main.LargeEditorKey",
+    shortcuts: "RegionGenie.Shortcuts",              // the user's keys for the editor's commands (rg_keys.js), a JSON text
     cmAllRegions: "RegionGenie.Main.AllRegionsApart",
     cmAutoApart: "RegionGenie.Main.AutoApart",
     cmShareBg: "RegionGenie.Main.ShareBackground",
@@ -1916,15 +1918,10 @@ const SETTINGS = [
             .map(([k, name, ord, dflt, what]) => ({ id: SET[k], name, type: "number", defaultValue: dflt, attrs: { min: k.startsWith("fsNode") ? 0 : 8, max: 40, step: 1 },
                 tooltip: `Text size in px for ${what}. Applies to every node.`, category: CAT("Text size", `${ord} ${k}`) })),
         { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
-        ...[[SET.popPrevKey, "Pop-up editor: key for the previous text field", "PageUp", "8 prev key"],
-            [SET.popNextKey, "Pop-up editor: key for the next text field", "PageDown", "9 next key"]].map(([id, name, dflt, ord]) => ({
-            id, name, type: "text", defaultValue: dflt,
-            tooltip: "Steps to the previous / next text field of the node while you type in a pop-up editor, like its ◀ / ▶ buttons. "
-                + `Default: ${dflt === "PageUp" ? "Page Up" : "Page Down"}.\n`
-                + "Write a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, "
-                + "Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\n"
-                + "Empty: No key. Applies to every Region Genie and Regional LoRAs node.",
-            category: CAT("Text size", ord) })),
+        // the keys that step to the previous / next text field in a pop-up editor: changed in the shortcut list (round 39;
+        // they were two rows here), still saved under their own ids
+        { id: SET.popPrevKey, name: "Pop-up editor: key for the previous text field", type: "hidden", defaultValue: "PageUp" },
+        { id: SET.popNextKey, name: "Pop-up editor: key for the next text field", type: "hidden", defaultValue: "PageDown" },
         { id: SET.popEscKeeps, name: "Esc in a pop-up editor", type: "combo", defaultValue: "put the text back",
           options: ["put the text back", "keep the edits"],
           tooltip: "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node).\n"
@@ -1969,12 +1966,14 @@ const SETTINGS = [
                 + "An empty canvas is always filled. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "05 import"),
         },
-        {
-            id: SET.bigKey, name: "Large editor: key", type: "text", defaultValue: "Alt+Enter",
-            tooltip: "The key that opens and closes the large editor while the pointer is over a Region Genie node's editor "
-                + "(the button next to the labels button does the same). Write it like Alt+Enter, F9 or Ctrl+Shift+L; empty = no key.",
-            category: CAT("Region Genie node", "11 large key"),
-        },
+        // the large editor's key: changed in the shortcut list (round 39; it was a row here), still saved under its own id
+        { id: SET.bigKey, name: "Large editor: key", type: "hidden", defaultValue: "Alt+Enter" },
+        { id: SET.shortcuts, name: "Shortcuts", type: shortcutsSettingType(), defaultValue: "{}",
+          tooltip: "Every key of the Region Genie editor: the tools, undo, copy and paste, the view, the large editor, and the keys that step "
+              + "between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; "
+              + "each shortcut can be put back to its default.\nThe same list opens with ? while the pointer is over a Region Genie node, "
+              + "or with the keyboard button in its bottom bar. Applies to every node.",
+          category: CAT("Region Genie node", "11 shortcuts") },
         {
             id: SET.regionColors, name: "Region colors", type: regionColorsType(), defaultValue: REGION_COLORS_DEFAULT,
             tooltip: "The colors new regions get, in this order (a color already on the canvas is skipped; when all are in use, the node picks one that looks different from them).\n"

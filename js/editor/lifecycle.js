@@ -281,10 +281,25 @@ export function* lifecycle(E) {
 
     E.setTool("select");
     load();
-    // wide enough for the whole toolbar in one row (Select ... labels eye) and a usable region list; a new node
-    // has a fixed height (round 38; until then it grew until its canvas was square, about 1475 px)
+    // wide enough for the whole toolbar in one row (Select ... labels eye) and a usable region list;
+    // a new node gets a square canvas (legacy mode: measured once laid out, since fonts differ per system).
+    // Round 38 tried a fixed 700 x 1040 instead; the owner found the canvas too small and wants it square (round 39).
     if (!E.node.size || E.node.size[0] < DEFAULT_W) {
-        E.node.setSize?.([DEFAULT_W, DEFAULT_H]);
+        E.node.setSize?.([DEFAULT_W, Math.max(E.node.size?.[1] || 0, DEFAULT_H)]);
+        let tries = 0;
+        const square = () => {
+            if (E.configured || !E.node.graph && tries > 2) return;
+            const b = E.cvBox.getBoundingClientRect();
+            if (E.cvBox.closest("[data-node-id]")) return;                       // Nodes 2.0 lays out by itself
+            if (!b.width || !b.height) { if (++tries < 30) requestAnimationFrame(square); return; }
+            const k = app.canvas?.ds?.scale || 1;
+            const d = (b.width - b.height) / k;
+            if (Math.abs(d) > 1 && tries < 30) {
+                E.node.setSize([E.node.size[0], Math.round(E.node.size[1] + d)]); E.node.setDirtyCanvas?.(true, true);
+                tries++; requestAnimationFrame(() => requestAnimationFrame(square));
+            }
+        };
+        setTimeout(square, 0);
         // Settings > Region Genie: defaults for a node that was just added (not loaded or pasted)
         setTimeout(() => {
             if (E.configured) return;

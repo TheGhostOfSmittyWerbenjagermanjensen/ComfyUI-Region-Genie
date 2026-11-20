@@ -309,7 +309,7 @@ export function* list(E) {
                 contextMenu(e, items, "Move to region", (v) => { if (v && v.rid != null) E.moveLayerToRegion(L, v.rid); E.focusSink(); });
             });
             const er = ico("@eraseLayer", "Erase layer: Remove its shapes and paint, keep the empty layer", () => E.eraseLayer(L));
-            const del = ico("@clear", "Delete layer (Del)", () => E.deleteSelected(L));
+            const del = ico("@clear", "Delete layer (Delete / Backspace)", () => E.deleteSelected(L));
             // the grip selects the layer the way its name field does (no rebuilt list under the pointer)
             const pickLayer = () => { if (E.selId !== L.id || E.hiddenSel === L.id) { E.selId = L.id; E.hiddenSel = null; E.curRegion = L.region; E.markLayerRows(); E.markRegionRows(); E.requestDraw(); } };
             row.append(grip("layer", L.id, pickLayer), eye, sw, name, cut, up, dn, dup, md, mv, er, del);

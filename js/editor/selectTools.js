@@ -2,6 +2,7 @@
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { api } from "../../../scripts/api.js";
 import { getSetting, SET } from "../rg_shared.js";
+import { keyText } from "../rg_keys.js";
 import { LASSO_MODES, TOOL_NUMS, UNSPEC, RASTER_MAX } from "./shared.js";
 import { distanceMap, growMask01, encodeRuns, decodeRuns, bitmapCache } from "./geometry.js";
 import { hexRgb } from "./colors.js";
@@ -209,7 +210,7 @@ export function* selectTools(E) {
         const [ix, iy] = d.start;
         if (ix < 0 || iy < 0 || ix >= W || iy >= H) return;
         if (E.pick?.text && E.pick.masks.length) {                // found objects: Ctrl+click leaves one out / brings it back
-            if (!d.ctrl) { E.hint("Ctrl+click a found object to leave it out; Enter adds them, Esc cancels"); return; }
+            if (!d.ctrl) { E.hint("Ctrl+click a found object to leave it out" + keysSay([["draw.accept", "adds them"], ["draw.cancel", "cancels"]], "; ", ", ")); return; }
             const R = E.pick.R, px = Math.min(R.w - 1, Math.floor(ix * R.w / W)), py = Math.min(R.h - 1, Math.floor(iy * R.h / H));
             const hit = E.pick.masks.filter((m) => m.mask[py * R.w + px]);
             if (!hit.length) { E.hint("No found object here"); return; }
@@ -242,14 +243,18 @@ export function* selectTools(E) {
         pickStart(); E.pick.text = text; E.pick.box = box || null;
         pickRequest();
     }
+    // the keys in use, for the messages (rg_keys.js); a command without a key is left out of the sentence
+    const key1 = (id) => keyText(id).split(" / ")[0];
+    const keysSay = (pairs, lead, sep) => { const p = pairs.map(([id, what]) => [key1(id), what]).filter(([k]) => k); return p.length ? lead + p.map(([k, what]) => `${k} ${what}`).join(sep) : ""; };
     function pickCountHint() {
         if (!E.pick) return;
         const on = E.pick.masks.filter((m) => !m.off).length;
         const where = "to the active region";
-        if (E.pick.text) stickyHint(E.pick.masks.length ? `Found ${E.pick.masks.length}${on < E.pick.masks.length ? `, ${on} kept` : ""}: Enter or ✓ adds `
-            + `them ${where}, Shift+Enter one region each, Ctrl+click leaves one out, Esc discards` : `Nothing found for "${E.pick.text}"`);
-        else stickyHint(E.pick.masks.length ? `Enter or ✓: add ${where} · click / Ctrl+click: more points · drag: box · `
-            + "Shift+click: add this one and start the next · Backspace: undo · Esc: discard" : "Nothing selected there: try another point or a box");
+        const ok = key1("draw.accept"), back = key1("draw.back"), no = key1("draw.cancel");
+        if (E.pick.text) stickyHint(E.pick.masks.length ? `Found ${E.pick.masks.length}${on < E.pick.masks.length ? `, ${on} kept` : ""}: ${ok ? ok + " or " : ""}✓ adds `
+            + `them ${where}${ok ? `, Shift+${ok} one region each` : ""}, Ctrl+click leaves one out${no ? `, ${no} discards` : ""}` : `Nothing found for "${E.pick.text}"`);
+        else stickyHint(E.pick.masks.length ? `${ok ? ok + " or " : ""}✓: add ${where} · click: add a spot · Ctrl+click: take a spot out · drag: box · `
+            + `Shift+click: add this one and start the next${back ? ` · ${back}: undo` : ""}${no ? ` · ${no}: discard` : ""}` : "Nothing selected there: try another point or a box");
     }
     async function pickRequest() {
         if (!E.pick) return;

@@ -24,7 +24,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("hints and start card take no clicks", await page.evaluate(() => [".rg-tips", ".rg-start"].every((s) => getComputedStyle(document.querySelector(s)).pointerEvents === "none")));
     // ---- every tool has its own hints
     const want = { shape: /Shift Equal sides.*Alt From the centre/, brush: /Shift\+click A straight line.*Brush size/, lasso: /Enter \/ double-click Close the outline.*Backspace/,
-        lassoErase: /Close the outline/, fill: /Click Fill that area/, wand: /similar color/, object: /Ctrl\+click Not part of it.*Enter Add the selection/, erase: /Erase from the selected layer/ };
+        lassoErase: /Close the outline/, fill: /Click Fill that area/, wand: /similar color/, object: /Ctrl\+click Take that spot out of the selection.*Enter Add the selection/, erase: /Erase from the selected layer/ };
     const bad = [];
     for (const [t, re] of Object.entries(want)) { await setTool(t); if (!re.test(await tips() || "")) bad.push(t); }
     check(`each tool shows its own keys and gestures (${bad.join(", ")})`, !bad.length);

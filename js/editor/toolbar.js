@@ -1,6 +1,7 @@
 // The editor's elements, the tool buttons (with versions), the tool options strip on the canvas, Arrange, opacity and labels.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { svgIcon, setHTML, contextMenu } from "../rg_shared.js";
+import { keyed, keyText } from "../rg_keys.js";
 import { LASSO_MODES, TOOL_NUMS, lassoRefreshers, initLassoModes, SHAPES, ALL } from "./shared.js";
 
 export function* toolbar(E) {
@@ -25,7 +26,7 @@ export function* toolbar(E) {
     const bar1 = E.el("div", "rg-bar"); E.bar1 = bar1;
     function iconBtn(name, title, fn, cls = "") {
         const b = E.el("button", "rg-btn icon" + (cls ? " " + cls : ""));
-        b.innerHTML = svgIcon(name); b.title = title;
+        b.innerHTML = svgIcon(name); E.keyTitle(b, title);
         b.addEventListener("click", (e) => { e.preventDefault(); fn(e); });
         return b;
     }
@@ -46,12 +47,14 @@ export function* toolbar(E) {
         return i;
     };
     const grpCur = { wand: "wand", erase: "erase" }; E.grpCur = grpCur;          // the tool each mixed group shows (session)
-    const LASSO_TIP = "Drag freehand, or click points and close the loop (click the first point, double-click or Enter). ";
+    const LASSO_TIP = () => `Drag freehand, or click points and close the loop (click the first point${keyText("draw.accept") ? `, double-click or ${keyText("draw.accept")}` : " or double-click"}). `;
     const SHAPE_KEYS = { rect: "R", ellipse: "O", triangle: "T" };
-    const OBJECT_TIP = "Select object (Q): SAM 3.1 finds the object you click in the image under the canvas. Click to add "
-        + "a point on the object, Ctrl+click a point that isn't part of it, drag a box around it; Backspace undoes the "
-        + "last point, Enter adds the selection to the active region, Esc cancels. Or type what to find in the field "
-        + "on the canvas. Needs the SAM 3.1 model (Settings > Region Genie > Select object).";
+    // (a key that the user took away is left out of the sentence)
+    const OBJECT_TIP = () => "Select object (Q): SAM 3.1 finds the object you click in the image under the canvas. Click to add "
+        + "a point on the object, Ctrl+click a spot the selection covers but shouldn't (a red point takes it out), drag a box around it"
+        + [[keyText("draw.back"), "undoes the last point"], [keyText("draw.accept"), "adds the selection to the active region"], [keyText("draw.cancel"), "cancels"]]
+            .filter(([k]) => k).map(([k, what], i) => `${i ? ", " : "; "}${k} ${what}`).join("")
+        + ". Or type what to find in the field on the canvas. Needs the SAM 3.1 model (Settings > Region Genie > Select object).";
     // entries: [id, icon, title, pick()]; cur(): the id shown
     const GROUPS = {
         shape: { name: "Shape", tools: ["shape"], cur: () => E.shapeKind,
@@ -62,7 +65,7 @@ export function* toolbar(E) {
         lasso: { name: "Lasso", tools: ["lasso"], cur: () => LASSO_MODES.lasso,
             entries: () => [["plain", "lasso", "Lasso: Straight lines between the points."], ["spline", "lassoSpline", "Lasso (spline): A smooth curve through the points."],
                 ["magnetic", "lassoMagnetic", "Lasso (magnetic): The outline follows edges in the image under the canvas."]]
-                .map(([m, icon, t]) => [m, icon, `${t} ${LASSO_TIP}Filled with the active region (L).`, () => { setLassoMode("lasso", m); E.setTool("lasso"); }]) },
+                .map(([m, icon, t]) => [m, icon, `${t} ${LASSO_TIP()}Filled with the active region (L).`, () => { setLassoMode("lasso", m); E.setTool("lasso"); }]) },
         fill: { name: "Fill", tools: ["fill"], cur: () => LASSO_MODES.fill,
             entries: () => [["normal", "fill", "Fill: Fills the clicked area (blank space, or one color) with the active region (F)."],
                 ["gaps", "fillGaps", "Fill (closing small gaps): Fills the clicked area, but doesn't leak through small openings (the gap size is the field on the canvas) (F)."],
@@ -75,13 +78,13 @@ export function* toolbar(E) {
                     () => { LASSO_MODES.wand = "contiguous"; E.setTool("wand"); }],
                 ["global", "wandGlobal", "Magic wand (all similar colors): Selects every pixel of similar color in the image under the canvas (W).\nTolerance: The field on the canvas.",
                     () => { LASSO_MODES.wand = "global"; E.setTool("wand"); }],
-                ["object", "samSelect", OBJECT_TIP, () => E.setTool("object")]] },
+                ["object", "samSelect", OBJECT_TIP(), () => E.setTool("object")]] },
         erase: { name: "Eraser / Lasso erase", tools: ["erase", "lassoErase"], cur: () => (grpCur.erase === "erase" ? "erase" : "lasso:" + LASSO_MODES.lassoErase),
             entries: () => [
                 ["erase", "erase", "Eraser: Erase from the selected layer (E). Shift+click draws a straight line from where the last stroke ended.", () => E.setTool("erase")],
                 ...[["plain", "lassoErase", "Lasso erase: Straight lines between the points."], ["spline", "lassoEraseSpline", "Lasso erase (spline): A smooth curve through the points."],
                     ["magnetic", "lassoEraseMagnetic", "Lasso erase (magnetic): The outline follows edges in the image under the canvas."]]
-                    .map(([m, icon, t]) => ["lasso:" + m, icon, `${t} ${LASSO_TIP}Erases from the selected layer (Shift+L).`, () => { setLassoMode("lassoErase", m); E.setTool("lassoErase"); }])] },
+                    .map(([m, icon, t]) => ["lasso:" + m, icon, `${t} ${LASSO_TIP()}Erases from the selected layer (Shift+L).`, () => { setLassoMode("lassoErase", m); E.setTool("lassoErase"); }])] },
     }; E.GROUPS = GROUPS;
     function setLassoMode(key, m) {
         LASSO_MODES[key] = m;
@@ -114,7 +117,7 @@ export function* toolbar(E) {
         for (const [key, b] of Object.entries(grpBtns)) {
             const g = GROUPS[key], cur = g.cur(), en = g.entries().find((x) => x[0] === cur) || g.entries()[0];
             if (b.dataset.cur !== en[0]) { b.querySelector(".rg-grp-ic").innerHTML = svgIcon(en[1]); b.dataset.cur = en[0]; }
-            b.title = `${en[2]}\n▾ or right-click: ${g.name === "Shape" ? "Other shapes" : "The other tools and versions"}.`;
+            b.title = keyed(`${en[2]}\n▾ or right-click: ${g.name === "Shape" ? "Other shapes" : "The other tools and versions"}.`);
         }
         if (document.activeElement !== tolIn) tolIn.value = String(TOOL_NUMS.wandTol);
         if (document.activeElement !== gapIn) gapIn.value = String(TOOL_NUMS.fillGap);
@@ -272,8 +275,8 @@ export function* toolbar(E) {
     function setSnapIcon() {
         setHTML(snapBtn, svgIcon(E.snap ? "magnet" : "magnetOff"));
         snapBtn.classList.toggle("on", E.snap);
-        snapBtn.title = E.snap ? "Snap to grid: On. Points, shapes and moves snap to the grid; click to turn it off (G)."
-            : "Snap to grid: Off. Click to snap points, shapes and moves to the grid (G).";
+        snapBtn.title = keyed(E.snap ? "Snap to grid: On. Points, shapes and moves snap to the grid; click to turn it off (G)."
+            : "Snap to grid: Off. Click to snap points, shapes and moves to the grid (G).");
     }
     setSnapIcon();
     const gridIn = E.el("input", "rg-num");
@@ -283,7 +286,7 @@ export function* toolbar(E) {
     const undoBtn = iconBtn("undo", "Undo (Ctrl+Z)", E.undo); E.undoBtn = undoBtn;
     const redoBtn = iconBtn("redo", "Redo (Ctrl+Shift+Z / Ctrl+Y)", E.redo); E.redoBtn = redoBtn;
     const fitBtn = E.btn("Fit", "Fit the image in view (Home). Wheel zooms, middle-drag or Space+drag pans.", () => { E.userView = false; E.fitView(); E.requestDraw(); });
-    const clearBtn = iconBtn("clear", "Clear all: Remove every layer and region (Ctrl+Z brings them back)", () => {
+    const clearBtn = iconBtn("clear", "Clear all: Remove every layer and region (Undo brings them back)", () => {
         if (E.state.layers.length || E.state.regions.length || E.state.importSig) E.change(() => { E.state.layers = []; E.state.regions = []; delete E.state.importSig; E.selId = null; E.curRegion = null; E.filter = ALL; });
     }, "danger"); E.clearBtn = clearBtn;
     // image opacity: a vertical slider over the canvas's right edge while an image is shown under the regions

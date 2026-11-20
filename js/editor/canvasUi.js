@@ -3,6 +3,7 @@
 import { app } from "../../../scripts/app.js";
 import { svgIcon, setHTML, contextMenu, editMaskDefaults, getSetting, SET, hintsListeners } from "../rg_shared.js";
 import { UNSPEC, LASSO_MODES } from "./shared.js";
+import { keyed, keyText } from "../rg_keys.js";
 import { normLoraOpts, normEditMask } from "./state.js";
 
 export function* canvasUi(E) {
@@ -15,37 +16,46 @@ export function* canvasUi(E) {
     // gestures along the bottom edge, and the first steps while the canvas is empty. Neither takes clicks; the
     // gestures fade while a button is held on the canvas, so they never cover what is being drawn.
     const tips = E.el("div", "rg-tips"), startCard = E.el("div", "rg-start");
-    startCard.innerHTML = "<b>Start here</b>"
-        + "<span><i>1</i>Pick a shape (R) and drag a box on the canvas: that is your first region.</span>"
+    const setStartCard = () => { startCard.innerHTML = "<b>Start here</b>"
+        + keyed("<span><i>1</i>Pick a shape (R) and drag a box on the canvas: that is your first region.</span>")
         + "<span><i>2</i>Type what belongs there in the region's prompt, in the list under the canvas.</span>"
         + "<span><i>3</i>Connect model and clip, send positive, negative and latent to the sampler, and run.</span>"
-        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span>";
+        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span>"; };
+    setStartCard(); E.setStartCard = setStartCard;
     E.cvBox.append(tips, startCard);
-    const VIEW_TIPS = [["Wheel", "Zoom"], ["Space+drag", "Pan"]];
+    // The keys come from the shortcut table (rg_keys.js), so the hints show the user's own; an entry whose key was
+    // taken away is left out ([null, …]).
+    const K = keyText, first = (id) => keyText(id).split(" / ")[0];
+    const join = (...ids) => { const ks = ids.map(first); return ks.every(Boolean) ? ks.join(" / ") : null; };
+    const arrows = () => (["left", "up", "right", "down"].map((d) => first("nudge." + d)).join("") === "←↑→↓" ? "Arrows" : join("nudge.left", "nudge.up", "nudge.right", "nudge.down"));
+    const ccp = () => (join("edit.copy", "edit.cut", "edit.paste") === "Ctrl+C / Ctrl+X / Ctrl+V" ? "Ctrl+C / X / V" : join("edit.copy", "edit.cut", "edit.paste"));
+    const size = () => { const a = first("brush.smaller"), b = first("brush.larger"); return a && b ? `${a} ${b} or Alt+wheel` : "Alt+wheel"; };
+    const VIEW_TIPS = () => [["Wheel", "Zoom"], [first("view.pan") && `${first("view.pan")}+drag`, "Pan"]];
     const PICK_TIP = ["Alt+click", "Make the region under the pointer the active one"];
-    const LASSO_TIPS = [["Drag", "Freehand"], ["Click", "Add a point"], ["Enter / double-click", "Close the outline"], ["Backspace", "Remove the last point"], ["Esc", "Cancel"]];
+    const LASSO_TIPS = () => [["Drag", "Freehand"], ["Click", "Add a point"], [K("draw.accept") ? `${first("draw.accept")} / double-click` : "Double-click", "Close the outline"],
+        [first("draw.back"), "Remove the last point"], [first("draw.cancel"), "Cancel"]];
     const TIPS = {
         select: () => (E.selLayer()
             ? [["Drag", "Move"], ["Square handles", "Resize (Shift: Keep proportions, Alt: From the centre)"], ["Round handle", "Rotate (Shift: 15° steps)"],
-               ["Arrows", "Nudge (Shift: ×10)"], ["Ctrl+D", "Duplicate"], ["Ctrl+C / X / V", "Copy, cut, paste"]]
-            : [["Click", "Select a layer"], ["Double-click a label", "Edit that region"], ...VIEW_TIPS, ["Home", "Fit"]]),
+               [arrows(), "Nudge (Shift: ×10)"], [first("edit.duplicate"), "Duplicate"], [ccp(), "Copy, cut, paste"]]
+            : [["Click", "Select a layer"], ["Double-click a label", "Edit that region"], ...VIEW_TIPS(), [first("view.fit"), "Fit"]]),
         shape: () => [["Drag", "Draw the shape"], ["Shift", "Equal sides"], ["Alt", "From the centre"], ["▾ on the button", "Other shapes"]],
-        brush: () => [["Drag", "Paint"], ["Shift+click", "A straight line from the last stroke"], ["[ ] or Alt+wheel", "Brush size"], PICK_TIP],
-        lasso: () => [...LASSO_TIPS, PICK_TIP],
-        lassoErase: () => LASSO_TIPS,
+        brush: () => [["Drag", "Paint"], ["Shift+click", "A straight line from the last stroke"], [size(), "Brush size"], PICK_TIP],
+        lasso: () => [...LASSO_TIPS(), PICK_TIP],
+        lassoErase: () => LASSO_TIPS(),
         fill: () => (["linear", "radial"].includes(LASSO_MODES.fill)
             ? [["Drag", LASSO_MODES.fill === "linear" ? "From full strength to nothing, along the line" : "Outward from full strength to nothing"], PICK_TIP]
             : [["Click", "Fill that area with the active region"], PICK_TIP]),
         wand: () => [["Click", "Add the area of similar color to the active region"], PICK_TIP],
-        object: () => [["Click", "The object"], ["Ctrl+click", "Not part of it"], ["Drag", "A box around it"], ["Enter", "Add the selection"],
-                       ["Shift+click", "Add it and start the next"], ["Backspace", "Remove the last point"], ["Esc", "Discard"]],
-        erase: () => [["Drag", "Erase from the selected layer"], ["Shift+click", "A straight line from the last stroke"], ["[ ] or Alt+wheel", "Eraser size"]],
+        object: () => [["Click", "The object"], ["Ctrl+click", "Take that spot out of the selection"], ["Drag", "A box around it"], [first("draw.accept"), "Add the selection"],
+                       ["Shift+click", "Add it and start the next"], [first("draw.back"), "Remove the last point"], [first("draw.cancel"), "Discard"]],
+        erase: () => [["Drag", "Erase from the selected layer"], ["Shift+click", "A straight line from the last stroke"], [size(), "Eraser size"]],
     };
     let tipsShown = null;
     function syncTips() {
         const on = getSetting(SET.toolHints, true) !== false;
         const empty = on && !E.state.layers.length && !E.state.regions.length && E.modeW?.value !== "use as color map";
-        const list = on ? (TIPS[E.tool]?.() || []) : [];
+        const list = on ? (TIPS[E.tool]?.() || []).filter((t) => t[0]) : [];
         const key = `${empty}|${list.map((t) => t.join(":")).join("|")}`;
         if (key === tipsShown) return;
         tipsShown = key;

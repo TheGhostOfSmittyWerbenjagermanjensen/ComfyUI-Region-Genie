@@ -301,7 +301,7 @@ export function* sizeRow(E) {
         const b = el("button", "rg-btn");
         // "@name": a drawn icon (svgIcon) in place of a text label
         if (label[0] === "@") { b.innerHTML = svgIcon(label.slice(1)); b.classList.add("rg-ib"); b.dataset.ic = label.slice(1); } else b.textContent = label;
-        b.title = title;
+        E.keyTitle(b, title);
         b.addEventListener("click", (e) => { e.preventDefault(); fn(e); });
         return b;
     }

@@ -77,15 +77,24 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         check("a text box's tooltip opens next to the pointer", !!t && Math.abs(t.r[0] - tx) < 60 && Math.abs(t.r[1] - ty) < 60);
         await away();
     }
-    // ---- the shortcut list
+    // ---- the shortcut list: every key, and changing them
     const sheet = () => page.evaluate(() => { const b = document.querySelector(".rg-keys"); if (!b) return null; const r = b.getBoundingClientRect();
-        return { groups: [...b.querySelectorAll("h4")].map((h) => h.textContent), rows: b.querySelectorAll(".rg-keys-row").length, in: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight,
-            onPage: b.parentElement === document.body, tools: [...b.querySelector("section").querySelectorAll(".rg-keys-row")].map((x) => [[...x.querySelectorAll("kbd")].map((k) => k.textContent), x.lastChild.textContent]) }; });
+        const row = (x) => ({ id: x.dataset.cmd || null, keys: [...x.querySelectorAll(".rg-key, kbd")].map((k) => k.textContent), fixed: !x.dataset.cmd, changed: x.classList.contains("changed"), what: x.lastChild.textContent });
+        return { groups: [...b.querySelectorAll("h4")].map((h) => h.textContent), rows: [...b.querySelectorAll(".rg-keys-row")].map(row), in: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight,
+            onPage: b.parentElement === document.body, note: b.querySelector(".rg-keys-note").textContent, how: b.querySelector(".rg-keys-how").textContent, resetOff: b.querySelector(".rg-keys-head button").disabled }; });
+    const rowOf = (sh, id) => sh.rows.find((r) => r.id === id);
+    const chip = (id, slot = 0) => page.locator(`.rg-keys-row[data-cmd="${id}"] .rg-key[data-slot="${slot}"]`);
+    const rebind = async (id, press, slot = 0) => { await chip(id, slot).click(); await page.waitForTimeout(60); await page.keyboard.press(press); await page.waitForTimeout(120); };
+    const saved = () => page.evaluate(() => JSON.parse(window.__settings["RegionGenie.Shortcuts"] || "{}"));
+    const toolNow = () => page.evaluate(() => window.__node.__rgTool());
     const kb = page.locator(".rg-keys-btn");
     check("a keyboard button in the bottom bar, its tooltip names the key", await kb.count() === 1 && /\(\?\)/.test(await kb.getAttribute("title")));
     await kb.click(); await page.waitForTimeout(120);
     let sh = await sheet();
-    check(`the button opens the shortcut list on the page, inside the window (${sh?.groups.join(", ")}; ${sh?.rows} rows)`, !!sh && sh.onPage && sh.in && sh.groups.join("|") === "Tools|While drawing|Layers and regions|View|Text" && sh.rows > 30);
+    check(`the button opens the shortcut list on the page, inside the window (${sh?.groups.join(", ")}; ${sh?.rows.length} rows)`, !!sh && sh.onPage && sh.in && sh.groups.join("|") === "Tools|While drawing|Layers and regions|View|Text" && sh.rows.length > 40);
+    check("keys that can be changed are buttons; mouse gestures and held keys are listed but fixed", !!sh && sh.rows.filter((r) => !r.fixed).length === 35 && sh.rows.filter((r) => r.fixed).length >= 11
+        && rowOf(sh, "edit.redo").keys.join("|") === "Ctrl+Shift+Z|Ctrl+Y" && sh.rows.some((r) => r.fixed && r.keys[0] === "Ctrl+Click" && /Take a spot out of the selection/.test(r.what)));
+    check("nothing changed yet: 'Reset all' is greyed", !!sh && sh.resetOff && !sh.rows.some((r) => r.changed));
     check("the button is lit while the list is open", await kb.evaluate((b) => b.classList.contains("on")));
     await page.keyboard.press("Escape"); await page.waitForTimeout(80);
     check("Esc closes it", !(await sheet()) && !(await kb.evaluate((b) => b.classList.contains("on"))));
@@ -100,19 +109,100 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.mouse.move(cx0, cy0); await page.keyboard.press("?"); await page.waitForTimeout(100);
     await page.mouse.click(880, 1090); await page.waitForTimeout(80);
     check("a click outside closes it", !(await sheet()));
-    // every single key the list names under Tools picks that tool
-    const wantTool = { V: "select", R: "shape", O: "shape", T: "shape", B: "brush", E: "erase", L: "lasso", "Shift+L": "lassoErase", F: "fill", W: "wand", Q: "object" };
-    const listed = (sh?.tools || []).flatMap(([ks]) => ks).filter((k) => wantTool[k]);
+    // every key the list names for a tool picks that tool
+    const wantTool = { "tool.select": "select", "tool.rect": "shape", "tool.ellipse": "shape", "tool.triangle": "shape", "tool.brush": "brush", "tool.erase": "erase", "tool.lasso": "lasso",
+        "tool.lassoErase": "lassoErase", "tool.fill": "fill", "tool.wand": "wand", "tool.object": "object" };
     const wrong = [];
-    for (const k of listed) {
+    for (const [id, want] of Object.entries(wantTool)) {
+        const k = rowOf(sh, id)?.keys[0];
         await page.evaluate(() => window.__node.__rgSetTool(window.__node.__rgTool() === "select" ? "brush" : "select"));
         await page.mouse.move(cx0, cy0); await page.keyboard.press(k); await page.waitForTimeout(40);
-        const now = await page.evaluate(() => window.__node.__rgTool());
-        if (now !== wantTool[k]) wrong.push(`${k}: ${now}`);
-        if (k === "Q") { await page.keyboard.press("Escape"); }
+        if (await toolNow() !== want) wrong.push(`${k}: ${await toolNow()}`);
+        if (id === "tool.object") { await page.keyboard.press("Escape"); }
     }
-    check(`each tool key in the list picks its tool (${listed.length} keys; ${wrong.join(", ")})`, listed.length === Object.keys(wantTool).length && !wrong.length);
+    check(`each tool key in the list picks its tool (${wrong.join(", ")})`, !wrong.length);
+    await page.evaluate(() => window.__node.__rgSetTool("brush"));
+    // ---- changing a key
+    await kb.click(); await page.waitForTimeout(120);
+    await chip("tool.select").click(); await page.waitForTimeout(80);
+    sh = await sheet();
+    check("click a key: it waits for the new one", rowOf(sh, "tool.select").keys[0] === "Press a key…" && /Press the new key/.test(sh.how));
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
+    sh = await sheet();
+    check("Esc then leaves the key as it is, and the list stays open", !!sh && rowOf(sh, "tool.select").keys.join() === "V");
+    await rebind("tool.select", "s");
+    sh = await sheet();
+    check("click, then S: Select's key is S, marked as changed, and saved", rowOf(sh, "tool.select").keys.join() === "S" && rowOf(sh, "tool.select").changed && !sh.resetOff && JSON.stringify(await saved()) === '{"tool.select":["S"]}');
+    check("the tool was not switched by the key press itself", await toolNow() === "brush");
+    check("the Select button's tooltip names the new key at once", /layers \(S\)\./.test(await page.locator(".rg-bar .rg-btn").first().getAttribute("title")));
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
+    await page.mouse.move(cx0, cy0); await page.keyboard.press("v"); await page.waitForTimeout(40);
+    const afterV = await toolNow();
+    await page.keyboard.press("s"); await page.waitForTimeout(40);
+    check("on the canvas: V does nothing now, S picks Select", afterV === "brush" && await toolNow() === "select");
+    check("the hints on the canvas use the keys in use too (Home for Fit)", /Home Fit/.test(await page.evaluate(() => document.querySelector(".rg-tips").textContent)));
+    // a key that another command has: it is taken from that one, and the list says so
+    await kb.click(); await page.waitForTimeout(120);
+    await rebind("tool.brush", "s");
+    sh = await sheet();
+    check(`a key in use is taken from the other command, with a note (${sh.note})`, rowOf(sh, "tool.brush").keys.join() === "S" && rowOf(sh, "tool.select").keys.join() === "no key" && /S was the key of “Select/.test(sh.note) && /no key now/.test(sh.note));
+    // a second key, a combination, a key with its own Setting
+    await page.locator('.rg-keys-row[data-cmd="tool.brush"] .rg-key-act[data-act="plus"]').click(); await page.waitForTimeout(60);
+    await page.keyboard.press("p"); await page.waitForTimeout(120);
+    await rebind("edit.undo", "Control+u");
+    await rebind("view.fit", "Shift+F2");
+    await rebind("view.big", "F9");
+    sh = await sheet();
+    check("a second key (B, then S and P), a combination (Ctrl+U), Shift+F2, and the large editor's key (F9)", rowOf(sh, "tool.brush").keys.join("|") === "S|P" && rowOf(sh, "edit.undo").keys.join() === "Ctrl+U"
+        && rowOf(sh, "view.fit").keys.join() === "Shift+F2" && rowOf(sh, "view.big").keys.join() === "F9" && await page.evaluate(() => window.__settings["RegionGenie.Main.LargeEditorKey"]) === "F9");
+    check("only the changed commands are saved", Object.keys(await saved()).sort().join() === "edit.undo,tool.brush,tool.select,view.fit");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
     await page.evaluate(() => window.__node.__rgSetTool("select"));
+    await page.mouse.move(cx0, cy0); await page.keyboard.press("p"); await page.waitForTimeout(40);
+    const viaP = await toolNow();
+    const n0 = (await st()).regions.length;
+    await page.locator('[title^="Add a region with a new color"]').click(); await page.waitForTimeout(120); await page.evaluate(() => document.activeElement?.blur?.());
+    await page.mouse.move(cx0, cy0); await page.keyboard.press("Control+z"); await page.waitForTimeout(80);
+    const afterCtrlZ = (await st()).regions.length;
+    await page.keyboard.press("Control+u"); await page.waitForTimeout(80);
+    check("P picks the brush; Ctrl+Z no longer undoes, Ctrl+U does", viaP === "brush" && afterCtrlZ === n0 + 1 && (await st()).regions.length === n0);
+    check("tooltips and the menu follow: Undo (Ctrl+U), Fit (Shift+F2)", /^Undo \(Ctrl\+U\)/.test(await page.locator('.rg-bar [title^="Undo"]').getAttribute("title"))
+        && /\(Shift\+F2\)/.test(await page.locator('.rg-bar [title^="Fit the image"]').getAttribute("title")));
+    await page.keyboard.press("F9"); await page.waitForTimeout(300);
+    const bigOpen = await page.locator(".rg-big").count();
+    await page.keyboard.press("F9"); await page.waitForTimeout(300);
+    check("F9 opens and closes the large editor", bigOpen === 1 && await page.locator(".rg-big").count() === 0);
+    // reset one, reset all
+    await kb.click(); await page.waitForTimeout(120);
+    await page.locator('.rg-keys-row[data-cmd="edit.undo"] .rg-key-act[data-act="reset"]').click(); await page.waitForTimeout(120);
+    sh = await sheet();
+    check("the arrow on a changed row puts its default back (Ctrl+Z)", rowOf(sh, "edit.undo").keys.join() === "Ctrl+Z" && !rowOf(sh, "edit.undo").changed && !("edit.undo" in await saved()));
+    // remove a key: the row shows 'no key'
+    await chip("view.snap").click(); await page.waitForTimeout(60);
+    await page.locator('.rg-keys-row[data-cmd="view.snap"] .rg-key-act[data-act="close"]').click(); await page.waitForTimeout(120);
+    sh = await sheet();
+    check("a key can be removed: Snap has no key, and its tooltip no brackets", rowOf(sh, "view.snap").keys.join() === "no key" && !/\(G\)/.test(await page.locator('.rg-bar [title^="Snap to grid"]').getAttribute("title")));
+    await page.locator(".rg-keys-head button", { hasText: "Reset all" }).click(); await page.waitForTimeout(150);
+    sh = await sheet();
+    check("Reset all: every key is the default again, nothing saved", !sh.rows.some((r) => r.changed) && sh.resetOff && rowOf(sh, "tool.select").keys.join() === "V" && rowOf(sh, "view.big").keys.join() === "Alt+Enter"
+        && JSON.stringify(await saved()) === "{}" && await page.evaluate(() => window.__settings["RegionGenie.Main.LargeEditorKey"]) === "Alt+Enter");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
+    // Settings: one row with a button, in place of a row per key
+    const setRow = await page.evaluate(() => { const all = window.__settingsExt.settings, s = all.find((x) => x.id === "RegionGenie.Shortcuts");
+        const el = typeof s?.type === "function" ? s.type() : null; if (el) document.body.appendChild(el);
+        return { name: s?.name, cat: s?.category?.slice(0, 2).join(" > "), btn: el?.querySelector("button")?.textContent, info: el?.querySelector("span")?.textContent,
+            oldRows: ["RegionGenie.Main.LargeEditorKey", "RegionGenie.Popup.PrevKey", "RegionGenie.Popup.NextKey"].map((id) => all.find((x) => x.id === id)?.type).join() }; });
+    check(`Settings > Region Genie > Region Genie node has one 'Shortcuts' row with an Edit… button (${setRow.info}); the three key rows are gone`, setRow.name === "Shortcuts" && setRow.cat === "Region Genie > Region Genie node"
+        && setRow.btn === "Edit…" && setRow.info === "All default" && setRow.oldRows === "hidden,hidden,hidden");
+    await page.locator(".rg-keys-set button").click(); await page.waitForTimeout(150);
+    sh = await sheet();
+    check("its button opens the same list, in the middle of the page", !!sh && sh.in && sh.rows.length > 40);
+    await rebind("tool.wand", "m");
+    check("a change made there shows on the row ('1 changed') and works on the node", await page.locator(".rg-keys-set span").textContent() === "1 changed");
+    await page.locator(".rg-keys-head button", { hasText: "Reset all" }).click(); await page.waitForTimeout(120);
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
+    await page.evaluate(() => { document.querySelector(".rg-keys-set")?.remove(); window.__node.__rgSetTool("select"); window.scrollTo(0, 0); });
+    await page.waitForTimeout(150);
 
     // ---- the canvas's right-click menu
     const menu = () => page.evaluate(() => { const m = document.querySelector(".rg-menu"); if (!m) return null; const r = m.getBoundingClientRect();
@@ -187,6 +277,32 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("arrow down and Enter run the first entry (Add a region)", !(await menu()) && (await st()).regions.length === 3);
     await page.evaluate(() => document.activeElement?.blur?.()); await page.keyboard.press("Control+z"); await page.waitForTimeout(100);
     await page.evaluate(() => window.__node.__rgSetTool("select"));
+
+    // ---- click areas: the look stays, a click just outside a small control still counts (at least 24 px tall)
+    const areas = await page.evaluate(() => {
+        const bad = [], sizes = [];
+        const all = [...document.querySelectorAll(".rg-bar > .rg-btn, .rg-head .rg-btn, .rg-row .rg-btn, .rg-foot .rg-btn, .rg-row .rg-chev, .rg-row .rg-grip:not(.pad), .rg-row .rg-sw")]
+            .filter((b) => b.offsetParent && !b.disabled && getComputedStyle(b).visibility !== "hidden");
+        for (const b of all) {
+            const r = b.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, need = Math.max(0, (24 - r.height) / 2);
+            sizes.push(Math.round(r.height));
+            for (const y of [r.top - need + 0.6, r.bottom + need - 0.6]) {
+                if (need < 0.7) continue;
+                const t = document.elementFromPoint(cx, y);
+                // the area ends where the list's own edge cuts it off (the first and last row in view)
+                const clip = (b.closest(".rg-list") || b.closest(".rg-tree"))?.getBoundingClientRect();
+                if (clip && (y < clip.top || y > clip.bottom)) continue;
+                if (!t || !(t === b || b.contains(t))) bad.push(`${b.className.slice(0, 26)} "${(b.title || b.dataset.rgTip || "").slice(0, 22)}" -> ${t ? t.className.slice(0, 20) : "nothing"}`);
+            }
+        }
+        return { n: all.length, bad, minH: Math.min(...sizes), maxH: Math.max(...sizes) };
+    });
+    check(`${areas.n} small controls: a click up to 24 px tall around each lands on it (${areas.bad.slice(0, 4).join("; ")})`, areas.n > 25 && !areas.bad.length);
+    check(`…and they look as before (heights ${areas.minH} to ${areas.maxH} px)`, areas.maxH <= 24);
+    const dd = page.locator('.rg-bar .rg-btn.grp[data-group="shape"] .rg-grp-dd');
+    await page.evaluate(() => { window.__lastMenu = null; });
+    await dd.click(); await page.waitForTimeout(150);
+    check("a tool button's arrow still opens its list (the click area lies behind it)", await page.evaluate(() => window.__lastMenu?.items?.length === 8));
 
     // every button with a drawn icon: no text glyph left as a label
     const glyphs = await page.evaluate(() => [...document.querySelectorAll(".rg-wrap button")].filter((b) => /^[✕↑↓▲◉○✂⧉⤓⇄⌫🗑⇊↺⬆＋⚠ⓘ×]$/u.test(b.textContent.trim())).map((b) => b.textContent.trim() + " " + (b.title || "").slice(0, 30)));

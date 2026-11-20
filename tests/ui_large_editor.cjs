@@ -87,7 +87,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator(".rg-big-head .rg-btn").click(); await page.waitForTimeout(300);
     check("✕ closes it", await page.locator(".rg-big").count() === 0);
     const def = await page.evaluate(() => { const s = window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Main.LargeEditorKey"); return s && [s.type, s.defaultValue]; });
-    check("Settings: 'Large editor: key', Alt+Enter by default", def?.[0] === "text" && def[1] === "Alt+Enter");
+    check("the large editor's key is saved under its own id, Alt+Enter by default (changed in the shortcut list, no row in Settings)", def?.[0] === "hidden" && def[1] === "Alt+Enter");
     await page.evaluate(() => { window.__settings["RegionGenie.Main.LargeEditorKey"] = "F9"; });
     [x, y] = await toClient(128, 128); await page.mouse.move(x, y);
     await page.keyboard.press("Alt+Enter"); await page.waitForTimeout(250);

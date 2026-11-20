@@ -51,6 +51,15 @@ const STYLE = `
 .rg-start i { flex:0 0 auto; font-style:normal; font-weight:700; color:#8fb8e8; }
 .rg-start .more { opacity:.7; font-size:11px; }
 .rg-cv.held .rg-start { display:none; }
+/* Click areas (round 39): the small controls keep their look; an unseen area around each takes the click too, at least
+   24 px tall and out to the middle of the 3 px gap to its neighbour. It lies behind the control's own content, so a
+   part with its own click (the arrow of a tool button) still gets it. */
+.rg-bar > .rg-btn, .rg-head .rg-btn, .rg-row .rg-btn, .rg-foot .rg-btn, .rg-row .rg-chev, .rg-row .rg-grip, .rg-row .rg-sw, .rg-row .rg-paladd {
+  position:relative; isolation:isolate; }
+.rg-bar > .rg-btn::before, .rg-head .rg-btn::before, .rg-row .rg-btn::before, .rg-foot .rg-btn::before, .rg-row .rg-chev::before,
+.rg-row .rg-grip::before, .rg-row .rg-sw::before, .rg-row .rg-paladd::before {
+  content:""; position:absolute; z-index:-1; left:-1.5px; right:-1.5px; top:50%; height:max(100%, 24px); transform:translateY(-50%); }
+.rg-seg .rg-btn::before { left:0; right:0; }
 .rg-btn.variants { position:relative; }
 .rg-btn.variants::after { content:""; position:absolute; right:1px; bottom:1px; width:0; height:0;
   border-style:solid; border-width:0 0 5px 5px; border-color:transparent transparent currentColor transparent; opacity:.7; }

@@ -4,10 +4,9 @@
 // reorder, duplicate or delete its layer, delete it); where regions overlap, the others under the pointer are listed
 // to pick from. On empty canvas: add a region, paste, the view switches. Every entry calls the function its button
 // or key calls: nothing is done here that the rest of the editor can't do.
-import { keyLabel } from "../rg_shared.js";
+import { keyText } from "../rg_keys.js";
 import { openMenu, closeMenu } from "../rg_menu.js";
 import { UNSPEC, CLIPBOARD } from "./shared.js";
-import { bigKeyText } from "./big.js";
 
 export function* menu(E) {
     Object.assign(E, { canvasMenu });
@@ -29,8 +28,8 @@ export function* menu(E) {
             { label: "Move up (in front)", icon: "up", disabled: i <= 0, fn: () => move(-1) },
             { label: "Move down (behind)", icon: "down", disabled: i >= n - 1, fn: () => move(1) },
             null,
-            { label: "Duplicate this layer", icon: "copy", key: "Ctrl+D", fn: () => E.duplicate(L) },
-            { label: "Delete this layer", icon: "clear", key: "Del", fn: () => E.deleteSelected(L) },
+            { label: "Duplicate this layer", icon: "copy", key: keyText("edit.duplicate").split(" / ")[0] || undefined, fn: () => E.duplicate(L) },
+            { label: "Delete this layer", icon: "clear", key: keyText("edit.delete").split(" / ")[0] || undefined, fn: () => E.deleteSelected(L) },
             { label: lays.length > 1 ? `Delete region and its ${lays.length} layers` : "Delete region", icon: "close", danger: true, fn: () => E.change(() => {
                 E.state.regions.splice(E.state.regions.indexOf(r), 1);
                 E.state.layers = E.state.layers.filter((l) => l.region !== r.id);
@@ -41,17 +40,17 @@ export function* menu(E) {
         ];
     }
     function emptyItems() {
-        const big = keyLabel(bigKeyText());
+        const key1 = (id) => keyText(id).split(" / ")[0] || undefined;
         return [
             { label: "Add a region", icon: "regionAdd", fn: () => E.addRegionBtn.click() },
-            { label: "Paste layer", icon: "layerAdd", key: "Ctrl+V", disabled: !CLIPBOARD.layer, fn: () => E.pasteLayer() },
+            { label: "Paste layer", icon: "layerAdd", key: key1("edit.paste"), disabled: !CLIPBOARD.layer, fn: () => E.pasteLayer() },
             null,
-            { label: "Fit the image in view", icon: "fit", key: "Home", fn: () => { E.userView = false; E.fitView(); E.requestDraw(); } },
+            { label: "Fit the image in view", icon: "fit", key: key1("view.fit"), fn: () => { E.userView = false; E.fitView(); E.requestDraw(); } },
             { label: "Labels on the canvas", checked: E.node.properties?.rg_labels !== false, fn: () => E.labBtn.click() },
-            { label: "Snap to grid", key: "G", checked: !!E.snap, fn: () => { E.snap = !E.snap; E.setSnapIcon(); E.requestDraw(); } },
+            { label: "Snap to grid", key: key1("view.snap"), checked: !!E.snap, fn: () => { E.snap = !E.snap; E.setSnapIcon(); E.requestDraw(); } },
             null,
-            { label: E.big ? "Back into the node" : "Large editor", icon: "expand", key: big || undefined, fn: () => E.toggleBig() },
-            { label: "Shortcuts", icon: "keyboard", key: "?", fn: () => E.toggleKeys() },
+            { label: E.big ? "Back into the node" : "Large editor", icon: "expand", key: key1("view.big"), fn: () => E.toggleBig() },
+            { label: "Shortcuts", icon: "keyboard", key: key1("view.help"), fn: () => E.toggleKeys() },
         ];
     }
     // the region becomes the active one and its layer the selected one, as a click with the Select tool does

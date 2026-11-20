@@ -5,6 +5,7 @@ import {
     pickWildcard, insertAtCursor, wildcardsInstalled,
 } from "../rg_shared.js";
 import { recentSetting, rememberSetting, CLIPBOARD } from "./shared.js";
+import { keyIs, keyUpIs } from "../rg_keys.js";
 
 export function* popups(E) {
     Object.assign(E, {
@@ -451,46 +452,51 @@ export function* popups(E) {
         if (E.editor && k === "escape" && !E.pick && !E.clickPoly) { e.preventDefault(); e.stopPropagation(); closeEditor(true); return; }
         const L = E.selLayer();
         // keys that act on the selected layer show its box again
-        if (L && E.hiddenSel === E.selId && (["delete", "backspace", "arrowleft", "arrowright", "arrowup", "arrowdown"].includes(k) || (mod && k === "d"))) {
+        // every key below is a command of the shortcut table (rg_keys.js): the user can give it another key
+        const is = (id) => keyIs(e, id);
+        const nudge = ["left", "right", "up", "down"].find((d) => is("nudge." + d));
+        if (L && E.hiddenSel === E.selId && (is("edit.delete") || nudge || is("edit.duplicate"))) {
             E.hiddenSel = null; E.requestDraw();
         }
         let handled = true;
-        if (E.pick && k === "enter") E.pickAccept(e.shiftKey);
-        else if (E.pick && k === "escape") E.pickCancel();
-        else if (E.pick && k === "backspace") E.pickUndo();
-        else if (E.clickPoly && (k === "enter")) E.finishClickPoly();
-        else if (E.clickPoly && k === "escape") { E.clickPoly = null; E.requestDraw(); }
-        else if (E.clickPoly && k === "backspace") { E.clickPoly.pts.pop(); if (!E.clickPoly.pts.length) E.clickPoly = null; E.requestDraw(); }
-        else if (k === " ") E.spaceDown = true;
-        else if (mod && k === "z") (e.shiftKey ? E.redo() : E.undo());
-        else if (mod && k === "y") E.redo();
-        else if (mod && k === "d") E.duplicate();
-        else if (mod && k === "c" && L) E.copyLayer(L, false);
-        else if (mod && k === "x" && L) E.copyLayer(L, true);
-        else if (mod && k === "v" && CLIPBOARD.layer) E.pasteLayer();
-        else if (k === "delete" || k === "backspace") E.deleteSelected();
-        else if (k === "escape") { if (E.big && !E.selLayer()) E.closeBig(); else E.selectLayer(null); }      // large editor: Esc with nothing selected closes it
-        else if (k === "v") E.setTool("select");
-        else if (k === "b") E.setTool("brush");
-        else if (k === "e") E.setTool("erase");
-        else if (k === "f") E.setTool("fill");
-        else if (k === "w") E.setTool("wand");
-        else if (k === "q") E.setTool("object");
-        else if (k === "l") E.setTool(e.shiftKey ? "lassoErase" : "lasso");
-        else if (k === "r" || k === "o" || k === "t") {
-            E.shapeKind = { r: "rect", o: "ellipse", t: "triangle" }[k]; E.setTool("shape");
-        } else if (k === "g") { E.snap = !E.snap; E.setSnapIcon(); E.requestDraw(); }
-        else if (e.key === "?") E.toggleKeys();
-        else if (k === "home") { E.userView = false; E.fitView(); E.requestDraw(); }
-        else if (k === "[" || k === "]") { E.brush = Math.min(0.3, Math.max(0.002, E.brush * (k === "]" ? 1.2 : 1 / 1.2))); E.updateBrushSlider(); E.requestDraw(); }
-        else if (L && k.startsWith("arrow")) {
+        const shape = ["rect", "ellipse", "triangle"].find((s) => is("tool." + s));
+        // while an outline or a selection is being made, its keys come first
+        if (E.pick && is("draw.accept")) E.pickAccept(e.shiftKey);
+        else if (E.pick && is("draw.cancel")) E.pickCancel();
+        else if (E.pick && is("draw.back")) E.pickUndo();
+        else if (E.clickPoly && is("draw.accept")) E.finishClickPoly();
+        else if (E.clickPoly && is("draw.cancel")) { E.clickPoly = null; E.requestDraw(); }
+        else if (E.clickPoly && is("draw.back")) { E.clickPoly.pts.pop(); if (!E.clickPoly.pts.length) E.clickPoly = null; E.requestDraw(); }
+        else if (is("view.pan")) E.spaceDown = true;
+        else if (is("edit.undo")) E.undo();
+        else if (is("edit.redo")) E.redo();
+        else if (is("edit.duplicate")) E.duplicate();
+        else if (is("edit.copy") && L) E.copyLayer(L, false);
+        else if (is("edit.cut") && L) E.copyLayer(L, true);
+        else if (is("edit.paste") && CLIPBOARD.layer) E.pasteLayer();
+        else if (is("edit.delete")) E.deleteSelected();
+        else if (is("edit.deselect")) { if (E.big && !E.selLayer()) E.closeBig(); else E.selectLayer(null); }      // large editor: with nothing selected it closes
+        else if (is("tool.select")) E.setTool("select");
+        else if (is("tool.brush")) E.setTool("brush");
+        else if (is("tool.erase")) E.setTool("erase");
+        else if (is("tool.fill")) E.setTool("fill");
+        else if (is("tool.wand")) E.setTool("wand");
+        else if (is("tool.object")) E.setTool("object");
+        else if (is("tool.lassoErase")) E.setTool("lassoErase");
+        else if (is("tool.lasso")) E.setTool("lasso");
+        else if (shape) { E.shapeKind = shape; E.setTool("shape"); }
+        else if (is("view.snap")) { E.snap = !E.snap; E.setSnapIcon(); E.requestDraw(); }
+        else if (is("view.help")) E.toggleKeys();
+        else if (is("view.fit")) { E.userView = false; E.fitView(); E.requestDraw(); }
+        else if (is("brush.smaller") || is("brush.larger")) { E.brush = Math.min(0.3, Math.max(0.002, E.brush * (is("brush.larger") ? 1.2 : 1 / 1.2))); E.updateBrushSlider(); E.requestDraw(); }
+        else if (L && nudge) {
             const s = E.short(), step = (e.shiftKey ? 10 : 1) * (E.snap ? E.grid : 1);
             E.change(() => {
-                if (k === "arrowleft") L.ox -= step / s; if (k === "arrowright") L.ox += step / s;
-                if (k === "arrowup") L.oy -= step / s; if (k === "arrowdown") L.oy += step / s;
+                if (nudge === "left") L.ox -= step / s; if (nudge === "right") L.ox += step / s;
+                if (nudge === "up") L.oy -= step / s; if (nudge === "down") L.oy += step / s;
             });
         } else handled = false;
         if (handled) { e.preventDefault(); e.stopPropagation(); }
     });
-    E.wrap.addEventListener("keyup", (e) => { if (e.key === " ") E.spaceDown = false; });
+    E.wrap.addEventListener("keyup", (e) => { if (keyUpIs(e, "view.pan")) E.spaceDown = false; });
 }
