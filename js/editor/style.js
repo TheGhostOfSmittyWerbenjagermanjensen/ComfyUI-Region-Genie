@@ -211,7 +211,7 @@ body:has(.rg-big):not(:has(.rg-llm-pop)) .litecontextmenu, body:has(.rg-big):not
 .rg-row.scene:hover, .rg-row.ctrl:hover { background:color-mix(in srgb, currentColor 7%, transparent); }
 .rg-editmask { display:inline-flex; align-items:center; gap:2px; margin-right:6px; }
 .rg-editmask .rg-num { width:44px; }
-.rg-row.editarea .rg-pseudo { font-style:normal; font-weight:600; user-select:none; }
+.rg-row.editarea .rg-pseudo { font-style:normal; font-weight:600; user-select:none; flex:0 0 auto; margin-right:8px; }
 .rg-row.editarea .rg-sel { max-width:none; }
 .rg-row.editarea label { display:inline-flex; align-items:center; }
 .rg-row.editarea .rg-editmask { margin-left:8px; }
@@ -254,6 +254,9 @@ body:has(.rg-big):not(:has(.rg-llm-pop)) .litecontextmenu, body:has(.rg-big):not
 .rg-loraopts .rg-num { width:52px; }
 .rg-head { display:flex; align-items:center; gap:3px; flex-wrap:wrap; font-weight:600; }
 .rg-head .rg-btn { font-weight:normal; padding:1px 5px; }
+.rg-head .rg-status { flex:1 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rg-head .rg-status:empty { display:none; }
+.rg-head .rg-status.wide { flex:1 1 100%; order:9; white-space:normal; }
 .rg-list { flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:2px; min-height:0;
   border:1px solid var(--border-color,#444); border-radius:4px; padding:2px; }
 .rg-row { display:flex; align-items:center; gap:3px; padding:1px 2px; border-radius:4px; border:1px solid transparent; cursor:default; }

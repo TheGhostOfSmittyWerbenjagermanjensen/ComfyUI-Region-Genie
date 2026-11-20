@@ -192,7 +192,7 @@ export function* selectTools(E) {
     // ---------------- Select object (SAM 3.1 on the server) ----------------
     const samKeep = () => getSetting(SET.samKeep, "keep loaded") !== "unload";
     function pickStart() { E.pick = { id: ++E.pickIds, pts: [], box: null, text: "", masks: [], overlay: null, sent: false }; return E.pick; }
-    function stickyHint(text) { clearTimeout(E.hintTimer); E.statusLbl.textContent = text || ""; }
+    function stickyHint(text) { clearTimeout(E.hintTimer); E.statusLbl.textContent = text || ""; E.statusLbl.title = ""; E.statusLbl.classList.toggle("wide", !!text); }
     function pickPointer(d) {
         const [W, H] = E.dims();
         if (!E.backdrop || !E.backdropRef) { E.hint("Select object " + NEEDS_IMAGE); return; }

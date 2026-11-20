@@ -330,9 +330,12 @@ export function* regions(E) {
         E.requestDraw();
     }
     E.hintTimer = 0; let keepHintUntil = 0;
+    // a short message in the list header: on the header's one line, cut with "…" when it doesn't fit (its tooltip has
+    // all of it), so the header doesn't jump to two lines for 3.5 s (round 40). Select object's standing instructions
+    // (stickyHint in selectTools.js) are long and stay as long as the tool waits: they get a line of their own.
     function hint(text) {
-        E.statusLbl.textContent = text || "";
+        E.statusLbl.textContent = text || ""; E.statusLbl.title = text || ""; E.statusLbl.classList.remove("wide");
         clearTimeout(E.hintTimer);
-        if (text) E.hintTimer = setTimeout(() => { E.statusLbl.textContent = ""; }, 3500);
+        if (text) E.hintTimer = setTimeout(() => { E.statusLbl.textContent = ""; E.statusLbl.title = ""; }, 3500);
     }
 }

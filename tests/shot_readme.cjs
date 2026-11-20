@@ -35,11 +35,13 @@ const { chromium } = require("playwright");
   if (await page.locator(".rg-row.opts").count()) { await page.locator('[title^="Show or hide everything in the list"]').click(); await page.waitForTimeout(150); }
   await page.locator(".rg-row.region .rg-chev").nth(1).click(); await page.waitForTimeout(400);
   const clip = await page.evaluate(() => { const n = window.__rg, ds = window.app.canvas.ds, r = window.app.canvas.canvas.getBoundingClientRect(); return { x: r.x + (n.pos[0] + ds.offset[0]) * ds.scale - 8, y: r.y + (n.pos[1] - 34 + ds.offset[1]) * ds.scale, width: n.size[0] * ds.scale + 16, height: (n.size[1] + 42) * ds.scale }; });
+  await page.mouse.move(4, 4); await page.waitForTimeout(700);        // the pointer away: no tooltip in the picture
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "editor.png"), clip });
   // rows.png: Edit Mode, with a Control row
   await page.locator('[title^="Edit: Change the image"]').click(); await page.waitForTimeout(300);
   await page.locator('[title^="Add a Control row"]').first().click(); await page.waitForTimeout(400); await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   const rows = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), last = [...document.querySelectorAll(".rg-row.ctrl")].pop().getBoundingClientRect(); return { x: list.x - 6, y: head.y - 6, width: list.width + 12, height: last.bottom - head.y + 46 }; });
+  await page.mouse.move(4, 4); await page.waitForTimeout(700);        // the pointer away: no tooltip in the picture
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "rows.png"), clip: rows });
   await browser.close();
 })();

@@ -162,7 +162,7 @@ export function* canvasUi(E) {
         palette: E.btn("▼ Color Palettes", "Show or hide the color palettes of every region", () => E.toggleKind("palette")),
         all: E.btn("▼ All", "Show or hide everything in the list", () => E.toggleKind("all")),
     }; E.expandBtns = expandBtns;
-    const statusLbl = E.el("span", "rg-hint"); E.statusLbl = statusLbl;
+    const statusLbl = E.el("span", "rg-hint rg-status"); E.statusLbl = statusLbl;
     const loraOptsBox = E.el("span", "rg-loraopts");
     const sepIn = E.el("input", "rg-num"); E.sepIn = sepIn; sepIn.type = "number"; sepIn.min = "0"; sepIn.max = "1"; sepIn.step = "0.05";
     sepIn.title = "LoRA region separation: How much attention between the image of different LoRA regions is removed "

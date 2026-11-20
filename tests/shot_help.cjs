@@ -40,6 +40,7 @@ const { chromium } = require("playwright");
     }
     return { x: wrap.left - 46, y: size.top - 10, width: wrap.width + 58, height: foot.bottom - size.top + 20 };
   });
+  await page.mouse.move(4, 4); await page.waitForTimeout(700);        // the pointer away: no tooltip in the picture
   await page.screenshot({ path: process.argv[2], clip });
   await browser.close();
 })();
