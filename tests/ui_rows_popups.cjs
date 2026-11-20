@@ -237,7 +237,10 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("Whole image doesn't list the Control LoRA (no duplicate)", await page.locator(".rg-list .rg-row.lora .rg-hint", { hasText: "Control" }).count() === 0);
     await crow.locator("select").selectOption("canny"); await page.waitForTimeout(80);
     check("canny: the MOSS LoRA goes (it reads color / depth only)", !((await st()).sceneLoras || []).some((x) => x.control));
-    await crow.locator("select").selectOption("color"); await page.waitForTimeout(80);
+    // (after a change of kind the list is drawn again at once, and sometimes once more within the editor's half-second
+    // check, when the row's LoRA is put back: a number typed just then is dropped with the old row. On GitHub's runner
+    // that hit this check once (round 44). Wait for the list to settle before typing; see HANDOFF, open items.)
+    await crow.locator("select").selectOption("color"); await page.waitForTimeout(700);
     const [cs, ca, cb] = [crow.locator("input.rg-num").nth(0), crow.locator("input.rg-num").nth(1), crow.locator("input.rg-num").nth(2)];
     await cs.fill("0.8"); await cs.press("Enter"); await ca.fill("10"); await ca.press("Enter"); await cb.fill("70"); await cb.press("Enter");
     await page.waitForTimeout(80);

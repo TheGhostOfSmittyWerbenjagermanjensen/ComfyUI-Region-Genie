@@ -251,6 +251,8 @@ The owner's choices on the six items left from the round-33 review (see the chan
 
 ## 5. Open items and offered ideas
 
+- **A number typed right after changing a Control row's kind can be dropped (found in round 44 through a test that failed once on GitHub).** Changing the kind redraws the list at once and sometimes once more within the half-second poll (lifecycle.js: `pruneManagedLoras()` / `syncControlLoras()` → `renderRegions()`). A redraw replaces the row's fields, so text typed into one of them in that moment, before Enter or a click elsewhere, is lost. Small and rare for a person (it needs typing within about half a second of the change). A fix would be to hold such a redraw back while a field of the list has the cursor. Not done: the owner was only asked about the failed check.
+
 **Not verified on real hardware:** see `docs/HARDWARE-CHECKLIST.md` (no GPU in cloud sessions). Remove an item there when the owner reports it working.
 
 **Ideas offered, not requested:** an "OpenAI-compatible server" LLM option; Ideogram `style_description`.
