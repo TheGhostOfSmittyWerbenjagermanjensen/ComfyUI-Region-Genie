@@ -188,8 +188,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         && JSON.stringify(await saved()) === "{}" && await page.evaluate(() => window.__settings["RegionGenie.Main.LargeEditorKey"]) === "Alt+Enter");
     await page.keyboard.press("Escape"); await page.waitForTimeout(80);
     // Settings: one row with a button, in place of a row per key
-    const setRow = await page.evaluate(() => { const all = window.__settingsExt.settings, s = all.find((x) => x.id === "RegionGenie.Shortcuts");
+    const setRow = await page.evaluate(async () => { const all = window.__settingsExt.settings, s = all.find((x) => x.id === "RegionGenie.Shortcuts");
         const el = typeof s?.type === "function" ? s.type() : null; if (el) document.body.appendChild(el);
+        await new Promise((r) => setTimeout(r, 300));          // the count is filled in once the shortcut file is loaded
         return { name: s?.name, cat: s?.category?.slice(0, 2).join(" > "), btn: el?.querySelector("button")?.textContent, info: el?.querySelector("span")?.textContent,
             oldRows: ["RegionGenie.Main.LargeEditorKey", "RegionGenie.Popup.PrevKey", "RegionGenie.Popup.NextKey"].map((id) => all.find((x) => x.id === id)?.type).join() }; });
     check(`Settings > Region Genie > Region Genie node has one 'Shortcuts' row with an Edit… button (${setRow.info}); the three key rows are gone`, setRow.name === "Shortcuts" && setRow.cat === "Region Genie > Region Genie node"
