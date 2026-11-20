@@ -135,9 +135,12 @@ function enter(el) {
     timer = setTimeout(show, performance.now() - lastUp < WARM_MS ? SOON_MS : SHOW_MS);
 }
 // the pack's element that carries the tooltip under this event target
+// (the page itself can carry a class of the pack, "rg-osb" on <html>: that is not one of its boxes, or every tooltip of
+// ComfyUI and of other packs would be taken over)
 function owner(t) {
     const el = t?.closest?.("[title], [data-rg-tip]");
-    return el && el.closest(ROOT) && !el.closest(".rg-tip") ? el : null;
+    const box = el?.closest(ROOT);
+    return box && box !== document.documentElement && box !== document.body && !el.closest(".rg-tip") ? el : null;
 }
 
 function install() {

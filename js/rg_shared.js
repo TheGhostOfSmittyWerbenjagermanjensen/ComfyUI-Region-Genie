@@ -1349,8 +1349,9 @@ export function openFloatPopup(o) {
     const syncUse = () => { const f = o.filled?.(ta.value); use.style.display = f != null ? "" : "none";
         use.title = f != null ? `Use the filled text: Replace the wildcards with what they produced (last run or preview):\n${f}` : ""; };
     const x = btn("rg-x", svgIcon("close"), "Close (Esc).\nThe text stays as it is: Undo takes a change back.", () => close());
+    let hb = null;                             // (textHistory() reports once before the buttons exist)
     const hist = textHistory(ta, o.history || {}, { apply: (v) => { o.onInput(v); syncUse(); }, onChange: () => hb?.refresh() });
-    const hb = historyButtons(() => hist, "rg-btn icon");
+    hb = historyButtons(() => hist, "rg-btn icon");
     const geom = () => ({ left: box.offsetLeft, top: box.offsetTop, width: box.offsetWidth, height: box.offsetHeight });
     const prev = btn("rg-nav", "◀", popNavTip(-1, o.navWhat || "in order"), () => o.nav(-1, geom()));
     const next = btn("rg-nav", "▶", popNavTip(1, o.navWhat || "in order"), () => o.nav(1, geom()));
