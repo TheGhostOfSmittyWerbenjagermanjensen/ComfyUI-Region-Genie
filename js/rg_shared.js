@@ -1156,7 +1156,19 @@ const RECENT = new Map();               // values just written to Settings (the 
 const recentGet = (id, d) => (RECENT.has(id) ? RECENT.get(id) : getSetting(id, d));
 const recentSet = (id, v) => { RECENT.set(id, v); setSetting(id, v); setTimeout(() => { if (RECENT.get(id) === v) RECENT.delete(id); }, 3000); };
 // a small ⤢ in the field's bottom-right corner (inside the field's parent element, left of a scrollbar)
-export function addExpandButton(t, title, onOpen) {
+// The expand button: opens a text field in its pop-up editor (double-click stays the browser's word selection).
+// It sits inside the field's parent element, in the field's bottom-right corner, or centred on the right when the
+// field is one line tall (a region's prompt in the list while it isn't being edited).
+// It never lies on the scroll bar: a classic scroll bar takes its own room and the button goes left of it; an overlay
+// scroll bar (Windows 11, macOS: drawn over the text, see overlayScrollbars()) is given OSB_W px while the field
+// scrolls. And the text never runs under the button or the scroll bar: the field's right padding is set to the room
+// they take (inline, so it wins over every style sheet).
+// extras: more small controls for the same corner, placed left of the button in the order given (the LLM button of
+// scene_prompt_positive; button.__rgAddExtra(el) adds one later). Returns the button; button.__rgPlace(), also
+// field.__rgPlaceExpand(), puts everything in place again (call it when the field's text was set by code: no event
+// tells).
+const OSB_W = 14, EXP_W = 16, EXP_GAP = 2;
+export function addExpandButton(t, title, onOpen, extras = []) {
     const host = t?.parentElement;
     if (!host) return null;
     const old = host.querySelector(":scope > .rg-expand");
@@ -1167,17 +1179,37 @@ export function addExpandButton(t, title, onOpen) {
     b.type = "button"; b.className = "rg-expand"; b.innerHTML = svgIcon("expand"); b.title = title; b.tabIndex = -1; b.__rgFor = t;
     for (const ev of ["pointerdown", "mousedown", "dblclick"]) b.addEventListener(ev, (e) => { e.stopPropagation(); if (ev !== "pointerdown") e.preventDefault(); });
     b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); onOpen(); });
+    let last = "";
     const place = () => {
-        if (!t.isConnected) return;
-        const sb = Math.max(0, t.offsetWidth - t.clientWidth - (t.clientLeft || 0) * 2);
-        b.style.right = Math.round(host.clientWidth - (t.offsetLeft + t.offsetWidth) + (t.clientLeft || 0) + sb + 2) + "px";
-        b.style.bottom = Math.round(host.clientHeight - (t.offsetTop + t.offsetHeight) + (t.clientTop || 0) + 2) + "px";
+        if (!t.isConnected || !t.offsetWidth) return;
+        const classic = Math.max(0, t.offsetWidth - t.clientWidth - (t.clientLeft || 0) * 2);       // a scroll bar that takes room
+        const scrolls = t.scrollHeight > t.clientHeight + 1;
+        const bar = classic || (scrolls && overlayScrollbars() ? OSB_W : 0);
+        const oneLine = t.clientHeight < EXP_W + 10;
+        const right0 = host.clientWidth - (t.offsetLeft + t.offsetWidth) + (t.clientLeft || 0);     // the field's inner right edge
+        const bottom0 = host.clientHeight - (t.offsetTop + t.offsetHeight) + (t.clientTop || 0);
+        const items = [b, ...extras.filter((x) => x.isConnected && x.style.display !== "none")];
+        let x = bar + EXP_GAP;
+        for (const el of items) {
+            const w = el === b ? EXP_W : el.offsetWidth || EXP_W, h = el === b ? EXP_W : el.offsetHeight || EXP_W;
+            el.style.right = Math.round(right0 + x) + "px";
+            el.style.bottom = Math.round((bottom0 + (oneLine ? Math.max(0, (t.clientHeight - h) / 2) : EXP_GAP + (EXP_W - h) / 2)) * 2) / 2 + "px";
+            x += w + EXP_GAP;
+        }
+        // the text stops before them (a classic scroll bar is outside the padding already)
+        const pad = x - classic;
+        const sig = pad + "";
+        if (sig !== last) { last = sig; t.style.setProperty("padding-right", pad + "px", "important"); }
     };
-    for (const ev of ["mouseenter", "focus", "input", "blur"]) t.addEventListener(ev, () => requestAnimationFrame(place));
+    b.__rgPlace = place; t.__rgPlaceExpand = place;
+    b.__rgAddExtra = (el) => { if (!extras.includes(el)) extras.push(el); el.classList.add("rg-corner"); host.appendChild(el); last = ""; place(); };
+    for (const ev of ["mouseenter", "focus", "input", "blur", "scroll"]) t.addEventListener(ev, () => requestAnimationFrame(place));
     try { new ResizeObserver(place).observe(t); } catch (e) { /* old browser */ }
     host.addEventListener("mouseenter", place);
     host.appendChild(b);
+    for (const el of extras) { el.classList.add("rg-corner"); host.appendChild(el); }
     place();
+    requestAnimationFrame(place);
     return b;
 }
 // The line at the bottom of a pop-up editor. A pop-up always keeps its text: Esc and the close button only close it

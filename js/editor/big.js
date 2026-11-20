@@ -7,7 +7,7 @@
 // Layout (the owner's choice, B): the tools in their row and the canvas on the left; on the right the size row,
 // the scene prompts, the region list and the bottom bar. The size row is the node's own (moved too). The scene
 // prompts are ComfyUI's fields and stay on the node; the window shows text boxes kept in step with them.
-import { getSetting, SET, keyHit, keyLabel, nodeOffCanvas, autocompleteOnFocus } from "../rg_shared.js";
+import { getSetting, SET, keyHit, keyLabel, nodeOffCanvas, autocompleteOnFocus, textHistory } from "../rg_shared.js";
 import { chain } from "./graph.js";
 
 let current = null;                                  // the editor that is open large: one at a time, on the whole page
@@ -44,6 +44,8 @@ export function* big(E) {
             ta.placeholder = placeholder; ta.dataset.scene = which; ta.value = String(w().value ?? "");
             ta.title = "The node's own " + w().name + " field: What you type here is typed there.";
             ta.addEventListener("input", () => E.setWidget(w(), ta.value));
+            E.textSession(ta);                         // Undo: as in the node's own box (core.js)
+            textHistory(ta, E.histOf("scene:" + which), { apply: (v) => { E.setWidget(w(), v); E.wcMarkScene?.(); E.updateLlmButtons?.(); } });
             // Esc leaves the box (the keys are the editor's again); every other key is text
             ta.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Escape") { e.preventDefault(); ta.blur(); E.focusSink(); } });
             fields.push({ which, w, ta });

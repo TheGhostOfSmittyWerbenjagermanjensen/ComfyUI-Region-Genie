@@ -1,7 +1,7 @@
 // LLM Prompt Enhancer: the sparkle buttons, requests and results.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { api } from "../../../scripts/api.js";
-import { setHTML, svgIcon, contextMenu, appendWord, autocompleteOnFocus, autocompleteOpen } from "../rg_shared.js";
+import { setHTML, svgIcon, contextMenu, appendWord, autocompleteOnFocus, autocompleteOpen, textHistory } from "../rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings } from "../rg_llm.js";
 import { TYPES } from "./shared.js";
 import { normLoraOpts } from "./state.js";
@@ -63,8 +63,7 @@ export function* llm(E) {
         const t = llmTarget(key);
         if (!llmReady(t)) return;
         if (key === LLM_SCENE) {
-            E.setWidget(E.sceneW, t.res.text);
-            E.change(() => { E.state.sceneLlm = false; });
+            E.change(() => { E.setWidget(E.sceneW, t.res.text); E.state.sceneLlm = false; });      // one step of Undo: the text and the switch
             E.hint("The enhanced text is now in scene_prompt_positive");
         } else E.change(() => { t.r.prompt = t.res.text; t.r.llm = false; });
         updateLlmButtons();
@@ -137,7 +136,27 @@ export function* llm(E) {
         refresh();
         return b;
     }
+    // scene_prompt_positive shows its enhancer on the text box itself (round 43; the owner chose button and outline):
+    // the same button in the box's corner, left of the pop-up button, and an outline around the box while it is on.
+    // Called with every button refresh, so a text box that ComfyUI made anew (Nodes 2.0) gets its button again.
+    function sceneLlmMark() {
+        const on = !!E.state.sceneLlm;
+        const t = E.sceneTA?.positive;
+        if (t?.isConnected) {
+            const exp = t.parentElement?.querySelector(":scope > .rg-expand");
+            if (exp?.__rgAddExtra && !exp.__rgLlm?.isConnected) {
+                const b = llmButton(LLM_SCENE, "corner");
+                b.classList.add("rg-llm-corner");
+                b.addEventListener("mousedown", (e) => { e.stopPropagation(); e.preventDefault(); });      // not a click into the text
+                exp.__rgLlm = b; exp.__rgAddExtra(b);
+            }
+            if (t.classList.contains("rg-llm-on") !== on) t.classList.toggle("rg-llm-on", on);
+        }
+        const big = E.big?.fields?.find((f) => f.which === "positive")?.ta;
+        if (big && big.classList.contains("rg-llm-on") !== on) big.classList.toggle("rg-llm-on", on);
+    }
     function updateLlmButtons() {
+        sceneLlmMark();
         for (const f of llmBtns.values()) f();
     }
     function storeLlmResults(msg) {
@@ -243,7 +262,12 @@ export function* llm(E) {
             const openPop = (field, t) => () => { t.blur(); E.editPrompt(r.id, null, field); };
             const prWrap = E.el("span", "rg-pwrap"); prWrap.appendChild(pr);
             pr.addEventListener("focus", () => pick());
-            pr.addEventListener("input", () => { r.prompt = pr.value; E.save(); llmBtns.get(r.id)?.(); });
+            const prStore = () => { r.prompt = pr.value; E.save(); llmBtns.get(r.id)?.(); };
+            pr.addEventListener("input", prStore);
+            // Undo (round 43): a visit to the box is one step of the editor's Undo; while typing, the Undo keys go back
+            // through this box's own text (the same steps as in the region's pop-up editor)
+            E.textSession(pr);
+            textHistory(pr, E.histOf("r" + r.id), { apply: () => { prStore(); E.requestDraw(); } });
             pr.addEventListener("keydown", (e) => {
                 e.stopPropagation();
                 if (e.key === "Enter" && !e.shiftKey && !autocompleteOpen(pr, e)) { e.preventDefault(); pr.blur(); }
@@ -270,7 +294,10 @@ export function* llm(E) {
                 tx.addEventListener("focus", () => pick());
                 tx.addEventListener("blur", () => { tx.scrollTop = 0; E.wcMark(tx, `r${r.id}.text`, r.text, dblTip(r.text || "Text to render")); });
 
-                tx.addEventListener("input", () => { r.text = tx.value; E.save(); });
+                const txStore = () => { r.text = tx.value; E.save(); };
+                tx.addEventListener("input", txStore);
+                E.textSession(tx);
+                textHistory(tx, E.histOf(`r${r.id}.text`), { apply: () => { txStore(); E.requestDraw(); } });
                 tx.addEventListener("keydown", (e) => {
                     e.stopPropagation();
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); tx.blur(); }

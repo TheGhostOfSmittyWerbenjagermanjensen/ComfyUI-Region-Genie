@@ -129,6 +129,8 @@ export function* lifecycle(E) {
         E.version++;                                       // new state: drop cached label boxes / indices
         if (wasV1) E.save();
         E.undoStack = []; E.redoStack = [];
+        // another workflow's steps and typed text are gone with it (they are kept in memory only, never saved)
+        E.sceneKnown = null; E.textBefore = null; E.textDirty = false; E.textHist?.clear();
         E.selId = null; E.filter = ALL; E.clickPoly = null;
         E.curRegion = E.state.regions[0]?.id ?? null;
         E.lastDims = [0, 0]; E.userView = false;
@@ -217,9 +219,33 @@ export function* lifecycle(E) {
     const ro = new ResizeObserver(() => E.requestDraw());
     ro.observe(E.cvBox);
     E.sizeReady = true; E.syncSizeRow();
+    // The bottom bar sits half-way between the line above it (the list's lower edge) and the node's lower edge
+    // (round 43). A legacy node leaves room under the editor (ComfyUI's margin around a widget, 10 px); the bar gets
+    // the same room above it. In Nodes 2.0 the node's badge follows right under the bar, at the bar's own distance, and
+    // in the large editor the bar is at the window's edge: nothing to do there. The room is measured, not assumed, and
+    // taken over when two looks in a row agree (the editor's place lags a frame behind while the graph is zoomed).
+    let footSeen = null;
+    function centerFoot() {
+        let want = 0;
+        const legacy = !E.big && !!E.wrap.closest(".dom-widget");
+        if (legacy) {
+            const fr = E.foot.getBoundingClientRect(), ds = app.canvas?.ds, cr = app.canvas?.canvas?.getBoundingClientRect();
+            const k = E.foot.offsetHeight ? fr.height / E.foot.offsetHeight : 0;
+            if (!k || !ds || !cr) return;
+            const below = (cr.top + (E.node.pos[1] + E.node.size[1] + ds.offset[1]) * ds.scale - fr.bottom) / k;
+            const gap = parseFloat(getComputedStyle(E.wrap).rowGap) || 0;           // the room the bar has above it anyway
+            want = Math.max(0, Math.min(16, Math.round(below - gap)));
+        }
+        if (want !== footSeen) { footSeen = want; return; }
+        const now = parseFloat(E.foot.style.marginTop) || 0;
+        if (now !== want) E.foot.style.marginTop = want ? want + "px" : "";
+    }
+    E.centerFoot = centerFoot;
     const poll = setInterval(() => {
         if (E.editor && nodeOffCanvas(E.node)) E.closeEditor(true);     // another workflow tab, a subgraph, removed
         if (!E.node.graph) return;
+        centerFoot();
+        for (const t of Object.values(E.sceneTA || {})) t?.__rgPlaceExpand?.();      // a scene prompt set by something else: its scroll bar may have come or gone
         if (E.pruneManagedLoras()) { E.save(); E.renderRegions(); }
         // an edit LoRA or a control file changed in Settings: the rows (and the LoRAs they add) follow (round 23)
         const sig = JSON.stringify([editLoras(), controlFiles()]);

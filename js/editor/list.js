@@ -427,9 +427,14 @@ export function* list(E) {
     // the palette row: swatches (click = change, right-click = remove) and + (add, up to 5)
     function paletteRow(r, inPopup) {
         const row = E.el("div", "rg-row pal" + (r.paletteOn ? "" : " off"));
-        const tag = E.el("span", "rg-palico"); tag.innerHTML = svgIcon("palette");
-        tag.title = r.paletteOn ? "Color palette of this region" : "Color palette (off, so not used; turn it on with the palette button)";
-        row.appendChild(tag);
+        // in the list: a plain mark (the on / off button is on the options line above). In the pop-up editor the
+        // row starts with the on / off button itself: one palette button there, not two (round 43)
+        if (inPopup) row.appendChild(paletteToggle(r));
+        else {
+            const tag = E.el("span", "rg-palico"); tag.innerHTML = svgIcon("palette");
+            tag.title = r.paletteOn ? "Color palette of this region" : "Color palette (off, so not used; turn it on with the palette button)";
+            row.appendChild(tag);
+        }
         const pal = normPalette(r.palette);
         pal.forEach((c, i) => {
             const sw = E.el("button", "rg-sw pal pick"); sw.type = "button"; sw.style.background = c;
