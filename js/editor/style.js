@@ -58,8 +58,14 @@ const STYLE = `
   position:relative; isolation:isolate; }
 .rg-bar > .rg-btn::before, .rg-head .rg-btn::before, .rg-row .rg-btn::before, .rg-foot .rg-btn::before, .rg-row .rg-chev::before,
 .rg-row .rg-grip::before, .rg-row .rg-sw::before, .rg-row .rg-paladd::before {
-  content:""; position:absolute; z-index:-1; left:-1.5px; right:-1.5px; top:50%; height:max(100%, 24px); transform:translateY(-50%); }
+  content:""; position:absolute; z-index:-1; left:-2.5px; right:-2.5px; top:50%; height:max(100%, 24px); transform:translateY(-50%); }   /* 1 px border + half the gap */
 .rg-seg .rg-btn::before { left:0; right:0; }
+/* the same in the pop-up editors: the title bar (6 px gaps), the type buttons (4 px), "use the filled text" */
+.rg-pop-head .rg-btn, .rg-pop-types .rg-btn, .rg-pop-lbl .rg-btn, .rg-pop .rg-ac-btn { position:relative; isolation:isolate; }
+.rg-pop-head .rg-btn::before, .rg-pop-types .rg-btn::before, .rg-pop-lbl .rg-btn::before, .rg-pop .rg-ac-btn::before {
+  content:""; position:absolute; z-index:-1; left:-4px; right:-4px; top:50%; height:max(100%, 24px); transform:translateY(-50%); }
+.rg-pop-types .rg-btn::before { left:-3px; right:-3px; }
+.rg-pop .rg-row .rg-ac-btn::before { left:-2.5px; right:-2.5px; }
 .rg-btn.variants { position:relative; }
 .rg-btn.variants::after { content:""; position:absolute; right:1px; bottom:1px; width:0; height:0;
   border-style:solid; border-width:0 0 5px 5px; border-color:transparent transparent currentColor transparent; opacity:.7; }
@@ -126,6 +132,10 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-pop-head .rg-nav { padding:0 4px; line-height:16px; font-weight:normal; font-size:11px; }
 /* ◀ ▶ A− A+ … ✕ stay at the right end, whatever the title's length (they don't move while stepping) */
 .rg-pop-head .rg-nav.prev { margin-left:auto; }
+.rg-pop-head .rg-hist { padding:1px 3px; line-height:0; }
+.rg-pop-head .rg-hist svg { width:14px; height:14px; display:block; }
+.rg-pop .rg-btn:disabled { opacity:.35; cursor:default; }
+.rg-pop-gap { flex:1 1 auto; }
 .rg-pop-types { display:flex; gap:4px; }
 .rg-pop-types .rg-btn { flex:1 1 0; padding:3px 6px; }
 .rg-pop-lbl { font-size:11px; opacity:.75; margin:0 0 2px 1px; }
@@ -160,8 +170,6 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-row.sub { margin-left:31px; gap:4px; padding-top:0; padding-bottom:0; min-height:18px; font-size:11px; cursor:pointer; opacity:.9; }
 .rg-row.sub:hover { background:color-mix(in srgb, currentColor 6%, transparent); }
 .rg-big { position:fixed; inset:0; z-index:9000; box-sizing:border-box; padding:2vh 2vw; display:flex; background:rgba(0,0,0,.55); }
-/* ComfyUI's menus (tool versions, model files, LoRA lists: z-index 1700) open above the window */
-body:has(.rg-big):not(:has(.rg-llm-pop)) .litecontextmenu, body:has(.rg-big):not(:has(.rg-llm-pop)) .litegraph.litecontextmenu.dark { z-index:10500 !important; }
 .rg-big-win { flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; background:var(--comfy-menu-bg,#2b2b2b);
   color:var(--input-text,#ddd); border:2px solid #5b8fd0; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,.7); overflow:hidden; }
 .rg-big-head { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:4px 8px 4px 12px; font:600 13px sans-serif;
@@ -227,20 +235,6 @@ body:has(.rg-big):not(:has(.rg-llm-pop)) .litecontextmenu, body:has(.rg-big):not
 .rg-paladd > svg { width:10px; height:10px; display:block; margin:auto; }
 .rg-warn > svg, .rg-msg-icon > svg { width:14px; height:14px; display:block; }
 .rg-btn.rg-notes { display:inline-flex; align-items:center; gap:3px; }
-/* the shortcut list: a sheet over the editor, on the page (not zoomed with the graph) */
-.rg-keys { position:fixed; z-index:10000; box-sizing:border-box; width:min(780px, calc(100vw - 16px)); max-height:min(86vh, calc(100vh - 16px));
-  display:flex; flex-direction:column; outline:none; border-radius:8px; font:12.5px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
-  color:var(--input-text,#ddd); background:var(--comfy-menu-bg,#2b2b2b); border:1px solid var(--border-color,#555); box-shadow:0 8px 28px rgba(0,0,0,.55); }
-.rg-keys-head { display:flex; align-items:center; padding:7px 8px 7px 12px; border-bottom:1px solid var(--border-color,#555); font-size:13px; }
-.rg-keys-head .rg-x { margin-left:auto; padding:3px 5px; background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer; }
-.rg-keys-body { overflow:auto; padding:4px 12px 12px; columns:2 300px; column-gap:22px; }
-.rg-keys section { break-inside:avoid; padding-top:8px; }
-.rg-keys h4 { margin:0 0 4px; font-size:11px; font-weight:650; letter-spacing:.06em; text-transform:uppercase; opacity:.7; }
-.rg-keys-row { display:flex; gap:10px; padding:2.5px 0; align-items:baseline; }
-.rg-keys-k { flex:0 0 150px; display:flex; flex-wrap:wrap; gap:3px; justify-content:flex-end; }
-.rg-keys kbd { display:inline-block; font:600 11px/15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding:0 5px;
-  border:1px solid color-mix(in srgb, currentColor 45%, transparent); border-bottom-width:2px; border-radius:4px;
-  background:color-mix(in srgb, currentColor 9%, transparent); white-space:nowrap; }
 .rg-btn.rg-notes > svg { width:13px; height:13px; display:block; }
 .rg-row .rg-btn.txt { padding:0 5px; font-size:11px; }
 .rg-pick { flex:1 1 0; width:0; min-width:0; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;

@@ -157,3 +157,17 @@ Check once in legacy mode and once in Nodes 2.0.
 - Subgraphs: a Region Genie node inside a subgraph, with only some outputs shown and one of them leaving the subgraph, runs with the right data. (Not tested here.)
 - "Save (API Format)" of a workflow whose node shows only some outputs: the file has the Python node's output numbers and an empty `outputs_shown`.
 
+## 19. Label marks (round 41)
+
+- On the 4K display, both node modes: a **character** region's label shows a small filled person before its prompt, in the text's color (white on dark regions, black on light ones), clear at your usual zoom. In Edit Mode a region set to keep shows a filled lock, and a kept character region the lock, then the person. No colored emoji anywhere in the labels.
+- The Regional LoRAs node, connected to the node's `masks`: a row for a character region shows the same person before the prompt.
+
+## 20. Pop-up text, the shortcut list, tooltips and lists (round 42)
+
+- On the 4K display, both node modes, in a pop-up editor (a scene prompt, a region, and one of the Regional LoRAs node): **Enter** starts a new line; **Esc** and the close button close it with the text as it is. Undo / Redo (the buttons between ◀ ▶ and A− A+, and Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y) take typing back in sensible steps; after closing and reopening, Undo still works. Paste, a wildcard from the list, an LLM result and a LoRA's trigger word each undo as one step.
+- Typing with an input method (Chinese, Japanese, Korean): composing a word and then Undo behaves sensibly (this can't be tested here).
+- The **shortcut list** (the keyboard button, and Settings > Region Genie > Shortcuts > Edit) shows all five sections at your window size, scrolling down for the rest; nothing is cut off at the right.
+- **Tooltips:** rest the pointer on buttons in a pop-up's title bar and bottom row, in the node, the shortcut list, the LLM settings and the large editor: only the pack's tooltip appears, never a second (browser) one. Also in Firefox if you use it: the test runs in Chromium only. Tooltips of ComfyUI itself and of other packs (rgthree's progress bar at the top) look as they did before this pack's tooltip existed.
+- In a pop-up, the **wildcard** button and **＋LoRA** open their lists in front of the pop-up. With a long LoRA list, the list still scrolls and its filter field takes typing.
+- The small buttons in a pop-up's title bar are easy to hit; a click in the gap between two of them lands on one of them, and dragging the title bar still works when you start on the title or on empty space.
+- Edit Mode with a loaded image: the label of a region set to **keep** has a dark plate and is readable over the picture; regions that aren't kept look as before.

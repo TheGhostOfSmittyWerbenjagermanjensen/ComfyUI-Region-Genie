@@ -210,14 +210,6 @@
     "name": "弹出编辑器：要渲染的文字",
     "tooltip": "区域弹出编辑器中 Text 框的文字大小（px；正在使用 Text 框时，其标题栏中的 A− / A+ 也可更改）。适用于所有节点。"
   },
-  "RegionGenie_Popup_EscKeeps": {
-    "name": "弹出编辑器中的 Esc",
-    "tooltip": "Esc 在弹出文本编辑器中的作用（所有 Region Genie 和“区域 LoRA”节点）。\n恢复原文本：Esc 关闭编辑器，文本恢复为打开时的样子（Enter 和 ✕ 保留编辑）。\n保留编辑：Esc、Enter 和 ✕ 都会关闭编辑器并保留文本。",
-    "options": {
-      "put the text back": "恢复原文本",
-      "keep the edits": "保留编辑"
-    }
-  },
   "RegionGenie_Wildcards_PerField": {
     "name": "每个字段一个种子",
     "tooltip": "关闭：节点的每个提示词字段都直接使用节点的通配符种子（如同共用一个种子的 Impact Pack 节点），因此两个字段中的同一个通配符通常会选到相同的值。\n开启：每个字段都有自己的种子，由通配符种子和字段推导得出，因此各自独立选取（相同的种子仍得到相同的结果）。"

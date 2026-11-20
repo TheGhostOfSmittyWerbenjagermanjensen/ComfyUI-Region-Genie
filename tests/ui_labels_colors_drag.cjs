@@ -138,6 +138,38 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const moved = (await st()).layers.find((l) => l.id === 99);
     check("dropped on another region's row: the layer moves into that region, on top of its layers", moved.region === cliff.id && (await stackOf(cliff.id)).at(-1) === 99);
 
+    // ---- round 41: the marks before a label's prompt are drawn shapes, not emoji: a person for a character region,
+    // a lock for a region kept as it is in Edit Mode. They take 14 px each before the text.
+    const raw = (rid) => page.evaluate((rid) => { const l = window.__node.__rgLabels().find((x) => x.rid === rid); return l ? { w: l.x1 - l.x0, marks: l.marks || [], inside: !!l.inside, plate: l.plate } : null; }, rid);
+    const setReg = async (rid, patch) => { await page.evaluate(([rid, patch]) => { Object.assign(window.__node.__rgState().regions.find((r) => r.id === rid), patch); window.__node.__rgRefresh(); }, [rid, patch]); await page.waitForTimeout(150); };
+    const dprNow = await page.evaluate(() => window.devicePixelRatio || 1);
+    const l0 = await raw(cliff.id);
+    await setReg(cliff.id, { type: "character" });
+    const l1 = await raw(cliff.id);
+    check(`a character region's label carries the person mark and still fits its region (at most ${14 * dprNow} canvas px wider; ${Math.round(l0?.w)} -> ${Math.round(l1?.w)})`, !!l0 && !l0.marks.length && l1.marks.join() === "person" && l1.w > l0.w * 0.8 && l1.w <= l0.w + 14 * dprNow + 2);
+    const drawn = await page.evaluate(() => { const calls = []; const P = CanvasRenderingContext2D.prototype, f = P.fillText, fl = P.fill; let fills = 0;
+        P.fillText = function (t) { calls.push(String(t)); return f.apply(this, arguments); }; P.fill = function (p) { if (p instanceof Path2D) fills++; return fl.apply(this, arguments); };
+        window.__node.__rgRefresh();
+        return new Promise((res) => setTimeout(() => { P.fillText = f; P.fill = fl; res({ emoji: calls.some((t) => /[\u{1F464}\u{1F512}]/u.test(t)), fills }); }, 300)); });
+    check(`no emoji is written on the canvas any more; the mark is a filled shape (${drawn.fills} shape fills in one redraw)`, !drawn.emoji && drawn.fills >= 1);
+    await page.locator('.rg-foot [title^="Edit: Change the image"]').click(); await page.waitForTimeout(200);
+    await setReg(cliff.id, { keep: true });
+    const l2 = await raw(cliff.id);
+    check("in Edit Mode a kept character region carries the lock, then the person", l2.marks.join() === "lock,person");
+    // round 42: a kept region is an outline over the picture it keeps, so its label (number and prompt) gets a dark plate
+    const corner = (rid) => page.evaluate((rid) => { const l = window.__node.__rgLabels().find((x) => x.rid === rid), g = document.querySelector(".rg-cv canvas").getContext("2d");
+        const d = g.getImageData(Math.round(l.x0 + 1), Math.round(l.y0 + 1), 1, 1).data; return d[0] + d[1] + d[2]; }, rid);
+    const litKept = await corner(cliff.id);
+    await setReg(cliff.id, { keep: false });
+    const l3 = await raw(cliff.id), litPlain = await corner(cliff.id);
+    check(`in Edit Mode the label of a kept region lies on a dark plate; not kept: none (${l2.inside}, ${l2.plate} / ${l3.plate}; brightness at the label's corner ${litKept} / ${litPlain})`,
+        l2.inside && l2.plate === true && l3.plate === false && litKept < litPlain * 0.75);
+    await setReg(cliff.id, { keep: true });
+    await page.locator(".rg-foot .rg-seg .rg-btn").first().click(); await page.waitForTimeout(200);
+    check("back in Generate mode: the lock goes, the person stays, and so does the plate", (await raw(cliff.id)).marks.join() === "person" && (await raw(cliff.id)).plate === false);
+    await setReg(cliff.id, { type: "object", keep: false });
+    check("an object region has no mark", (await raw(cliff.id)).marks.length === 0);
+
     await page.screenshot({ path: require("path").join(__dirname, "out", "ui_labels_colors_drag.png"), fullPage: false });
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");

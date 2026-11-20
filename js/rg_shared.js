@@ -6,7 +6,19 @@ import { openColorPicker } from "./rg_colorpicker.js";
 import "./rg_tooltip.js";                 // the pack's own tooltip takes over every title in the pack's elements
 
 // ---------------------------------------------------------------- icons (16x16, stroke = text color)
+// The marks on a region's label (round 41): filled shapes, so they read at 11 px on any region color. They replace
+// the 👤 / 🔒 emoji, which the system drew in its own colors. 16-unit grid; 'fill' is a filled path, 'stroke' an open
+// one of 'width'. The canvas draws them with Path2D (drawLabelMark in js/editor/render.js), the lists as icons
+// (markPerson, markLock below).
+export const LABEL_MARKS = {
+    person: { fill: "M8 1.6a3.1 3.1 0 1 0 0 6.2a3.1 3.1 0 0 0 0-6.2zM2.3 14.7a5.7 5.7 0 0 1 11.4 0z" },
+    lock: { fill: "M4.1 7.1h7.8a1.6 1.6 0 0 1 1.6 1.6v4.5a1.6 1.6 0 0 1-1.6 1.6H4.1a1.6 1.6 0 0 1-1.6-1.6V8.7a1.6 1.6 0 0 1 1.6-1.6z",
+            stroke: "M5.1 7.3V4.9a2.9 2.9 0 0 1 5.8 0v2.4", width: 1.8 },
+};
+const markSvg = (m) => `<path d="${m.fill}" fill="currentColor" stroke="none"/>` + (m.stroke ? `<path d="${m.stroke}" stroke-width="${m.width}"/>` : "");
 export const ICONS = {
+    markPerson: markSvg(LABEL_MARKS.person),
+    markLock: markSvg(LABEL_MARKS.lock),
     select: '<path d="M3.5 2l8.5 6-3.6.9 2 3.9-1.6.8-2-3.9L4.2 12.3z" fill="currentColor" stroke="none"/>',
     shape: '<rect x="2" y="2" width="7.5" height="7.5"/><circle cx="11" cy="11" r="3.4"/>',
     brush: '<path d="M14 2L8.3 8.4"/><path d="M8.6 8.1c-1.9-.6-3.7.3-3.9 2.3-.1 1.3-.9 2.1-2.2 2.3 1.6 1.4 5.6 1.2 6.4-1.2.4-1.2.2-2.3-.3-3.4z"/>',
@@ -1168,13 +1180,95 @@ export function addExpandButton(t, title, onOpen) {
     place();
     return b;
 }
-// Esc in a pop-up editor: true = put the text back (the default), false = keep the edits (Settings)
-export const escReverts = () => getSetting(SET.popEscKeeps, "put the text back") !== "keep the edits";
+// The line at the bottom of a pop-up editor. A pop-up always keeps its text: Esc and the close button only close it
+// (taking a change back is what its Undo / Redo buttons are for), and Enter starts a new line.
 export const popFootText = (nav = true) => {
     const keys = [keyLabel(popKeyText(-1)), keyLabel(popKeyText(1))];
-    return "Enter: done · Shift+Enter: new line · Esc: close, " + (escReverts() ? "putting the text back" : "keeping the edits")
+    return "Esc: close (the text stays)"
         + (nav && (keys[0] || keys[1]) ? ` · ${keys.filter(Boolean).join(" / ")}: ${keys[0] && keys[1] ? "previous / next" : keys[0] ? "previous" : "next"} field` : "");
 };
+// rg_keys.js puts its functions here when it loads (this file can't import it: it imports this one). Until then: the
+// default keys.
+export const KEYS = {
+    is: (e, id) => (id === "edit.undo" ? keyHit(e, "Ctrl+Z") : id === "edit.redo" ? keyHit(e, "Ctrl+Shift+Z") || keyHit(e, "Ctrl+Y") : false),
+    keyed: (text) => text,
+};
+// ---- a pop-up editor's own Undo / Redo for its text box (the buttons, and the keys of "Undo" / "Redo").
+// The browser's own undo is lost whenever code sets the text (a wildcard, the tag list, the LLM, "use the filled
+// text"), and it can't tell a button whether there is anything to take back.
+// store: an object the caller keeps for as long as the steps should live ({} to start with): closing the pop-up and
+// opening it again, or stepping to another field and back, keeps them. o.apply(text): the text box was set to a step
+// (store it where the text lives). o.onChange(): there may be a step more or less now (the buttons).
+const HIST_MAX = 200, HIST_RUN_MS = 800;
+export function textHistory(ta, store, o = {}) {
+    const state = () => ({ v: ta.value, a: ta.selectionStart ?? ta.value.length, b: ta.selectionEnd ?? ta.value.length });
+    if (!Array.isArray(store.steps) || !store.steps.length) { store.steps = [state()]; store.at = 0; }
+    let run = "", runT = 0;                         // typing in one go is one step: the kind of input, when it last came
+    const top = () => store.steps[store.at];
+    const push = () => {
+        store.steps.length = store.at + 1; store.steps.push(state());
+        if (store.steps.length > HIST_MAX) store.steps.shift();
+        store.at = store.steps.length - 1;
+    };
+    // the text is not what the last step says: code changed it, or it changed while the pop-up was closed. A step of its own
+    const sync = () => { if (top().v !== ta.value) { push(); run = ""; } o.onChange?.(); };
+    const onInput = (e) => {
+        if (top().v === ta.value) return;
+        const kind = e?.inputType || "", t = performance.now();
+        const typing = kind === "insertText" || kind === "deleteContentBackward" || kind === "deleteContentForward" || kind === "insertCompositionText";
+        // a new word starts a new step too, so Undo doesn't take a whole paragraph typed without a pause
+        const newWord = kind === "insertText" && /\s/.test(e.data || "") === false && /\s$/.test(top().v.slice(0, top().a));
+        if (typing && kind === run && t - runT < HIST_RUN_MS && store.at > 0 && !newWord) store.steps[store.at] = state();
+        else push();
+        run = typing ? kind : ""; runT = t;
+        o.onChange?.();
+    };
+    const go = (d) => {
+        if (top().v !== ta.value) push();            // a change by code since the last step: don't lose it
+        const at = store.at + d;
+        if (at < 0 || at >= store.steps.length) return false;
+        store.at = at; run = "";
+        const st = top();
+        ta.value = st.v;
+        try { ta.setSelectionRange(Math.min(st.a, st.v.length), Math.min(st.b, st.v.length)); } catch (e) { /* not focusable right now */ }
+        o.apply?.(st.v);
+        o.onChange?.();
+        return true;
+    };
+    const api_ = { sync, undo: () => go(-1), redo: () => go(1), canUndo: () => store.at > 0 || top().v !== ta.value, canRedo: () => store.at < store.steps.length - 1 && top().v === ta.value };
+    ta.addEventListener("input", onInput);
+    // the cursor's place belongs to the step (so Redo puts it back where the typing ended)
+    ta.addEventListener("blur", () => { run = ""; });
+    ta.addEventListener("keydown", (e) => {
+        const d = KEYS.is(e, "edit.undo") ? -1 : KEYS.is(e, "edit.redo") ? 1 : 0;
+        if (!d) return;
+        e.preventDefault(); e.stopPropagation();
+        go(d);
+    });
+    // the browser's own undo (its menu, a system gesture) goes the same way
+    ta.addEventListener("beforeinput", (e) => {
+        if (e.inputType !== "historyUndo" && e.inputType !== "historyRedo") return;
+        e.preventDefault(); go(e.inputType === "historyUndo" ? -1 : 1);
+    });
+    sync();
+    return api_;
+}
+// The Undo / Redo buttons of a pop-up editor. current(): the textHistory() of the text box in use (or null).
+// Returns { undo, redo (the buttons), refresh() }.
+export function historyButtons(current, cls = "rg-btn ico") {
+    const mk = (icon, tip, fn) => {
+        const b = document.createElement("button"); b.type = "button"; b.className = cls + " rg-hist"; b.dataset.ic = icon;
+        b.innerHTML = svgIcon(icon); b.__rgTitle = tip; b.title = KEYS.keyed(tip);
+        b.addEventListener("mousedown", (e) => e.preventDefault());              // the text box keeps the cursor
+        b.addEventListener("click", (e) => { e.preventDefault(); if (!b.disabled) fn(); });
+        return b;
+    };
+    const undo = mk("undo", "Undo: Take back the last change to this text (Ctrl+Z).\nThe steps stay when the pop-up is closed and opened again.", () => current()?.undo());
+    const redo = mk("redo", "Redo: Bring back the change that was taken back (Ctrl+Shift+Z / Ctrl+Y).", () => current()?.redo());
+    const refresh = () => { const h = current(); undo.disabled = !h?.canUndo(); redo.disabled = !h?.canRedo(); };
+    refresh();
+    return { undo, redo, refresh };
+}
 // ---- the keys that step to the previous / next text field in a pop-up editor (Settings > Region Genie > Text size):
 // a key name as the browser gives it, with modifiers, e.g. "PageUp", "Alt+ArrowLeft", "Ctrl+PageDown", "F2"; empty = off
 const KEY_ALIASES = { pgup: "pageup", "page up": "pageup", pgdn: "pagedown", pgdown: "pagedown", "page down": "pagedown",
@@ -1229,20 +1323,21 @@ export function naturalHeight(box, tas) {
 }
 let fpop = null;
 export const floatPopupOpen = () => !!fpop;
-export function closeFloatPopup(commit = true) { fpop?.close(commit); }
+export function closeFloatPopup() { fpop?.close(); }
 // o: { anchor, title, value, onInput(v), fontKey (a SET text-size id), node (autocomplete; the pop-up closes when the
 //      node leaves the canvas), filled?() -> text | null, hint?, onClose?, nav?(dir, geom) (◀ / ▶: open the previous / next
-//      field there), at? { left, top, width, height } (a place and size to open at: stepping with ◀ / ▶) }
-// It stays open until Enter, Esc, ✕, another pop-up, or the node leaving the canvas (a click elsewhere doesn't close it).
+//      field there), at? { left, top, width, height } (a place and size to open at: stepping with ◀ / ▶),
+//      history? (an object kept by the caller: this field's Undo / Redo steps, see textHistory()) }
+// It stays open until Esc, the close button, another pop-up, or the node leaving the canvas (a click elsewhere doesn't
+// close it), and always keeps its text; Enter is a new line.
 export function openFloatPopup(o) {
-    closeFloatPopup(true);
+    closeFloatPopup();
     const box = document.createElement("div"); box.className = "rg-fpop";
     const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const head = mk("div", "rg-fpop-head"), title = mk("span", "rg-fpop-title", o.title);
     const btn = (cls, html, tip, fn) => { const b = mk("button", "rg-btn " + cls); b.type = "button"; b.innerHTML = html; b.title = tip;
         b.addEventListener("click", (e) => { e.preventDefault(); fn(e); }); return b; };
     const ta = mk("textarea"); ta.rows = 10; ta.spellcheck = false; ta.value = String(o.value ?? "");
-    const orig = ta.value;
     const fs = () => Math.max(8, Math.min(40, Math.round(+recentGet(o.fontKey, 14)) || 14));
     const applyFont = () => { const f = fs(); ta.style.fontSize = f + "px"; ta.style.lineHeight = Math.round(f * 1.3) + "px"; };
     const font = (d) => { recentSet(o.fontKey, Math.max(8, Math.min(40, fs() + d))); applyFont(); };
@@ -1250,21 +1345,29 @@ export function openFloatPopup(o) {
     const fp = btn("rg-fpop-font", "A+", "Larger text (Settings > Region Genie > Text size)", () => font(1));
     const wc = btn("icon", svgIcon("wildcard"), "Insert a wildcard (ComfyUI Impact Pack) at the cursor", (e) => pickWildcard(e, (n) => insertAtCursor(ta, n)));
     wc.style.display = wildcardsInstalled() ? "" : "none";
-    const use = btn("icon", svgIcon("useFilled"), "", () => { const f = o.filled?.(ta.value); if (f != null) { ta.value = f; o.onInput(f); syncUse(); } });
+    const use = btn("icon", svgIcon("useFilled"), "", () => { const f = o.filled?.(ta.value); if (f != null) { ta.value = f; o.onInput(f); syncUse(); hist.sync(); } });
     const syncUse = () => { const f = o.filled?.(ta.value); use.style.display = f != null ? "" : "none";
         use.title = f != null ? `Use the filled text: Replace the wildcards with what they produced (last run or preview):\n${f}` : ""; };
-    const x = btn("rg-x", svgIcon("close"), "Close, keeping the edits (Enter).", () => close(true));
+    const x = btn("rg-x", svgIcon("close"), "Close (Esc).\nThe text stays as it is: Undo takes a change back.", () => close());
+    let hb = null;                             // (textHistory() reports once before the buttons exist)
+    const hist = textHistory(ta, o.history || {}, { apply: (v) => { o.onInput(v); syncUse(); }, onChange: () => hb?.refresh() });
+    hb = historyButtons(() => hist, "rg-btn icon");
     const geom = () => ({ left: box.offsetLeft, top: box.offsetTop, width: box.offsetWidth, height: box.offsetHeight });
     const prev = btn("rg-nav", "◀", popNavTip(-1, o.navWhat || "in order"), () => o.nav(-1, geom()));
     const next = btn("rg-nav", "▶", popNavTip(1, o.navWhat || "in order"), () => o.nav(1, geom()));
     if (!o.nav) prev.style.display = next.style.display = "none";
     // the node's tag autocomplete switch (the same one as in the node's bottom bar: it acts on every field of the node)
     const ac = o.node ? autocompleteToggle(o.node, (tag, cls) => mk(tag, cls), true) : null;
-    head.append(title, prev, next, fm, fp, ...(ac ? [ac.el] : []), use, wc, x);
+    head.append(title, prev, next, hb.undo, hb.redo, fm, fp, use, x);
     head.title = "Drag to move (anywhere on the screen).\nDouble-click: Back next to the field.";
+    // below the text, on the right: the tag autocomplete switch and the wildcard list (the row goes when neither shows)
+    const ctl = mk("div", "rg-fpop-ctl");
+    ctl.append(...(ac ? [ac.el] : []), wc);
+    const syncCtl = () => { const any = [...ctl.children].some((c) => c.style.display !== "none"); if ((ctl.style.display !== "none") !== any) ctl.style.display = any ? "" : "none"; };
     const foot = mk("div", "rg-fpop-foot", o.hint || popFootText(!!o.nav));
     const grip = mk("div", "rg-fpop-grip"); grip.title = "Drag to resize (remembered).\nDouble-click: Back to the default size.";
-    box.append(head, ta, foot, grip);
+    box.append(head, ta, ctl, foot, grip);
+    syncCtl();
     for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "contextmenu", "keyup", "keypress"]) box.addEventListener(ev, (e) => e.stopPropagation());
     box.dataset.captureWheel = "true";
     ta.addEventListener("input", () => { o.onInput(ta.value); syncUse(); });
@@ -1272,8 +1375,7 @@ export function openFloatPopup(o) {
         e.stopPropagation();
         const dir = o.nav ? popNavDir(e) : 0;
         if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); o.nav(dir, geom()); return; }
-        if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); close(!escReverts()); }
-        else if (e.key === "Enter" && !e.shiftKey && e.target === ta && !autocompleteOpen(ta, e)) { e.preventDefault(); close(true); }
+        if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); close(); }
     });
     if (o.node) attachAutocomplete(ta, o.node);
     document.body.appendChild(box);
@@ -1322,17 +1424,16 @@ export function openFloatPopup(o) {
     });
     grip.addEventListener("dblclick", () => { const all = sizes(); delete all.float; recentSet(SET.popSizes, JSON.stringify(all)); layout(false); });
     // closes when its node leaves the canvas (another workflow tab, a subgraph, the node removed)
-    const watch = setInterval(() => { if (o.node && nodeOffCanvas(o.node)) close(true); else if (!box.isConnected) close(true); }, 300);
-    function close(commit) {
+    const watch = setInterval(() => { if (o.node && nodeOffCanvas(o.node)) close(); else if (!box.isConnected) close(); else syncCtl(); }, 300);
+    function close() {
         ac?.dispose();
         if (fpop !== api_) return;
         fpop = null;
         clearInterval(watch);
-        if (!commit && ta.value !== orig) o.onInput(orig);
         box.remove();
         o.onClose?.();
     }
-    const api_ = { close, box, ta };
+    const api_ = { close, box, ta, history: hist };
     fpop = api_;
     ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
     return api_;
@@ -1351,7 +1452,13 @@ export const FPOP_CSS = `
 .rg-fpop textarea:focus { border-color:#5b8fd0; outline:none; }
 .rg-fpop.sized textarea { flex:1 1 auto; min-height:40px; }
 .rg-fpop-foot { font-size:10px; opacity:.5; }
+.rg-fpop-ctl { display:flex; align-items:center; justify-content:flex-end; gap:6px; }
 .rg-fpop-head .rg-nav { padding:0 4px; }
+.rg-fpop .rg-btn:disabled { opacity:.35; cursor:default; }
+/* click areas as in the node (editor/style.js, round 39): at least 24 px tall, out to the middle of the gap */
+.rg-fpop-head .rg-btn, .rg-fpop-ctl .rg-btn, .rg-fpop-ctl .rg-ac-btn { position:relative; isolation:isolate; }
+.rg-fpop-head .rg-btn::before, .rg-fpop-ctl .rg-btn::before, .rg-fpop-ctl .rg-ac-btn::before {
+  content:""; position:absolute; z-index:-1; left:-4px; right:-4px; top:50%; height:max(100%, 24px); transform:translateY(-50%); }   /* 1 px border + half the gap */
 .rg-fpop-grip { position:absolute; right:1px; bottom:1px; width:14px; height:14px; cursor:nwse-resize; touch-action:none; opacity:.7;
   background:linear-gradient(135deg, transparent 52%, #5b8fd0 52% 60%, transparent 60% 70%, #5b8fd0 70% 78%, transparent 78%); }
 .rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:transparent;
@@ -1616,7 +1723,7 @@ export const SET = {
     // text size per kind of field, in the node and in the pop-up editors (0 in the node = as before)
     fsNodeScene: "RegionGenie.Text.NodeScene", fsNodeRegion: "RegionGenie.Text.NodeRegion", fsNodeText: "RegionGenie.Text.NodeText",
     fsPopScene: "RegionGenie.Text.PopupScene", fsPopRegion: "RegionGenie.Text.PopupRegion", fsPopText: "RegionGenie.Text.PopupText",
-    popSizes: "RegionGenie.Popup.Sizes", popEscKeeps: "RegionGenie.Popup.EscKeeps",
+    popSizes: "RegionGenie.Popup.Sizes",
     popPrevKey: "RegionGenie.Popup.PrevKey", popNextKey: "RegionGenie.Popup.NextKey",
     sizeMode: "RegionGenie.Size.Mode",
     sizeAspect: "RegionGenie.Size.Aspect",
@@ -1946,11 +2053,6 @@ const SETTINGS = [
         // they were two rows here), still saved under their own ids
         { id: SET.popPrevKey, name: "Pop-up editor: key for the previous text field", type: "hidden", defaultValue: "PageUp" },
         { id: SET.popNextKey, name: "Pop-up editor: key for the next text field", type: "hidden", defaultValue: "PageDown" },
-        { id: SET.popEscKeeps, name: "Esc in a pop-up editor", type: "combo", defaultValue: "put the text back",
-          options: ["put the text back", "keep the edits"],
-          tooltip: "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node).\n"
-              + "Put the text back: Esc closes it and the text is as it was when it opened (Enter and ✕ keep the edits).\n"
-              + "Keep the edits: Esc, Enter and ✕ all close it and keep the text.", category: CAT("Text size", "7 esc") },
         { id: SET.wcPerField, name: "A seed per field", type: "boolean", defaultValue: false,
           tooltip: "Off: Every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing "
               + "one seed), so the same wildcard in two fields usually picks the same value.\n"
@@ -2134,6 +2236,10 @@ app.registerExtension({
 });
 
 export const AC_CSS = `
+/* ComfyUI's own menus (LoRA and wildcard lists, model files, tool versions: z-index 1700) open above the pack's pop-up
+   editors and the large editor, whenever one of those is up (the LLM settings pop-up has its own, higher, rule) */
+body:has(.rg-pop, .rg-fpop, .rg-big):not(:has(.rg-llm-pop)) .litecontextmenu,
+body:has(.rg-pop, .rg-fpop, .rg-big):not(:has(.rg-llm-pop)) .litegraph.litecontextmenu.dark { z-index:10500 !important; }
 /* above the pop-up editors (.rg-pop / .rg-fpop, z-index 10000): the packs' own lists sit at or below that */
 .rg-ac.comfy-autocomplete-dropdown, .rg-ac.pysssss-autocomplete { z-index:10002 !important; }
 .rg-ac.comfy-autocomplete-dropdown .comfy-autocomplete-item { padding:2px 10px !important; }
@@ -2144,8 +2250,8 @@ export const AC_CSS = `
 .rg-ac-btn svg { width:16px; height:16px; display:block; }
 .rg-ac-btn:not(.on) { opacity:.55; }
 .rg-ac-btn.on { background:#3a6ea5; border-color:#5b8fd0; color:#fff; }
-.rg-pop-head .rg-ac-btn, .rg-fpop-head .rg-ac-btn { padding:1px 3px; }
-.rg-pop-head .rg-ac-btn svg, .rg-fpop-head .rg-ac-btn svg { width:14px; height:14px; }
+.rg-pop .rg-ac-btn, .rg-fpop .rg-ac-btn { padding:1px 3px; }
+.rg-pop .rg-ac-btn svg, .rg-fpop .rg-ac-btn svg { width:14px; height:14px; }
 `;
 (function injectAcCss() {
     if (document.getElementById("rg-ac-style")) return;

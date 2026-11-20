@@ -37,6 +37,7 @@ const CSS = `
 .rg-rl-sw { width:12px; height:12px; border-radius:2px; border:1px solid #000; flex:0 0 auto; }
 .rg-rl-region { flex:1 1 0 !important; width:0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.85; }
 .rg-rl-region.bad { color:#e88; opacity:1; }
+.rg-rl-mark svg { width:11px; height:11px; vertical-align:-1.5px; margin-right:3px; }
 .rg-rl-line .rg-pwrap { position:relative; display:flex; flex:1 1 0; min-width:0; }
 .rg-rl-prompt { flex:1 1 0 !important; width:0; min-width:0; box-sizing:border-box; resize:none; background:var(--comfy-input-bg,#222);
   color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; font-family:inherit; font-size:var(--rg-rl-fs,12px);
@@ -117,6 +118,9 @@ function setup(node) {
     // (positive_prompt, negative_prompt, then each row's words), keeping the pop-up's place and size
     const NAV_WHAT = "positive_prompt, negative_prompt, then each row's words";
     const rowOpen = [];                      // row i -> (at) => opens its pop-up (made by render)
+    // the pop-up editor's Undo / Redo steps of each field, for as long as the node lives (see textHistory())
+    const widgetHist = {}, rowHist = new WeakMap();
+    const histOfRow = (r) => { if (!rowHist.has(r)) rowHist.set(r, {}); return rowHist.get(r); };
     const popKeys = () => ["w:positive_prompt", "w:negative_prompt", ...rows.map((_, i) => "row:" + i)];
     function openField(key, at) {
         const nav = (dir, geom) => {
@@ -127,7 +131,8 @@ function setup(node) {
         const name = key.slice(2);
         openFloatPopup({
             anchor: widgetTA[name] || wrap, title: name, value: node.widgets?.find((x) => x.name === name)?.value ?? "", node, at, nav, navWhat: NAV_WHAT,
-            fontKey: SET.fsPopScene, onInput: (v) => setW(name, v), filled: (raw) => filledFor(WKEY[name], raw) });
+            fontKey: SET.fsPopScene, onInput: (v) => setW(name, v), filled: (raw) => filledFor(WKEY[name], raw),
+            history: (widgetHist[name] = widgetHist[name] || {}) });
     }
     for (const n of ["positive_prompt", "negative_prompt"]) {
         const w = node.widgets?.find((x) => x.name === n);
@@ -221,7 +226,7 @@ function setup(node) {
         if (regs && regs[idx]) {
             const r = regs[idx];
             const p = (r.prompt || "").trim() || "(no prompt)";
-            return { text: (r.type === "character" ? "👤 " : "") + p + (r.type === "text" && r.text ? `  "${r.text}"` : ""), color: r.color, bad: false };
+            return { text: p + (r.type === "text" && r.text ? `  "${r.text}"` : ""), color: r.color, bad: false, character: r.type === "character" };
         }
         if (typeof count === "number") {
             if (idx < 0 || idx >= count) return { text: count ? `no mask ${idx} (masks: 0-${count - 1})` : "no masks", color: null, bad: true };
@@ -242,7 +247,15 @@ function setup(node) {
         rows.forEach((r, i) => {
             const h = rowEls[i]; if (!h) return;
             const v = regionHint(r.index, regs);
-            h.text.textContent = v.text; h.text.title = v.text;
+            // a character region: the filled person mark before its prompt (as on the Region Genie node's canvas)
+            const key = (v.character ? "c|" : "|") + v.text;
+            if (h.text.__rgKey !== key) {
+                h.text.__rgKey = key;
+                h.text.replaceChildren();
+                if (v.character) { const ic = el("span", "rg-rl-mark"); ic.innerHTML = svgIcon("markPerson"); h.text.append(ic); }
+                h.text.append(v.text);
+                h.text.title = v.text + (v.character ? "\nType: Character." : "");
+            }
             h.text.classList.toggle("bad", v.bad);
             h.sw.style.display = v.color ? "" : "none";
             if (v.color) h.sw.style.background = v.color;
@@ -331,7 +344,7 @@ function setup(node) {
             rowOpen[i] = (at, nav) => openFloatPopup({
                 anchor: pr, title: `Row ${i + 1}: words for ${r.index === -1 ? "the whole image" : "region " + r.index}`, value: r.prompt, node, at, nav, navWhat: NAV_WHAT,
                 fontKey: SET.fsPopRegion, onInput: (v) => { r.prompt = v; pr.value = v; save(); wcMark(pr, "row" + i, v); },
-                filled: (raw) => filledFor("row" + i, raw), onClose: () => { fillChips(chips, r); updateHints(); } });
+                filled: (raw) => filledFor("row" + i, raw), onClose: () => { fillChips(chips, r); updateHints(); }, history: histOfRow(r) });
             addExpandButton(pr, "Open this row's words in the pop-up editor", () => openField("row:" + i));
             pr.addEventListener("input", () => wcMark(pr, "row" + i, r.prompt));
         });

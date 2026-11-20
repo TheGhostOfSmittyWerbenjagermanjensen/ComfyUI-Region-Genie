@@ -250,6 +250,26 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     });
     check(`${M}: the row of tools stays one row with every tool`, rowsOk);
 
+    // ---------------- round 41: a character region carries the drawn person mark in the Regional LoRAs node's list
+    const mk = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); await new Promise((r) => setTimeout(r, 30)); await rg.__rgShowAll();
+        const st = rg.__rgState();
+        const rect = (id, rid, ox) => ({ id, name: "Rect " + id, region: rid, visible: true, shape: "rect", sides: 5, bw: 0.4, bh: 0.8, sx: 1, sy: 1, rot: 0, ox, oy: 0, ops: [] });
+        st.regions.push({ id: 1, color: "#8F73D1", prompt: "a knight in silver armor", type: "character", text: "" }, { id: 2, color: "#E3B341", prompt: "a stone wall", type: "object", text: "" });
+        st.layers.push(rect(1, 1, -0.25), rect(2, 2, 0.25));
+        rg.__rgRefresh();
+        const n = LG.createNode("Region-Genie_RegionalLoRAs"); n.pos = [820, 40]; app.graph.add(n);
+        rg.connect(rg.outputs.findIndex((o) => o.name === "masks"), n, n.inputs.findIndex((i) => i.name === "masks"));
+        await new Promise((r) => setTimeout(r, 600));
+        for (let i = 0; i < 2; i++) { [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "+ Add LoRA").click(); await new Promise((r) => setTimeout(r, 300)); }
+        await new Promise((r) => setTimeout(r, 1500));
+        return [...document.querySelectorAll(".rg-rl-region")].map((e) => ({ text: e.textContent, mark: !!e.querySelector(".rg-rl-mark svg path"), title: e.title || e.dataset.rgTip || "" }));
+    });
+    check(`${M}: Regional LoRAs: the character region's row shows the drawn person mark before its prompt, the object region's doesn't (${JSON.stringify(mk).slice(0, 220)})`,
+        mk.length === 2 && mk[0].mark && mk[0].text === "a knight in silver armor" && /Type: Character\./.test(mk[0].title) && !mk[1].mark && !/[\u{1F464}\u{1F512}]/u.test(mk.map((x) => x.text).join("")));
+
     // ---------------- round 11: Regional LoRAs — positive_prompt (renamed), old workflows, the floating pop-up editor
     const rl = await page.evaluate(async () => {
         const app = window.app, LG = window.LiteGraph;
@@ -296,12 +316,39 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const fb2 = await fp.boundingBox();
     check(`${M}: pop-up: A+ (${f1} px), drag moves it, the grip resizes it, the node stays put`, f1 === 15 && Math.abs(fb1.x - fhb.x - 52) < 30
         && fb2.width > fb1.width + 60 && JSON.stringify(await page.evaluate(() => [...window.__rl.pos])) === JSON.stringify(rlPos));
-    await fp.locator("textarea").press("Enter"); await page.waitForTimeout(200);
-    check(`${M}: Enter closes it and the field has the text`, await fp.count() === 0
-        && await page.evaluate(() => window.__rl.widgets.find((w) => w.name === "negative_prompt").value) === "blurry, jpeg artifacts");
+    // round 42: the text of a pop-up always stays. Enter is a new line; Esc and the close button close it; Undo / Redo
+    const negV = () => page.evaluate(() => window.__rl.widgets.find((w) => w.name === "negative_prompt").value);
+    const fHist = () => page.evaluate(() => ["undo", "redo"].map((ic) => !document.querySelector(`.rg-fpop-head .rg-hist[data-ic="${ic}"]`)?.disabled).join());
+    const fOrder = await page.evaluate(() => [...document.querySelectorAll(".rg-fpop-head > button")].filter((e) => getComputedStyle(e).display !== "none")
+        .map((e) => e.dataset.ic || (e.classList.contains("rg-x") ? "close" : e.textContent.trim() || "icon")).join(" "));
+    check(`${M}: pop-up title bar: ◀ ▶, Undo, Redo, A− A+, …, close (${fOrder})`, /^◀ ▶ undo redo A− A\+ (icon )?close$/.test(fOrder));
+    const fBottom = await page.evaluate(() => [...document.querySelectorAll(".rg-fpop-ctl > *")].filter((e) => getComputedStyle(e).display !== "none").map((e) => e.classList.contains("rg-ac-btn") ? "tag" : "wildcard").join(" "));
+    check(`${M}: …and below the text, on the right: the tag autocomplete switch and the wildcard button (${fBottom})`, fBottom === "tag wildcard"
+        && await page.evaluate(() => { const c = document.querySelector(".rg-fpop-ctl").getBoundingClientRect(), b = document.querySelector(".rg-fpop").getBoundingClientRect(), l = [...document.querySelectorAll(".rg-fpop-ctl > *")].pop().getBoundingClientRect(), t = document.querySelector(".rg-fpop textarea").getBoundingClientRect();
+            return c.top >= t.bottom - 1 && l.right > b.right - 40; }));
+    await fp.locator("textarea").press("Enter"); await fp.locator("textarea").type("second line"); await page.waitForTimeout(200);
+    check(`${M}: Enter is a new line and the pop-up stays open`, await fp.count() === 1 && await negV() === "blurry, jpeg artifacts\nsecond line");
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(80);
+    const z1 = await negV();
+    await page.keyboard.press("Control+y"); await page.waitForTimeout(80);
+    check(`${M}: Ctrl+Z / Ctrl+Y in the text box take the last typing back and bring it again (${JSON.stringify(z1)})`, z1 !== "blurry, jpeg artifacts\nsecond line" && "blurry, jpeg artifacts\nsecond line".startsWith(z1) && await negV() === "blurry, jpeg artifacts\nsecond line");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+    check(`${M}: Esc closes it and the field keeps the text`, await fp.count() === 0 && await negV() === "blurry, jpeg artifacts\nsecond line");
     await negExp.click(); await page.waitForTimeout(200);
-    await page.locator(".rg-fpop textarea").type(" EXTRA"); await page.keyboard.press("Escape"); await page.waitForTimeout(150);
-    check(`${M}: Esc puts the text back`, await page.evaluate(() => window.__rl.widgets.find((w) => w.name === "negative_prompt").value) === "blurry, jpeg artifacts");
+    check(`${M}: opened again: Undo still has the steps (${await fHist()})`, await fHist() === "true,false");
+    let fSteps = 0;
+    while ((await fHist()).startsWith("true") && fSteps < 20) { await page.locator('.rg-fpop-head .rg-hist[data-ic="undo"]').click(); await page.waitForTimeout(40); fSteps++; }
+    check(`${M}: the Undo button, step by step, goes back to the text the field had at the start (${fSteps} steps)`, fSteps >= 2 && await negV() === "blurry" && await fp.locator("textarea").inputValue() === "blurry");
+    await page.locator('.rg-fpop-head .rg-hist[data-ic="redo"]').click(); await page.waitForTimeout(60);
+    check(`${M}: Redo brings a step back`, (await negV()).startsWith("blurry") && (await negV()).length > 6);
+    while ((await fHist()).endsWith("true")) { await page.locator('.rg-fpop-head .rg-hist[data-ic="redo"]').click(); await page.waitForTimeout(40); }
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(60);      // "second line" goes: one line again, as the checks below expect
+    while (/\n/.test(await negV())) { await page.keyboard.press("Control+z"); await page.waitForTimeout(40); }
+    await page.locator(".rg-fpop textarea").type(" EXTRA");
+    await page.locator(".rg-fpop-head .rg-x").click(); await page.waitForTimeout(150);
+    const afterX = await negV();
+    check(`${M}: the close button closes it and the text stays (${JSON.stringify(afterX)})`, await fp.count() === 0 && / EXTRA$/.test(afterX));
+    await page.evaluate(() => { const n = window.__rl, w = n.widgets.find((x) => x.name === "negative_prompt"); w.value = "blurry, jpeg artifacts"; w.callback?.(w.value); });
     await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Text.PopupScene", 14); await s.set("RegionGenie.Popup.Sizes", "{}"); });
 
     // ---------------- wildcards (needs Impact Pack, and a wildcards/rgtest/color.txt file in it)

@@ -21,7 +21,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const s = window.app.extensionManager.setting;
         try { await s.set("Comfy.TutorialCompleted", true); } catch (e) {}
         await s.set("Comfy.VueNodes.Enabled", vue);
-        await s.set("RegionGenie.Popup.EscKeeps", "put the text back");
     }, vue);
     await sleep(1000);
     const M = vue ? "Nodes 2.0" : "legacy";
@@ -423,18 +422,56 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const k4 = await keyStep("PageDown"), k5 = await keyStep("Alt+ArrowRight"), k6 = await keyStep("Alt+ArrowLeft");
     await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Popup.PrevKey", "PageUp"); await s.set("RegionGenie.Popup.NextKey", "PageDown"); });
     check(`${M}: keys set in Settings (Alt+← / Alt+→) replace them`, /scene_prompt_positive/.test(k4?.title) && /negative/.test(k5?.title) && /scene_prompt_positive/.test(k6?.title));
-    await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("End"); await page.keyboard.type(" XYZ");
+    // round 42: the text of a pop-up always stays. Enter is a new line; Esc and the close button close it; Undo / Redo
+    // (the pop-up is on scene_prompt_positive here)
+    const sceneV = () => page.evaluate(() => String(window.__rg.widgets.find((w) => w.name === "scene_prompt_positive").value ?? ""));
+    const histOn = () => page.evaluate(() => ["undo", "redo"].map((ic) => !document.querySelector(`.rg-pop-head .rg-hist[data-ic="${ic}"]`)?.disabled).join());
+    const openScene = async () => { await page.evaluate(() => document.querySelector(".rg-scene-ta")?.parentElement?.querySelector(".rg-expand")?.click()); await sleep(300); };
+    const popOrder = await page.evaluate(() => [...document.querySelectorAll(".rg-pop-head > button")].filter((e) => getComputedStyle(e).display !== "none")
+        .map((e) => e.dataset.ic || (e.classList.contains("rg-x") ? "close" : e.textContent.trim())).join(" "));
+    check(`${M}: pop-up title bar: ◀ ▶, Undo, Redo, A− A+, close (${popOrder})`, popOrder === "◀ ▶ undo redo A− A+ close");
+    const rowOf = () => page.evaluate(() => [...document.querySelectorAll(".rg-pop .pop-ctl > *")].filter((e) => getComputedStyle(e).display !== "none")
+        .map((e) => e.classList.contains("rg-ac-btn") ? "tag" : e.classList.contains("rg-wc-pick") ? "wildcard" : e.classList.contains("rg-llm-btn") ? "llm" : e.classList.contains("rg-pop-gap") ? "gap" : e.textContent.trim() || "x").join(" "));
+    const rightEnd = () => page.evaluate(() => { const b = document.querySelector(".rg-pop").getBoundingClientRect(), l = [...document.querySelectorAll(".rg-pop .pop-ctl > *")].pop().getBoundingClientRect(), t = document.querySelector(".rg-pop textarea").getBoundingClientRect();
+        return l.right > b.right - 40 && l.top >= t.bottom - 1; });
+    const rowScene = await rowOf();
+    check(`${M}: scene pop-up, bottom row on the right: tag autocomplete, wildcard, LLM, ＋LoRA (${rowScene})`, /gap (tag )?(wildcard )?llm ＋LoRA$/.test(rowScene) && /tag|wildcard/.test(rowScene) && await rightEnd()
+        && await page.locator(".rg-pop-head .rg-ac-btn, .rg-pop-head .rg-wc-pick").count() === 0);
+    const sv0 = await sceneV();
+    await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("Control+End"); await page.keyboard.type(" XYZ");
+    await page.keyboard.press("Enter"); await page.keyboard.type("second line"); await sleep(150);
+    check(`${M}: Enter is a new line and the pop-up stays open`, !!(await geo()) && await sceneV() === sv0 + " XYZ\nsecond line");
+    await page.keyboard.press("Control+z"); await sleep(80);
+    const zv1 = await sceneV();
+    await page.keyboard.press("Control+Shift+z"); await sleep(80);
+    check(`${M}: Ctrl+Z / Ctrl+Shift+Z in the text box take the last typing back and bring it again`, zv1 !== sv0 + " XYZ\nsecond line" && (sv0 + " XYZ\nsecond line").startsWith(zv1) && await sceneV() === sv0 + " XYZ\nsecond line");
     await page.keyboard.press("Escape"); await sleep(200);
-    const rv = await page.evaluate(() => window.__rg.__rgState().regions[1].prompt);
-    check(`${M}: Esc closes it and puts the text back (default)`, !(await geo()) && rv === "a green dog");
-    await page.evaluate(() => window.app.extensionManager.setting.set("RegionGenie.Popup.EscKeeps", "keep the edits"));
+    check(`${M}: Esc closes it and the text stays`, !(await geo()) && await sceneV() === sv0 + " XYZ\nsecond line");
+    await openScene();
+    check(`${M}: opened again: Undo still has the steps (${await histOn()})`, await histOn() === "true,false");
+    let nUndo = 0;
+    while ((await histOn()).startsWith("true") && nUndo < 20) { await page.locator('.rg-pop-head .rg-hist[data-ic="undo"]').click(); await sleep(50); nUndo++; }
+    check(`${M}: the Undo button, step by step, goes back to the text of the start (${nUndo} steps), in the node's field too`, nUndo >= 2 && await sceneV() === sv0
+        && await page.evaluate(() => document.querySelector(".rg-scene-ta").value) === sv0 && await histOn() === "false,true");
+    await page.locator('.rg-pop-head .rg-hist[data-ic="redo"]').click(); await sleep(60);
+    check(`${M}: Redo brings a step back`, (await sceneV()).length > sv0.length);
+    await page.locator('.rg-pop-head .rg-hist[data-ic="undo"]').click(); await sleep(60);
+    await page.locator(".rg-pop-head .rg-x").click(); await sleep(200);
+    check(`${M}: the close button closes it, the text as it is`, !(await geo()) && await sceneV() === sv0);
+    // the negative scene prompt: no LLM or LoRA there, the two buttons alone on the right
+    await openScene(); await step("▶");
+    const rowNeg = await rowOf();
+    check(`${M}: negative scene prompt's pop-up, bottom row: only tag autocomplete and wildcard, on the right (${rowNeg})`, /^gap( tag)?( wildcard)?$/.test(rowNeg) && rowNeg !== "gap" && await rightEnd());
+    await page.keyboard.press("Escape"); await sleep(200);
+    // a region's pop-up
     await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-pwrap .rg-expand")][1]?.click()); await sleep(250);
-    const foot = await page.evaluate(() => document.querySelector(".rg-pop .rg-pop-foot")?.textContent || "");
-    await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("End"); await page.keyboard.type(" XYZ");
+    const rowReg = await rowOf();
+    check(`${M}: a region's pop-up, bottom row: its own controls on the left; on the right tag autocomplete, wildcard, LLM, ＋LoRA (${rowReg})`, /^.+ gap (tag )?(wildcard )?llm ＋LoRA$/.test(rowReg) && await rightEnd());
+    const footTx = await page.evaluate(() => document.querySelector(".rg-pop .rg-pop-foot")?.textContent || "");
+    await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("Control+End"); await page.keyboard.type(" XYZ");
     await page.keyboard.press("Escape"); await sleep(200);
     const kv = await page.evaluate(() => window.__rg.__rgState().regions[1].prompt);
-    check(`${M}: Setting 'keep the edits': Esc keeps the text (and the footer says so)`, kv === "a green dog XYZ" && /keeping the edits/.test(foot));
-    await page.evaluate(() => window.app.extensionManager.setting.set("RegionGenie.Popup.EscKeeps", "put the text back"));
+    check(`${M}: a region's pop-up: Esc closes it and keeps the text (and the line at the bottom says so: ${footTx})`, !(await geo()) && kv === "a green dog XYZ" && /Esc: close \(the text stays\)/.test(footTx) && !/Enter/.test(footTx));
     // with a pop-up open
     await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-pwrap .rg-expand")][0]?.click()); await sleep(300);
     a = await tipAudit();

@@ -8,9 +8,14 @@
 // For each text field, in each place it can be typed in (on the node, in its pop-up editor, in the large editor):
 //   - the tag autocomplete list opens, lies inside the window, starts under the line being typed, and nothing covers it
 //   - the same for the wildcard list (__name)
+//   - in a pop-up editor: the menus its buttons open (the wildcard list, the LoRA list: ComfyUI's own menu) are on top
+//     of the pop-up (round 42: they opened behind it)
 // Then the pack's own tooltip, shortcut list and canvas menu (on the node and over the large editor), and
 // the other things that pop up over the large editor: tool menu, LoRA menu, color picker, region pop-up editor,
 // LLM settings.
+// And everywhere along the way (the node, each pop-up editor, the shortcut list, the large editor, the LLM settings):
+// with the pointer on a control, the browser has no tooltip of its own to show next to the pack's, neither the
+// control's title nor the title of a box around it (round 42: a pop-up's title bar showed through on its buttons).
 //
 //   node tests/real_layering.cjs [vue]
 // Needs a running ComfyUI with this pack, ComfyUI-Custom-Scripts (its autocomplete on, with a word starting "blon":
@@ -95,6 +100,65 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
         const bad = pts.map(([x, y]) => document.elementFromPoint(x, y)).filter((t) => !t || !l.contains(t));
         return bad.length ? "covered by " + bad.map((t) => t ? t.tagName.toLowerCase() + "." + String(t.className).slice(0, 30) : "nothing").join(", ") : true;
     }, selector);
+    // a menu opened by a button of a pop-up editor (ComfyUI's own menu) is on top of the pop-up
+    const dropMenus = async () => { await page.keyboard.press("Escape"); await page.evaluate(() => document.querySelectorAll(".litecontextmenu").forEach((m) => m.remove())); await sleep(200); };
+    async function menuFrom(label, button, what) {
+        if (!(await button.count()) || !(await button.first().isVisible())) { skip(`${label}: the ${what} list`, "its button isn't shown here"); return; }
+        await button.first().click(); await sleep(800);
+        const top = await onTop(".litecontextmenu");
+        const over = await page.evaluate(() => { const m = [...document.querySelectorAll(".litecontextmenu")].pop(), p = [...document.querySelectorAll(".rg-pop, .rg-fpop")].pop(); if (!m || !p) return false;
+            const a = m.getBoundingClientRect(), b = p.getBoundingClientRect(); return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; });
+        check(`${M}: ${label}: the ${what} list opens over the pop-up, with nothing covering it (${top}${over ? "" : "; it doesn't lie on the pop-up"})`, top === true && over);
+        await dropMenus();
+    }
+    // With the pointer on a control, what would the browser's own tooltip show? The title of the nearest element around
+    // the pointer that has the attribute: it must be empty. Asked for every control with a tooltip that is in view.
+    const ROOT = '[class^="rg-"], [class*=" rg-"]';
+    async function nativeTips(label, min = 3) {
+        await page.mouse.move(3, 3); await sleep(150);
+        await page.evaluate(() => { window.__rgTakeTitles = true; });
+        const spots = await page.evaluate((ROOT) => {
+            const out = [], seen = new Set();
+            for (const el of document.querySelectorAll("[title]")) {
+                const box = el.closest(ROOT);                // (<html> can carry a class of the pack: that is not one of its boxes)
+                if (!el.getAttribute("title").trim() || !box || box === document.documentElement || box === document.body || el.closest(".rg-tip")) continue;
+                const r = el.getBoundingClientRect();
+                if (r.width < 3 || r.height < 3) continue;
+                // a point of the element that isn't on a child with a tooltip of its own
+                for (const [fx, fy] of [[0.5, 0.5], [0.15, 0.5], [0.85, 0.5], [0.5, 0.2], [0.03, 0.5], [0.5, 0.92]]) {
+                    const x = r.left + r.width * fx, y = r.top + r.height * fy;
+                    if (x < 1 || y < 1 || x > innerWidth - 1 || y > innerHeight - 1) continue;
+                    const hit = document.elementFromPoint(x, y);
+                    if (!hit || hit.closest("[title]") !== el) continue;
+                    const key = Math.round(x) + "," + Math.round(y);
+                    if (!seen.has(key)) { seen.add(key); out.push([x, y, (el.dataset.ic || el.className || el.tagName).toString().slice(0, 28), el.getAttribute("title").slice(0, 24)]); }
+                    break;
+                }
+            }
+            return out;
+        }, ROOT);
+        const bad = [];
+        let shown = 0, asked = 0;
+        for (let i = 0; i < spots.length; i++) {
+            const [x, y, name, text] = spots[i];
+            await page.mouse.move(x, y); await sleep(45);
+            const nat = await page.evaluate(([x, y]) => { for (let e = document.elementFromPoint(x, y); e; e = e.parentElement) if (e.hasAttribute("title")) return e.getAttribute("title"); return ""; }, [x, y]);
+            if (nat !== "") bad.push(`${name} "${text}": the browser would show "${nat.slice(0, 30)}"`);
+            if (i % 12 === 0) {                              // now and then: the pack's own tooltip does come up, with this control's text
+                asked++; await page.mouse.move(3, 3); await sleep(650); await page.mouse.move(x, y); await sleep(750);
+                const own = await page.evaluate(() => document.querySelector(".rg-tip.on")?.innerText || "");
+                const nat2 = await page.evaluate(([x, y]) => { for (let e = document.elementFromPoint(x, y); e; e = e.parentElement) if (e.hasAttribute("title")) return e.getAttribute("title"); return ""; }, [x, y]);
+                if (own.trim()) shown++;
+                if (nat2 !== "") bad.push(`${name} "${text}": after a rest the browser would show "${nat2.slice(0, 30)}"`);
+            }
+        }
+        await page.mouse.move(3, 3); await sleep(450);
+        const left = await page.evaluate(() => document.querySelectorAll("[data-rg-tip]").length);
+        await page.evaluate(() => { window.__rgTakeTitles = false; });
+        check(`${M}: ${label}: pointer on each of ${spots.length} controls with a tooltip: the browser has none of its own to show; the pack's came up on ${shown} of ${asked} tried${bad.length ? " (" + bad.slice(0, 4).join("; ") + ")" : ""}`,
+            spots.length >= min && !bad.length && shown >= Math.ceil(asked * 0.7));
+        check(`${M}: ${label}: every title is back where it was once the pointer has left (${left} still aside)`, left === 0);
+    }
     const closePop = async () => { await page.evaluate(() => [...document.querySelectorAll(".rg-pop [title^='Close'], .rg-fpop [title^='Close']")].pop()?.click()); await sleep(300); };
     const expandOf = (field) => field.evaluate((el) => { const b = el.parentElement.querySelector(".rg-expand") || el.parentElement.parentElement.querySelector(".rg-expand"); b?.click(); return !!b; });
 
@@ -118,13 +182,21 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
     await expandOf(page.locator(".rg-list textarea.rg-prompt").first()); await sleep(500);
     check(`${M}: a region's pop-up editor is on top (${await onTop(".rg-pop")})`, await onTop(".rg-pop") === true);
     await fieldLists("pop-up editor of a region, its prompt", page.locator(".rg-pop textarea").first());
+    await menuFrom("pop-up editor of a region", page.locator(".rg-pop .rg-wc-pick"), "wildcard");
+    await menuFrom("pop-up editor of a region", page.locator(".rg-pop .pop-ctl button", { hasText: "＋LoRA" }), "LoRA");
+    await nativeTips("pop-up editor of a region", 12);
     await closePop();
+    await nativeTips("node, its lower part", 15);
     await show("top");
+    await nativeTips("node, its upper part", 15);
     // the scene prompts' pop-up editors
     for (let i = 0; i < nScene; i++) {
         await expandOf(scene.nth(i)); await sleep(500);
         check(`${M}: ${SCENE_NAMES[i]}: its pop-up editor is on top (${await onTop(".rg-pop")})`, await onTop(".rg-pop") === true);
         await fieldLists(`pop-up editor of ${SCENE_NAMES[i]}`, page.locator(".rg-pop textarea").first());
+        await menuFrom(`pop-up editor of ${SCENE_NAMES[i]}`, page.locator(".rg-pop .rg-wc-pick"), "wildcard");
+        if (i === 0) await menuFrom(`pop-up editor of ${SCENE_NAMES[i]}`, page.locator(".rg-pop .pop-ctl button", { hasText: "＋LoRA" }), "LoRA");
+        if (i < 2) await nativeTips(`pop-up editor of ${SCENE_NAMES[i]}`, 7);
         await closePop();
     }
 
@@ -137,6 +209,8 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
         if (await page.locator(".rg-fpop textarea").count()) {
             check(`${M}: Regional LoRAs, ${name}: its pop-up editor is on top (${await onTop(".rg-fpop")})`, await onTop(".rg-fpop") === true);
             await fieldLists(`Regional LoRAs, pop-up editor of ${name}`, page.locator(".rg-fpop textarea").first());
+            await menuFrom(`Regional LoRAs, pop-up editor of ${name}`, page.locator(".rg-fpop-ctl .rg-btn.icon"), "wildcard");
+            if (name === "positive_prompt") await nativeTips("Regional LoRAs, pop-up editor", 7);
             await closePop();
         } else check(`${M}: Regional LoRAs, ${name}: the pop-up editor opened`, false);
     }
@@ -149,6 +223,16 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
         if (await page.locator(".rg-fpop textarea").count()) { await fieldLists("Regional LoRAs, pop-up editor of a row's words", page.locator(".rg-fpop textarea").first()); await closePop(); }
         else check(`${M}: Regional LoRAs, a row's words: the pop-up editor opened`, false);
     }
+
+    await nativeTips("Regional LoRAs node", 6);
+    // the pack's tooltip leaves everything outside its own boxes alone (round 42: with its "rg-osb" class on <html> it
+    // took over every tooltip on the page)
+    const foreign = await page.evaluate(() => { const d = document.createElement("div"); d.id = "rg-test-foreign"; d.title = "Not the pack's"; d.style.cssText = "position:fixed;right:4px;bottom:4px;width:40px;height:20px;z-index:99999;background:#444";
+        document.body.appendChild(d); document.documentElement.classList.add("rg-osb"); window.__rgTakeTitles = true; const r = d.getBoundingClientRect(); return [r.left + 20, r.top + 10]; });
+    await page.mouse.move(foreign[0], foreign[1]); await sleep(900);
+    const fr = await page.evaluate(() => { const d = document.getElementById("rg-test-foreign"); const r = { title: d.getAttribute("title"), aside: d.dataset.rgTip, tip: !!document.querySelector(".rg-tip.on") }; d.remove(); window.__rgTakeTitles = false; return r; });
+    await page.mouse.move(3, 3); await sleep(200);
+    check(`${M}: an element outside the pack's boxes keeps its own tooltip, also with the pack's class on the page itself (${JSON.stringify(fr)})`, fr.title === "Not the pack's" && fr.aside == null && !fr.tip);
 
     // ---------------- the pack's own tooltip, shortcut list and canvas menu, on the node ----------------
     // (the tooltip is transparent to the pointer, so "on top" is asked with that switched off for a moment)
@@ -177,6 +261,12 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
     await show("bottom");
     await page.locator(".rg-keys-btn").click(); await sleep(400);
     check(`${M}: node: the shortcut list opens on top, in the window (${await onTop(".rg-keys")})`, await onTop(".rg-keys") === true);
+    // every section of it is there (round 42: only the first two were, the rest lay off to the side)
+    const secs = await page.evaluate(() => { const b = document.querySelector(".rg-keys-body"), br = b.getBoundingClientRect();
+        return { names: [...b.querySelectorAll("section h4")].map((h) => h.textContent).join("|"), inside: [...b.querySelectorAll("section")].every((s) => { const r = s.getBoundingClientRect(); return r.left >= br.left - 1 && r.right <= br.right + 1; }),
+                 sideways: b.scrollWidth > b.clientWidth + 1 }; });
+    check(`${M}: node: the shortcut list has its five sections, none off to the side (${secs.names})`, secs.names === "Tools|While drawing|Layers and regions|View|Text" && secs.inside && !secs.sideways);
+    await nativeTips("shortcut list", 20);
     await page.keyboard.press("Escape"); await sleep(200);
     check(`${M}: node: Esc closes the shortcut list`, await page.locator(".rg-keys").count() === 0);
     await show("top");
@@ -203,9 +293,11 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
     await page.keyboard.press("Escape"); await sleep(300);
     await page.locator(".rg-big .rg-llmset").click(); await sleep(600);
     check(`${M}: large editor: the LLM settings open over the window (${await onTop(".rg-llm-pop")})`, await onTop(".rg-llm-pop") === true);
+    await nativeTips("LLM settings", 6);
     await page.keyboard.press("Escape"); await sleep(300);
     await page.evaluate(() => document.querySelector(".rg-llm-pop")?.remove());
     await tipAt('.rg-big .rg-bar [title^="Undo"]', "large editor");
+    await nativeTips("large editor", 30);
     const cv3 = await page.evaluate(() => { const r = document.querySelector(".rg-big .rg-cv canvas").getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; });
     await page.mouse.click(cv3[0] + cv3[2] * 0.04, cv3[1] + cv3[3] * 0.06, { button: "right" }); await sleep(400);
     check(`${M}: large editor: the canvas's right-click menu opens over the window (${await onTop(".rg-menu")})`, await onTop(".rg-menu") === true);

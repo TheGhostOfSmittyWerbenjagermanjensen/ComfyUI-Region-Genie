@@ -166,17 +166,17 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // round 28: the pop-up has the node's tag autocomplete switch too (hidden here: no autocomplete pack in the stub page);
     // it is the same switch as the bottom bar's, so both buttons follow a click on either
     const acSw = await page.evaluate(() => {
-        const pop = document.querySelector(".rg-pop-head .rg-ac-btn"), foot = document.querySelector(".rg-settings .rg-ac-btn"), n = window.__node;
+        const pop = document.querySelector(".rg-pop .pop-ctl .rg-ac-btn"), foot = document.querySelector(".rg-settings .rg-ac-btn"), n = window.__node;
         if (!pop || !foot) return { pop: !!pop, foot: !!foot };
         const on0 = [pop.classList.contains("on"), foot.classList.contains("on")];
         pop.click();
         const off = [pop.classList.contains("on"), foot.classList.contains("on"), n.properties.rg_autocomplete];
         foot.click();
         const on1 = [pop.classList.contains("on"), foot.classList.contains("on"), n.properties.rg_autocomplete];
-        return { pop: true, foot: true, on0, off, on1, after: pop.previousElementSibling?.textContent, focus: document.activeElement?.tagName };
+        return { pop: true, foot: true, on0, off, on1, after: [pop.nextElementSibling, pop.nextElementSibling?.nextElementSibling].map((e) => e?.classList.contains("rg-wc-pick") ? "wildcard" : e?.classList.contains("rg-llm-btn") ? "llm" : "?").join(), focus: document.activeElement?.tagName };
     });
-    check(`pop-up: the tag autocomplete switch sits after A+, and it and the bottom bar's button switch together (${JSON.stringify(acSw)})`,
-        acSw.pop && acSw.foot && acSw.after === "A+" && acSw.on0.join() === "true,true" && acSw.off.join() === "false,false,false" && acSw.on1.join() === "true,true,true");
+    check(`pop-up: the tag autocomplete switch sits in the bottom row before the wildcard and LLM buttons (round 42), and it and the bottom bar's button switch together (${JSON.stringify(acSw)})`,
+        acSw.pop && acSw.foot && acSw.after === "wildcard,llm" && acSw.on0.join() === "true,true" && acSw.off.join() === "false,false,false" && acSw.on1.join() === "true,true,true");
     const fsOf = () => page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".rg-pop textarea")).fontSize));
     check("pop-up: region prompt text 14 px by default", await fsOf() === 14);
     await ppop.locator(".rg-pop-font", { hasText: "A+" }).click(); await page.waitForTimeout(60);
