@@ -182,3 +182,17 @@ Check once in legacy mode and once in Nodes 2.0.
 - Undo: type in a scene prompt, click out, draw a shape, type in a region's prompt, click out. The tool bar's Undo goes back through these one by one, text edits as whole steps. In a text box, Ctrl+Z goes back about a word at a time, also after clicking out and back. After reloading the page or loading a workflow there is nothing to undo.
 - With an input method (Chinese, Japanese, Korean) in the node's own text boxes: composing and Ctrl+Z behave sensibly (untested here; the node's boxes used the browser's own undo before this round).
 - A list or menu open over a pop-up: Esc closes the list, the pop-up stays; Esc again closes the pop-up.
+
+## 22. Settings text for other interfaces (round 44)
+
+None of the programs that read this text could be run here; the files were only read back with the same libraries that wrote them.
+
+- A real generation (Region Genie → sampler → VAE Decode → Save Image (Region Genie)), saved as PNG: hover the node's status line; the tooltip ends with the settings text. Are seed, steps, sampler, scheduler, cfg and the model right?
+- Open that PNG in **A1111 or Forge → PNG Info**: the prompt, the negative prompt and the settings line show, and "Send to txt2img" fills the fields (a sampler A1111 doesn't have is skipped by it).
+- Upload it to **Civitai** (or drop it on its metadata viewer): the settings are read; with a model / LoRA that has a `.metadata.json`, `.rgthree-info.json` or `.cm-info.json` next to it, the resource is linked.
+- The same with **WebP and JPEG** (the text is in EXIF there).
+- Drag each of those files into ComfyUI: the workflow still loads.
+- With MOSS-Image or Ideogram 4 the prompt in the text is the JSON of the `prompt` output: does A1111 / Civitai still read the settings line under it?
+- Your usual workflow's sampler nodes: if the status line says in yellow that a setting wasn't found, tell me which sampler / seed node it is, or tick that input in the cable button's list and connect it.
+- A two-pass workflow (hi-res fix): the text has the first pass's settings and `Hires steps` / `Denoising strength` for the second.
+- A model whose LoRA Manager files are kept in its central folder (not next to the model): no hash is found; say so if you use that mode.
