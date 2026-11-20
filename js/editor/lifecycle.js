@@ -262,6 +262,7 @@ export function* lifecycle(E) {
     E.node.__rgActive = () => E.curRegion;
     E.node.__rgSetTool = (t) => E.setTool(t);
     E.node.__rgTool = () => E.tool;
+    E.node.__rgDims = () => E.dims();                 // the canvas size (the size row shows the same)
     E.node.__rgSelectLayer = (id) => E.selectLayer(E.state.layers.find((l) => l.id === id) || null);    // tests
     E.node.__rgToolTips = () => Object.values(E.GROUPS).flatMap((g) => g.entries().map((e) => e[2]));   // tests: every tool version's tooltip
     E.node.__rgSetBackdrop = (img, ref) => { E.backdrop = img; E.backdropKey = "test:" + Math.random(); E.backdropRef = ref || null; E.requestDraw(); };

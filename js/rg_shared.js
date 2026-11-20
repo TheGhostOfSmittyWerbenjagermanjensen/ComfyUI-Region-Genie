@@ -1108,7 +1108,8 @@ export function wildcardSeedControl(node, mk, host) {
         seedW.afterQueued = () => { if (!before()) step(); };
     }
     function refresh() {
-        const show = wildcardsInstalled() && !!seedW ? "" : "none";
+        // host.hideIdle: only while a prompt field has a wildcard (the Region Genie node's bottom bar)
+        const show = wildcardsInstalled() && !!seedW && (!host.hideIdle || used()) ? "" : "none";
         if (box.style.display !== show) box.style.display = show;
         if (document.activeElement !== inp && seedW) inp.value = String(seedW.value ?? 0);
         const [icon, t] = WC_MODES[mode()];

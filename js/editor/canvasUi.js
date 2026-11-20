@@ -278,7 +278,7 @@ export function* canvasUi(E) {
         const show = E.isEdit() ? "" : "none";
         if (editMaskBox.style.display !== show) editMaskBox.style.display = show;
     }
-    loraOptsBox.prepend(editMaskBox);
+    E.editMaskBox = editMaskBox;                   // on the Edit Mode line of the list (rows.js); it was in this header until round 40
     treeHead.append(treeTitle, addRegionBtn, addLayerBtn, expandBtns.layers, expandBtns.loras, expandBtns.palette, expandBtns.all,
                     statusLbl, loraOptsBox);
     loraOptsBox.append(allApartBtn);           // always at the right end; the number fields come and go

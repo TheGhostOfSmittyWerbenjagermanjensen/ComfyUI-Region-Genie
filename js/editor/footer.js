@@ -62,13 +62,13 @@ export function* footer(E) {
     });
     const imgBox = E.el("span", "rg-bar"); imgBox.style.display = "none";
     imgBox.append(imgSeg.box, minIn);
-    E.bar1.insertBefore(imgBox, E.dimsLbl);
+    E.bar1.insertBefore(imgBox, E.barGap);
     const minPixelsNow = () => Math.max(1, Math.round(+getSetting(SET.cmMinPixels, 64)) || 64); E.minPixelsNow = minPixelsNow;
     const importModeNow = () => getSetting(SET.cmImportMode, "ask before replacing") === "always replace" ? "always replace" : "ask before replacing"; E.importModeNow = importModeNow;
     // ---- mode: generate / edit
     const editSeg = segmented([
         ["generate", "Generate", "Generate a new image (mode)."],
-        ["edit", "Edit", "Edit: Change the image on 'image' (image-to-image).\n"
+        ["edit", "Edit", "Edit: Change the image on 'image' (image-to-image). What may change and the mask's edge: The 'Edit area' line under Whole image.\n"
             + "Connect: 'vae' too, and use the 'latent' output (sampler denoise below 1 for models without a reference image).\n"
             + "Size: The image's shape at the pixel count of width x height; the image is the backdrop.\n"
             + "Reference image: Sent to models that read one (Settings > Region Genie > Edit Mode).\n"
@@ -151,15 +151,16 @@ export function* footer(E) {
         wcMarkScene(); E.editor?.refresh();
         E.hint(n ? `The filled text is now in ${n} field${n > 1 ? "s" : ""} (Ctrl+Z undoes the regions)` : "No filled text yet: run the workflow or preview first");
     }
-    const wcCtl = wildcardSeedControl(E.node, E.el, { fields: E.wcFields, onFilled: wcSetFilled, useAll: wcUseAll });
-    settings.append(editSeg.box, areaCtl.lab, modelBox, llmSetBtn, acCtl.el, wcCtl.el);
+    // (shown only while a prompt field has a wildcard: round 40, to keep the bottom bar short)
+    const wcCtl = wildcardSeedControl(E.node, E.el, { fields: E.wcFields, onFilled: wcSetFilled, useAll: wcUseAll, hideIdle: true });
+    settings.append(editSeg.box, modelBox, llmSetBtn, acCtl.el, wcCtl.el);
+    E.areaLab = areaCtl.lab;                       // edit_area: on the Edit Mode line of the list (rows.js), not in this bar
     const syncSettings = () => {
         migrateFormat(); areaCtl.sync(); acCtl.refresh(); wcCtl.refresh();
         editSeg.set(E.isEdit() ? "edit" : "generate");
         imgSeg.set(E.modeW?.value === "use as color map" ? "use as color map" : "backdrop (trace over)");
         const ed = E.isEdit();
         const show = (n, on) => { const d = on ? "" : "none"; if (n.style.display !== d) n.style.display = d; };
-        show(areaCtl.lab, ed);
         show(imgBox, !ed && imgLinked());
         show(minIn, E.modeW?.value === "use as color map");
         if (document.activeElement !== minIn && +minIn.value !== minPixelsNow()) minIn.value = String(minPixelsNow());

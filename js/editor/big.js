@@ -22,7 +22,7 @@ export function* big(E) {
 
     E.big = null;                                    // while open: { ov, win, side, hole, sizeHole, fields, timer }
     const bigBtn = E.iconBtn("expand", "", () => toggleBig(), "toggle"); E.bigBtn = bigBtn;
-    E.dimsLbl.before(bigBtn);
+    E.barGap.before(bigBtn);
     function setBigBtn() {
         const k = keyLabel(bigKeyText());
         bigBtn.classList.toggle("on", !!E.big);

@@ -119,8 +119,20 @@ export function* rows(E) {
         return [E.el("span", "rg-grip pad"), pad, lbl];
     };
     const rowX = (title, fn) => { const x = E.iconBtn("close", title, fn); x.addEventListener("pointerdown", (e) => e.stopPropagation()); return x; };
+    // The first line under Whole image in Edit Mode (round 40): what may change (edit_area) and the edge of the mask
+    // the sampler gets (grow, feather). It is always there in Edit Mode, unlike the Edit rows below it, which the
+    // user can remove. The controls are made once (footer.js, canvasUi.js) and put into the row each time.
+    function editAreaRow() {
+        const row = E.el("div", "rg-row editarea");
+        row.append(...rowLabel("Edit area", "Edit Mode: What the sampler may change, and how far and how softly that area reaches past the "
+            + "regions (edit_area, edit mask grow, edit mask feather)."));
+        if (E.areaLab) { E.areaLab.style.display = ""; row.append(E.areaLab); }
+        if (E.editMaskBox) row.append(E.editMaskBox);
+        return row;
+    }
     function editRows() {
         const frag = document.createDocumentFragment();
+        frag.appendChild(editAreaRow());
         if (!E.state.editOff) {
             const row = E.el("div", "rg-row ctrl edit");
             row.append(...rowLabel("Edit", "The edit LoRA set in Settings > Region Genie > Edit Mode for the node's model: Used only in "

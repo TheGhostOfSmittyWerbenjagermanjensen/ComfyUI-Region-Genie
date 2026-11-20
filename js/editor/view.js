@@ -197,10 +197,6 @@ export function* view(E) {
             E.lastDims = [W, H];
             if (!E.userView) fitView();
         }
-        {
-            E.dimsLbl.textContent = `${W} x ${H}` + (isLinked("size_from_image") ? " (from image)" : isLinked("size_from_latent") ? " (from latent)"
-                : isLinked("width_in") || isLinked("height_in") ? " (from input)" : "");
-        }
         E.syncSizeRow();
         E.requestDraw();
     }

@@ -341,8 +341,8 @@ export function* toolbar(E) {
             : "Labels off: Click to show each region's number and prompt on the canvas";
     }
     setLabIcon();
-    const dimsLbl = E.el("span", "rg-hint"); E.dimsLbl = dimsLbl; dimsLbl.style.marginLeft = "auto";
-    dimsLbl.title = "The canvas size in pixels (the image size this node makes; set in the size row above)";
+    // (round 40: the canvas size was repeated here; the size row at the top of the node shows it, from the same E.dims())
+    const barGap = E.el("span", "rg-bargap"); E.barGap = barGap; barGap.style.marginLeft = "auto";
     // Clear all sits at the right end, away from the tools and from Undo / Redo (it looks like a layer's delete button)
-    bar1.append(sep(), undoBtn, redoBtn, sep(), snapBtn, gridIn, fitBtn, labBtn, dimsLbl, clearBtn);
+    bar1.append(sep(), undoBtn, redoBtn, sep(), snapBtn, gridIn, fitBtn, labBtn, barGap, clearBtn);
 }

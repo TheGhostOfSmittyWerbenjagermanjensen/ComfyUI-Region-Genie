@@ -210,7 +210,11 @@ body:has(.rg-big):not(:has(.rg-llm-pop)) .litecontextmenu, body:has(.rg-big):not
 .rg-row.scene, .rg-row.ctrl { cursor:pointer; }
 .rg-row.scene:hover, .rg-row.ctrl:hover { background:color-mix(in srgb, currentColor 7%, transparent); }
 .rg-editmask { display:inline-flex; align-items:center; gap:2px; margin-right:6px; }
-.rg-loraopts .rg-editmask .rg-num { width:44px; }
+.rg-editmask .rg-num { width:44px; }
+.rg-row.editarea .rg-pseudo { font-style:normal; font-weight:600; user-select:none; }
+.rg-row.editarea .rg-sel { max-width:none; }
+.rg-row.editarea label { display:inline-flex; align-items:center; }
+.rg-row.editarea .rg-editmask { margin-left:8px; }
 .rg-editmask .rg-num::placeholder { color:inherit; opacity:.45; }
 .rg-chev { flex:0 0 14px; text-align:center; cursor:pointer; opacity:.85; user-select:none; font-size:10px; }
 .rg-chev.empty { opacity:.25; cursor:default; }

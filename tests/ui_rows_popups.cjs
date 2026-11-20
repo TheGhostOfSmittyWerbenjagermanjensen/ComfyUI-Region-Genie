@@ -88,7 +88,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("2:3, 1.5 MP, x16 = 1024 x 1536", await ratioCase("2:3 (Portrait Photo)", 1.5, 16) === "[1024,1536]");
     check("21:9, 2 MP, x64 = 2240 x 960", await ratioCase("21:9 (Ultrawide)", 2, 64) === "[2240,960]");
     check("4:3, 16 MP, x128 = 4736 x 3584", await ratioCase("4:3 (Standard)", 16, 128) === "[4736,3584]");
-    check("readout and canvas follow", /4736 × 3584/.test(await sizeOut()) && /4736 x 3584/.test(await status()));
+    check("the size row's readout and the canvas follow", /4736 × 3584/.test(await sizeOut()) && JSON.stringify(await page.evaluate(() => window.__node.__rgDims())) === "[4736,3584]");
     await ratioCase("21:9 (Ultrawide)", 2, 64);
     await row.locator(".rg-size-part").first().locator(".rg-btn.icon").click(); await page.waitForTimeout(60);
     check("swap: 9:21 portrait = 960 x 2240", JSON.stringify(await wv()) === "[960,2240]");
