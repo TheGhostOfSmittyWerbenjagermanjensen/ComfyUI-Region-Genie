@@ -9,7 +9,9 @@
 // - A change sends the window event "rg-shortcuts", so open editors rewrite their tooltips and hints.
 // - Mouse gestures and held modifiers (Shift for equal sides, the wheel …) are listed too, but can't be changed.
 //
-// Nothing here may use rg_shared.js while this file is being loaded (the two import each other): only inside functions.
+// This file imports rg_shared.js, so rg_shared.js must never import this one at load: ComfyUI loads the pack's files in
+// any order, and with the two importing each other the pack failed to start whenever this file came first (round 39;
+// tests/ui_load_order.cjs loads every file first once). rg_shared.js's Settings row loads this file when it is used.
 import { getSetting, setSetting, SET, parseKey, keyLabel, svgIcon, escReverts } from "./rg_shared.js";
 
 export const SHORTCUTS_EVENT = "rg-shortcuts";
@@ -201,11 +203,7 @@ const CSS = `.rg-keys { position:fixed; z-index:100003; box-sizing:border-box; w
   background:transparent; color:inherit; opacity:.5; cursor:pointer; }
 .rg-keys .rg-key-act:hover, .rg-keys .rg-key-act:focus-visible { opacity:1; background:color-mix(in srgb, currentColor 14%, transparent); outline:none; }
 .rg-keys .rg-key-act svg { width:12px; height:12px; display:block; pointer-events:none; }
-.rg-keys-row.changed > span:last-child { font-weight:600; }
-.rg-keys-set { display:flex; align-items:center; gap:8px; }
-.rg-keys-set button { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer;
-  font:inherit; padding:3px 10px; }
-.rg-keys-set span { opacity:.7; font-size:12px; }`;
+.rg-keys-row.changed > span:last-child { font-weight:600; }`;
 
 let sheet = null;                                    // one sheet at a time, on the whole page
 export const shortcutsOpen = () => sheet?.owner ?? (sheet ? true : null);
@@ -319,21 +317,3 @@ export function openShortcuts(o = {}) {
     box.focus({ preventScroll: true });
     return sheet;
 }
-
-// Settings > Region Genie > Shortcuts: one row with a button, in place of a row per key
-export const shortcutsSettingType = () => () => {
-    if (!document.getElementById("rg-keys-style")) { const st = document.createElement("style"); st.id = "rg-keys-style"; st.textContent = CSS; document.head.appendChild(st); }
-    const box = document.createElement("div"); box.className = "rg-keys-set";
-    const btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Edit…";
-    btn.title = "Open the list of shortcuts: Click a key in it, then press the new one.";
-    const info = document.createElement("span");
-    let shown = false;                               // the row leaves the page with the Settings dialog: stop listening then
-    const sync = () => {
-        if (box.isConnected) shown = true; else if (shown) { window.removeEventListener(SHORTCUTS_EVENT, sync); return; }
-        const n = changedCount(); info.textContent = n ? `${n} changed` : "All default";
-    };
-    btn.addEventListener("click", (e) => { e.preventDefault(); openShortcuts({ keep: (t) => btn.contains(t) }); });
-    window.addEventListener(SHORTCUTS_EVENT, sync);
-    box.append(btn, info); sync();
-    return box;
-};

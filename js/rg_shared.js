@@ -3,7 +3,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 import { openColorPicker } from "./rg_colorpicker.js";
-import { shortcutsSettingType } from "./rg_keys.js";      // (the two files import each other: see the note in rg_keys.js)
 import "./rg_tooltip.js";                 // the pack's own tooltip takes over every title in the pack's elements
 
 // ---------------------------------------------------------------- icons (16x16, stroke = text color)
@@ -1748,6 +1747,29 @@ function postLlmCache(over) {
 }
 
 const NEW_NODES = "Applies to nodes added from now on; nodes already in a workflow keep their own value.";
+// Settings > Region Genie > Shortcuts: one row with a button, in place of a row per key. The shortcuts and their sheet
+// are rg_keys.js, which imports this file: so it is loaded here only when the row is shown (never 'import' it at the top).
+const SHORTCUTS_ROW_CSS = `.rg-keys-set { display:flex; align-items:center; gap:8px; }
+.rg-keys-set button { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer;
+  font:inherit; padding:3px 10px; }
+.rg-keys-set span { opacity:.7; font-size:12px; }`;
+const shortcutsSettingType = () => () => {
+    if (!document.getElementById("rg-keys-set-style")) { const st = document.createElement("style"); st.id = "rg-keys-set-style"; st.textContent = SHORTCUTS_ROW_CSS; document.head.appendChild(st); }
+    const keys = () => import("./rg_keys.js");
+    const box = document.createElement("div"); box.className = "rg-keys-set";
+    const btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Edit…";
+    btn.title = "Open the list of shortcuts: Click a key in it, then press the new one.";
+    const info = document.createElement("span");
+    let shown = false;                               // the row leaves the page with the Settings dialog: stop listening then
+    const sync = async () => {
+        if (box.isConnected) shown = true; else if (shown) { window.removeEventListener("rg-shortcuts", sync); return; }
+        try { const n = (await keys()).changedCount(); info.textContent = n ? `${n} changed` : "All default"; } catch (e) { info.textContent = ""; }
+    };
+    btn.addEventListener("click", async (e) => { e.preventDefault(); (await keys()).openShortcuts({ keep: (t) => btn.contains(t) }); });
+    window.addEventListener("rg-shortcuts", sync);
+    box.append(btn, info); sync();
+    return box;
+};
 const CAT = (section, key) => ["Region Genie", section, key];
 const SETTINGS = [
         // first: the model-file settings below take their form from it when they are registered

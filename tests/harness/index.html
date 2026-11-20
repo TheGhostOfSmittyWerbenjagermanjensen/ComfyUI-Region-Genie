@@ -3,6 +3,9 @@
 window.__settings = { "RegionGenie.Tools.Lasso": "spline", "RegionGenie.Edit.MaskGrow": 8, "RegionGenie.Edit.MaskFeather": 16 };
 window.__errors = [];
 window.addEventListener("error", (e) => window.__errors.push(String(e.message)));
+// ?first=<file>: load that file of the pack before the others, as ComfyUI may (tests/ui_load_order.cjs)
+const first = new URLSearchParams(location.search).get("first");
+if (first) await import("./extensions/rg/" + first);
 await import("./extensions/rg/rg_shared.js");
 await import("./extensions/rg/region_genie.js");
 const ext = window.__exts.find((e) => e.name === "RegionGenie.Main");
