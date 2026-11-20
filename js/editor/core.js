@@ -1,6 +1,6 @@
 // The node's widgets, last-run wildcard results, the expand button, and the editor's state variables.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
-import { svgIcon, autocompleteWidgets, getSetting, SET, autoApartSettings, editSettings, llmCacheSettings, controlFiles } from "../rg_shared.js";
+import { svgIcon, autocompleteWidgets, getSetting, SET, autoApartSettings, editSettings, llmCacheSettings, controlFiles, addExpandButton, textHistory } from "../rg_shared.js";
 import { ALL } from "./shared.js";
 import { locale } from "../rg_i18n.js";
 import { emptyState } from "./state.js";
@@ -12,6 +12,10 @@ export function* core(E) {
     yield;
 
     const node = E.node;
+    // the Undo / Redo steps of each text field's own text (textHistory() in rg_shared.js), kept for as long as the
+    // node lives and shared by the field on the node and its pop-up editor. Keys: "scene:positive", "r<id>", "r<id>.text"
+    E.textHist = E.textHist || new Map();
+    E.histOf = (key) => { if (!E.textHist.has(key)) E.textHist.set(key, {}); return E.textHist.get(key); };
     const findW = (n) => node.widgets?.find((w) => w.name === n);
     const dataW = findW("paint_data"); E.dataW = dataW;
     const wW = findW("width"), hW = findW("height"), modeW = findW("image_mode"); E.wW = wW; E.hW = hW; E.modeW = modeW;
@@ -90,34 +94,6 @@ export function* core(E) {
         if (t.title !== title) t.title = title;
         t.classList.toggle("rg-wc-filled", f != null);
     }
-    // the expand button: opens a text field in its pop-up editor (double-click stays the browser's word selection).
-    // It sits in the field's bottom-right corner, left of a scrollbar, inside the field's parent element.
-    function addExpandButton(t, title, onOpen) {
-        const host = t.parentElement;
-        if (!host) return null;
-        const old = host.querySelector(":scope > .rg-expand");
-        if (old && old.__rgFor === t) return old;
-        old?.remove();
-        if (getComputedStyle(host).position === "static") host.style.position = "relative";
-        const b = document.createElement("button");
-        b.type = "button"; b.className = "rg-expand"; b.innerHTML = svgIcon("expand"); b.title = title; b.tabIndex = -1;
-        b.__rgFor = t;
-        for (const ev of ["pointerdown", "mousedown", "dblclick"]) b.addEventListener(ev, (e) => { e.stopPropagation(); if (ev !== "pointerdown") e.preventDefault(); });
-        b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); onOpen(); });
-        const place = () => {
-            if (!t.isConnected) return;
-            const sb = Math.max(0, t.offsetWidth - t.clientWidth - (t.clientLeft || 0) * 2);   // a scrollbar, if any
-            const right = host.clientWidth - (t.offsetLeft + t.offsetWidth) + (t.clientLeft || 0) + sb + 2;
-            const bottom = host.clientHeight - (t.offsetTop + t.offsetHeight) + (t.clientTop || 0) + 2;
-            b.style.right = Math.round(right) + "px"; b.style.bottom = Math.round(bottom) + "px";
-        };
-        for (const ev of ["mouseenter", "focus", "input", "blur"]) t.addEventListener(ev, () => requestAnimationFrame(place));
-        try { new ResizeObserver(place).observe(t); } catch (e) { /* old browser */ }
-        host.addEventListener("mouseenter", place);
-        host.appendChild(b);
-        place();
-        return b;
-    }
     const SCENE_FIELDS = { scene_prompt_positive: "positive", scene_prompt_negative: "negative",
                            scene_prompt_background: "background" };
     autocompleteWidgets(node, Object.keys(SCENE_FIELDS), (name, t) => {
@@ -137,6 +113,13 @@ export function* core(E) {
         addExpandButton(t, "Open in the pop-up editor", () => E.editScene(SCENE_FIELDS[name]));
         t.dataset.baseTitle = t.title;
         t.addEventListener("input", () => wcMark(t, SCENE_KEYS[SCENE_FIELDS[name]], t.value));
+        // Undo (round 43): a visit to the box is one step of the editor's Undo; while typing, the Undo keys go back
+        // through this box's own text (the same steps as in its pop-up editor)
+        E.textSession(t);
+        if (!t.__rgHist) {
+            const w = () => node.widgets?.find((x) => x.name === name);
+            t.__rgHist = textHistory(t, E.histOf("scene:" + SCENE_FIELDS[name]), { apply: (v) => { E.setWidget(w(), v); wcMark(t, SCENE_KEYS[SCENE_FIELDS[name]], v); E.wcRefresh?.(); E.updateLlmButtons?.(); E.editor?.refresh(); } });
+        }
     });
 
     // ---------------- editor state ----------------

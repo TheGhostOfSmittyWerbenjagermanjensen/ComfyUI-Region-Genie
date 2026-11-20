@@ -1,7 +1,7 @@
 import { app } from "../../scripts/app.js";
 import { svgIcon, getLoras, knownLoras, pickLora, fillTriggerChips, CHIP_CSS, keepWidgetValuesByName, appendWord,
          autocompleteOnFocus, autocompleteOpen, autocompleteWidgets, autocompleteToggle, getSetting, SET,
-         wildcardSeedControl, WC_CSS, addExpandButton, openFloatPopup, FPOP_CSS } from "./rg_shared.js";
+         wildcardSeedControl, WC_CSS, addExpandButton, openFloatPopup, FPOP_CSS, textHistory } from "./rg_shared.js";
 
 // Editor of the "Regional LoRAs" node: one row per LoRA (on, mask index, LoRA, strength, words for
 // that region's caption with the LoRA's trigger words as chips), stored as JSON in the hidden "loras_data" widget.
@@ -107,20 +107,23 @@ function setup(node) {
         wcMark(widgetTA[name], WKEY[name], v);
         node.setDirtyCanvas?.(true, true);
     };
+    // the pop-up editor's Undo / Redo steps of each field, for as long as the node lives (see textHistory()). The
+    // node's own text boxes use the same steps: Ctrl+Z while typing goes back through the box's own text, also after
+    // clicking out and coming back (round 43)
+    const widgetHist = {}, rowHist = new WeakMap();
+    const histOfRow = (r) => { if (!rowHist.has(r)) rowHist.set(r, {}); return rowHist.get(r); };
     autocompleteWidgets(node, ["positive_prompt", "negative_prompt"], (name, t) => {
         t.dataset.rgField = name;                       // which field this text box is (tests/real_layering.cjs finds it by this)
         if (!WKEY[name]) return;
         widgetTA[name] = t;
         t.addEventListener("input", () => wcMark(t, WKEY[name], t.value));
         addExpandButton(t, "Open in the pop-up editor", () => openField("w:" + name));
+        if (!t.__rgHist) t.__rgHist = textHistory(t, (widgetHist[name] = widgetHist[name] || {}), { apply: (v) => setW(name, v) });
     });
     // the pop-up editor for a text field ("w:<widget name>" or "row:<i>"); ◀ / ▶ step through all of them in order
     // (positive_prompt, negative_prompt, then each row's words), keeping the pop-up's place and size
     const NAV_WHAT = "positive_prompt, negative_prompt, then each row's words";
     const rowOpen = [];                      // row i -> (at) => opens its pop-up (made by render)
-    // the pop-up editor's Undo / Redo steps of each field, for as long as the node lives (see textHistory())
-    const widgetHist = {}, rowHist = new WeakMap();
-    const histOfRow = (r) => { if (!rowHist.has(r)) rowHist.set(r, {}); return rowHist.get(r); };
     const popKeys = () => ["w:positive_prompt", "w:negative_prompt", ...rows.map((_, i) => "row:" + i)];
     function openField(key, at) {
         const nav = (dir, geom) => {
@@ -328,6 +331,7 @@ function setup(node) {
             const pr = el("textarea", "rg-rl-prompt"); pr.rows = 1; pr.value = r.prompt; pr.spellcheck = false;
             pr.dataset.k = String(i);
             pr.addEventListener("input", () => { r.prompt = pr.value; save(); });
+            textHistory(pr, histOfRow(r), { apply: (v) => { r.prompt = v; save(); wcMark(pr, "row" + i, v); } });
             pr.addEventListener("focus", () => fit(true));
             pr.addEventListener("blur", () => { pr.scrollTop = 0; fillChips(chips, r); updateHints(); });
             pr.addEventListener("keydown", (e) => {

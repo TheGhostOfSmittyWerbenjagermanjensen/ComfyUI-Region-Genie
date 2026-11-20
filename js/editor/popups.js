@@ -2,7 +2,7 @@
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import {
     svgIcon, popFootText, naturalHeight, popNavDir, popNavTip, appendWord, autocompleteOnFocus, autocompleteOpen, autocompleteToggle, SET,
-    pickWildcard, insertAtCursor, wildcardsInstalled, textHistory, historyButtons,
+    pickWildcard, insertAtCursor, wildcardsInstalled, textHistory, historyButtons, closeComfyMenus,
 } from "../rg_shared.js";
 import { recentSetting, rememberSetting, CLIPBOARD } from "./shared.js";
 import { keyIs, keyUpIs } from "../rg_keys.js";
@@ -19,8 +19,7 @@ export function* popups(E) {
     // workflow tab, a subgraph); a click elsewhere doesn't close them. They always keep their text: Enter is a new line,
     // and a change is taken back with the pop-up's own Undo / Redo (textHistory(): the steps of every field are kept
     // in E.textHist for as long as the node lives). ◀ / ▶ step through every text field of the node.
-    E.textHist = E.textHist || new Map();
-    const histOf = (key) => { if (!E.textHist.has(key)) E.textHist.set(key, {}); return E.textHist.get(key); };
+    const histOf = E.histOf;                       // (core.js: the node's own text boxes use the same steps)
     const POP_W = { scene: 640, region: 560 };
     const CLOSE_TIP = "Close (Esc).\nThe text stays as it is: Undo takes a change back.";
     const FS_POP = { scene: SET.fsPopScene, prompt: SET.fsPopRegion, text: SET.fsPopText };
@@ -192,7 +191,7 @@ export function* popups(E) {
             e.stopPropagation();                           // editor shortcuts (Delete, V, B, ...) stay off
             const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
             if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
-            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); closeEditor(true); }
+            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); if (!closeComfyMenus()) closeEditor(true); }
         });
         // header: number, color, close
         const head = E.el("div", "rg-pop-head");
@@ -242,8 +241,9 @@ export function* popups(E) {
             ta.__rgSyncUse = syncUse;
             ta.addEventListener("focus", () => {
                 if (E.editor?.field && E.editor.field.ta !== ta) E.editor.endField(false);
-                if (E.editor) E.editor.field = { ta, key, before: E.snapshot(), orig: r[key] || "" };
+                if (E.editor) E.editor.field = { ta, key, orig: r[key] || "" };
             });
+            E.textSession(ta);                         // a visit to the box is one step of the editor's Undo
             const store = () => { const rr = E.regionById(rid) || r; rr[key] = ta.value; E.save(); E.requestDraw(); };
             ta.addEventListener("input", store);
             ta.addEventListener("blur", () => { if (E.editor?.field?.ta === ta) E.editor.endField(false); });
@@ -265,18 +265,19 @@ export function* popups(E) {
 
         const ed = {
             rid, box, field: null, at, target: ["region", rid],
-            // finish editing a text field: one undo step, or put the old text back (cancel)
+            // finish editing a text field: one undo step (E.endText()), or put the old text back (cancel: the region is gone)
             endField(cancel) {
                 const f = ed.field;
                 if (!f) return;
                 ed.field = null;
                 const rr = E.regionById(rid);
-                if (!rr) return;
+                if (!rr) { E.endText(); return; }
                 if (cancel) {
                     if ((rr[f.key] || "") !== f.orig) { rr[f.key] = f.orig; f.ta.value = f.orig; E.save(); }
-                } else if ((rr[f.key] || "") !== f.orig) {
-                    E.pushUndo(f.before);
-                    E.renderRegions();                       // the list shows the new text too
+                    E.endText();
+                } else {
+                    E.endText();
+                    if ((rr[f.key] || "") !== f.orig) E.renderRegions();       // the list shows the new text too
                 }
                 E.requestDraw();
             },
@@ -296,14 +297,15 @@ export function* popups(E) {
                     if (document.activeElement !== f.ta && f.ta.value !== (rr[key] || "")) f.ta.value = rr[key] || "";
                     f.ta.__rgHist.sync();                    // a change made elsewhere (the LLM, the list) is a step too
                 }
-                const ctl = E.el("div", "rg-row pop-ctl");
                 const addL = E.ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { rr.loras = rr.loras || []; E.addLoraTo(rr.loras, e, () => E.openSub(rr.id, "loras")); }, "txt");
-                // left: what belongs to the region; right (as in the scene prompt's pop-up): the tag list, the wildcard
-                // list, the LLM, ＋LoRA
-                ctl.append(...(E.isEdit() ? [E.keepToggle(rr)] : []), E.featherBox(rr), E.paletteToggle(rr), flexGap(), ...popTools(ed, wcPick), E.llmButton(rr.id, "pop"), addL);
+                // one row (round 43). Left: the color palette (its on / off button, the colors, +). Right: everything
+                // else: kept / changed (Edit Mode), feather, the tag list, the wildcard list, the LLM, ＋LoRA
+                const ctl = E.paletteRow(rr, true);
+                ctl.classList.add("pop-ctl");
+                ctl.append(flexGap(), ...(E.isEdit() ? [E.keepToggle(rr)] : []), E.featherBox(rr), ...popTools(ed, wcPick), E.llmButton(rr.id, "pop"), addL);
                 const loras = E.el("div", "rg-pop-loras");
                 if ((rr.loras || []).length) loras.appendChild(E.regionLoraRows(rr));
-                dyn.replaceChildren(ctl, E.paletteRow(rr, true), loras);
+                dyn.replaceChildren(ctl, loras);
                 ed.place();
             },
             placed: false,
@@ -340,7 +342,7 @@ export function* popups(E) {
             e.stopPropagation();
             const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
             if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
-            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); closeEditor(true); }
+            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); if (!closeComfyMenus()) closeEditor(true); }
         });
         const head = E.el("div", "rg-pop-head");
         const title = E.el("span");
@@ -370,9 +372,10 @@ export function* popups(E) {
             if (f == null) return;
             E.setWidget(w, f); ta.value = f; syncUseS(); E.wcMarkScene(); hist.sync();
         });
-        const store = () => { E.setWidget(w, ta.value); if (pos) E.updateLlmButtons(); };
+        const store = () => { E.setWidget(w, ta.value); E.sceneTA[which]?.__rgPlaceExpand?.(); if (pos) E.updateLlmButtons(); };
         ta.addEventListener("input", () => syncUseS());
         ta.addEventListener("input", store);
+        E.textSession(ta);                             // a visit to the box is one step of the editor's Undo
         // Undo / Redo of this text (the steps are kept per field: closing the pop-up doesn't lose them)
         const hist = textHistory(ta, histOf("scene:" + which), { apply: () => { store(); syncUseS(); E.wcMarkScene?.(); }, onChange: () => E.editor?.histBtns?.refresh() });
         autocompleteOnFocus(ta, E.node);
@@ -387,6 +390,7 @@ export function* popups(E) {
             scene: which, which, box, field: { cancelable: true }, at, target: ["scene", which],
             endField() {
                 ed.field = null;
+                E.endText();
                 if (pos) E.updateLlmButtons();
             },
             refresh() {

@@ -8,6 +8,7 @@ import { hsvHex, hexRgb, rgbLab, effectiveColors } from "./colors.js";
 export function* regions(E) {
     Object.assign(E, {
         uniqueColor, sortLayersByRegions, newRegion, ensureRegion, holeOwner, toggleHole, snapshot, pushUndo, change, undo, redo,
+        beginText, endText, textSession,
         save, slotFor, addLayer, selectLayer, regionTargets, duplicateTo, duplicate, copyLayer, pasteLayer, deleteSelected,
         eraseLayer, moveTarget, moveLayer, moveLayerToRegion, mergeDown, mergeRegion, setTool, hint,
     });
@@ -115,27 +116,79 @@ export function* regions(E) {
     const nextLayerId = () => E.state.layers.reduce((m, l) => Math.max(m, Number(l.id) || 0), 0) + 1; E.nextLayerId = nextLayerId;
 
     // ---------------- history ----------------
-    function snapshot() { return JSON.stringify(E.state); }
+    // A step of Undo holds the editor's state and the texts of the scene prompts (round 43: those live in the node's own
+    // widgets, not in the state, and were not part of Undo). Everything is kept in memory only, for as long as the node
+    // is on the page: nothing of it is saved with the workflow or written to a file.
+    const sceneWidgets = () => [E.sceneW, E.sceneNegW, E.sceneBgW];
+    const sceneNow = () => sceneWidgets().map((w) => (w ? String(w.value ?? "") : null));
+    function snapshot() { return JSON.stringify({ ...E.state, __scene: sceneNow() }); }
     function pushUndo(before) {
-        if (before === snapshot()) return;
+        const now = snapshot();
+        E.sceneKnown = JSON.stringify(sceneNow());
+        if (before === now) return;
         E.undoStack.push(before);
         if (E.undoStack.length > HISTORY) E.undoStack.shift();
         E.redoStack = [];
     }
+    // A scene prompt can be changed by something that isn't a step: trigger words added from a LoRA, "use the filled
+    // text", ComfyUI's own parameters panel, another extension. E.sceneKnown is the scene text as of the last step;
+    // when the text is found different before the next step is made, that change becomes a step of its own first
+    // (otherwise an Undo of an older step would silently take it away, or it couldn't be undone at all).
+    function absorbScene() {
+        const now = JSON.stringify(sceneNow());
+        if (E.sceneKnown != null && E.sceneKnown !== now) {
+            E.undoStack.push(JSON.stringify({ ...E.state, __scene: JSON.parse(E.sceneKnown) }));
+            if (E.undoStack.length > HISTORY) E.undoStack.shift();
+            E.redoStack = [];
+        }
+        E.sceneKnown = now;
+    }
     function change(fn) {
+        endText();                                  // text typed before this change is a step of its own, before it
+        absorbScene();
         const before = snapshot();
         fn();
         pushUndo(before);
+        resumeText();
         save(); E.refreshUI();
     }
     function restore(text) {
-        E.state = JSON.parse(text);
+        const st = JSON.parse(text), scene = st.__scene;
+        delete st.__scene;
+        E.state = st;
+        let sceneSet = false;
+        if (Array.isArray(scene)) sceneWidgets().forEach((w, i) => { if (w && scene[i] != null && String(w.value ?? "") !== scene[i]) { E.setWidget(w, scene[i]); sceneSet = true; } });
         if (E.selId != null && !selLayer()) E.selId = null;
         if (E.filter !== ALL && E.filter !== UNSPEC && !regionById(E.filter)) E.filter = ALL;
         save(); E.refreshUI();
+        if (sceneSet) { E.wcMarkScene?.(); for (const t of Object.values(E.sceneTA || {})) t?.__rgPlaceExpand?.(); }
+        E.sceneKnown = JSON.stringify(sceneNow());
     }
-    function undo() { if (E.undoStack.length) { E.redoStack.push(snapshot()); restore(E.undoStack.pop()); afterRestore(); } }
-    function redo() { if (E.redoStack.length) { E.undoStack.push(snapshot()); restore(E.redoStack.pop()); afterRestore(); } }
+    function undo() { endText(); absorbScene(); if (E.undoStack.length) { E.redoStack.push(snapshot()); restore(E.undoStack.pop()); afterRestore(); } resumeText(); }
+    function redo() { endText(); absorbScene(); if (E.redoStack.length) { E.undoStack.push(snapshot()); restore(E.redoStack.pop()); afterRestore(); } resumeText(); }
+    // ---- text boxes and Undo (round 43). A visit to a text box (click in, type, click out) is ONE step: it starts
+    // when the box gets the cursor and is closed when the box is left, and before any other change or an Undo / Redo,
+    // so the steps stay in the order things were done. While the cursor is in a box, the Undo keys act on that box's
+    // own text, step by step (textHistory() in rg_shared.js), not on the editor.
+    // E.textBefore: the snapshot from when the box was entered; E.textDirty: something was typed since (the Undo button
+    // is then ready, without a snapshot being made on every draw).
+    function beginText() { if (E.textBefore == null) { absorbScene(); E.textBefore = snapshot(); E.textDirty = false; } }
+    function endText() {
+        if (E.textBefore == null) return;
+        const before = E.textBefore;
+        E.textBefore = null; E.textDirty = false;
+        pushUndo(before);
+        E.requestDraw?.();                           // the Undo button's state
+    }
+    // a change was made, or a step taken back, while a text box still has the cursor: what is typed next is a new step
+    function resumeText() { if (document.activeElement?.__rgSess) beginText(); }
+    function textSession(ta) {
+        if (!ta || ta.__rgSess) return;
+        ta.__rgSess = true;
+        ta.addEventListener("focus", beginText);
+        ta.addEventListener("blur", endText);
+        ta.addEventListener("input", () => { if (E.textBefore == null) beginText(); if (!E.textDirty) { E.textDirty = true; E.requestDraw?.(); } });
+    }
     // the Generate / Edit switch isn't part of an undo step: an undone list must still fit the mode it's in now
     function afterRestore() { if (E.pruneManagedLoras()) { save(); E.renderRegions(); } }
     function save() {

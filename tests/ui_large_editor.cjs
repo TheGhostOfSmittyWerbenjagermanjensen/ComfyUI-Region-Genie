@@ -79,7 +79,21 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("the canvas has the node's size again", Math.abs((await cvSize())[1] - small[1]) < 4);
     check("everything done in the window is still there", (await st()).layers.length === 2 && (await st()).regions[0].prompt === "typed large" && await W("scene_prompt_negative") === "blurry");
     [x, y] = await toClient(128, 128); await page.mouse.move(x, y); await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
-    check("and the editor still works on the node (Ctrl+Z)", (await st()).regions[0].prompt !== "typed large" || (await st()).layers.length === 1);
+    // round 43: text is part of Undo. The last visit to a text box was the one to scene_prompt_negative ("blurry"; while
+    // the cursor was still in it, scene_prompt_positive was changed from outside the editor: one visit, one step);
+    // before that, the region's prompt
+    check("and the editor still works on the node: Ctrl+Z takes back the last visit to a text box (the scene prompts)",
+        await W("scene_prompt_positive") === "from the node" && await W("scene_prompt_negative") === "" && (await st()).regions[0].prompt === "typed large");
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
+    check("Ctrl+Z again: the region's prompt, as one step", (await st()).regions[0].prompt === "" && (await st()).layers.length === 2);
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
+    check("and again: the layer drawn before it", (await st()).layers.length === 1);
+    await page.keyboard.press("Control+y"); await page.keyboard.press("Control+y"); await page.keyboard.press("Control+y"); await page.waitForTimeout(150);
+    check("Redo three times: all of it is back", await W("scene_prompt_positive") === "changed on the node" && await W("scene_prompt_negative") === "blurry" && (await st()).regions[0].prompt === "typed large" && (await st()).layers.length === 2);
+    // a scene prompt changed from outside while no text box has the cursor is a step of its own
+    await page.evaluate(() => { window.__node.widgets.find((w) => w.name === "scene_prompt_positive").value = "set from outside"; });
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
+    check("a scene prompt changed from outside the editor is a step too: Ctrl+Z takes just that back", await W("scene_prompt_positive") === "changed on the node" && await W("scene_prompt_negative") === "blurry" && (await st()).layers.length === 2);
 
     // ---- the key, and its Setting
     await page.keyboard.press("Alt+Enter"); await page.waitForTimeout(300);

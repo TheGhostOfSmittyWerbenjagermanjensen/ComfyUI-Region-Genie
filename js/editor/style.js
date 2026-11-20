@@ -136,6 +136,9 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-pop-head .rg-hist svg { width:14px; height:14px; display:block; }
 .rg-pop .rg-btn:disabled { opacity:.35; cursor:default; }
 .rg-pop-gap { flex:1 1 auto; }
+/* a region's pop-up: one bottom row, the color palette on the left and every other control on the right (round 43) */
+.rg-pop .rg-row.pal.pop-ctl { flex-wrap:wrap; row-gap:3px; min-height:22px; }
+.rg-pop .rg-row.pal.pop-ctl .rg-btn.mini.toggle:first-child { margin-right:2px; }
 .rg-pop-types { display:flex; gap:4px; }
 .rg-pop-types .rg-btn { flex:1 1 0; padding:3px 6px; }
 .rg-pop-lbl { font-size:11px; opacity:.75; margin:0 0 2px 1px; }
@@ -271,6 +274,14 @@ input.rg-sw[type=color]::-moz-color-swatch { border:none; border-radius:2px; }
 .rg-expand:hover { opacity:1; background:rgba(91,143,208,.35); }
 *:hover > .rg-expand { opacity:.75; }
 textarea.rg-scene-ta { padding-right:20px !important; }
+/* more controls in a text box's corner, left of the pop-up button (placed by addExpandButton(), rg_shared.js) */
+.rg-btn.rg-corner { position:absolute; z-index:3; margin:0; }
+/* scene_prompt_positive shows its LLM Prompt Enhancer (round 43): the button in its corner, an outline while it is on */
+.rg-btn.rg-llm-btn.rg-llm-corner { width:16px; height:16px; }
+.rg-btn.rg-llm-btn.rg-llm-corner svg { width:12px; height:12px; }
+.rg-btn.rg-llm-btn.rg-llm-corner:not(.on) { opacity:.5; }
+.rg-btn.rg-llm-btn.rg-llm-corner:not(.on):hover { opacity:1; }
+textarea.rg-scene-ta.rg-llm-on, textarea.rg-big-ta.rg-llm-on { outline:1.5px solid var(--p-primary-color, #4a9eff) !important; outline-offset:-1.5px; }
 .rg-row textarea.rg-prompt { flex:1 1 auto; min-width:0; background:var(--comfy-input-bg,#222); color:inherit; resize:none;
   border:1px solid var(--border-color,#555); border-radius:3px; padding:1px 4px; font-family:inherit; font-size:var(--rg-fs-r,12px);
   line-height:var(--rg-lh-r,15px); height:calc(var(--rg-lh-r,15px) + 3px); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }

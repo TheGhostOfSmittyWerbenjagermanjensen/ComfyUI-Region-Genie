@@ -238,7 +238,7 @@ export function* render(E) {
             E.ctx.strokeStyle = "rgba(255,255,255,.9)"; E.ctx.lineWidth = 1; E.ctx.stroke();
             E.ctx.setLineDash([3, 3]); E.ctx.strokeStyle = "rgba(0,0,0,.9)"; E.ctx.stroke(); E.ctx.setLineDash([]);
         }
-        E.undoBtn.disabled = !E.undoStack.length; E.redoBtn.disabled = !E.redoStack.length;
+        E.undoBtn.disabled = !E.undoStack.length && !E.textDirty; E.redoBtn.disabled = !E.redoStack.length;
         E.arrangeBtn.disabled = !E.selLayer();
         if (E.arrangeBtn.disabled && E.arrangePop) E.closeArrange();
         E.clearBtn.disabled = !E.state.layers.length && !E.state.regions.length;
