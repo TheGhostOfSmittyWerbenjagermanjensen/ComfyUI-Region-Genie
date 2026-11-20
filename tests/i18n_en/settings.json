@@ -287,7 +287,7 @@
   },
   "RegionGenie_Shortcuts": {
     "name": "Shortcuts",
-    "tooltip": "Every key of the Region Genie editor: the tools, undo, copy and paste, the view, the large editor, and the keys that step between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; each shortcut can be put back to its default.\nThe same list opens with ? while the pointer is over a Region Genie node, or with the keyboard button in its bottom bar. Applies to every node."
+    "tooltip": "The keys of the Region Genie editor (the tools, undo, copy and paste, the view, the large editor) and the keys that step between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; each shortcut can be put back to its default.\nThe same list opens when you press the question mark key while the pointer is over a Region Genie node, or with the keyboard button in its bottom bar. Applies to every node."
   },
   "RegionGenie_Main_RegionColors": {
     "name": "Region colors",

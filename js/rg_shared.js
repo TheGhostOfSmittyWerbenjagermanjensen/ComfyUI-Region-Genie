@@ -1969,10 +1969,10 @@ const SETTINGS = [
         // the large editor's key: changed in the shortcut list (round 39; it was a row here), still saved under its own id
         { id: SET.bigKey, name: "Large editor: key", type: "hidden", defaultValue: "Alt+Enter" },
         { id: SET.shortcuts, name: "Shortcuts", type: shortcutsSettingType(), defaultValue: "{}",
-          tooltip: "Every key of the Region Genie editor: the tools, undo, copy and paste, the view, the large editor, and the keys that step "
+          tooltip: "The keys of the Region Genie editor (the tools, undo, copy and paste, the view, the large editor) and the keys that step "
               + "between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; "
-              + "each shortcut can be put back to its default.\nThe same list opens with ? while the pointer is over a Region Genie node, "
-              + "or with the keyboard button in its bottom bar. Applies to every node.",
+              + "each shortcut can be put back to its default.\nThe same list opens when you press the question mark key while the pointer "
+              + "is over a Region Genie node, or with the keyboard button in its bottom bar. Applies to every node.",
           category: CAT("Region Genie node", "11 shortcuts") },
         {
             id: SET.regionColors, name: "Region colors", type: regionColorsType(), defaultValue: REGION_COLORS_DEFAULT,
