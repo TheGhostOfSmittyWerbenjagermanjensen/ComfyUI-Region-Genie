@@ -207,5 +207,7 @@
   "edit LoRA": "编辑 LoRA",
   "patch": "补丁",
   "seam": "接缝",
-  "shortcut": "快捷键"
+  "shortcut": "快捷键",
+  "size_from": "尺寸来源",
+  "outputs_shown": "显示的输出"
 }

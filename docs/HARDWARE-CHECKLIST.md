@@ -146,3 +146,14 @@ Check once in legacy mode and once in Nodes 2.0.
 - **Settings > Region Genie > Region Genie node > Shortcuts > Edit…:** the list opens over the Settings dialog, takes a new key there, and closing it leaves the dialog open. After reloading ComfyUI the keys are still yours.
 - Reset all: every key is back; the large editor opens with Alt+Enter again.
 
+## 18. Sockets, size_from, the Edit area line (round 40)
+
+- **A real run with hidden outputs:** on a new node tick `masks` and `color_map` in the sockets list (the cable button in the size row), connect them (Mask Picker, a preview) and run with a model: each receives its own data. Then untick one that isn't connected and run again.
+- **Your own workflows from before this version:** open a few. Links are all still there (also into the old `size_from_image` / `size_from_latent` inputs, now on `size_from`), unconnected sockets are hidden, the node's box is where it was, and the run gives the same result as before.
+- **Both node modes, 4K display:** tick and untick sockets: the node's top moves, the editor and the node's bottom edge stay; wires to other nodes follow.
+- `size_from` with a real image and with a real latent (also one from another node than Empty Latent, where the size is only known after a run): the size at the right end of the size row and the canvas agree with the result.
+- Edit Mode: the **Edit area** line is under *Whole image*, its dropdown and two fields act as the bottom bar's dropdown and the header's fields did; removing the Edit row with ✕ leaves it.
+- A wildcard typed into any prompt brings the seed group into the bottom bar at once; removing the last wildcard hides it.
+- Subgraphs: a Region Genie node inside a subgraph, with only some outputs shown and one of them leaving the subgraph, runs with the right data. (Not tested here.)
+- "Save (API Format)" of a workflow whose node shows only some outputs: the file has the Python node's output numbers and an empty `outputs_shown`.
+

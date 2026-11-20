@@ -266,5 +266,7 @@
   "MOSS-Image Layout Prompt (core node)": "Prompt de diseño de MOSS-Image",
   "MOSS-Image Color/Depth Control (core node)": "Control de color/profundidad de MOSS-Image",
   "Load LoRA (Text Encoder) (core node)": "Cargar LoRA (codificador de texto)",
-  "shortcut": "atajo de teclado"
+  "shortcut": "atajo de teclado",
+  "size_from": "tamaño_desde",
+  "outputs_shown": "salidas_mostradas"
 }

@@ -1,7 +1,8 @@
 # Region Genie
 
 Paint regions on the node's canvas, give each one its own prompt, and send the result straight to a sampler: the
-node outputs the model, the encoded prompts and the latent, plus masks, boxes and a color map for other nodes.
+node outputs the model, the encoded prompts and the latent, plus masks, boxes and a color map for other nodes
+(those show when you tick them in the sockets list: see 1 below).
 
 ![The parts of the node](region-genie-parts.png)
 
@@ -16,7 +17,9 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
 
 ## The parts of the node
 
-1. **Image size**: by aspect ratio, from a list of presets, or typed in.
+1. **Image size**: by aspect ratio, from a list of presets, or typed in. The cable button at its right end lists
+   the node's inputs and outputs: tick the ones you need (masks, a color map, boxes, the prompt as text, width and
+   height inputs …). A connected one always stays.
 2. **Scene prompts**: the whole picture, and what to avoid. The corner button opens a larger editor.
 3. **Tools**: select, shapes, brush, lasso, fill, magic wand / Select object, eraser, arrange; then undo, redo, snap,
    fit and labels. A button with a small arrow holds more versions: click the arrow or right-click.
@@ -27,7 +30,7 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
    arrow at the start of a row opens it: feather, palette, merge, move and delete, then its layers and LoRAs.
    Drag a region or a layer by the six dots at the start of its row to reorder it; a click on them picks the row.
    *Whole image* holds LoRAs and Control for the whole picture.
-6. **Bottom bar**: Generate / Edit, the model, the LLM Prompt Enhancer, tag autocomplete, the wildcard seed, and
+6. **Bottom bar**: Generate / Edit, the model, the LLM Prompt Enhancer, tag autocomplete, the wildcard seed (while a prompt has a wildcard), and
    Export / Import. After a run, a button here shows what the run reported, with a ⚠ when something needs attention.
 
 ## Good to know

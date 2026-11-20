@@ -44,6 +44,10 @@
         "name": "imagen",
         "tooltip": "Opcional.\nModo generar: Una plantilla para calcar, o el propio mapa de color (ver modo_de_imagen).\nModo edición: La imagen que se va a cambiar.\nControl: Los mapas de profundidad y canny se crean a partir de ella cuando imagen_de_control no está conectada."
       },
+      "size_from": {
+        "name": "tamaño_desde",
+        "tooltip": "Opcional. Toma el tamaño de la imagen de esta imagen o de este latente (un latente: 16x para latentes de MOSS-Image / Flux.2, 8x para SD/SDXL/Flux.1). Tiene prioridad sobre la fila de tamaño y las entradas ancho/alto."
+      },
       "size_from_image": {
         "name": "tamaño_desde_imagen",
         "tooltip": "Toma ancho/alto de esta imagen. Tiene prioridad sobre tamaño_desde_latente y los widgets ancho/alto."
@@ -82,15 +86,19 @@
       },
       "width_in": {
         "name": "ancho_entrada",
-        "tooltip": "Opcional. El ancho de la imagen procedente de otro nodo. Sustituye a la fila de tamaño de la parte superior (tamaño_desde_imagen y tamaño_desde_latente siguen teniendo prioridad)."
+        "tooltip": "Opcional. El ancho de la imagen procedente de otro nodo. Sustituye a la fila de tamaño de la parte superior (tamaño_desde sigue teniendo prioridad)."
       },
       "height_in": {
         "name": "alto_entrada",
-        "tooltip": "Opcional. El alto de la imagen procedente de otro nodo. Sustituye a la fila de tamaño de la parte superior (tamaño_desde_imagen y tamaño_desde_latente siguen teniendo prioridad)."
+        "tooltip": "Opcional. El alto de la imagen procedente de otro nodo. Sustituye a la fila de tamaño de la parte superior (tamaño_desde sigue teniendo prioridad)."
       },
       "wildcard_seed": {
         "name": "semilla_de_comodines",
         "tooltip": "Semilla para los comodines de los campos de prompt (sintaxis __name__ y {'{'}a{'|'}b{'}'} de ComfyUI Impact Pack)."
+      },
+      "outputs_shown": {
+        "name": "salidas_mostradas",
+        "tooltip": "Oculto. Las salidas que muestra este nodo cuando no las muestra todas (se eligen con el botón de conexiones de la fila de tamaño). Déjalo vacío en los prompts de API."
       }
     },
     "outputs": {

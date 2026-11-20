@@ -256,5 +256,7 @@
   "sparkles button": "반짝이 버튼",
   "thinking": "사고",
   "queue": "실행 대기열",
-  "shortcut": "단축키"
+  "shortcut": "단축키",
+  "size_from": "크기 원본",
+  "outputs_shown": "표시할 출력"
 }

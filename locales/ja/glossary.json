@@ -199,5 +199,7 @@
   "temperature": "温度",
   "cache": "キャッシュ",
   "tag autocomplete": "タグのオートコンプリート",
-  "shortcut": "ショートカット"
+  "shortcut": "ショートカット",
+  "size_from": "サイズの取得元",
+  "outputs_shown": "表示する出力"
 }
