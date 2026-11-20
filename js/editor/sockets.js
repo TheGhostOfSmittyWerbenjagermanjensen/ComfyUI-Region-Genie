@@ -76,7 +76,7 @@ const CSS = `.rg-socks { position:fixed; z-index:10000; box-sizing:border-box; m
 let panel = null;                                    // one sockets list at a time, on the whole page
 
 export function* sockets(E) {
-    Object.assign(E, { applySockets, syncSockets, toggleSockets, closeSockets, keepBottom, socketState });
+    Object.assign(E, { applySockets, syncSockets, toggleSockets, closeSockets, keepBottom, socketState, renumberLinks });
     yield;
 
     const N = E.node, def = E.nodeData || {};
@@ -100,13 +100,21 @@ export function* sockets(E) {
         dress(N.inputs[N.inputs.length - 1], proto.in[name]);
         E.labelSizeInputs?.();
     }
-    function removeIn(name) { const i = findIn(name); if (i >= 0 && N.inputs[i].link == null) N.removeInput(i); }
+    // While a node is being loaded, its sockets are taken out of the lists directly: the graph's links are already
+    // there with the numbers they were saved with, and removeInput / removeOutput would shift or drop them by number.
+    // renumberLinks() gives every link its socket's number once the lists are final.
+    let loading = false;
+    function removeIn(name) { const i = findIn(name); if (i < 0 || N.inputs[i].link != null) return; if (loading) N.inputs.splice(i, 1); else N.removeInput(i); }
+    function renumberLinks() {
+        (N.inputs || []).forEach((inp, i) => { const l = inp.link != null ? linkOf(N.graph, inp.link) : null; if (l) l.target_slot = i; });
+        (N.outputs || []).forEach((o, i) => { for (const id of o.links || []) { const l = linkOf(N.graph, id); if (l) l.origin_slot = i; } });
+    }
     function addOut(name) {
         if (findOut(name) >= 0 || !OUT.includes(name)) return;
         N.addOutput(name, OUT_T[OUT.indexOf(name)] ?? "*");
         dress(N.outputs[N.outputs.length - 1], proto.out[name]);
     }
-    function removeOut(name) { const i = findOut(name); if (i >= 0 && !N.outputs[i].links?.length) N.removeOutput(i); }
+    function removeOut(name) { const i = findOut(name); if (i < 0 || N.outputs[i].links?.length) return; if (loading) N.outputs.splice(i, 1); else N.removeOutput(i); }
 
     // ---- the hidden widget that carries the shown outputs into the prompt (read when the prompt is made)
     const shownW = N.widgets?.find((w) => w.name === "outputs_shown");
@@ -160,20 +168,54 @@ export function* sockets(E) {
         if (!real) return;
         for (const name of HIDDEN_BY_DEFAULT) removeIn(name);
         for (const name of OUT.slice().reverse()) if (!SAMPLER_OUTS.includes(name)) removeOut(name);
-        N.properties = N.properties || {}; N.properties.rg_sockets = 1;
         syncShown();
     }
+    // The saved node says that its sockets are the chosen ones (a workflow from before round 40 doesn't). The mark is
+    // written when the node is saved, not kept on the live node: loading merges the saved properties into the new
+    // node's, so a mark made at creation would also be there for an old workflow.
+    const onSer = N.onSerialize;
+    N.onSerialize = function (o) { const r = onSer?.apply(this, arguments); if (real && o) { o.properties = o.properties || {}; o.properties.rg_sockets = 1; } return r; };
+    if (N.properties) delete N.properties.rg_sockets;
+    // ---- a node about to be given its saved state (loading, pasting): ComfyUI lays the saved outputs over the node's
+    // by number and keeps the node's names, and keeps a saved input only when the node has one of that name. So the
+    // node first takes the shape it was saved in: the saved outputs in their order, no optional input that wasn't saved.
+    function shapeLikeSaved(saved) {
+        const names = (saved.outputs || []).map((o) => o?.name).filter((n) => typeof n === "string");
+        loading = true;
+        try {
+            if (names.join() !== (N.outputs || []).map((o) => o.name).join()) {
+                N.outputs.splice(0);
+                for (const n of names) { if (OUT.includes(n)) addOut(n); else N.addOutput(n, "*"); }     // (an unknown one keeps its place; applySockets drops it)
+            }
+            const kept = new Set((saved.inputs || []).map((i) => i?.name));
+            for (const name of HIDDEN_BY_DEFAULT) if (!kept.has(name)) removeIn(name);
+        } finally { loading = false; }
+    }
+    const configure0 = N.configure;
+    if (real && typeof configure0 === "function") {
+        N.configure = function (saved) {
+            try { if (saved?.properties?.rg_sockets) shapeLikeSaved(saved); } catch (e) { console.error("[Region Genie] sockets", e); }
+            return configure0.apply(this, arguments);
+        };
+    }
     // ---- a loaded (or pasted) node: its saved sockets, put right
-    function applySockets() {
+    function applySockets(saved) {
         if (!real) { remapOutputs(N, OUT, OUT_T); return; }
         quiet = true; setTimeout(() => { quiet = false; }, 0);
-        N.properties = N.properties || {};
-        const old = !N.properties.rg_sockets;              // saved before round 40: every socket was there
+        const old = !saved?.properties?.rg_sockets;        // saved before round 40: every socket was there
+        if (N.properties) delete N.properties.rg_sockets;
+        loading = true;
+        try { settle(old); } finally { loading = false; }
+        renumberLinks();
+        E.labelSizeInputs?.();
+        syncShown();
+    }
+    function settle(old) {
         if (old) remapOutputs(N, OUT, OUT_T);              // all outputs, by name (added or reordered since it was saved)
         else {
             for (let i = (N.outputs || []).length - 1; i >= 0; i--) {         // an output that no longer exists; a doubled one
                 const o = N.outputs[i];
-                if (!OUT.includes(o.name) || findOut(o.name) !== i) { for (const id of [...(o.links || [])]) { try { N.graph?.removeLink(id); } catch (e) { /* gone */ } } o.links = null; N.removeOutput(i); continue; }
+                if (!OUT.includes(o.name) || findOut(o.name) !== i) { for (const id of [...(o.links || [])]) { try { N.graph?.removeLink(id); } catch (e) { /* gone */ } } o.links = null; N.outputs.splice(i, 1); continue; }
                 o.type = OUT_T[OUT.indexOf(o.name)] ?? o.type; dress(o, proto.out[o.name]);
             }
         }
@@ -186,17 +228,14 @@ export function* sockets(E) {
                 const l = linkOf(N.graph, id);
                 if (l) { l.target_slot = j; N.inputs[j].link = id; N.inputs[i].link = null; }
             }
-            if (N.inputs[i].link != null) { try { N.disconnectInput(i); } catch (e) { N.inputs[i].link = null; } }      // both were connected: the image's link won
+            if (N.inputs[i].link != null) { try { N.graph?.removeLink(N.inputs[i].link); } catch (e) { /* gone */ } N.inputs[i].link = null; }      // both were connected: the image's link won
             removeIn(name);
         }
         if (old) {                                          // everything that isn't connected goes, like on a new node
             for (const name of ["import_json", "control_image"]) removeIn(name);
             if (!linkedIn("width_in") && !linkedIn("height_in")) { removeIn("width_in"); removeIn("height_in"); }
             for (const name of OUT.slice().reverse()) if (!SAMPLER_OUTS.includes(name)) removeOut(name);
-            N.properties.rg_sockets = 1;
         }
-        E.labelSizeInputs?.();
-        syncShown();
     }
     // what the sockets list shows: [{ name, label, on, linked, why }]
     function socketState() {
@@ -282,7 +321,10 @@ export function* sockets(E) {
         box.focus({ preventScroll: true });
     }
 
-    newNodeSockets();
+    // A new node gets its short lists a moment after it is made, not at once: a node that is being loaded (or pasted) is
+    // made first and given its saved sockets right after, and ComfyUI only keeps a saved input (and its link) when
+    // the new node still has that input. By the time this runs, a loaded node has been through applySockets().
+    queueMicrotask(() => { if (!E.configured) newNodeSockets(); });
     setTimeout(() => { quiet = false; }, 0);
     // tests: every socket at once (the outputs then come in another order than the Python node's)
     N.__rgShowAll = () => keepBottom(() => { for (const n of ["width_in", "height_in", "import_json", "control_image"]) addIn(n); for (const n of OUT) addOut(n); });

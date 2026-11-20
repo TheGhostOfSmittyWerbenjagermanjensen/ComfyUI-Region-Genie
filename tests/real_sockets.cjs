@@ -27,7 +27,7 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
         const app = window.app, LG = window.LiteGraph; app.graph.clear();
         const rg = LG.createNode("Region-Genie_Main"); rg.pos = [520, 260]; app.graph.add(rg);
         app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true); window.__rg = rg;
-        await new Promise((r) => setTimeout(r, 2200));
+        await new Promise((r) => setTimeout(r, 3200));
     });
     const socks = () => page.evaluate(() => window.__rg.__rgSockets());
     const geo = () => page.evaluate(() => { const n = window.__rg, w = document.querySelector(".rg-wrap"), c = document.querySelector(".rg-cv").getBoundingClientRect(), f = document.querySelector(".rg-foot").getBoundingClientRect();
@@ -81,7 +81,7 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
     await page.locator(".rg-socks-acts button", { hasText: "Sampler only" }).click(); await sleep(1200);
     s = await socks();
     check(`${M}: Sampler only: the four, and the connected one (${s.outputs.join(", ")})`, s.outputs.join() === "model,positive,negative,latent,height");
-    await page.mouse.click(40, 1850); await sleep(200);
+    await page.mouse.click(1500, 1750); await sleep(200);
     check(`${M}: a click outside closes the list`, !(await list()));
 
     // ---------------- the prompt ComfyUI is sent
@@ -101,7 +101,7 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
         }
         return { status: "timeout" };
     });
-    check(`${M}: the workflow runs, and the preview fed from 'height' shows 768 (${ran.status}; ${ran.out})`, ran.status === "success" && /768/.test(ran.out) && !/1280/.test(ran.out));
+    check(`${M}: the workflow runs, and the preview fed from 'height' shows 768 (${ran.status}; ${ran.out})`, ran.status === "success" && /"text":\["768"\]/.test(ran.out));
 
     // ---------------- size_from: an image, then a latent; the size row is the canvas size
     await page.evaluate(async () => { const LG = window.LiteGraph, rg = window.__rg, app = window.app;
@@ -135,15 +135,21 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
         await rg.__rgSetOutputs(["color_map", "masks"], true); await new Promise((r) => setTimeout(r, 900));
         const pv2 = window.LiteGraph.createNode("PreviewImage"); pv2.pos = [1400, 700]; app.graph.add(pv2);
         rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), pv2, 0);
+        // an optional input that is connected must come back connected too
+        await rg.__rgSetInput("size", true); await new Promise((r) => setTimeout(r, 900));
+        const rs = window.LiteGraph.createNode("ResolutionSelector"); rs.pos = [40, 1300]; app.graph.add(rs);
+        rs.connect(0, rg, rg.inputs.findIndex((i) => i.name === "width_in")); await new Promise((r) => setTimeout(r, 300));
         const before = rg.__rgSockets(), id = rg.id;
         const data = JSON.parse(JSON.stringify(app.graph.serialize()));
-        await app.loadGraphData(data); await new Promise((r) => setTimeout(r, 2500));
+        const saved = data.nodes.find((x) => String(x.id) === String(id)).outputs.map((o) => o.name);
+        await app.loadGraphData(JSON.parse(JSON.stringify(data))); await new Promise((r) => setTimeout(r, 2500));
         const n = app.graph.getNodeById(id); window.__rg = n;
         const p = await app.graphToPrompt();
-        return { before, after: n.__rgSockets(), links: Object.values(p.output).flatMap((x) => Object.entries(x.inputs || {}).filter(([, v]) => Array.isArray(v) && String(v[0]) === String(id)).map(([k, v]) => `${x.class_type}.${k}=${v[1]}`)).sort(), saved: data.nodes.find((x) => x.id === id).outputs.map((o) => o.name) };
+        return { before, after: n.__rgSockets(), widthLinked: n.inputs.find((i) => i.name === "width_in")?.link != null && Object.keys(p.output[String(id)].inputs).includes("width_in"), links: Object.values(p.output).flatMap((x) => Object.entries(x.inputs || {}).filter(([, v]) => Array.isArray(v) && String(v[0]) === String(id)).map(([k, v]) => `${x.class_type}.${k}=${v[1]}`)).sort(), saved };
     });
     check(`${M}: saved and loaded: the same sockets (${round.after.outputs.join(", ")})`, JSON.stringify(round.before) === JSON.stringify(round.after) && round.saved.join() === round.after.outputs.join());
     check(`${M}: …and its links still carry the right numbers (${round.links.join(", ")})`, round.links.some((x) => /images=5$/.test(x)) && round.links.some((x) => /=12$/.test(x)));
+    check(`${M}: …a connected optional input (width) is still there and still connected`, round.widthLinked === true && round.after.inputs.includes("width_in") && round.after.inputs.includes("height_in"));
 
     // ---------------- a workflow saved before round 40 (every socket, the old size inputs connected)
     const old = await page.evaluate(async (OUT) => {
@@ -156,16 +162,16 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
         rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), pv, 0);
         const data = JSON.parse(JSON.stringify(app.graph.serialize()));
         // make it look as it was saved then: no marker, the outputs in the Python node's order, size_from_latent in place of size_from
-        const n = data.nodes.find((x) => x.id === rg.id); delete n.properties.rg_sockets;
+        const n = data.nodes.find((x) => String(x.id) === String(rg.id)); delete n.properties.rg_sockets;
         const byName = Object.fromEntries(n.outputs.map((o) => [o.name, o]));
         n.outputs = OUT.map((name, i) => ({ ...byName[name], slot_index: i }));
         const cm = OUT.indexOf("color_map");
         for (const L of data.links) if (L[1] === rg.id) L[2] = cm;
         const sf = n.inputs.find((i) => i.name === "size_from"); sf.name = "size_from_latent"; sf.type = "LATENT"; delete sf.label; delete sf.localized_name;
         n.inputs.splice(n.inputs.indexOf(sf), 0, { name: "size_from_image", type: "IMAGE", link: null });
-        const lid = (data.last_link_id || 0) + 1; data.last_link_id = lid;
+        const lid = Math.max(0, ...data.links.map((L) => (Array.isArray(L) ? L[0] : L.id))) + 1; if (data.last_link_id != null) data.last_link_id = lid; if (data.state?.lastLinkId != null) data.state.lastLinkId = lid;
         sf.link = lid; data.links.push([lid, el.id, 0, rg.id, n.inputs.indexOf(sf), "LATENT"]);
-        const eln = data.nodes.find((x) => x.id === el.id); eln.outputs[0].links = [lid];
+        const eln = data.nodes.find((x) => String(x.id) === String(el.id)); eln.outputs[0].links = [lid];
         const hBefore = n.size[1];
         await app.loadGraphData(data); await new Promise((r) => setTimeout(r, 2500));
         const m = app.graph.getNodeById(rg.id); window.__rg = m;

@@ -209,8 +209,8 @@ export function* lifecycle(E) {
         }
         E.onDimsChanged();
     });
-    chain(E.node, "onConfigure", function () { E.applySockets(); E.configured = true;
-        E.moveSizeLinks(); setTimeout(() => { E.sizeCfg(); E.syncSizeRow(true); E.onDimsChanged(); }, 0); E.fixImportMode(); E.migrateFormat(); if (E.node.properties?.rg_list_h) E.cvBox.style.minHeight = E.CV_MIN + "px"; E.applyListH(); load(); E.pushLlmCache(); E.syncLlm(); E.updateLlmButtons(); });
+    chain(E.node, "onConfigure", function (saved) { E.applySockets(saved); E.configured = true;
+        E.moveSizeLinks(); E.renumberLinks(); setTimeout(() => { E.sizeCfg(); E.syncSizeRow(true); E.onDimsChanged(); }, 0); E.fixImportMode(); E.migrateFormat(); if (E.node.properties?.rg_list_h) E.cvBox.style.minHeight = E.CV_MIN + "px"; E.applyListH(); load(); E.pushLlmCache(); E.syncLlm(); E.updateLlmButtons(); });
     for (const w of [E.wW, E.hW]) if (w) chain(w, "callback", () => E.onDimsChanged());
     if (E.modeW) chain(E.modeW, "callback", () => E.requestDraw());
 
@@ -287,18 +287,23 @@ export function* lifecycle(E) {
     // Round 38 tried a fixed 700 x 1040 instead; the owner found the canvas too small and wants it square (round 39).
     if (!E.node.size || E.node.size[0] < DEFAULT_W) {
         E.node.setSize?.([DEFAULT_W, Math.max(E.node.size?.[1] || 0, DEFAULT_H)]);
-        let tries = 0;
+        let tries = 0, mine = null;
+        const t0 = performance.now();
         const square = () => {
             if (E.configured || !E.node.graph && tries > 2) return;
+            if (mine != null && Math.abs(E.node.size[1] - mine) > 1) return;     // the user (or something else) resized it meanwhile
             const b = E.cvBox.getBoundingClientRect();
             if (E.cvBox.closest("[data-node-id]")) return;                       // Nodes 2.0 lays out by itself
             if (!b.width || !b.height) { if (++tries < 30) requestAnimationFrame(square); return; }
             const k = app.canvas?.ds?.scale || 1;
             const d = (b.width - b.height) / k;
             if (Math.abs(d) > 1 && tries < 30) {
-                E.node.setSize([E.node.size[0], Math.round(E.node.size[1] + d)]); E.node.setDirtyCanvas?.(true, true);
+                mine = Math.round(E.node.size[1] + d);
+                E.node.setSize([E.node.size[0], mine]); E.node.setDirtyCanvas?.(true, true);
                 tries++; requestAnimationFrame(() => requestAnimationFrame(square));
-            }
+            // square now; the fields above the editor settle a little later (the background field hides, the prompt
+            // fields take their height), so look again a few times during the first seconds
+            } else if (performance.now() - t0 < 2500) setTimeout(square, 250);
         };
         setTimeout(square, 0);
         // Settings > Region Genie: defaults for a node that was just added (not loaded or pasted)
