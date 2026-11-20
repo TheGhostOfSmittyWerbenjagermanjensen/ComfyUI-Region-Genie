@@ -18,8 +18,8 @@ const FIELDS = {
 const ALL = ["filename_prefix", "format", ...Object.values(FIELDS).flat(), "invert_mask", "a1111_metadata"];
 // the optional inputs for the settings text: [name, type, what the list says about it]
 const META = [
-    ["positive", "STRING", "The prompt, in place of the one read from the workflow."],
-    ["negative", "STRING", "The negative prompt, in place of the one read from the workflow."],
+    ["positive_prompt", "STRING", "The prompt, in place of the one read from the workflow."],
+    ["negative_prompt", "STRING", "The negative prompt, in place of the one read from the workflow."],
     ["seed", "INT", "The seed. Connect it when the sampler gets its seed from another node."],
     ["steps", "INT", "The number of steps."],
     ["cfg", "FLOAT", "The cfg."],

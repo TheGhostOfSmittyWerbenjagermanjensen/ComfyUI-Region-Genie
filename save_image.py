@@ -445,9 +445,9 @@ class SaveImageRG:
                     "Off: Only ComfyUI's own workflow data.")}),
                 # round 44: values for that text when the workflow doesn't say them (another node computes them). The
                 # node hides these inputs until they are ticked in its inputs list (js/save_image.js)
-                "positive": ("STRING", {"forceInput": True, "tooltip": (
+                "positive_prompt": ("STRING", {"forceInput": True, "tooltip": (
                     "Optional. The prompt to write into the settings text, in place of the one read from the workflow.")}),
-                "negative": ("STRING", {"forceInput": True, "tooltip": (
+                "negative_prompt": ("STRING", {"forceInput": True, "tooltip": (
                     "Optional. The negative prompt to write into the settings text, in place of the one read from the "
                     "workflow.")}),
                 "seed": ("INT", {"forceInput": True, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "tooltip": (
@@ -486,7 +486,7 @@ class SaveImageRG:
     def run(self, images, filename_prefix, format, png_compression, png_bit_depth, webp_lossless, webp_quality,
             jpeg_quality, jpeg_extension, jpeg_workflow, avif_quality, exr_bit_depth="16-bit float",
             exr_color_space="sRGB", mask=None, invert_mask=False, prompt=None, extra_pnginfo=None,
-            a1111_metadata=True, positive=None, negative=None, seed=None, steps=None, cfg=None, sampler_name=None,
+            a1111_metadata=True, positive_prompt=None, negative_prompt=None, seed=None, steps=None, cfg=None, sampler_name=None,
             scheduler=None, denoise=None, model_name=None, unique_id=None):
         import folder_paths
         fmt = format if format in FORMATS else "png"
@@ -519,7 +519,7 @@ class SaveImageRG:
         if a1111_metadata and fmt != "exr" and not metadata_disabled():
             try:
                 params, missing = settings_text(prompt, unique_id, (w, h), dict(
-                    positive=_plain(positive), negative=_plain(negative), seed=_plain(seed), steps=_plain(steps),
+                    positive=_plain(positive_prompt), negative=_plain(negative_prompt), seed=_plain(seed), steps=_plain(steps),
                     cfg=_plain(cfg), sampler_name=_plain(sampler_name), scheduler=_plain(scheduler),
                     denoise=_plain(denoise), model_name=_plain(model_name)))
                 if params and missing:

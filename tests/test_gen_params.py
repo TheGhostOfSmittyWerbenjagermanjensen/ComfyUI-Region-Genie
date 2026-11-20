@@ -288,7 +288,7 @@ nothing = node.run(images=IMGS, **DEF, prompt={"1": N("LoadImage", image="x.png"
 check("an image no sampler made: no settings text, no note", "parameters" not in saved(nothing).info and nothing["ui"]["rg_saved"][0]["notes"] == []
       and nothing["ui"]["rg_saved"][0]["settings"] == "")
 check("the optional inputs are declared, and an 'any' input takes every kind of output",
-      all(k in si.SaveImageRG.INPUT_TYPES()["optional"] for k in ("a1111_metadata", "positive", "negative", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise", "model_name"))
+      all(k in si.SaveImageRG.INPUT_TYPES()["optional"] for k in ("a1111_metadata", "positive_prompt", "negative_prompt", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise", "model_name"))
       and not (si.ANY != "COMBO") and not (si.ANY != "STRING"))
 
 if __name__ == "__main__":

@@ -263,7 +263,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         && pre.without.exr_bit_depth === "16-bit float" && pre.without.format === "webp");
 
     // ---------------- round 44: the settings text for other interfaces (A1111 / Forge style), and its optional inputs
-    const META = ["positive", "negative", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise", "model_name"];
+    const META = ["positive_prompt", "negative_prompt", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise", "model_name"];
     const built = await page.evaluate(async () => {
         const app = window.app, LG = window.LiteGraph;
         app.graph.clear();
@@ -295,11 +295,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: ticking 'seed' gives the node a seed input (${st.inputs.filter((n) => n === "seed").length}); it is noted on the node; the list stays open`,
         st.inputs.includes("seed") && !st.inputs.includes("steps") && JSON.stringify(st.prop) === '["seed"]' && (await list())?.rows.find((r) => r.n === "seed").on === true);
     if (!vue) check(`${M}: the node grows by the new input's row (${built.h} -> ${st.h})`, st.h > built.h);
-    await page.locator('.rg-save-list label[data-sock="positive"]').click(); await sleep(300);
-    await page.evaluate(() => { const sv = window.__sv; window.__seed.connect(0, sv, sv.inputs.findIndex((i) => i.name === "seed")); window.__txt.connect(0, sv, sv.inputs.findIndex((i) => i.name === "positive")); });
+    await page.locator('.rg-save-list label[data-sock="positive_prompt"]').click(); await sleep(300);
+    await page.evaluate(() => { const sv = window.__sv; window.__seed.connect(0, sv, sv.inputs.findIndex((i) => i.name === "seed")); window.__txt.connect(0, sv, sv.inputs.findIndex((i) => i.name === "positive_prompt")); });
     await sleep(700);
     L = await list();
-    check(`${M}: a connected input is marked 'connected' in the list and can't be unticked`, L.rows.find((r) => r.n === "seed").off && L.rows.find((r) => r.n === "seed").why === "connected" && L.rows.find((r) => r.n === "positive").off);
+    check(`${M}: a connected input is marked 'connected' in the list and can't be unticked`, L.rows.find((r) => r.n === "seed").off && L.rows.find((r) => r.n === "seed").why === "connected" && L.rows.find((r) => r.n === "positive_prompt").off);
     await page.locator('.rg-save-list label[data-sock="steps"]').click(); await sleep(300);
     await page.locator('.rg-save-list label[data-sock="steps"]').click(); await sleep(300);
     check(`${M}: an input ticked and unticked again is gone`, await page.evaluate(() => !window.__sv.inputs.some((i) => i.name === "steps")));
@@ -315,7 +315,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         return { shown: sv.__rgMetaInputs(), linked: sv.inputs.filter((i) => i.link != null).map((i) => i.name), sent: Object.keys(inp).filter((k) => Array.isArray(inp[k])) };
     });
     check(`${M}: saved and loaded again: the two ticked inputs are there with their links, the rest stays hidden (${re.shown.join(", ")}; sent: ${re.sent.join(", ")})`,
-        re.shown.join() === "positive,seed" && ["images", "positive", "seed"].every((n) => re.linked.includes(n)) && ["images", "positive", "seed"].every((n) => re.sent.includes(n)));
+        re.shown.join() === "positive_prompt,seed" && ["images", "positive_prompt", "seed"].every((n) => re.linked.includes(n)) && ["images", "positive_prompt", "seed"].every((n) => re.sent.includes(n)));
     // a run: the text is in the file, next to ComfyUI's own data
     const chunks = (file) => { const b = fs.readFileSync(file), out = {}; let p = 8;
         while (p < b.length) { const n = b.readUInt32BE(p), kind = b.toString("latin1", p + 4, p + 8), d = b.subarray(p + 8, p + 8 + n);
