@@ -210,14 +210,6 @@
     "name": "Editor emergente: texto a renderizar",
     "tooltip": "Tamaño del texto en px para el cuadro Text del editor emergente de región (A− / A+ en su cabecera, con el cuadro Text en uso). Se aplica a todos los nodos."
   },
-  "RegionGenie_Popup_PrevKey": {
-    "name": "Editor emergente: tecla para el campo de texto anterior",
-    "tooltip": "Pasa al campo de texto anterior / siguiente del nodo mientras escribes en un editor emergente, como sus botones ◀ / ▶. Predeterminado: Page Up.\nEscribe la tecla como la nombra el navegador, con los modificadores delante: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (también funcionan Left / Right / Up / Down, PgUp / PgDn y Ctrl / Alt / Shift).\nVacío: Sin tecla. Se aplica a todos los nodos Region Genie y LoRAs regionales."
-  },
-  "RegionGenie_Popup_NextKey": {
-    "name": "Editor emergente: tecla para el campo de texto siguiente",
-    "tooltip": "Pasa al campo de texto anterior / siguiente del nodo mientras escribes en un editor emergente, como sus botones ◀ / ▶. Predeterminado: Page Down.\nEscribe la tecla como la nombra el navegador, con los modificadores delante: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (también funcionan Left / Right / Up / Down, PgUp / PgDn y Ctrl / Alt / Shift).\nVacío: Sin tecla. Se aplica a todos los nodos Region Genie y LoRAs regionales."
-  },
   "RegionGenie_Popup_EscKeeps": {
     "name": "Esc en un editor emergente",
     "tooltip": "Qué hace Esc en los editores de texto emergentes (todos los nodos Region Genie y LoRAs regionales).\nRestaurar el texto: Esc lo cierra y el texto queda como estaba al abrirlo (Enter y ✕ conservan los cambios).\nConservar los cambios: Esc, Enter y ✕ lo cierran y conservan el texto.",
@@ -293,9 +285,9 @@
       "always replace": "reemplazar siempre"
     }
   },
-  "RegionGenie_Main_LargeEditorKey": {
-    "name": "Editor grande: tecla",
-    "tooltip": "La tecla que abre y cierra el editor grande mientras el puntero está sobre el editor de un nodo Region Genie (el botón junto al de las etiquetas hace lo mismo). Escríbela como Alt+Enter, F9 o Ctrl+Shift+L; vacío = sin tecla."
+  "RegionGenie_Shortcuts": {
+    "name": "Atajos de teclado",
+    "tooltip": "Todas las teclas del editor de Region Genie: las herramientas, deshacer, copiar y pegar, la vista, el editor grande y las teclas que pasan de un campo de texto a otro en un editor emergente.\nEdit…: Abre la lista. Haz clic en una tecla y pulsa la nueva tecla o combinación; cada atajo se puede devolver a su valor predeterminado.\nLa misma lista se abre con ? mientras el puntero está sobre un nodo Region Genie, o con el botón del teclado de su barra inferior. Se aplica a todos los nodos."
   },
   "RegionGenie_Main_RegionColors": {
     "name": "Colores de región",

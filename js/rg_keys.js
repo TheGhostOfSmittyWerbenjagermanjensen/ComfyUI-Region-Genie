@@ -170,9 +170,12 @@ export function eventKeyText(e) {
 }
 
 // ---------------------------------------------------------------- the sheet
-const CSS = `.rg-keys { position:fixed; z-index:10000; box-sizing:border-box; width:min(820px, calc(100vw - 16px)); max-height:min(88vh, calc(100vh - 16px));
+// On the page, above everything of ComfyUI and of the pack except the tooltip: it also opens from the Settings dialog,
+// whose own layer is above the pack's pop-up editors.
+const CSS = `.rg-keys { position:fixed; z-index:100003; box-sizing:border-box; width:min(820px, calc(100vw - 16px)); max-height:min(88vh, calc(100vh - 16px));
   display:flex; flex-direction:column; outline:none; border-radius:8px; font:12.5px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
-  color:var(--input-text,#ddd); background:var(--comfy-menu-bg,#2b2b2b); border:1px solid var(--border-color,#555); box-shadow:0 8px 28px rgba(0,0,0,.55); }
+  color:var(--input-text,#ddd); background:var(--comfy-menu-bg,#2b2b2b); border:1px solid var(--border-color,#555); box-shadow:0 8px 28px rgba(0,0,0,.55);
+  pointer-events:auto; }      /* ComfyUI's Settings dialog switches the pointer off for the rest of the page */
 .rg-keys-head { display:flex; align-items:center; gap:8px; padding:7px 8px 7px 12px; border-bottom:1px solid var(--border-color,#555); font-size:13px; }
 .rg-keys-head .rg-keys-how { opacity:.7; font-size:12px; margin-right:auto; }
 .rg-keys-head button { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer;

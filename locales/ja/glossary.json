@@ -198,5 +198,6 @@
   "sampling": "サンプリング",
   "temperature": "温度",
   "cache": "キャッシュ",
-  "tag autocomplete": "タグのオートコンプリート"
+  "tag autocomplete": "タグのオートコンプリート",
+  "shortcut": "ショートカット"
 }

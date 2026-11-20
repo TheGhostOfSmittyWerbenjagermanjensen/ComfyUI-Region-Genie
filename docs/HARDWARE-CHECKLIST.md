@@ -136,5 +136,13 @@ Check once in legacy mode and once in Nodes 2.0.
 - **?** while the pointer is over the node, and the keyboard button left of Export: the shortcut sheet opens over the node, readable, with your own keys for the large editor and previous / next field. Check that ? does not trigger something of ComfyUI or another pack.
 - **Right-click on the canvas** (region and empty area), both node modes: the pack's menu opens at the pointer, ComfyUI's node menu does not. Right-click outside the canvas (the node's title, the tool bar) still opens what it did before.
 - The icons: every button is readable at your usual zoom; none shows as an empty box or a colored emoji.
-- Add a new Region Genie node: it is 700 × 1040, nothing in the tool bar, the size row, the list header or the bottom bar wraps to a second line, and a workflow saved before keeps its node size.
+- Add a new Region Genie node (legacy mode): its canvas is square, and a workflow saved before keeps its node size.
+
+## 17. Click areas, your own shortcuts (round 39)
+
+- **Click areas, on the 4K display, both node modes:** click a row's small buttons (eye, ↑ ↓, ✕, the ▶ and the grip) slightly off: just above or below still counts; a click between two buttons goes to the nearer one, never to both. A tool button's small arrow still opens its list.
+- **Changing a key on a real keyboard:** press ? over a node, click a key, press a new one: a letter, a function key, a combination with Ctrl / Alt / Shift, and (on macOS) one with ⌘. The new key works on the canvas at once and the old one doesn't; the tooltip and the hint line show it. Try a key ComfyUI itself uses (R, Ctrl+S): it acts in the editor only while the pointer is over the node.
+- A non-US keyboard layout: the keys with symbols ([ ] ?) can be reached, or can be given keys that can.
+- **Settings > Region Genie > Region Genie node > Shortcuts > Edit…:** the list opens over the Settings dialog, takes a new key there, and closing it leaves the dialog open. After reloading ComfyUI the keys are still yours.
+- Reset all: every key is back; the large editor opens with Alt+Enter again.
 

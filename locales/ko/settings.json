@@ -210,14 +210,6 @@
     "name": "팝업 편집기: 렌더링할 텍스트",
     "tooltip": "영역 팝업 편집기에 있는 Text 상자의 텍스트 크기(px)입니다(Text 상자를 사용 중일 때 헤더의 A− / A+로도 바꿀 수 있음). 모든 노드에 적용됩니다."
   },
-  "RegionGenie_Popup_PrevKey": {
-    "name": "팝업 편집기: 이전 텍스트 입력란으로 가는 키",
-    "tooltip": "팝업 편집기에서 입력하는 동안, 편집기의 ◀ / ▶ 버튼처럼 노드의 이전 / 다음 텍스트 입력란으로 이동합니다. 기본값: Page Up.\n키는 브라우저가 부르는 이름으로, 보조 키를 앞에 붙여 적습니다: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn, Ctrl / Alt / Shift도 사용할 수 있습니다).\n비워 두기: 키 없음. 모든 Region Genie 노드와 영역별 LoRA 노드에 적용됩니다."
-  },
-  "RegionGenie_Popup_NextKey": {
-    "name": "팝업 편집기: 다음 텍스트 입력란으로 가는 키",
-    "tooltip": "팝업 편집기에서 입력하는 동안, 편집기의 ◀ / ▶ 버튼처럼 노드의 이전 / 다음 텍스트 입력란으로 이동합니다. 기본값: Page Down.\n키는 브라우저가 부르는 이름으로, 보조 키를 앞에 붙여 적습니다: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn, Ctrl / Alt / Shift도 사용할 수 있습니다).\n비워 두기: 키 없음. 모든 Region Genie 노드와 영역별 LoRA 노드에 적용됩니다."
-  },
   "RegionGenie_Popup_EscKeeps": {
     "name": "팝업 편집기에서의 Esc",
     "tooltip": "팝업 텍스트 편집기에서 Esc가 하는 일입니다(모든 Region Genie 노드와 영역별 LoRA 노드).\n텍스트 되돌리기: Esc로 닫으면 텍스트가 열었을 때의 상태로 돌아갑니다(Enter와 ✕는 편집 내용을 유지).\n편집 내용 유지: Esc, Enter, ✕ 모두 닫으면서 텍스트를 유지합니다.",
@@ -293,9 +285,9 @@
       "always replace": "항상 교체"
     }
   },
-  "RegionGenie_Main_LargeEditorKey": {
-    "name": "큰 편집기: 키",
-    "tooltip": "포인터가 Region Genie 노드의 편집기 위에 있을 때 큰 편집기를 열고 닫는 키입니다 (레이블 버튼 옆의 버튼과 같은 동작). Alt+Enter, F9, Ctrl+Shift+L처럼 적습니다. 비워 두면 키 없음."
+  "RegionGenie_Shortcuts": {
+    "name": "단축키",
+    "tooltip": "Region Genie 편집기의 모든 키: 도구, 실행 취소, 복사와 붙여넣기, 보기, 큰 편집기, 그리고 팝업 편집기에서 입력란 사이를 이동하는 키입니다.\nEdit…: 목록을 엽니다. 목록에서 키를 클릭한 다음 새 키나 조합을 누르세요. 각 단축키는 기본값으로 되돌릴 수 있습니다.\n포인터가 Region Genie 노드 위에 있을 때 ?를 누르거나 노드 아래쪽 막대의 키보드 버튼을 눌러도 같은 목록이 열립니다. 모든 노드에 적용됩니다."
   },
   "RegionGenie_Main_RegionColors": {
     "name": "영역 색상",

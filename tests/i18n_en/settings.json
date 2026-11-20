@@ -210,14 +210,6 @@
     "name": "Pop-up editor: text to render",
     "tooltip": "Text size in px for the Text box of the region pop-up editor (A− / A+ in its header, with the Text box in use). Applies to every node."
   },
-  "RegionGenie_Popup_PrevKey": {
-    "name": "Pop-up editor: key for the previous text field",
-    "tooltip": "Steps to the previous / next text field of the node while you type in a pop-up editor, like its ◀ / ▶ buttons. Default: Page Up.\nWrite a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\nEmpty: No key. Applies to every Region Genie and Regional LoRAs node."
-  },
-  "RegionGenie_Popup_NextKey": {
-    "name": "Pop-up editor: key for the next text field",
-    "tooltip": "Steps to the previous / next text field of the node while you type in a pop-up editor, like its ◀ / ▶ buttons. Default: Page Down.\nWrite a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\nEmpty: No key. Applies to every Region Genie and Regional LoRAs node."
-  },
   "RegionGenie_Popup_EscKeeps": {
     "name": "Esc in a pop-up editor",
     "tooltip": "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node).\nPut the text back: Esc closes it and the text is as it was when it opened (Enter and ✕ keep the edits).\nKeep the edits: Esc, Enter and ✕ all close it and keep the text.",
@@ -293,9 +285,9 @@
       "always replace": "always replace"
     }
   },
-  "RegionGenie_Main_LargeEditorKey": {
-    "name": "Large editor: key",
-    "tooltip": "The key that opens and closes the large editor while the pointer is over a Region Genie node's editor (the button next to the labels button does the same). Write it like Alt+Enter, F9 or Ctrl+Shift+L; empty = no key."
+  "RegionGenie_Shortcuts": {
+    "name": "Shortcuts",
+    "tooltip": "Every key of the Region Genie editor: the tools, undo, copy and paste, the view, the large editor, and the keys that step between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; each shortcut can be put back to its default.\nThe same list opens with ? while the pointer is over a Region Genie node, or with the keyboard button in its bottom bar. Applies to every node."
   },
   "RegionGenie_Main_RegionColors": {
     "name": "Region colors",

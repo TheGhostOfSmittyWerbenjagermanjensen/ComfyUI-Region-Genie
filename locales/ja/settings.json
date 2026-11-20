@@ -210,14 +210,6 @@
     "name": "ポップアップエディタ: 描画するテキスト",
     "tooltip": "領域ポップアップエディタの Text ボックスの文字サイズ（px。Text ボックスの使用中は、ヘッダーの A− / A+ でも変更できます）。すべてのノードに適用されます。"
   },
-  "RegionGenie_Popup_PrevKey": {
-    "name": "ポップアップエディタ: 前のテキスト欄へ移動するキー",
-    "tooltip": "ポップアップエディタで入力中に、ノードの前 / 次のテキスト欄へ移動します（エディタの ◀ / ▶ ボタンと同じ）。デフォルト: Page Up。\nキーはブラウザでの名前で書き、修飾キーを前に付けます: PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn、Ctrl / Alt / Shift も使えます）。\n空欄: キーなし。すべての Region Genie ノードと 領域別LoRA ノードに適用されます。"
-  },
-  "RegionGenie_Popup_NextKey": {
-    "name": "ポップアップエディタ: 次のテキスト欄へ移動するキー",
-    "tooltip": "ポップアップエディタで入力中に、ノードの前 / 次のテキスト欄へ移動します（エディタの ◀ / ▶ ボタンと同じ）。デフォルト: Page Down。\nキーはブラウザでの名前で書き、修飾キーを前に付けます: PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn、Ctrl / Alt / Shift も使えます）。\n空欄: キーなし。すべての Region Genie ノードと 領域別LoRA ノードに適用されます。"
-  },
   "RegionGenie_Popup_EscKeeps": {
     "name": "ポップアップエディタでの Esc",
     "tooltip": "ポップアップのテキストエディタで Esc を押したときの動作（すべての Region Genie ノードと 領域別LoRA ノード）。\nテキストを元に戻す: Esc で閉じ、テキストは開いたときの状態に戻ります（Enter と ✕ は編集を保持）。\n編集を保持: Esc、Enter、✕ のどれでも閉じ、テキストを保持します。",
@@ -293,9 +285,9 @@
       "always replace": "常に置き換える"
     }
   },
-  "RegionGenie_Main_LargeEditorKey": {
-    "name": "大きなエディタ: キー",
-    "tooltip": "ポインタが Region Genie ノードのエディタ上にあるときに、大きなエディタを開閉するキー（ラベルボタンの隣のボタンと同じ）。Alt+Enter、F9、Ctrl+Shift+L のように書きます。空欄: キーなし。"
+  "RegionGenie_Shortcuts": {
+    "name": "ショートカット",
+    "tooltip": "Region Genie エディタのすべてのキー: ツール、元に戻す、コピーと貼り付け、表示、大きなエディタ、ポップアップエディタでテキスト欄を移動するキー。\nEdit…: 一覧を開きます。一覧のキーをクリックし、新しいキーまたは組み合わせを押します。各ショートカットはデフォルトに戻せます。\nポインタが Region Genie ノードの上にあるときに ? を押すか、ノード下部のバーにあるキーボードボタンを押しても、同じ一覧が開きます。すべてのノードに適用されます。"
   },
   "RegionGenie_Main_RegionColors": {
     "name": "領域の色",

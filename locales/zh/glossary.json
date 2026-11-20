@@ -206,5 +206,6 @@
   "image-to-image": "图生图",
   "edit LoRA": "编辑 LoRA",
   "patch": "补丁",
-  "seam": "接缝"
+  "seam": "接缝",
+  "shortcut": "快捷键"
 }

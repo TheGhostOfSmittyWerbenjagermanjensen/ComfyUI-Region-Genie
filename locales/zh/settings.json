@@ -210,14 +210,6 @@
     "name": "弹出编辑器：要渲染的文字",
     "tooltip": "区域弹出编辑器中 Text 框的文字大小（px；正在使用 Text 框时，其标题栏中的 A− / A+ 也可更改）。适用于所有节点。"
   },
-  "RegionGenie_Popup_PrevKey": {
-    "name": "弹出编辑器：上一个文本字段的按键",
-    "tooltip": "在弹出编辑器中输入时跳到节点的上一个 / 下一个文本字段，与其 ◀ / ▶ 按钮相同。默认：Page Up。\n按浏览器的命名方式填写按键，修饰键写在前面：PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn 和 Ctrl / Alt / Shift 也可以）。\n留空：不设按键。适用于所有 Region Genie 和“区域 LoRA”节点。"
-  },
-  "RegionGenie_Popup_NextKey": {
-    "name": "弹出编辑器：下一个文本字段的按键",
-    "tooltip": "在弹出编辑器中输入时跳到节点的上一个 / 下一个文本字段，与其 ◀ / ▶ 按钮相同。默认：Page Down。\n按浏览器的命名方式填写按键，修饰键写在前面：PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn 和 Ctrl / Alt / Shift 也可以）。\n留空：不设按键。适用于所有 Region Genie 和“区域 LoRA”节点。"
-  },
   "RegionGenie_Popup_EscKeeps": {
     "name": "弹出编辑器中的 Esc",
     "tooltip": "Esc 在弹出文本编辑器中的作用（所有 Region Genie 和“区域 LoRA”节点）。\n恢复原文本：Esc 关闭编辑器，文本恢复为打开时的样子（Enter 和 ✕ 保留编辑）。\n保留编辑：Esc、Enter 和 ✕ 都会关闭编辑器并保留文本。",
@@ -293,9 +285,9 @@
       "always replace": "始终替换"
     }
   },
-  "RegionGenie_Main_LargeEditorKey": {
-    "name": "大编辑器：按键",
-    "tooltip": "指针位于 Region Genie 节点的编辑器上时，打开和关闭大编辑器的按键（标签按钮旁边的按钮作用相同）。填写方式如 Alt+Enter、F9 或 Ctrl+Shift+L；留空：不设按键。"
+  "RegionGenie_Shortcuts": {
+    "name": "快捷键",
+    "tooltip": "Region Genie 编辑器的所有按键：工具、撤销、复制和粘贴、视图、大编辑器，以及在弹出编辑器中切换文本字段的按键。\nEdit…：打开列表。点击其中的按键，然后按下新的按键或组合键；每个快捷键都可以恢复为默认值。\n指针位于 Region Genie 节点上时按 ?，或点击节点底部栏中的键盘按钮，也会打开同一个列表。适用于所有节点。"
   },
   "RegionGenie_Main_RegionColors": {
     "name": "区域颜色",
