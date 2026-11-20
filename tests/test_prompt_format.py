@@ -132,5 +132,17 @@ check("the outputs are in the order the editor's script maps names to",
       rg.RegionGenie.RETURN_NAMES == ("model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes",
                                       "elements", "character_boxes", "region_info", "width", "height"))
 
+# round 44: the node notes what a run used, for Save Image's settings text (in memory, by the node's id)
+from rgpack import gen_params  # noqa: E402
+gen_params.RUNS.clear()
+p, _ = run({"modelPick": "MOSS-Image", "sceneLoras": [{"lora": "whole.safetensors", "strength": 0.7}]},
+           scene_prompt_negative="blurry", unique_id="77")
+note = gen_params.RUNS.get("77") or {}
+check("a run notes its 'prompt' output's exact text, its negative prompt and its size under the node's id",
+      note.get("prompt") == p and note.get("negative") == "blurry" and note.get("width") == 64 and note.get("height") == 64)
+check("…and no LoRA when no model is connected (none was applied)", note.get("loras") == [])
+run(scene_prompt_negative="x")
+check("a run without an id (an API call that doesn't give one) notes nothing", list(gen_params.RUNS) == ["77"])
+
 print("\nall passed" if not fails else f"\n{len(fails)} failed")
 sys.exit(1 if fails else 0)

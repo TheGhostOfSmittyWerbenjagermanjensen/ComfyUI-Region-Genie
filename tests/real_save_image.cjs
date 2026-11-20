@@ -341,6 +341,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: with the switch off: no settings text, only ComfyUI's own data`, !("parameters" in info) && !!info.workflow && !/Settings text written/.test(r.tip));
     await setW("a1111_metadata", true);
 
+    // a Region Genie node before the save node: the text holds the prompt as that node put it out (its 'prompt' output),
+    // after a real run on the server (no sampler here: there is no model in a test run)
+    const rgRun = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const W = (n, k) => n.widgets.find((w) => w.name === k);
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [40, 40]; app.graph.add(rg);
+        await new Promise((r) => setTimeout(r, 1500));
+        rg.__rgShowAll?.();
+        W(rg, "scene_prompt_positive").value = "a harbour at dawn"; W(rg, "scene_prompt_negative").value = "blurry, low quality";
+        const sv = LG.createNode("Region-Genie_SaveImage"); sv.pos = [900, 40]; app.graph.add(sv);
+        rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), sv, 0);
+        window.__sv = sv;
+        await new Promise((r) => setTimeout(r, 800));
+        return { out: rg.outputs.map((o) => o.name).includes("color_map") };
+    });
+    r = await queue("png", { filename_prefix: run + "/rgnode" });
+    file = (() => { try { return fs.readdirSync(path.join(OUT, run)).filter((f) => f.startsWith("rgnode_")).sort().pop(); } catch (e) { return null; } })();
+    info = file ? chunks(path.join(OUT, run, file)) : {};
+    check(`${M}: with a Region Genie node before it: the text has that node's prompt and negative prompt as the run used them (${JSON.stringify((info.parameters || "").slice(0, 80))})`,
+        rgRun.out && (info.parameters || "").startsWith("a harbour at dawn") && /\nNegative prompt: blurry, low quality\n/.test(info.parameters) && /Version: ComfyUI$/.test(info.parameters));
+
     await page.screenshot({ path: path.join(__dirname, "out", `real_save_${vue ? "vue" : "legacy"}.png`) });
     check(`${M}: no page errors` + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""), !errors.length);
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Save.PngLevel", 9); });
