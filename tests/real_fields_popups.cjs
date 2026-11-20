@@ -394,7 +394,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     if (!g1) await page.evaluate(() => document.querySelector(".rg-scene-ta")?.parentElement?.querySelector(".rg-expand")?.click());
     await sleep(200);
     const hb = await page.locator(".rg-pop .rg-pop-head span").first().boundingBox();
-    await page.mouse.move(hb.x + 5, hb.y + 5); await page.mouse.down(); await page.mouse.move(hb.x + 805, hb.y - 200, { steps: 6 }); await page.mouse.up();
+    await page.mouse.move(hb.x + 5, hb.y + 5); await page.mouse.down(); await page.mouse.move(hb.x + 805, hb.y - Math.min(200, Math.max(0, hb.y - 40)), { steps: 6 }); await page.mouse.up();      // (not past the top of the window: a pop-up reopens at least 6 px from it)
     const g2 = await geo();
     check(`${M}: dragged outside the node (to the right; ${g1?.x} -> ${g2.x})`, g2.x > g1.x + 700 && g2.x > 800);
     for (let i = 0; i < 3; i++) await page.evaluate(() => [...document.querySelectorAll(".rg-pop .rg-pop-font")].find((b) => b.textContent === "A+").click());
@@ -407,7 +407,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     for (let i = 0; i < 4; i++) seen.push(await step("▶"));
     check(`${M}: ▶ steps scene positive → negative → region 1 → region 2 → back to the first`,
         /negative/.test(seen[0].title) && seen[1].ta === "a red cat" && seen[2].ta === "a green dog" && /scene_prompt_positive/.test(seen[3].title));
-    check(`${M}: ... in the same place and size`, seen.every((g) => g.x === g2.x && g.y === g2.y && g.w === g2.w && g.h === g2.h));
+    check(`${M}: ... in the same place and size (${JSON.stringify([g2, ...seen].map((g) => [g.x, g.y, g.w, g.h]))})`, seen.every((g) => g.x === g2.x && g.y === g2.y && g.w === g2.w && g.h === g2.h));
     check(`${M}: ◀ / ▶ stay in one place in the header while stepping (${seen.map((g) => g.nav).join(", ")})`, seen.every((g) => g.nav === seen[0].nav));
     const back = await step("◀");
     check(`${M}: ◀ from the first goes to the last`, back.ta === "a green dog");

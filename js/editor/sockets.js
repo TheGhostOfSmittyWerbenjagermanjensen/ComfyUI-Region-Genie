@@ -327,7 +327,7 @@ export function* sockets(E) {
     queueMicrotask(() => { if (!E.configured) newNodeSockets(); });
     setTimeout(() => { quiet = false; }, 0);
     // tests: every socket at once (the outputs then come in another order than the Python node's)
-    N.__rgShowAll = () => keepBottom(() => { for (const n of ["width_in", "height_in", "import_json", "control_image"]) addIn(n); for (const n of OUT) addOut(n); });
+    N.__rgShowAll = () => { const q = quiet; quiet = true; try { keepBottom(() => { for (const n of ["width_in", "height_in", "import_json"]) addIn(n); for (const n of OUT) addOut(n); }); } finally { quiet = q; } };      // (the node stays where it is)
     N.__rgSetOutputs = (names, on) => setOutputs(names, on);
     N.__rgSetInput = (key, on) => setInput(key, on);
     N.__rgSockets = () => ({ inputs: (N.inputs || []).filter((i) => !i.widget).map((i) => i.name), outputs: (N.outputs || []).map((o) => o.name), shown: shownText() });

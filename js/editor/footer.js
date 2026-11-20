@@ -155,6 +155,7 @@ export function* footer(E) {
     const wcCtl = wildcardSeedControl(E.node, E.el, { fields: E.wcFields, onFilled: wcSetFilled, useAll: wcUseAll, hideIdle: true });
     settings.append(editSeg.box, modelBox, llmSetBtn, acCtl.el, wcCtl.el);
     E.areaLab = areaCtl.lab;                       // edit_area: on the Edit Mode line of the list (rows.js), not in this bar
+    E.wcRefresh = () => wcCtl.refresh();           // the seed group shows only while a prompt has a wildcard: looked at on every change
     const syncSettings = () => {
         migrateFormat(); areaCtl.sync(); acCtl.refresh(); wcCtl.refresh();
         editSeg.set(E.isEdit() ? "edit" : "generate");

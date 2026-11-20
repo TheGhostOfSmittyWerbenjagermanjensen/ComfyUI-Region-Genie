@@ -123,6 +123,7 @@ export function* core(E) {
     autocompleteWidgets(node, Object.keys(SCENE_FIELDS), (name, t) => {
         if (!SCENE_FIELDS[name]) return;
         sceneTA[SCENE_FIELDS[name]] = t;
+        if (!t.__rgWc) { t.__rgWc = true; t.addEventListener("input", () => E.wcRefresh?.()); }      // a wildcard typed: the seed group shows
         t.classList.add("rg-scene-ta");
         t.dataset.rgField = name;                       // which field this text box is (tests/real_layering.cjs finds it by this)
         // an empty scene prompt says what it is for (English; another language keeps ComfyUI's own placeholder).

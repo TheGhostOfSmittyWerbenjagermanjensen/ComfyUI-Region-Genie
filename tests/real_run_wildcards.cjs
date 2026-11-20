@@ -28,7 +28,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const made = await page.evaluate(async () => {
         const app = window.app, LG = window.LiteGraph;
         app.graph.clear();
-        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg);
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); await new Promise((r) => setTimeout(r, 30)); await rg.__rgShowAll();
         app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
         window.__rg = rg;
         await new Promise((r) => setTimeout(r, 1500));
@@ -40,7 +40,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     });
     check(`${M}: size row is the first widget, width / height hidden`, made.first === "rg_size" && made.hidden);
     check(`${M}: new node starts in aspect ratio mode, 1024 x 1024`, made.size === "aspect ratio" && JSON.stringify(made.wv) === "[1024,1024]");
-    check(`${M}: 'width' / 'height' inputs at the end, no old width / height sockets`, JSON.stringify(made.inputs.slice(-2)) === '["width","height"]' && made.widthSockets === 0);
+    check(`${M}: the 'width' / 'height' inputs (when shown) are labelled so, no old width / height sockets`, made.inputs.includes("width") && made.inputs.includes("height") && made.widthSockets === 0);
     const row = page.locator(".rg-size").first();
     const rb = await row.boundingBox();
     check(`${M}: the row is one line (${Math.round(rb?.height)} px)`, rb && rb.height >= 18 && rb.height <= 30);
@@ -84,7 +84,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         app.graph.clear();
         const rs = LG.createNode("ResolutionSelector"); rs.pos = [-300, 40]; app.graph.add(rs);
         rs.widgets.find((w) => w.name === "aspect_ratio").value = "16:9 (Widescreen)";
-        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); await new Promise((r) => setTimeout(r, 30)); await rg.__rgShowAll(); window.__rg = rg;
         rs.connect(0, rg, rg.inputs.findIndex((i) => i.name === "width_in"));
         rs.connect(1, rg, rg.inputs.findIndex((i) => i.name === "height_in"));
         const pv = LG.createNode("PreviewImage"); pv.pos = [900, 40]; app.graph.add(pv);
@@ -122,7 +122,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const r10 = await page.evaluate(async () => {
         const app = window.app, LG = window.LiteGraph;
         app.graph.clear();
-        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); await new Promise((r) => setTimeout(r, 30)); await rg.__rgShowAll(); window.__rg = rg;
         app.canvas.ds.offset = [0, -200]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);    // the pop-up fully on screen
         await new Promise((r) => setTimeout(r, 1500));
         const tas = [...document.querySelectorAll("textarea.rg-scene-ta")].filter((t) => t.offsetParent);
@@ -165,7 +165,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const c10 = await page.evaluate(async () => {
         const app = window.app, LG = window.LiteGraph;
         app.graph.clear();
-        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); await new Promise((r) => setTimeout(r, 30)); await rg.__rgShowAll(); window.__rg = rg;
         const pv = LG.createNode("PreviewImage"); pv.pos = [900, 40]; app.graph.add(pv);
         rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), pv, 0);
         app.canvas.ds.offset = [0, -560]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
@@ -175,10 +175,10 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         st.layers.push({ id: 1, name: "Rect 1", region: 1, visible: true, shape: "rect", sides: 5, bw: 0.5, bh: 1, sx: 1, sy: 1, rot: 0, ox: -0.25, oy: 0, ops: [] });
         rg.__rgRefresh();
         await new Promise((r) => setTimeout(r, 300));
-        return { lastInputs: rg.inputs.filter((i) => !i.widget).map((i) => i.name).slice(-3), setting: app.extensionManager.setting.get("RegionGenie.Control.MOSS"),
+        return { lastInputs: rg.inputs.filter((i) => !i.widget).map((i) => i.name).filter((x) => ["control_image", "width_in", "height_in"].includes(x)), setting: app.extensionManager.setting.get("RegionGenie.Control.MOSS"),
                  row: !![...document.querySelectorAll(".rg-list .rg-row.scene button")].find((b) => b.textContent.trim() === "＋Control") && !document.querySelector(".rg-list .rg-row.ctrl:not(.edit)") };
     });
-    check(`${M}: 'control_image' just before width / height; ＋Control (no Control row yet) and Settings exist`, JSON.stringify(c10.lastInputs) === '["control_image","width_in","height_in"]' && c10.row && c10.setting === "(none)");
+    check(`${M}: no control_image input before a Control row; ＋Control and its Settings exist`, JSON.stringify(c10.lastInputs.slice().sort()) === '["height_in","width_in"]' && c10.row && c10.setting === "(none)");
     await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-row.scene button")].find((b) => b.textContent.trim() === "＋Control").click());
     await page.waitForTimeout(200);
     const c11 = await page.evaluate(async () => {
@@ -215,7 +215,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         app.graph.clear();
         const ld = LG.createNode("UNETLoader"); ld.pos = [-400, 40]; app.graph.add(ld);
         ld.widgets.find((w) => w.name === "unet_name").value = "moss_image_sft_int8_convrot.safetensors";
-        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); await new Promise((r) => setTimeout(r, 30)); await rg.__rgShowAll(); window.__rg = rg;
         ld.connect(0, rg, rg.inputs.findIndex((i) => i.name === "model"));
         app.canvas.ds.offset = [0, -560]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
         await new Promise((r) => setTimeout(r, 1800));
@@ -236,7 +236,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const rowsOk = await page.evaluate(async () => {
         const app = window.app, LG = window.LiteGraph;
         app.graph.clear();
-        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg);
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); await new Promise((r) => setTimeout(r, 30)); await rg.__rgShowAll();
         app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
         await new Promise((r) => setTimeout(r, 1200));
         const bar = document.querySelector(".rg-bar"), sink = document.querySelector(".rg-keysink");
@@ -254,7 +254,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const rl = await page.evaluate(async () => {
         const app = window.app, LG = window.LiteGraph;
         app.graph.clear();
-        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg);
+        const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); await new Promise((r) => setTimeout(r, 30)); await rg.__rgShowAll();
         const n = LG.createNode("Region-Genie_RegionalLoRAs"); n.pos = [820, 40]; app.graph.add(n);
         rg.connect(rg.outputs.findIndex((o) => o.name === "prompt"), n, n.inputs.findIndex((i) => i.name === "positive_prompt"));
         n.widgets.find((w) => w.name === "negative_prompt").value = "blurry";
@@ -311,7 +311,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const wc = await page.evaluate(async () => {
             const app = window.app, LG = window.LiteGraph;
             app.graph.clear();
-            const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); window.__rg = rg;
+            const rg = LG.createNode("Region-Genie_Main"); rg.pos = [60, 40]; app.graph.add(rg); await new Promise((r) => setTimeout(r, 30)); await rg.__rgShowAll(); window.__rg = rg;
             const pv = LG.createNode("PreviewImage"); pv.pos = [900, 40]; app.graph.add(pv);
             rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), pv, 0);
             await new Promise((r) => setTimeout(r, 1200));

@@ -141,6 +141,7 @@ export function* regions(E) {
     function save() {
         E.version++;
         if (E.dataW) E.dataW.value = JSON.stringify(E.state);
+        E.wcRefresh?.();
         E.node.graph?.setDirtyCanvas?.(true, true);
     }
 
