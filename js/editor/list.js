@@ -25,6 +25,7 @@ export function* list(E) {
         if (L && L.shape === "star") E.sidesIn.value = String(L.sides);
         if (L && L.shape === "roundrect" && document.activeElement !== E.radiusIn) E.radiusIn.value = String(L.radius ?? 20);
         E.renderRegions();
+        E.syncSockets?.();                             // control_image comes and goes with the Control rows
         E.editor?.refresh();
         E.syncTips();
         E.requestDraw();

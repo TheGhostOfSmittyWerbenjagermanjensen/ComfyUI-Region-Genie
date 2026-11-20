@@ -1017,6 +1017,11 @@ class RegionGenie:
                                                 "Generate mode: A backdrop to trace over, or the color map itself (see image_mode).\n"
                                                 "Edit mode: The picture to change.\n"
                                                 "Control: Depth and canny maps are made from it when control_image isn't connected.")}),
+                # one socket for either kind (round 40); the two below it are the older sockets, kept for API prompts
+                # and old workflows (the editor moves their links here and doesn't show them)
+                "size_from": ("IMAGE,LATENT", {"tooltip": ("Optional. Take the image size from this image or latent "
+                                                           "(a latent: 16x for MOSS-Image / Flux.2 latents, 8x for SD / SDXL / Flux.1). "
+                                                           "It comes before the size row and the width / height inputs.")}),
                 "size_from_image": ("IMAGE", {"tooltip": "Take width/height from this image. Takes priority over "
                                                          "size_from_latent and the width/height widgets."}),
                 "size_from_latent": ("LATENT", {"tooltip": "Take width/height from this latent (auto-detects 16x for "
@@ -1061,14 +1066,19 @@ class RegionGenie:
                 # shown as "width" / "height" (the size row at the top sets the hidden width / height widgets)
                 "width_in": ("INT", {"forceInput": True, "min": 16, "max": 16384,
                                      "tooltip": ("Optional. The image width from another node. It overrides the size row at the top "
-                                                 "(size_from_image and size_from_latent still come first).")}),
+                                                 "(size_from still comes first).")}),
                 "height_in": ("INT", {"forceInput": True, "min": 16, "max": 16384,
                                       "tooltip": ("Optional. The image height from another node. It overrides the size row at the top "
-                                                  "(size_from_image and size_from_latent still come first).")}),
+                                                  "(size_from still comes first).")}),
                 # hidden; set with the seed control in the editor's footer (shown when Impact Pack is installed)
                 "wildcard_seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF,
                                           "tooltip": "Seed for the wildcards in the prompt fields (ComfyUI Impact Pack's "
                                                      "__name__ and {a|b} syntax)."}),
+                # hidden; the editor writes the names of the outputs the node shows here when it shows only some of
+                # them, and its script turns them into this node's real output numbers when the workflow is queued
+                "outputs_shown": ("STRING", {"default": "",
+                                             "tooltip": ("Hidden. The outputs this node shows, when it doesn't show all of them (set with the "
+                                                         "sockets button in the size row). Leave it empty in API prompts.")}),
             },
         }
 
@@ -1124,8 +1134,22 @@ class RegionGenie:
             image=None,
             size_from_image=None, size_from_latent=None, import_json=None, import_mode=IMPORT_MODES[0],
             model=None, clip=None, scene_prompt_background="", prompt_format="auto", vae=None, mode=MODES[0],
-            edit_area=EDIT_AREAS[0], width_in=None, height_in=None, wildcard_seed=0, control_image=None):
+            edit_area=EDIT_AREAS[0], width_in=None, height_in=None, wildcard_seed=0, control_image=None,
+            size_from=None, outputs_shown=""):
         from .bbox_masks import _resolve_size        # shared with BBoxes to Masks
+        # A node that shows only some of its outputs numbers them 0, 1, 2 ... in the workflow; the editor's script
+        # replaces those by the real output numbers when it queues the workflow, and empties this value. If it is
+        # still set, that step didn't happen and the links would deliver the wrong outputs: stop instead.
+        if str(outputs_shown or "").strip():
+            raise ValueError("Region Genie: the workflow reached ComfyUI without the node's output numbers being set "
+                             "(the node shows only some of its outputs). Reload the ComfyUI page and queue again; in an "
+                             "API prompt, leave 'outputs_shown' empty and use the node's real output numbers.")
+        # size_from takes an image or a latent; it comes before the two older sockets
+        if size_from is not None:
+            if isinstance(size_from, dict):
+                size_from_image, size_from_latent = None, size_from
+            else:
+                size_from_image = size_from
         paint_data = migrate_names(paint_data)
         # the width / height sockets override the size row (whose result is in the hidden width / height widgets)
         if width_in is not None:

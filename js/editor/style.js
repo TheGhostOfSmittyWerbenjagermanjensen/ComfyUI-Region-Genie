@@ -309,6 +309,7 @@ textarea.rg-scene-ta { padding-right:20px !important; }
 .rg-size .rg-hint { opacity:.65; font-size:11px; }
 .rg-size-out { margin-left:auto; padding-left:4px; white-space:nowrap; opacity:.8; font-variant-numeric:tabular-nums; }
 .rg-size.ext .rg-size-part, .rg-size.ext .rg-seg { opacity:.45; }
+.rg-size .rg-socks-btn { flex:0 0 auto; margin-left:3px; }
 .rg-size.ext .rg-size-out { opacity:1; color:#8fb8e8; }
 .rg-size.editsized .rg-size-part > select:first-child { opacity:.45; }
 .rg-presets { position:fixed; z-index:10000; display:flex; flex-direction:column; gap:4px; padding:6px 8px; max-height:70vh;

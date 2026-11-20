@@ -179,7 +179,8 @@ export function* sizeRow(E) {
         if (!E.sizeReady) { sizeOut.textContent = sizeOfCfg(c).join(" × "); return; }
         // what decides the size in the end (same priority as the Python side)
         const [W, H] = E.dims();
-        const from = E.isLinked("size_from_image") ? "from size_from_image" : E.isLinked("size_from_latent") ? "from size_from_latent"
+        const kind = E.sizeFromKind();
+        const from = kind ? `from size_from (${kind === "image" ? "an image" : "a latent"})`
             : E.editSized() ? "Edit: The image's shape at this many pixels"
             : E.isLinked("width_in") || E.isLinked("height_in") ? "from the width / height inputs" : "";
         sizeOut.textContent = `${W} × ${H}`;
