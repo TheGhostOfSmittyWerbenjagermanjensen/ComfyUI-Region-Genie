@@ -148,8 +148,10 @@ export function* llm(E) {
                 const b = llmButton(LLM_SCENE, "corner");
                 b.classList.add("rg-llm-corner");
                 b.addEventListener("mousedown", (e) => { e.stopPropagation(); e.preventDefault(); });      // not a click into the text
+                b.__rgRefresh = llmBtns.get(`${LLM_SCENE}|corner`);       // (the list of buttons is emptied whenever the region list is rebuilt)
                 exp.__rgLlm = b; exp.__rgAddExtra(b);
             }
+            exp?.__rgLlm?.__rgRefresh?.();
             if (t.classList.contains("rg-llm-on") !== on) t.classList.toggle("rg-llm-on", on);
         }
         const big = E.big?.fields?.find((f) => f.which === "positive")?.ta;
