@@ -12,7 +12,7 @@
 // This file imports rg_shared.js, so rg_shared.js must never import this one at load: ComfyUI loads the pack's files in
 // any order, and with the two importing each other the pack failed to start whenever this file came first (round 39;
 // tests/ui_load_order.cjs loads every file first once). rg_shared.js's Settings row loads this file when it is used.
-import { getSetting, setSetting, SET, parseKey, keyLabel, svgIcon, escReverts } from "./rg_shared.js";
+import { getSetting, setSetting, SET, parseKey, keyLabel, svgIcon, KEYS } from "./rg_shared.js";
 
 export const SHORTCUTS_EVENT = "rg-shortcuts";
 const MAX_KEYS = 2;                                  // keys per command
@@ -38,8 +38,8 @@ export const COMMANDS = [
       what: "Close the lasso outline. Select object: Add the selection (with Shift: one region for each object found)" },
     { id: "draw.back", group: "While drawing", ctx: "draw", what: "Take back the last point", keys: ["Backspace"] },
     { id: "draw.cancel", group: "While drawing", ctx: "draw", what: "Cancel the outline or the selection", keys: ["Escape"] },
-    { id: "edit.undo", group: "Layers and regions", what: "Undo", keys: ["Ctrl+Z"] },
-    { id: "edit.redo", group: "Layers and regions", what: "Redo", keys: ["Ctrl+Shift+Z", "Ctrl+Y"] },
+    { id: "edit.undo", group: "Layers and regions", what: "Undo (in a pop-up editor: Its text)", keys: ["Ctrl+Z"] },
+    { id: "edit.redo", group: "Layers and regions", what: "Redo (in a pop-up editor: Its text)", keys: ["Ctrl+Shift+Z", "Ctrl+Y"] },
     { id: "edit.duplicate", group: "Layers and regions", what: "Duplicate the selected layer", keys: ["Ctrl+D"] },
     { id: "edit.copy", group: "Layers and regions", what: "Copy the selected layer", keys: ["Ctrl+C"] },
     { id: "edit.cut", group: "Layers and regions", what: "Cut the selected layer", keys: ["Ctrl+X"] },
@@ -75,9 +75,11 @@ const FIXED = {
         ["edit.deselect", "Double-click", "A label on the canvas: Edit that region in the pop-up editor"],
     ],
     "View": [[null, "Wheel", "Zoom the canvas"], ["view.pan", "Middle-drag", "Pan the canvas"]],
-    "Text": [[null, "Enter", "A region's prompt: Done (Shift+Enter: a new line)"], ["text.next", "Esc", null]],
+    "Text": [[null, "Enter", "A region's prompt in the list: Done (Shift+Enter: a new line). Pop-up editor: A new line"],
+             ["text.next", "Esc", "Pop-up editor: Close (the text stays as it is)"]],
 };
 const GROUPS = ["Tools", "While drawing", "Layers and regions", "View", "Text"];
+const COLUMN_OF = { "Layers and regions": 1, "View": 1, "Text": 1 };      // the sheet's second column; the rest: the first
 
 // ---------------------------------------------------------------- the keys in use
 let cache = { sig: null, map: null };
@@ -128,6 +130,8 @@ export function keyed(text) {
     });
 }
 export const changedCount = () => COMMANDS.filter((c) => !isDefault(c)).length;
+// the shared code (which can't import this file) asks for keys through this
+Object.assign(KEYS, { is: keyIs, keyed });
 
 async function store(id, list) {
     const c = BY_ID[id]; list = clean(list);
@@ -186,8 +190,11 @@ const CSS = `.rg-keys { position:fixed; z-index:100003; box-sizing:border-box; w
 .rg-keys-head .rg-x { padding:3px 5px; }
 .rg-keys-note { padding:5px 12px; font-size:12px; color:#e8b339; border-bottom:1px solid var(--border-color,#555); }
 .rg-keys-note:empty { display:none; }
-.rg-keys-body { overflow:auto; padding:4px 12px 12px; columns:2 330px; column-gap:22px; }
-.rg-keys section { break-inside:avoid; padding-top:8px; }
+/* two columns side by side (one under the other in a narrow window); what doesn't fit scrolls up and down. Not CSS
+   columns: with a limited height those put the rest in more columns to the right, out of sight */
+.rg-keys-body { flex:1 1 auto; min-height:0; overflow-x:hidden; overflow-y:auto; padding:4px 12px 12px; display:flex; flex-wrap:wrap; align-items:flex-start; gap:0 22px; }
+.rg-keys-col { flex:1 1 330px; min-width:0; }
+.rg-keys section { padding-top:8px; }
 .rg-keys h4 { margin:0 0 4px; font-size:11px; font-weight:650; letter-spacing:.06em; text-transform:uppercase; opacity:.7; }
 .rg-keys-row { display:flex; gap:10px; padding:2.5px 0; align-items:baseline; }
 .rg-keys-k { flex:0 0 172px; display:flex; flex-wrap:wrap; gap:3px; justify-content:flex-end; align-items:center; }
@@ -229,7 +236,7 @@ export function openShortcuts(o = {}) {
         const row = mk("div", "rg-keys-row"), kc = mk("span", "rg-keys-k");
         keys.split(" / ").forEach((k) => kc.append(mk("kbd", null, k)));
         kc.title = "A mouse gesture or a held key: It can't be changed.";
-        row.append(kc, mk("span", null, what ?? `Pop-up editor: Close, ${escReverts() ? "putting the text back" : "keeping the edits"} (Settings > Region Genie > Text size)`));
+        row.append(kc, mk("span", null, what));
         return row;
     };
     const act = (icon, tip, fn) => { const b = mk("button", "rg-key-act"); b.type = "button"; b.innerHTML = svgIcon(icon); b.dataset.act = icon; b.title = tip; b.addEventListener("click", (e) => { e.preventDefault(); fn(); }); return b; };
@@ -259,16 +266,18 @@ export function openShortcuts(o = {}) {
     function render() {
         const top = body.scrollTop;
         body.replaceChildren();
+        const cols = [mk("div", "rg-keys-col"), mk("div", "rg-keys-col")];
         for (const g of GROUPS) {
-            const sec = mk("section"); sec.append(mk("h4", null, g));
+            const sec = mk("section"); sec.append(mk("h4", null, g)); sec.dataset.group = g;
             const fixed = FIXED[g] || [];
             for (const [, k, what] of fixed.filter((f) => f[0] === null)) sec.append(fixedRow(k, what));
             for (const c of COMMANDS.filter((c) => c.group === g)) {
                 sec.append(cmdRow(c));
                 for (const [, k, what] of fixed.filter((f) => f[0] === c.id)) sec.append(fixedRow(k, what));
             }
-            body.append(sec);
+            cols[COLUMN_OF[g] || 0].append(sec);
         }
+        body.append(...cols);
         resetAll.disabled = !changedCount();
         how.textContent = rec ? "Press the new key or combination (Esc: leave it as it is)." : "Click a key to change it.";
         body.scrollTop = top;

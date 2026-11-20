@@ -140,7 +140,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
 
     // ---- round 41: the marks before a label's prompt are drawn shapes, not emoji: a person for a character region,
     // a lock for a region kept as it is in Edit Mode. They take 14 px each before the text.
-    const raw = (rid) => page.evaluate((rid) => { const l = window.__node.__rgLabels().find((x) => x.rid === rid); return l ? { w: l.x1 - l.x0, marks: l.marks || [] } : null; }, rid);
+    const raw = (rid) => page.evaluate((rid) => { const l = window.__node.__rgLabels().find((x) => x.rid === rid); return l ? { w: l.x1 - l.x0, marks: l.marks || [], inside: !!l.inside, plate: l.plate } : null; }, rid);
     const setReg = async (rid, patch) => { await page.evaluate(([rid, patch]) => { Object.assign(window.__node.__rgState().regions.find((r) => r.id === rid), patch); window.__node.__rgRefresh(); }, [rid, patch]); await page.waitForTimeout(150); };
     const dprNow = await page.evaluate(() => window.devicePixelRatio || 1);
     const l0 = await raw(cliff.id);
@@ -156,8 +156,17 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await setReg(cliff.id, { keep: true });
     const l2 = await raw(cliff.id);
     check("in Edit Mode a kept character region carries the lock, then the person", l2.marks.join() === "lock,person");
+    // round 42: a kept region is an outline over the picture it keeps, so its label (number and prompt) gets a dark plate
+    const corner = (rid) => page.evaluate((rid) => { const l = window.__node.__rgLabels().find((x) => x.rid === rid), g = document.querySelector(".rg-cv canvas").getContext("2d");
+        const d = g.getImageData(Math.round(l.x0 + 1), Math.round(l.y0 + 1), 1, 1).data; return d[0] + d[1] + d[2]; }, rid);
+    const litKept = await corner(cliff.id);
+    await setReg(cliff.id, { keep: false });
+    const l3 = await raw(cliff.id), litPlain = await corner(cliff.id);
+    check(`in Edit Mode the label of a kept region lies on a dark plate; not kept: none (${l2.inside}, ${l2.plate} / ${l3.plate}; brightness at the label's corner ${litKept} / ${litPlain})`,
+        l2.inside && l2.plate === true && l3.plate === false && litKept < litPlain * 0.75);
+    await setReg(cliff.id, { keep: true });
     await page.locator(".rg-foot .rg-seg .rg-btn").first().click(); await page.waitForTimeout(200);
-    check("back in Generate mode: the lock goes, the person stays", (await raw(cliff.id)).marks.join() === "person");
+    check("back in Generate mode: the lock goes, the person stays, and so does the plate", (await raw(cliff.id)).marks.join() === "person" && (await raw(cliff.id)).plate === false);
     await setReg(cliff.id, { type: "object", keep: false });
     check("an object region has no mark", (await raw(cliff.id)).marks.length === 0);
 

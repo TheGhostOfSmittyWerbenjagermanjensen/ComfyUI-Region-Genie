@@ -201,8 +201,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const [pb, rb] = [await pop.boundingBox(), await page.locator(`.rg-list textarea.rg-prompt[data-rid="${firstRid}"]`).boundingBox()];
         check("pop-up sits by the row", Math.abs(pb.y - (rb.y + rb.height)) < 80 || Math.abs(pb.y + pb.height - rb.y) < 80);
         await page.keyboard.type(" edited");
-        await page.keyboard.press("Enter"); await page.waitForTimeout(100);
-        check("pop-up edits the region's prompt", (await st()).regions[0].prompt.endsWith(" edited") && await pop.count() === 0);
+        await page.keyboard.press("Escape"); await page.waitForTimeout(100);
+        check("pop-up edits the region's prompt (Esc closes it, the text stays)", (await st()).regions[0].prompt.endsWith(" edited") && await pop.count() === 0);
     }
 
     // the error the server gives for a missing model: a message bar that stays

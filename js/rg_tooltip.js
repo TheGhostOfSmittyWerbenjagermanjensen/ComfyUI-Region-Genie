@@ -1,9 +1,13 @@
 // Region Genie: the pack's own tooltip, in place of the browser's.
 //
 // Every control of the pack still gets its text the plain way ('el.title = "…"'): nothing else in the code knows about
-// this file. While the pointer is over such a control, its title attribute is put aside (in data-rg-tip), so the
-// browser shows nothing, and this tooltip shows the text; the attribute is back as soon as the pointer leaves or a
-// button is pressed. It only acts on elements inside the pack's own boxes (a class starting with "rg-").
+// this file. While the pointer is over such a control, its text is put aside (in data-rg-tip) and its title attribute is
+// left EMPTY, and this tooltip shows the text; the attribute is back as soon as the pointer leaves. Empty, not removed:
+// an element without a title shows the title of the nearest element around it that has one (a button in a pop-up's
+// title bar would show "Drag to move …" next to its own tooltip), and an empty title is what switches that off. While
+// it is aside, 'el.title' still reads and takes the text (see take()), so code that reads a title, or sets one again
+// on every refresh, works as always and never puts the browser's tooltip back. It only acts on elements inside the
+// pack's own boxes (a class starting with "rg-").
 //
 // The text is shown as it is written (see tests/tooltip_rules.cjs): one item per line; a line's "Name:" in bold; a
 // shortcut in brackets, "(Ctrl+Z)" or "(V)", as a key.
@@ -33,7 +37,7 @@ const CSS = `.rg-tip { position:fixed; z-index:100010; left:0; top:0; max-width:
   border:1px solid color-mix(in srgb, currentColor 45%, transparent); border-bottom-width:2px; border-radius:4px;
   background:color-mix(in srgb, currentColor 9%, transparent); white-space:nowrap; vertical-align:1px; }`;
 
-let tip = null, cur = null, timer = 0, lastUp = -1e9, shown = false, quiet = false, px = 0, py = 0, watch = null, alive = 0;
+let tip = null, cur = null, timer = 0, lastUp = -1e9, shown = false, quiet = false, px = 0, py = 0, watch = null, alive = 0, touch = false;
 
 // "Undo (Ctrl+Z)" -> text, <kbd>Ctrl+Z</kbd>
 function fillLine(box, text) {
@@ -63,17 +67,26 @@ function place() {
     tip.style.top = Math.round(Math.max(4, Math.min(y, H - h - 4))) + "px";
 }
 const textOf = (el) => el?.dataset?.rgTip || "";
-// the title goes aside while the pointer is on the element (the browser then has nothing to show)
+// the text goes aside while the pointer is on the element, and the attribute stays empty (the browser then has nothing
+// to show: not this element's title, and not the title of an element around it)
 const keepTitles = () => !!navigator.webdriver && !window.__rgTakeTitles;
+function retitle() { if (shown && cur) { if (textOf(cur).trim()) { fill(textOf(cur)); place(); } else hide(); } }
 function take(el) {
-    if (!el.hasAttribute("title")) return;
-    el.dataset.rgTip = el.getAttribute("title");
-    if (!keepTitles()) el.removeAttribute("title");
+    el.dataset.rgTip = el.getAttribute("title") || "";
+    if (keepTitles()) return;
+    el.setAttribute("title", "");
+    // 'el.title' while the text is aside: reads give the text, writes change the text aside (and the tooltip that is up)
+    try {
+        Object.defineProperty(el, "title", { configurable: true, get() { return this.dataset.rgTip ?? ""; },
+            set(v) { this.dataset.rgTip = String(v ?? ""); if (this === cur) retitle(); } });
+    } catch (e) { /* not possible on this element: the observer below still takes a new title */ }
 }
 function giveBack(el) {
     if (!el || el.dataset.rgTip == null) return;
-    if (!el.hasAttribute("title") && el.dataset.rgTip) el.setAttribute("title", el.dataset.rgTip);
+    const text = el.dataset.rgTip;
+    delete el.title;                                        // the property of take(); the element's own 'title' is back
     delete el.dataset.rgTip;
+    if (text) el.setAttribute("title", text); else if (el.getAttribute("title") === "" && !keepTitles()) el.removeAttribute("title");
 }
 function hide() {
     clearTimeout(timer); timer = 0;
@@ -98,16 +111,26 @@ function leave() {
 function enter(el) {
     cur = el; quiet = false;
     take(el);
-    // the code may set a new title while the pointer is here (a button that changes state): take that one too
+    // a title set as an attribute while the pointer is here (el.title = "…" goes to take()'s property): take that one too
     watch = watch || new MutationObserver(() => {
-        if (!cur || !cur.hasAttribute("title")) return;
-        if (quiet || cur.getAttribute("title") === cur.dataset.rgTip) return;      // after a press the title stays until the pointer moves
-        take(cur);
-        if (shown) { if (textOf(cur).trim()) { fill(textOf(cur)); place(); } else hide(); }
+        if (!cur || keepTitles()) { if (cur && cur.hasAttribute("title")) { cur.dataset.rgTip = cur.getAttribute("title"); retitle(); } return; }
+        const now = cur.getAttribute("title");
+        if (now === "") return;                             // as take() left it
+        cur.dataset.rgTip = now || "";
+        cur.setAttribute("title", "");
+        retitle();
     });
     watch.observe(el, { attributes: true, attributeFilter: ["title"] });
-    // the element can be taken off the page under the pointer (a rebuilt list): no leave event then
-    alive = setInterval(() => { if (cur && !cur.isConnected) leave(); }, 300);
+    // no event tells that the element was taken off the page under the pointer, or that another one is there now (a
+    // rebuilt list, a pop-up opened by a key): look
+    alive = setInterval(() => {
+        if (!cur) return;
+        if (!cur.isConnected) { leave(); }
+        const now = owner(document.elementFromPoint(px, py));
+        if (now === cur || (cur && cur.contains(document.elementFromPoint(px, py)) && !now)) return;
+        if (cur) leave();
+        if (now) { enter(now); quiet = true; clearTimeout(timer); timer = 0; }      // no tooltip until the pointer moves in again; the title is aside
+    }, 300);
     if (!textOf(el).trim()) return;
     timer = setTimeout(show, performance.now() - lastUp < WARM_MS ? SOON_MS : SHOW_MS);
 }
@@ -122,7 +145,8 @@ function install() {
     const st = document.createElement("style"); st.id = "rg-tip-style"; st.textContent = CSS; document.head.appendChild(st);
     tip = document.createElement("div"); tip.className = "rg-tip"; tip.setAttribute("role", "tooltip");
     const over = (e) => {
-        if (e.pointerType === "touch") return;
+        if (e.pointerType) touch = e.pointerType === "touch";
+        if (touch) return;
         px = e.clientX; py = e.clientY;
         const el = owner(e.target);
         if (el === cur) return;
@@ -130,14 +154,10 @@ function install() {
         if (el) enter(el);
     };
     document.addEventListener("pointerover", over, true);
-    document.addEventListener("pointermove", (e) => {
-        px = e.clientX; py = e.clientY;
-        // after a press the title is back on the element; the pointer moving on it puts it aside again (still no tooltip
-        // until the pointer has left and come back, as usual)
-        if (cur && quiet && cur.hasAttribute("title") && !keepTitles()) take(cur);
-    }, true);
-    // a press: the tooltip goes, and the title is back at once (the click may read it, and so may a test)
-    document.addEventListener("pointerdown", () => { if (!cur) return; hide(); quiet = true; if (cur.dataset.rgTip) { cur.setAttribute("title", cur.dataset.rgTip); } }, true);
+    document.addEventListener("mouseover", over, true);      // the browser's own "the element under the resting pointer changed"
+    document.addEventListener("pointermove", (e) => { px = e.clientX; py = e.clientY; }, true);
+    // a press: the tooltip goes, and stays away until the pointer has left and come back (the title stays aside)
+    document.addEventListener("pointerdown", (e) => { touch = e.pointerType === "touch"; if (!cur) return; hide(); quiet = true; }, true);
     document.addEventListener("keydown", () => { if (shown || timer) { hide(); quiet = true; } }, true);
     document.addEventListener("wheel", () => { if (shown || timer) hide(); }, { capture: true, passive: true });
     document.addEventListener("scroll", () => { if (shown) hide(); }, true);

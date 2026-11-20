@@ -555,13 +555,15 @@ export function* render(E) {
         if (act >= 0) order.push(order.splice(act, 1)[0]);
         E.labelRects = [];
         // with an image showing through the regions, or a control map on the canvas, the color under the text is
-        // not the region's own: the text then gets a dark plate
-        const plate = (E.backdrop && E.backdropOpacity > 0.25) || E.controlShowK >= 0;
+        // not the region's own: the text then gets a dark plate. A kept region in Edit Mode always gets one: it is
+        // drawn as an outline over the picture it keeps, so its label lies on that picture
+        const plateAll = (E.backdrop && E.backdropOpacity > 0.25) || E.controlShowK >= 0;
         for (const it of order) {
             const { rg, lines, num, nw, gap, bw, h: bh, marks, mw } = it;
             const x0 = it.x + nw + gap, y0 = it.y;
             const shown = E.colorOf(rg.id), [rr, gg, bb] = hexRgb(shown), light = rr * 0.299 + gg * 0.587 + bb * 0.114 > 140;
             const badgeH = it.inside ? lh : bh;
+            const plate = plateAll || (!!rg.keep && E.isEdit());
             if (it.inside && plate) {
                 E.ctx.globalAlpha = 0.6; E.ctx.fillStyle = "#000";
                 E.ctx.fillRect(it.x - pad, y0 - pad, it.w + pad * 2, bh + pad * 2);
@@ -577,7 +579,7 @@ export function* render(E) {
             }
             if (it.inside) {
                 // straight on the region's color, in black or white, whichever reads better on it
-                E.labelRects.push({ rid: rg.id, x0: it.x - pad, y0: y0 - pad, x1: it.x + it.w + pad, y1: y0 + bh + pad, inside: true, marks });
+                E.labelRects.push({ rid: rg.id, x0: it.x - pad, y0: y0 - pad, x1: it.x + it.w + pad, y1: y0 + bh + pad, inside: true, marks, plate });
                 const dark = light && !plate;
                 E.ctx.save();
                 E.ctx.shadowColor = dark ? "rgba(255,255,255,.7)" : "rgba(0,0,0,.75)"; E.ctx.shadowBlur = 2.5 * dpr;

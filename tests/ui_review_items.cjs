@@ -20,13 +20,17 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const away = async () => { await page.mouse.move(860, 1080); await page.waitForTimeout(80); };
     const center = async (loc) => { const b = await loc.boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2, b]; };
 
+    // what the browser's own tooltip would show at a point: the title of the nearest element around it that has the
+    // attribute ("" = nothing; an empty title also switches off the titles further out)
+    const nativeTip = (x, y) => page.evaluate(([x, y]) => { for (let e = document.elementFromPoint(x, y); e; e = e.parentElement) if (e.hasAttribute("title")) return e.getAttribute("title"); return ""; }, [x, y]);
     // ---- the pack's own tooltip
     const undo = page.locator('.rg-bar [title^="Undo"]');
     const [ux, uy, ub] = await center(undo);
     await away();
     await page.mouse.move(ux, uy); await page.waitForTimeout(150);
-    check("pointing at a button: nothing at once, and the browser's own tooltip has nothing to show (the title is put aside)",
-        !(await tip()) && await page.evaluate(([x, y]) => { const b = document.elementFromPoint(x, y).closest("button"); return !b.hasAttribute("title") && /^Undo/.test(b.dataset.rgTip); }, [ux, uy]));
+    check("pointing at a button: nothing at once, and the browser's own tooltip has nothing to show (the title is put aside, the attribute empty)",
+        !(await tip()) && await nativeTip(ux, uy) === "" && await page.evaluate(([x, y]) => { const b = document.elementFromPoint(x, y).closest("button"); return b.getAttribute("title") === "" && /^Undo/.test(b.dataset.rgTip); }, [ux, uy]));
+    check("…while code that reads the button's title still gets the text", await page.evaluate(([x, y]) => /^Undo/.test(document.elementFromPoint(x, y).closest("button").title), [ux, uy]));
     await page.waitForTimeout(600);
     let t = await tip();
     check(`after a moment the pack's tooltip shows the text, with the shortcut as a key (${JSON.stringify(t?.text)})`, !!t && /^Undo/.test(t.text) && t.keys.join() === "Ctrl+Z" && !/\(Ctrl\+Z\)/.test(t.text));
@@ -38,7 +42,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("moving to the next button shows its tooltip at once, two keys as two keys", !!t && /^Redo/.test(t.text) && t.keys.join("|") === "Ctrl+Shift+Z|Ctrl+Y");
     check("the button left behind has its title again", await undo.count() === 1);
     await page.mouse.down(); await page.waitForTimeout(60);
-    check("a press hides it, and the title is back on the pressed button", !(await tip()) && await page.locator('.rg-bar [title^="Redo"]').count() === 1);
+    check("a press hides it, and the browser's tooltip still has nothing to show", !(await tip()) && await nativeTip(rx, ry) === ""
+        && await page.evaluate(([x, y]) => /^Redo/.test(document.elementFromPoint(x, y).closest("button").title), [rx, ry]));
     await page.mouse.up(); await page.mouse.move(rx + 2, ry + 1); await page.waitForTimeout(700);
     check("…and it stays away until the pointer has left and come back (no browser tooltip either)", !(await tip()) && await page.locator('.rg-bar [title^="Redo"]').count() === 0);
     await away();
@@ -65,7 +70,16 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         await page.waitForTimeout(80);
         t = await tip();
         check("a title set while the pointer is on the button: the tooltip shows the new text", !!before && !!t && /^Changed while pointed at/.test(t.text) && t.keys.join() === "G"
-            && await page.evaluate(([x, y]) => !document.elementFromPoint(x, y).closest("button").hasAttribute("title"), [sx, sy]));
+            && await nativeTip(sx, sy) === "");
+        // round 42: the editor sets many titles again on every refresh, often to the same text, and some as an attribute:
+        // neither may bring the browser's tooltip back next to the pack's
+        await page.evaluate(([x, y]) => { const b = document.elementFromPoint(x, y).closest("button"); b.title = b.title; b.setAttribute("title", "Set as an attribute (G)"); }, [sx, sy]);
+        await page.waitForTimeout(80);
+        t = await tip();
+        check(`a title set again, or set as an attribute, while pointed at: still nothing for the browser to show (${JSON.stringify(await nativeTip(sx, sy))})`,
+            await nativeTip(sx, sy) === "" && !!t && /^Set as an attribute/.test(t.text));
+        await away();
+        check("…and the last text is the button's title once the pointer has left", await page.locator('.rg-bar [title^="Set as an attribute"]').count() === 1);
     } else check("a button with (G) in its tooltip exists", false);
     await away();
     // a large element (a prompt box): the tooltip goes next to the pointer

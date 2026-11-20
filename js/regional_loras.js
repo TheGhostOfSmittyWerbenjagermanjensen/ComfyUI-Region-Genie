@@ -118,6 +118,9 @@ function setup(node) {
     // (positive_prompt, negative_prompt, then each row's words), keeping the pop-up's place and size
     const NAV_WHAT = "positive_prompt, negative_prompt, then each row's words";
     const rowOpen = [];                      // row i -> (at) => opens its pop-up (made by render)
+    // the pop-up editor's Undo / Redo steps of each field, for as long as the node lives (see textHistory())
+    const widgetHist = {}, rowHist = new WeakMap();
+    const histOfRow = (r) => { if (!rowHist.has(r)) rowHist.set(r, {}); return rowHist.get(r); };
     const popKeys = () => ["w:positive_prompt", "w:negative_prompt", ...rows.map((_, i) => "row:" + i)];
     function openField(key, at) {
         const nav = (dir, geom) => {
@@ -128,7 +131,8 @@ function setup(node) {
         const name = key.slice(2);
         openFloatPopup({
             anchor: widgetTA[name] || wrap, title: name, value: node.widgets?.find((x) => x.name === name)?.value ?? "", node, at, nav, navWhat: NAV_WHAT,
-            fontKey: SET.fsPopScene, onInput: (v) => setW(name, v), filled: (raw) => filledFor(WKEY[name], raw) });
+            fontKey: SET.fsPopScene, onInput: (v) => setW(name, v), filled: (raw) => filledFor(WKEY[name], raw),
+            history: (widgetHist[name] = widgetHist[name] || {}) });
     }
     for (const n of ["positive_prompt", "negative_prompt"]) {
         const w = node.widgets?.find((x) => x.name === n);
@@ -340,7 +344,7 @@ function setup(node) {
             rowOpen[i] = (at, nav) => openFloatPopup({
                 anchor: pr, title: `Row ${i + 1}: words for ${r.index === -1 ? "the whole image" : "region " + r.index}`, value: r.prompt, node, at, nav, navWhat: NAV_WHAT,
                 fontKey: SET.fsPopRegion, onInput: (v) => { r.prompt = v; pr.value = v; save(); wcMark(pr, "row" + i, v); },
-                filled: (raw) => filledFor("row" + i, raw), onClose: () => { fillChips(chips, r); updateHints(); } });
+                filled: (raw) => filledFor("row" + i, raw), onClose: () => { fillChips(chips, r); updateHints(); }, history: histOfRow(r) });
             addExpandButton(pr, "Open this row's words in the pop-up editor", () => openField("row:" + i));
             pr.addEventListener("input", () => wcMark(pr, "row" + i, r.prompt));
         });

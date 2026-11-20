@@ -1,8 +1,8 @@
 // The pop-up editors for prompts, and the editor's keyboard shortcuts.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import {
-    svgIcon, escReverts, popFootText, naturalHeight, popNavDir, popNavTip, appendWord, autocompleteOnFocus, autocompleteOpen, autocompleteToggle, SET,
-    pickWildcard, insertAtCursor, wildcardsInstalled,
+    svgIcon, popFootText, naturalHeight, popNavDir, popNavTip, appendWord, autocompleteOnFocus, autocompleteOpen, autocompleteToggle, SET,
+    pickWildcard, insertAtCursor, wildcardsInstalled, textHistory, historyButtons,
 } from "../rg_shared.js";
 import { recentSetting, rememberSetting, CLIPBOARD } from "./shared.js";
 import { keyIs, keyUpIs } from "../rg_keys.js";
@@ -15,9 +15,14 @@ export function* popups(E) {
 
     // ---- pop-up editors: on top of the page (dragged anywhere on the screen), one at a time. The size: every node (a
     // hidden Setting); the text size: Settings > Region Genie > Text size, per kind of field (A− / A+ don't change the
-    // pop-up's size). They stay open until Enter, Esc, ✕, another pop-up, or the node leaving the canvas (another
-    // workflow tab, a subgraph); a click elsewhere doesn't close them. ◀ / ▶ step through every text field of the node.
+    // pop-up's size). They stay open until Esc, the close button, another pop-up, or the node leaving the canvas (another
+    // workflow tab, a subgraph); a click elsewhere doesn't close them. They always keep their text: Enter is a new line,
+    // and a change is taken back with the pop-up's own Undo / Redo (textHistory(): the steps of every field are kept
+    // in E.textHist for as long as the node lives). ◀ / ▶ step through every text field of the node.
+    E.textHist = E.textHist || new Map();
+    const histOf = (key) => { if (!E.textHist.has(key)) E.textHist.set(key, {}); return E.textHist.get(key); };
     const POP_W = { scene: 640, region: 560 };
+    const CLOSE_TIP = "Close (Esc).\nThe text stays as it is: Undo takes a change back.";
     const FS_POP = { scene: SET.fsPopScene, prompt: SET.fsPopRegion, text: SET.fsPopText };
     const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const popSizes = () => { try { const v = JSON.parse(recentSetting(SET.popSizes, "{}") || "{}"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } };
@@ -70,10 +75,9 @@ export function* popups(E) {
         const t = list[((i < 0 ? 0 : i) + dir + list.length) % list.length];
         if (t[0] === "scene") editScene(t[1], at); else editPrompt(t[1], null, "prompt", at);
     }
-    // Esc in a pop-up: close it, putting the text back (or keeping it: Settings > Region Genie > Text size)
-    const popEsc = () => closeEditor(!escReverts());
-    // ◀ / ▶, A− / A+ (the field in use: curCat()), dragging by the title bar, the resize grip
-    function popFrame(ed, kind, head, curCat, applyFonts) {
+    // ◀ / ▶, Undo / Redo (the field in use: curHist()), A− / A+ (the field in use: curCat()), dragging by the title bar,
+    // the resize grip
+    function popFrame(ed, kind, head, curCat, applyFonts, curHist) {
         const box = ed.box;
         const font = (d) => {
             const cat = curCat();
@@ -90,12 +94,14 @@ export function* popups(E) {
         const prev = mkB("◀", popNavTip(-1, "scene prompts, then each region's prompt"), () => popStep(-1), "rg-nav prev");
         const next = mkB("▶", popNavTip(1, "scene prompts, then each region's prompt"), () => popStep(1), "rg-nav");
         const x = head.querySelector(".rg-x");
-        head.insertBefore(fp, x?.previousElementSibling?.classList.contains("rg-wc-pick") ? x.previousElementSibling : x);
+        ed.histBtns = historyButtons(curHist);
+        head.insertBefore(fp, x);
         head.insertBefore(fm, fp);
         head.insertBefore(prev, fm); head.insertBefore(next, fm);
-        // the node's tag autocomplete switch (the same one as in the bottom bar: it acts on every field of the node)
+        head.insertBefore(ed.histBtns.undo, fm); head.insertBefore(ed.histBtns.redo, fm);
+        // the node's tag autocomplete switch (the same one as in the bottom bar: it acts on every field of the node):
+        // it goes in the pop-up's bottom row, see popTools()
         ed.acCtl = autocompleteToggle(E.node, E.el, true);
-        head.insertBefore(ed.acCtl.el, fp.nextSibling);
         head.title = "Drag to move (anywhere on the screen).\nDouble-click: Back next to the field.";
         const drag = (e, onMove, onEnd) => {
             e.preventDefault(); e.stopPropagation();
@@ -141,6 +147,13 @@ export function* popups(E) {
         box.appendChild(grip);
         applyFonts();
     }
+    // the tag autocomplete switch and the wildcard list of a pop-up, for the right end of its bottom row (left of the
+    // LLM button where there is one)
+    const popTools = (ed, wcPick) => {
+        wcPick.style.display = wildcardsInstalled() ? "" : "none";
+        return [ed.acCtl.el, wcPick];
+    };
+    const flexGap = () => { const g = E.el("span", "rg-pop-gap"); return g; };
     // text size of the node's own fields (Settings > Region Genie > Text size; 0 = as before)
     function applyFieldFonts() {
         const fs = (id) => clampN(Math.round(+recentSetting(id, 0)) || 0, 0, 40);
@@ -179,21 +192,21 @@ export function* popups(E) {
             e.stopPropagation();                           // editor shortcuts (Delete, V, B, ...) stay off
             const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
             if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
-            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); popEsc(); }
+            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); closeEditor(true); }
         });
         // header: number, color, close
         const head = E.el("div", "rg-pop-head");
         const num = E.el("span", "rg-idx");
         const title = E.el("span"); title.textContent = "Edit region";
         const sw = E.el("span", "rg-sw"); sw.dataset.swatch = String(r.id);
-        const x = E.el("button", "rg-btn ico rg-x"); x.innerHTML = svgIcon("close"); x.title = "Close, keeping the edits (Enter).";
+        const x = E.el("button", "rg-btn ico rg-x"); x.innerHTML = svgIcon("close"); x.title = CLOSE_TIP;
         x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
-        let lastTa = null;                         // the field the picker inserts into
+        let lastTa = null;                         // the field the picker inserts into, and Undo / Redo act on
         const wcPick = E.el("button", "rg-btn ico rg-wc-pick"); wcPick.innerHTML = svgIcon("wildcard");
         wcPick.title = "Insert a wildcard (ComfyUI Impact Pack) at the cursor";
-        wcPick.addEventListener("click", (e) => pickWildcard(e, (name) => insertAtCursor(lastTa || prompt.ta, name)));
-        wcPick.style.display = wildcardsInstalled() ? "" : "none";
-        head.append(title, num, sw, wcPick, x);
+        wcPick.addEventListener("mousedown", (e) => e.preventDefault());            // the text box keeps the cursor
+        wcPick.addEventListener("click", (e) => pickWildcard(e, (name) => { const t = lastTa || prompt.ta; insertAtCursor(t, name); t.__rgHist?.sync(); }));
+        head.append(title, num, sw, x);
         // type buttons
         const types = E.el("div", "rg-pop-types");
         const typeBtns = {};
@@ -216,7 +229,7 @@ export function* popups(E) {
                 const f = E.filledFor(fkey, r[key] || "");
                 if (f == null) return;
                 E.change(() => { r[key] = f; });
-                ta.value = f; syncUse();
+                ta.value = f; syncUse(); ta.__rgHist?.sync();
             });
             const syncUse = () => {
                 const f = E.filledFor(fkey, r[key] || "");
@@ -231,11 +244,11 @@ export function* popups(E) {
                 if (E.editor?.field && E.editor.field.ta !== ta) E.editor.endField(false);
                 if (E.editor) E.editor.field = { ta, key, before: E.snapshot(), orig: r[key] || "" };
             });
-            ta.addEventListener("input", () => { r[key] = ta.value; E.save(); E.requestDraw(); });
+            const store = () => { const rr = E.regionById(rid) || r; rr[key] = ta.value; E.save(); E.requestDraw(); };
+            ta.addEventListener("input", store);
             ta.addEventListener("blur", () => { if (E.editor?.field?.ta === ta) E.editor.endField(false); });
-            ta.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" && !e.shiftKey && !autocompleteOpen(ta, e)) { e.preventDefault(); closeEditor(true); }
-            });
+            // Undo / Redo of this text (the steps are kept per field: closing the pop-up doesn't lose them)
+            ta.__rgHist = textHistory(ta, histOf(`${fkey}`), { apply: () => { store(); syncUse(); }, onChange: () => E.editor?.histBtns?.refresh() });
             wrapF.append(lab, ta);
             return { wrapF, ta };
         };
@@ -279,13 +292,15 @@ export function* popups(E) {
                 for (const [t, b] of Object.entries(typeBtns)) b.classList.toggle("on", rr.type === t);
                 text.wrapF.style.display = rr.type === "text" ? "" : "none";
                 prompt.ta.__rgSyncUse?.(); text.ta.__rgSyncUse?.();
-                wcPick.style.display = wildcardsInstalled() ? "" : "none";
                 for (const [f, key] of [[prompt, "prompt"], [text, "text"]]) {
                     if (document.activeElement !== f.ta && f.ta.value !== (rr[key] || "")) f.ta.value = rr[key] || "";
+                    f.ta.__rgHist.sync();                    // a change made elsewhere (the LLM, the list) is a step too
                 }
                 const ctl = E.el("div", "rg-row pop-ctl");
                 const addL = E.ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { rr.loras = rr.loras || []; E.addLoraTo(rr.loras, e, () => E.openSub(rr.id, "loras")); }, "txt");
-                ctl.append(E.llmButton(rr.id, "pop"), ...(E.isEdit() ? [E.keepToggle(rr)] : []), E.featherBox(rr), E.paletteToggle(rr), addL);
+                // left: what belongs to the region; right (as in the scene prompt's pop-up): the tag list, the wildcard
+                // list, the LLM, ＋LoRA
+                ctl.append(...(E.isEdit() ? [E.keepToggle(rr)] : []), E.featherBox(rr), E.paletteToggle(rr), flexGap(), ...popTools(ed, wcPick), E.llmButton(rr.id, "pop"), addL);
                 const loras = E.el("div", "rg-pop-loras");
                 if ((rr.loras || []).length) loras.appendChild(E.regionLoraRows(rr));
                 dyn.replaceChildren(ctl, E.paletteRow(rr, true), loras);
@@ -304,14 +319,14 @@ export function* popups(E) {
         };
         E.editor = ed;
         popFrame(ed, "region", head, () => (lastTa === text.ta ? "text" : "prompt"),
-                 () => { applyPopFont(prompt.ta, "prompt"); applyPopFont(text.ta, "text"); });
+                 () => { applyPopFont(prompt.ta, "prompt"); applyPopFont(text.ta, "text"); }, () => (lastTa || prompt.ta).__rgHist);
         ed.refresh();
         const first = focus === "text" && r.type === "text" ? text : prompt;
         first.ta.focus(); first.ta.setSelectionRange(first.ta.value.length, first.ta.value.length);
     }
     // pop-up editor for scene_prompt_positive / _negative / _background (double-click the text box).
-    // Positive: also the LLM Prompt Enhancer and the whole-image LoRAs. Enter or clicking elsewhere closes it,
-    // Shift+Enter = new line, Esc closes it and puts the text back as it was.
+    // Positive: also the LLM Prompt Enhancer and the whole-image LoRAs. Esc or the close button closes it (the text
+    // stays), Enter is a new line.
     function editScene(which, at = null) {
         closeEditor(true);
         const pos = which === "positive";
@@ -325,24 +340,23 @@ export function* popups(E) {
             e.stopPropagation();
             const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
             if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
-            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); popEsc(); }
+            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); closeEditor(true); }
         });
         const head = E.el("div", "rg-pop-head");
         const title = E.el("span");
         title.textContent = { positive: "Scene prompt (scene_prompt_positive)", negative: "Negative scene prompt (scene_prompt_negative)",
                               background: "Background (scene_prompt_background)" }[which];
-        const x = E.el("button", "rg-btn ico rg-x"); x.innerHTML = svgIcon("close"); x.title = "Close, keeping the edits (Enter).";
+        const x = E.el("button", "rg-btn ico rg-x"); x.innerHTML = svgIcon("close"); x.title = CLOSE_TIP;
         x.addEventListener("click", (e) => { e.preventDefault(); closeEditor(true); });
         const wcPickS = E.el("button", "rg-btn ico rg-wc-pick"); wcPickS.innerHTML = svgIcon("wildcard");
         wcPickS.title = "Insert a wildcard (ComfyUI Impact Pack) at the cursor";
-        wcPickS.addEventListener("click", (e) => pickWildcard(e, (name) => insertAtCursor(ta, name)));
-        wcPickS.style.display = wildcardsInstalled() ? "" : "none";
-        head.append(title, wcPickS, x);
+        wcPickS.addEventListener("mousedown", (e) => e.preventDefault());           // the text box keeps the cursor
+        wcPickS.addEventListener("click", (e) => pickWildcard(e, (name) => { insertAtCursor(ta, name); hist.sync(); }));
+        head.append(title, x);
         const wrapF = E.el("div", "rg-pop-field grow");
         const ta = E.el("textarea"); ta.rows = 12; ta.spellcheck = false; ta.value = String(w.value ?? "");
         ta.placeholder = { positive: "the whole picture: setting, style, lighting ...", negative: "what to avoid in the whole picture",
                            background: "behind the regions: ground, floor, sky, room ..." }[which];
-        const orig = ta.value;
         const skey = E.SCENE_KEYS[which];
         const useS = E.el("button", "rg-btn ico rg-wc-use"); useS.innerHTML = svgIcon("useFilled");
         const syncUseS = () => {
@@ -354,13 +368,13 @@ export function* popups(E) {
             e.preventDefault();
             const f = E.filledFor(skey, String(w.value ?? ""));
             if (f == null) return;
-            E.setWidget(w, f); ta.value = f; syncUseS(); E.wcMarkScene();
+            E.setWidget(w, f); ta.value = f; syncUseS(); E.wcMarkScene(); hist.sync();
         });
+        const store = () => { E.setWidget(w, ta.value); if (pos) E.updateLlmButtons(); };
         ta.addEventListener("input", () => syncUseS());
-        ta.addEventListener("input", () => { E.setWidget(w, ta.value); if (pos) E.updateLlmButtons(); });
-        ta.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" && !e.shiftKey && !autocompleteOpen(ta, e)) { e.preventDefault(); closeEditor(true); }
-        });
+        ta.addEventListener("input", store);
+        // Undo / Redo of this text (the steps are kept per field: closing the pop-up doesn't lose them)
+        const hist = textHistory(ta, histOf("scene:" + which), { apply: () => { store(); syncUseS(); E.wcMarkScene?.(); }, onChange: () => E.editor?.histBtns?.refresh() });
         autocompleteOnFocus(ta, E.node);
         wrapF.append(ta);
         const dyn = E.el("div", "rg-pop-dyn");
@@ -371,25 +385,31 @@ export function* popups(E) {
         document.body.appendChild(box);
         const ed = {
             scene: which, which, box, field: { cancelable: true }, at, target: ["scene", which],
-            endField(cancel) {
+            endField() {
                 ed.field = null;
-                if (cancel && String(w.value ?? "") !== orig) { E.setWidget(w, orig); ta.value = orig; }
                 if (pos) E.updateLlmButtons();
             },
             refresh() {
                 if (document.activeElement !== ta && ta.value !== String(w.value ?? "")) ta.value = String(w.value ?? "");
-                syncUseS(); wcPickS.style.display = wildcardsInstalled() ? "" : "none";
+                hist.sync();                                 // a change made elsewhere (the LLM, a LoRA's words) is a step too
+                syncUseS();
                 box.style.borderColor = "#5b8fd0";
-                if (!pos) { dyn.replaceChildren(); ed.place(); return; }
                 const ctl = E.el("div", "rg-row pop-ctl");
+                // the bottom row, on the right: the tag list and the wildcard list (then, positive only: the LLM, ＋LoRA)
+                if (!pos) {
+                    const tools = popTools(ed, wcPickS);
+                    ctl.append(flexGap(), ...tools);
+                    ctl.style.display = tools.some((t) => t.style.display !== "none") ? "" : "none";
+                    dyn.replaceChildren(ctl); ed.place(); return;
+                }
                 const lbl = E.el("span", "rg-hint"); lbl.textContent = "Whole image";
                 lbl.title = "LoRAs here act on the whole picture (and all text), like a normal LoRA";
-                const gap = E.el("span"); gap.style.flex = "1 1 auto";
+                const gap = flexGap();
                 const addL = E.ico("＋LoRA", "Add a LoRA for the whole image", (e) => {
                     E.state.sceneLoras = E.state.sceneLoras || [];
                     E.addLoraTo(E.state.sceneLoras, e, () => E.expanded.add(E.SCENE));
                 }, "txt");
-                ctl.append(lbl, gap, E.llmButton(E.LLM_SCENE, "pop"), addL);
+                ctl.append(lbl, gap, ...popTools(ed, wcPickS), E.llmButton(E.LLM_SCENE, "pop"), addL);
                 const loras = E.el("div", "rg-pop-loras");
                 if ((E.state.sceneLoras || []).length) {
                     loras.appendChild(E.loraRows(E.state.sceneLoras, {
@@ -415,7 +435,7 @@ export function* popups(E) {
             }); },
         };
         E.editor = ed;
-        popFrame(ed, "scene", head, () => "scene", () => applyPopFont(ta, "scene"));
+        popFrame(ed, "scene", head, () => "scene", () => applyPopFont(ta, "scene"), () => hist);
         ed.refresh();
         ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
     }
