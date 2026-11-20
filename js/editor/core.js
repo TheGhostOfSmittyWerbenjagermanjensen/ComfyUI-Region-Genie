@@ -14,6 +14,13 @@ export function* core(E) {
     const node = E.node;
     // the Undo / Redo steps of each text field's own text (textHistory() in rg_shared.js), kept for as long as the
     // node lives and shared by the field on the node and its pop-up editor. Keys: "scene:positive", "r<id>", "r<id>.text"
+    // Redraws of the region list that nobody asked for (round 44c). The list is rebuilt from scratch, so a redraw takes
+    // the field being typed in with it: a number not yet entered is lost, a prompt loses the cursor. Work that runs by
+    // itself (the half-second check, the results of a run, an image that finished loading) goes through E.background();
+    // while it runs, renderRegions() waits if a text or number field of the list has the cursor (E.renderPending), and
+    // the list is drawn when the cursor leaves that field. Whatever the user does redraws at once, as before.
+    E.inBackground = 0; E.renderPending = false;
+    E.background = (fn) => { E.inBackground++; try { return fn(); } finally { E.inBackground--; } };
     E.textHist = E.textHist || new Map();
     E.histOf = (key) => { if (!E.textHist.has(key)) E.textHist.set(key, {}); return E.textHist.get(key); };
     const findW = (n) => node.widgets?.find((w) => w.name === n);

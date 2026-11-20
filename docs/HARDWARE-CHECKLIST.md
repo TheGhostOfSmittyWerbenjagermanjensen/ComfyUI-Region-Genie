@@ -197,3 +197,4 @@ None of the programs that read this text could be run here; the files were only 
 - A two-pass workflow (hi-res fix): the text has the first pass's settings and `Hires steps` / `Denoising strength` for the second.
 - A model whose LoRA Manager files are kept in its central folder (not next to the model): no hash is found; say so if you use that mode.
 - The cable button of Save Image (Region Genie) is on the right of its input rows, just above `filename_prefix`, in both node modes, at your zoom levels; it stays there when the node is resized, and moves down a row for each input you tick.
+- Start a generation and, while it runs and finishes, type in a region's prompt in the list and in a number field (a LoRA's strength, a Control row's strength): the cursor stays in the field and nothing typed is lost when the run's results arrive; the list updates when you click elsewhere.
