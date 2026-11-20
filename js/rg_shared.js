@@ -860,6 +860,28 @@ function ensureActiveCanvas() {
     const LGC = window.LGraphCanvas;
     if (LGC && !LGC.active_canvas && app.canvas) LGC.active_canvas = app.canvas;
 }
+// The look of a sockets list: a small panel of checkboxes, one per input / output a node can show (the Region Genie
+// node's inputs and outputs, editor/sockets.js; Save Image's optional inputs, save_image.js). Each builds its own
+// panel with these classes.
+const SOCKS_CSS = `.rg-socks { position:fixed; z-index:10000; box-sizing:border-box; min-width:230px; max-width:min(320px, calc(100vw - 12px)); max-height:calc(100vh - 12px);
+  overflow:auto; padding:6px 8px 8px; border-radius:7px; outline:none; pointer-events:auto; user-select:none;
+  font:12.5px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--input-text,#ddd);
+  background:var(--comfy-menu-bg,#2b2b2b); border:1px solid var(--border-color,#555); box-shadow:0 6px 22px rgba(0,0,0,.5); }
+.rg-socks h4 { margin:6px 0 3px; font-size:11px; font-weight:650; letter-spacing:.06em; text-transform:uppercase; opacity:.7; }
+.rg-socks h4:first-child { margin-top:0; }
+.rg-socks label { display:flex; align-items:center; gap:7px; padding:2.5px 4px; border-radius:4px; cursor:pointer; white-space:nowrap; }
+.rg-socks label:hover { background:color-mix(in srgb, currentColor 10%, transparent); }
+.rg-socks label.off { opacity:.55; cursor:default; }
+.rg-socks label.off:hover { background:none; }
+.rg-socks input { margin:0; flex:0 0 auto; }
+.rg-socks .rg-socks-why { margin-left:auto; padding-left:10px; font-size:11px; opacity:.65; }
+.rg-socks-acts { display:flex; gap:6px; margin-top:7px; }
+.rg-socks-acts button { flex:1 1 0; background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px;
+  cursor:pointer; font:inherit; font-size:12px; padding:2px 6px; }`;
+export function socksStyle() {
+    if (document.getElementById("rg-socks-style")) return;
+    const st = document.createElement("style"); st.id = "rg-socks-style"; st.textContent = SOCKS_CSS; document.head.appendChild(st);
+}
 // Esc in a pop-up editor closes what is on top first: a menu of ComfyUI that one of its buttons opened (a short menu
 // takes no keys itself, so the key arrives in the pop-up). Returns true when there was one.
 export function closeComfyMenus() {

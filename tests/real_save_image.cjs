@@ -55,17 +55,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         if (vue) {
             const box = document.querySelector(`[data-node-id="${sv.id}"]`);
             const txt = box?.innerText || "";
-            dom = ["png_compression", "png_bit_depth", "webp_lossless", "webp_quality", "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality", "exr_bit_depth", "exr_color_space", "invert_mask"]
+            dom = ["png_compression", "png_bit_depth", "webp_lossless", "webp_quality", "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality", "exr_bit_depth", "exr_color_space", "invert_mask", "a1111_metadata"]
                 .filter((n) => txt.includes(n));
         }
         return { names, dom };
     }, vue);
     const setW = (k, v) => page.evaluate(([k, v]) => { const w = window.__sv.widgets.find((x) => x.name === k); w.value = v; w.callback?.(v); }, [k, v]);
     const expect = {
-        png: ["filename_prefix", "format", "png_compression", "png_bit_depth"],
-        webp: ["filename_prefix", "format", "webp_lossless", "webp_quality"],
-        jpeg: ["filename_prefix", "format", "jpeg_quality", "jpeg_extension", "jpeg_workflow"],
-        avif: ["filename_prefix", "format", "avif_quality"],
+        // (round 44: a1111_metadata, the switch for the settings text, with every format but EXR)
+        png: ["filename_prefix", "format", "png_compression", "png_bit_depth", "a1111_metadata"],
+        webp: ["filename_prefix", "format", "webp_lossless", "webp_quality", "a1111_metadata"],
+        jpeg: ["filename_prefix", "format", "jpeg_quality", "jpeg_extension", "jpeg_workflow", "a1111_metadata"],
+        avif: ["filename_prefix", "format", "avif_quality", "a1111_metadata"],
         exr: ["filename_prefix", "format", "exr_bit_depth", "exr_color_space"],
     };
     for (const f of ["png", "webp", "jpeg", "avif", "exr"]) {
@@ -260,6 +261,85 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: a workflow saved before EXR loads with valid EXR fields (${pre.with.exr_bit_depth}, ${pre.with.exr_color_space}; ${pre.without.exr_bit_depth})`,
         pre.with.exr_bit_depth === "16-bit float" && pre.with.exr_color_space === "sRGB" && pre.with.format === "webp" && pre.with.invert_mask === true
         && pre.without.exr_bit_depth === "16-bit float" && pre.without.format === "webp");
+
+    // ---------------- round 44: the settings text for other interfaces (A1111 / Forge style), and its optional inputs
+    const META = ["positive", "negative", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise", "model_name"];
+    const built = await page.evaluate(async () => {
+        const app = window.app, LG = window.LiteGraph;
+        app.graph.clear();
+        const W = (n, k) => n.widgets.find((w) => w.name === k);
+        const img = LG.createNode("EmptyImage"); img.pos = [40, 40]; app.graph.add(img);
+        W(img, "width").value = 64; W(img, "height").value = 48; W(img, "batch_size").value = 1;
+        const seed = LG.createNode("PrimitiveInt"); seed.pos = [40, 320]; app.graph.add(seed); W(seed, "value").value = 31;
+        const txt = LG.createNode("PrimitiveString"); txt.pos = [40, 460]; app.graph.add(txt); W(txt, "value").value = "a test prompt, 日本語";
+        const sv = LG.createNode("Region-Genie_SaveImage"); sv.pos = [460, 40]; app.graph.add(sv);
+        img.connect(0, sv, 0);
+        window.__sv = sv; window.__seed = seed; window.__txt = txt;
+        app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
+        await new Promise((r) => setTimeout(r, 1200));
+        return { inputs: sv.inputs.map((i) => i.name), shown: sv.__rgMetaInputs(), sw: W(sv, "a1111_metadata")?.value, h: sv.size[1] };
+    });
+    check(`${M}: a new node: the switch for the settings text is on, and none of its optional inputs shows (${built.shown.join(", ") || "none"})`,
+        built.sw === true && built.shown.length === 0 && !META.some((n) => built.inputs.includes(n)) && built.inputs.includes("images"));
+    const cable = page.locator(".rg-save-out .rg-save-socks").last();
+    check(`${M}: a cable button at the end of the node's status line, with a tooltip`, await cable.count() === 1 && await cable.isVisible() && /^Inputs: /.test(await cable.getAttribute("title") || ""));
+    await cable.click(); await sleep(400);
+    const list = () => page.evaluate(() => { const b = document.querySelector(".rg-save-list"); if (!b) return null; const r = b.getBoundingClientRect();
+        const top = document.elementFromPoint(r.left + r.width / 2, r.top + 12);
+        return { rows: [...b.querySelectorAll("label")].map((l) => ({ n: l.dataset.sock, on: l.querySelector("input").checked, off: l.querySelector("input").disabled, why: l.querySelector(".rg-socks-why")?.textContent || "", tip: l.title })),
+            inWin: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight, onTop: b.contains(top) }; });
+    let L = await list();
+    check(`${M}: it opens the inputs list: nine inputs, none ticked, on top and inside the window`, !!L && L.rows.map((r) => r.n).join() === META.join() && L.rows.every((r) => !r.on && !r.off && r.tip.length > 12) && L.inWin && L.onTop);
+    await page.locator('.rg-save-list label[data-sock="seed"]').click(); await sleep(400);
+    let st = await page.evaluate(() => ({ inputs: window.__sv.inputs.map((i) => i.name), prop: window.__sv.properties.rg_meta_inputs, h: window.__sv.size[1] }));
+    check(`${M}: ticking 'seed' gives the node a seed input (${st.inputs.filter((n) => n === "seed").length}); it is noted on the node; the list stays open`,
+        st.inputs.includes("seed") && !st.inputs.includes("steps") && JSON.stringify(st.prop) === '["seed"]' && (await list())?.rows.find((r) => r.n === "seed").on === true);
+    if (!vue) check(`${M}: the node grows by the new input's row (${built.h} -> ${st.h})`, st.h > built.h);
+    await page.locator('.rg-save-list label[data-sock="positive"]').click(); await sleep(300);
+    await page.evaluate(() => { const sv = window.__sv; window.__seed.connect(0, sv, sv.inputs.findIndex((i) => i.name === "seed")); window.__txt.connect(0, sv, sv.inputs.findIndex((i) => i.name === "positive")); });
+    await sleep(700);
+    L = await list();
+    check(`${M}: a connected input is marked 'connected' in the list and can't be unticked`, L.rows.find((r) => r.n === "seed").off && L.rows.find((r) => r.n === "seed").why === "connected" && L.rows.find((r) => r.n === "positive").off);
+    await page.locator('.rg-save-list label[data-sock="steps"]').click(); await sleep(300);
+    await page.locator('.rg-save-list label[data-sock="steps"]').click(); await sleep(300);
+    check(`${M}: an input ticked and unticked again is gone`, await page.evaluate(() => !window.__sv.inputs.some((i) => i.name === "steps")));
+    await page.keyboard.press("Escape"); await sleep(300);
+    check(`${M}: Esc closes the list`, await page.locator(".rg-save-list").count() === 0);
+    // saved and loaded: the ticked inputs and their links are still there, the others are not
+    const re = await page.evaluate(async () => {
+        const app = window.app, g = app.graph.serialize();
+        await app.loadGraphData(g); await new Promise((r) => setTimeout(r, 1500));
+        const sv = app.graph.nodes.find((x) => x.type === "Region-Genie_SaveImage"); window.__sv = sv;
+        app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
+        const p = await app.graphToPrompt(), inp = Object.values(p.output).find((x) => x.class_type === "Region-Genie_SaveImage").inputs;
+        return { shown: sv.__rgMetaInputs(), linked: sv.inputs.filter((i) => i.link != null).map((i) => i.name), sent: Object.keys(inp).filter((k) => Array.isArray(inp[k])) };
+    });
+    check(`${M}: saved and loaded again: the two ticked inputs are there with their links, the rest stays hidden (${re.shown.join(", ")}; sent: ${re.sent.join(", ")})`,
+        re.shown.join() === "positive,seed" && ["images", "positive", "seed"].every((n) => re.linked.includes(n)) && ["images", "positive", "seed"].every((n) => re.sent.includes(n)));
+    // a run: the text is in the file, next to ComfyUI's own data
+    const chunks = (file) => { const b = fs.readFileSync(file), out = {}; let p = 8;
+        while (p < b.length) { const n = b.readUInt32BE(p), kind = b.toString("latin1", p + 4, p + 8), d = b.subarray(p + 8, p + 8 + n);
+            if (kind === "tEXt") { const z = d.indexOf(0); out[d.toString("latin1", 0, z)] = d.toString("latin1", z + 1); }
+            if (kind === "iTXt") { const z = d.indexOf(0); out[d.toString("latin1", 0, z)] = d.toString("utf8", z + 5); }
+            p += 12 + n; }
+        return out; };
+    r = await queue("png");
+    let file = ls("png").pop();
+    let info = file ? chunks(path.join(OUT, run, file)) : {};
+    check(`${M}: a run with the two inputs connected: the PNG has the settings text with their values (${JSON.stringify((info.parameters || "").slice(0, 70))})`,
+        (info.parameters || "").startsWith("a test prompt, 日本語\n") && /Seed: 31, Size: 64x48/.test(info.parameters) && /Version: ComfyUI$/.test(info.parameters));
+    check(`${M}: ComfyUI's own workflow data is in the file as before`, !!info.workflow && !!info.prompt && JSON.parse(info.workflow).nodes.length >= 3);
+    check(`${M}: the node's status line tells what was written (its tooltip)`, /Settings text written for other interfaces/.test(r.tip) && /Seed: 31/.test(r.tip) && await cable.count() === 1);
+    r = await queue("jpeg");
+    file = ls("jpeg").filter((f) => !f.endsWith(".json")).pop();
+    const jb = file ? fs.readFileSync(path.join(OUT, run, file)) : Buffer.alloc(0);
+    const be = (t) => { const le = Buffer.from(t, "utf16le"); for (let i = 0; i + 1 < le.length; i += 2) { const x = le[i]; le[i] = le[i + 1]; le[i + 1] = x; } return le; };
+    check(`${M}: a JPEG has the text too, in its EXIF (where A1111 puts it), the workflow in the .json next to it`, jb.includes(Buffer.from("UNICODE\0", "latin1")) && jb.includes(be("Seed: 31")) && ls("jpeg").some((f) => f.endsWith(".json")));
+    r = await queue("png", { a1111_metadata: false });
+    file = ls("png").pop();
+    info = file ? chunks(path.join(OUT, run, file)) : {};
+    check(`${M}: with the switch off: no settings text, only ComfyUI's own data`, !("parameters" in info) && !!info.workflow && !/Settings text written/.test(r.tip));
+    await setW("a1111_metadata", true);
 
     await page.screenshot({ path: path.join(__dirname, "out", `real_save_${vue ? "vue" : "legacy"}.png`) });
     check(`${M}: no page errors` + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""), !errors.length);
