@@ -1446,6 +1446,8 @@ class RegionalLoRAs:
                                                      "(ComfyUI Impact Pack's __name__ and {a|b} syntax). A prompt that "
                                                      "comes as MOSS / Ideogram JSON is left as it is."}),
             },
+            # the node's own id in the workflow: Save Image (Region Genie) asks by it what this run used (gen_params.py)
+            "hidden": {"unique_id": "UNIQUE_ID"},
         }
 
     RETURN_TYPES = ("MODEL", "CONDITIONING", "CONDITIONING", "STRING")
@@ -1474,7 +1476,7 @@ class RegionalLoRAs:
 
     def run(self, model, clip, masks, positive_prompt, negative_prompt, feather, loras_data, lora_masking=MASKING_MODES[0],
             region_separation=0.85, separation_until=0.25, separate_all_regions=False, share_background=False,
-            wildcard_seed=0):
+            wildcard_seed=0, unique_id=None):
         from .bbox_masks import box_blur
         from .wildcards import Filler
         all_rows = parse_rows(loras_data)
@@ -1602,6 +1604,11 @@ class RegionalLoRAs:
                 lines.append(f'scene caption + "{global_extra}"')
             lines += [rl.summary.splitlines()[0] for rl in loaded.values()]
 
+        # for Save Image (Region Genie): the prompts after wildcards and the LoRAs applied (memory only, gen_params.RUNS)
+        from . import gen_params
+        gen_params.record(unique_id, prompt=prompt, negative=str(negative_prompt or ""),
+                          loras=[(r["lora"], float(r["strength"])) for r in global_rows]
+                                + [(r["lora"], float(r["strength"])) for i in sorted(groups) for r in groups[i]])
         info = "\n".join(lines + warn)
         _log(f"{LOG} Regional LoRAs:\n{info}")
         ui = {"lora_info": [info], "mask_count": [n]}

@@ -1080,6 +1080,8 @@ class RegionGenie:
                                              "tooltip": ("Hidden. The outputs this node shows, when it doesn't show all of them (set with the "
                                                          "sockets button in the size row). Leave it empty in API prompts.")}),
             },
+            # the node's own id in the workflow: Save Image (Region Genie) asks by it what this run used (gen_params.py)
+            "hidden": {"unique_id": "UNIQUE_ID"},
         }
 
     RETURN_TYPES = ("MODEL", "CONDITIONING", "CONDITIONING", "LATENT", "STRING", "IMAGE", "MASK", "BOUNDING_BOX", "ARRAY",
@@ -1135,7 +1137,7 @@ class RegionGenie:
             size_from_image=None, size_from_latent=None, import_json=None, import_mode=IMPORT_MODES[0],
             model=None, clip=None, scene_prompt_background="", prompt_format="auto", vae=None, mode=MODES[0],
             edit_area=EDIT_AREAS[0], width_in=None, height_in=None, wildcard_seed=0, control_image=None,
-            size_from=None, outputs_shown=""):
+            size_from=None, outputs_shown="", unique_id=None):
         from .bbox_masks import _resolve_size        # shared with BBoxes to Masks
         # A node that shows only some of its outputs numbers them 0, 1, 2 ... in the workflow; the editor's script
         # replaces those by the real output numbers when it queues the workflow, and empties this value. If it is
@@ -1445,6 +1447,11 @@ class RegionGenie:
                                                      notes, status, family=family, edit=edit, tok_kw=tok_kw,
                                                      base=len(vision_prefix))
         ui["auto_apart"] = [bool(status.get("auto_apart"))]
+        # for Save Image (Region Genie): the prompt as it left this node (the 'prompt' output), the negative prompt
+        # after wildcards, and the LoRAs that were applied. In memory only (gen_params.RUNS); nothing is written.
+        from . import gen_params
+        gen_params.record(unique_id, prompt=prompt_text, negative=str(scene_prompt_negative or ""),
+                          loras=status.get("loras") or [], width=width, height=height)
         positive = negative = None
         lines.append(f"prompt: {FAMILY_LABEL[family]} ({family_from})")
         ui["prompt_format"] = [FAMILY_LABEL[family]]
@@ -1647,6 +1654,8 @@ class RegionGenie:
         if model is None:
             notes.append("NOTE: LoRAs are set, but no model is connected to the 'model' input; they are not used")
             return model, []
+        if status is not None:                     # what is applied: whole image first, then each region's
+            status["loras"] = list(scene) + [l for _, ls in regional for l in ls]
         if regional and not hl.one_pass_ok(model):
             raise ValueError(f"Region Genie: regional LoRAs on the 'model' output need a {hl.ONE_PASS_MODELS} model. "
                              "For other models use the Regional LoRAs node (separate passes). (Whole-image LoRAs work "

@@ -250,7 +250,7 @@ check("sidecar counted in the summary", [f["name"] for f in o["ui"]["rg_saved"][
 it = si.SaveImageRG.INPUT_TYPES()
 order = ["images", "filename_prefix", "format", "png_compression", "png_bit_depth", "webp_lossless", "webp_quality",
          "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality", "exr_bit_depth", "exr_color_space"]
-check("INPUT_TYPES order", list(it["required"]) == order and list(it["optional"]) == ["mask", "invert_mask"]
+check("INPUT_TYPES order", list(it["required"]) == order and list(it["optional"]) == ["mask", "invert_mask", "a1111_metadata", "positive", "negative", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise", "model_name"]
       and it["hidden"] == {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"})
 tips = [k for g in ("required", "optional") for k, v in it[g].items() if not (len(v) > 1 and v[1].get("tooltip"))]
 check("every input has a tooltip" + (": missing " + ", ".join(tips) if tips else ""), not tips)
