@@ -37,6 +37,7 @@ const CSS = `
 .rg-rl-sw { width:12px; height:12px; border-radius:2px; border:1px solid #000; flex:0 0 auto; }
 .rg-rl-region { flex:1 1 0 !important; width:0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.85; }
 .rg-rl-region.bad { color:#e88; opacity:1; }
+.rg-rl-mark svg { width:11px; height:11px; vertical-align:-1.5px; margin-right:3px; }
 .rg-rl-line .rg-pwrap { position:relative; display:flex; flex:1 1 0; min-width:0; }
 .rg-rl-prompt { flex:1 1 0 !important; width:0; min-width:0; box-sizing:border-box; resize:none; background:var(--comfy-input-bg,#222);
   color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; font-family:inherit; font-size:var(--rg-rl-fs,12px);
@@ -221,7 +222,7 @@ function setup(node) {
         if (regs && regs[idx]) {
             const r = regs[idx];
             const p = (r.prompt || "").trim() || "(no prompt)";
-            return { text: (r.type === "character" ? "👤 " : "") + p + (r.type === "text" && r.text ? `  "${r.text}"` : ""), color: r.color, bad: false };
+            return { text: p + (r.type === "text" && r.text ? `  "${r.text}"` : ""), color: r.color, bad: false, character: r.type === "character" };
         }
         if (typeof count === "number") {
             if (idx < 0 || idx >= count) return { text: count ? `no mask ${idx} (masks: 0-${count - 1})` : "no masks", color: null, bad: true };
@@ -242,7 +243,15 @@ function setup(node) {
         rows.forEach((r, i) => {
             const h = rowEls[i]; if (!h) return;
             const v = regionHint(r.index, regs);
-            h.text.textContent = v.text; h.text.title = v.text;
+            // a character region: the filled person mark before its prompt (as on the Region Genie node's canvas)
+            const key = (v.character ? "c|" : "|") + v.text;
+            if (h.text.__rgKey !== key) {
+                h.text.__rgKey = key;
+                h.text.replaceChildren();
+                if (v.character) { const ic = el("span", "rg-rl-mark"); ic.innerHTML = svgIcon("markPerson"); h.text.append(ic); }
+                h.text.append(v.text);
+                h.text.title = v.text + (v.character ? "\nType: Character." : "");
+            }
             h.text.classList.toggle("bad", v.bad);
             h.sw.style.display = v.color ? "" : "none";
             if (v.color) h.sw.style.background = v.color;

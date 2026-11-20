@@ -157,3 +157,8 @@ Check once in legacy mode and once in Nodes 2.0.
 - Subgraphs: a Region Genie node inside a subgraph, with only some outputs shown and one of them leaving the subgraph, runs with the right data. (Not tested here.)
 - "Save (API Format)" of a workflow whose node shows only some outputs: the file has the Python node's output numbers and an empty `outputs_shown`.
 
+## 19. Label marks (round 41)
+
+- On the 4K display, both node modes: a **character** region's label shows a small filled person before its prompt, in the text's color (white on dark regions, black on light ones), clear at your usual zoom. In Edit Mode a region set to keep shows a filled lock, and a kept character region the lock, then the person. No colored emoji anywhere in the labels.
+- The Regional LoRAs node, connected to the node's `masks`: a row for a character region shows the same person before the prompt.
+

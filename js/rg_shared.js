@@ -6,7 +6,19 @@ import { openColorPicker } from "./rg_colorpicker.js";
 import "./rg_tooltip.js";                 // the pack's own tooltip takes over every title in the pack's elements
 
 // ---------------------------------------------------------------- icons (16x16, stroke = text color)
+// The marks on a region's label (round 41): filled shapes, so they read at 11 px on any region color. They replace
+// the 👤 / 🔒 emoji, which the system drew in its own colors. 16-unit grid; 'fill' is a filled path, 'stroke' an open
+// one of 'width'. The canvas draws them with Path2D (drawLabelMark in js/editor/render.js), the lists as icons
+// (markPerson, markLock below).
+export const LABEL_MARKS = {
+    person: { fill: "M8 1.6a3.1 3.1 0 1 0 0 6.2a3.1 3.1 0 0 0 0-6.2zM2.3 14.7a5.7 5.7 0 0 1 11.4 0z" },
+    lock: { fill: "M4.1 7.1h7.8a1.6 1.6 0 0 1 1.6 1.6v4.5a1.6 1.6 0 0 1-1.6 1.6H4.1a1.6 1.6 0 0 1-1.6-1.6V8.7a1.6 1.6 0 0 1 1.6-1.6z",
+            stroke: "M5.1 7.3V4.9a2.9 2.9 0 0 1 5.8 0v2.4", width: 1.8 },
+};
+const markSvg = (m) => `<path d="${m.fill}" fill="currentColor" stroke="none"/>` + (m.stroke ? `<path d="${m.stroke}" stroke-width="${m.width}"/>` : "");
 export const ICONS = {
+    markPerson: markSvg(LABEL_MARKS.person),
+    markLock: markSvg(LABEL_MARKS.lock),
     select: '<path d="M3.5 2l8.5 6-3.6.9 2 3.9-1.6.8-2-3.9L4.2 12.3z" fill="currentColor" stroke="none"/>',
     shape: '<rect x="2" y="2" width="7.5" height="7.5"/><circle cx="11" cy="11" r="3.4"/>',
     brush: '<path d="M14 2L8.3 8.4"/><path d="M8.6 8.1c-1.9-.6-3.7.3-3.9 2.3-.1 1.3-.9 2.1-2.2 2.3 1.6 1.4 5.6 1.2 6.4-1.2.4-1.2.2-2.3-.3-3.4z"/>',

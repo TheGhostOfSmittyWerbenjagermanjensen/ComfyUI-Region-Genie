@@ -3,6 +3,22 @@
 import { UNSPEC } from "./shared.js";
 import { shapeVerts, bitmapCanvas } from "./geometry.js";
 import { hexRgb } from "./colors.js";
+import { LABEL_MARKS } from "../rg_shared.js";
+
+// The marks before a label's prompt (a person: a character region; a lock: kept as it is in Edit Mode): filled
+// shapes in the label's text color, MARK_SIZE px tall at 100 %, MARK_STEP px from one to the next / to the text.
+const MARK_SIZE = 11, MARK_STEP = 14;
+const markPaths = {};
+function drawLabelMark(ctx, name, x, y, size, color) {
+    const m = LABEL_MARKS[name];
+    if (!m || typeof Path2D === "undefined") return;
+    const p = markPaths[name] || (markPaths[name] = { fill: new Path2D(m.fill), stroke: m.stroke ? new Path2D(m.stroke) : null });
+    ctx.save();
+    ctx.translate(x, y); ctx.scale(size / 16, size / 16);
+    ctx.fillStyle = color; ctx.fill(p.fill);
+    if (p.stroke) { ctx.strokeStyle = color; ctx.lineWidth = m.width; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke(p.stroke); }
+    ctx.restore();
+}
 
 export function* render(E) {
     Object.assign(E, {
@@ -496,8 +512,10 @@ export function* render(E) {
             if (!rg) continue;
             let text = (E.filledFor("r" + rg.id, rg.prompt) ?? rg.prompt).trim() || "(no prompt)";
             if (rg.type === "text" && rg.text) text += `  "${rg.text}"`;
-            if (rg.type === "character") text = "👤 " + text;
-            if (rg.keep && E.isEdit()) text = "🔒 " + text;            // Edit Mode: kept as it is in the source
+            // marks before the prompt, drawn (not emoji): a lock for a region kept as it is in Edit Mode, a person for
+            // a character region. They take room at the start of every line, like the index badge.
+            const marks = [...(rg.keep && E.isEdit() ? ["lock"] : []), ...(rg.type === "character" ? ["person"] : [])];
+            const mw = marks.length * MARK_STEP * dpr;
             const [cx, cy] = E.toScr((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2);
             const [rx0, ry0] = E.toScr(b.x0, b.y0), [rx1, ry1] = E.toScr(b.x1, b.y1);
             const num = imap[b.k] == null ? "" : String(imap[b.k]);
@@ -510,21 +528,21 @@ export function* render(E) {
             const [qx0, qy0] = E.toScr(b.in.x0, b.in.y0), [qx1, qy1] = E.toScr(b.in.x1, b.in.y1);
             const vx0 = Math.max(qx0, 0), vy0 = Math.max(qy0, 0), vx1 = Math.min(qx1, E.cv.width), vy1 = Math.min(qy1, E.cv.height);
             const iw = vx1 - vx0, ih = vy1 - vy0, mg = Math.max(4 * dpr, Math.min(iw, ih) * 0.08);
-            const availW = iw - 2 * mg - nw - gap, maxLines = Math.floor((ih - 2 * mg) / lh);
+            const availW = iw - 2 * mg - nw - gap - mw, maxLines = Math.floor((ih - 2 * mg) / lh);
             if (availW >= 44 * dpr && maxLines >= 1) {
                 const lines = wrapText(E.ctx, text, availW, maxLines);
                 const tw = Math.max(...lines.map((l) => E.ctx.measureText(l).width));
-                const w = nw + gap + tw, h = lines.length * lh;
-                items.push({ k: b.k, rg, lines, num, nw, gap, bw: tw, w, h, dx: vx0 + (iw - w) / 2, dy: vy0 + (ih - h) / 2, rx0, ry0, rx1, ry1, inside: true });
+                const w = nw + gap + mw + tw, h = lines.length * lh;
+                items.push({ k: b.k, rg, lines, num, nw, gap, marks, mw, bw: tw, w, h, dx: vx0 + (iw - w) / 2, dy: vy0 + (ih - h) / 2, rx0, ry0, rx1, ry1, inside: true });
                 continue;
             }
             const regionW = (b.x1 - b.x0) * E.view.z;
             const maxW = Math.max(70 * dpr, Math.min(200 * dpr, regionW * 0.9));
-            const lines = wrapText(E.ctx, text, maxW, 3);
+            const lines = wrapText(E.ctx, text, Math.max(40 * dpr, maxW - mw), 3);
             const tw = Math.max(...lines.map((l) => E.ctx.measureText(l).width));
-            const bw = tw + pad * 2, bh = lines.length * lh + pad * 2 - 2 * dpr;
+            const bw = tw + mw + pad * 2, bh = lines.length * lh + pad * 2 - 2 * dpr;
             const w = nw + gap + bw;
-            items.push({ k: b.k, rg, lines, num, nw, gap, bw, w, h: bh, dx: cx - w / 2, dy: cy - bh / 2, rx0, ry0, rx1, ry1 });
+            items.push({ k: b.k, rg, lines, num, nw, gap, marks, mw, bw, w, h: bh, dx: cx - w / 2, dy: cy - bh / 2, rx0, ry0, rx1, ry1 });
         }
         // place from the top of the region list down (not by selection, so labels don't jump when you click)
         const prio = [...items].sort((a, b) => (b.inside ? 1 : 0) - (a.inside ? 1 : 0) || a.k - b.k);
@@ -540,7 +558,7 @@ export function* render(E) {
         // not the region's own: the text then gets a dark plate
         const plate = (E.backdrop && E.backdropOpacity > 0.25) || E.controlShowK >= 0;
         for (const it of order) {
-            const { rg, lines, num, nw, gap, bw, h: bh } = it;
+            const { rg, lines, num, nw, gap, bw, h: bh, marks, mw } = it;
             const x0 = it.x + nw + gap, y0 = it.y;
             const shown = E.colorOf(rg.id), [rr, gg, bb] = hexRgb(shown), light = rr * 0.299 + gg * 0.587 + bb * 0.114 > 140;
             const badgeH = it.inside ? lh : bh;
@@ -559,22 +577,25 @@ export function* render(E) {
             }
             if (it.inside) {
                 // straight on the region's color, in black or white, whichever reads better on it
-                E.labelRects.push({ rid: rg.id, x0: it.x - pad, y0: y0 - pad, x1: it.x + it.w + pad, y1: y0 + bh + pad, inside: true });
+                E.labelRects.push({ rid: rg.id, x0: it.x - pad, y0: y0 - pad, x1: it.x + it.w + pad, y1: y0 + bh + pad, inside: true, marks });
                 const dark = light && !plate;
                 E.ctx.save();
                 E.ctx.shadowColor = dark ? "rgba(255,255,255,.7)" : "rgba(0,0,0,.75)"; E.ctx.shadowBlur = 2.5 * dpr;
                 E.ctx.fillStyle = dark ? "#000" : "#fff";
+                marks.forEach((m, i) => drawLabelMark(E.ctx, m, x0 + i * MARK_STEP * dpr, y0 + 1 * dpr, MARK_SIZE * dpr, dark ? "#000" : "#fff"));
+                E.ctx.fillStyle = dark ? "#000" : "#fff";
                 E.ctx.globalAlpha = rg.prompt.trim() ? 1 : 0.6;
-                lines.forEach((l, i) => E.ctx.fillText(l, x0, y0 + 1 * dpr + i * lh));
+                lines.forEach((l, i) => E.ctx.fillText(l, x0 + mw, y0 + 1 * dpr + i * lh));
                 E.ctx.restore();
                 continue;
             }
-            E.labelRects.push({ rid: rg.id, x0: it.x, y0, x1: x0 + bw, y1: y0 + bh });
+            E.labelRects.push({ rid: rg.id, x0: it.x, y0, x1: x0 + bw, y1: y0 + bh, marks });
             const isAct = rg.id === E.curRegion;
             E.ctx.globalAlpha = isAct ? 0.8 : 0.6; E.ctx.fillStyle = "#000"; E.ctx.fillRect(x0, y0, bw, bh);
             E.ctx.globalAlpha = 1; E.ctx.strokeStyle = E.colorOf(rg.id); E.ctx.lineWidth = 1.5 * dpr; E.ctx.strokeRect(x0, y0, bw, bh);
+            marks.forEach((m, i) => drawLabelMark(E.ctx, m, x0 + pad + i * MARK_STEP * dpr, y0 + pad, MARK_SIZE * dpr, "#fff"));
             E.ctx.fillStyle = rg.prompt.trim() ? "#fff" : "rgba(255,255,255,.6)";
-            lines.forEach((l, i) => E.ctx.fillText(l, x0 + pad, y0 + pad + i * lh));
+            lines.forEach((l, i) => E.ctx.fillText(l, x0 + pad + mw, y0 + pad + i * lh));
         }
         E.ctx.restore();
     }
