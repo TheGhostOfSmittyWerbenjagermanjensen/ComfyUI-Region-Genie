@@ -171,3 +171,14 @@ Check once in legacy mode and once in Nodes 2.0.
 - In a pop-up, the **wildcard** button and **＋LoRA** open their lists in front of the pop-up. With a long LoRA list, the list still scrolls and its filter field takes typing.
 - The small buttons in a pop-up's title bar are easy to hit; a click in the gap between two of them lands on one of them, and dragging the title bar still works when you start on the title or on empty space.
 - Edit Mode with a loaded image: the label of a region set to **keep** has a dark plate and is readable over the picture; regions that aren't kept look as before.
+
+## 21. Text boxes, Undo, the bottom bar (round 43)
+
+- On the 4K display, both node modes, with long text in `scene_prompt_positive` and `scene_prompt_negative` so that they scroll: the pop-up button (⤢) is left of the scroll bar, not on it, also while the pointer rests on the scroll bar and it grows wider. Typed text wraps before the buttons; none of it is hidden under them or the scroll bar. Which kind of scroll bar your browser draws can't be seen from here: if the button still touches the bar, tell me how wide the bar gets.
+- The region list: in a prompt box that isn't being edited the button is in the middle of the box's height; click into the box and it is in the bottom-right corner, left of the box's scroll bar.
+- `scene_prompt_positive` has the sparkles button in its corner; clicking it lights it, puts a blue outline around the box and lights the button in the *Whole image* row. Is the outline visible enough with your theme, and not confused with the focus outline?
+- The bottom bar of a legacy node: the same room above the buttons (to the line) as below them (to the node's edge). Nodes 2.0 was left as it was.
+- A region's pop-up: one bottom row, the palette on the left, everything else on the right. With the pop-up dragged narrow the row wraps instead of overflowing.
+- Undo: type in a scene prompt, click out, draw a shape, type in a region's prompt, click out. The tool bar's Undo goes back through these one by one, text edits as whole steps. In a text box, Ctrl+Z goes back about a word at a time, also after clicking out and back. After reloading the page or loading a workflow there is nothing to undo.
+- With an input method (Chinese, Japanese, Korean) in the node's own text boxes: composing and Ctrl+Z behave sensibly (untested here; the node's boxes used the browser's own undo before this round).
+- A list or menu open over a pop-up: Esc closes the list, the pop-up stays; Esc again closes the pop-up.

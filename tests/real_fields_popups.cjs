@@ -466,7 +466,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // a region's pop-up
     await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-pwrap .rg-expand")][1]?.click()); await sleep(250);
     const rowReg = await rowOf();
-    check(`${M}: a region's pop-up, bottom row: its own controls on the left; on the right tag autocomplete, wildcard, LLM, ＋LoRA (${rowReg})`, /^.+ gap (tag )?(wildcard )?llm ＋LoRA$/.test(rowReg) && await rightEnd());
+    // round 43: one row. Left of the gap: the palette (its on / off button, colors, +). Right: feather and the rest
+    const palSide = await page.evaluate(() => { const kids = [...document.querySelectorAll(".rg-pop .pop-ctl > *")], g = kids.findIndex((e) => e.classList.contains("rg-pop-gap"));
+        return { left: kids.slice(0, g).every((e) => e.classList.contains("toggle") || e.classList.contains("rg-sw") || e.classList.contains("rg-paladd")), first: kids[0]?.classList.contains("toggle"),
+                 feather: kids.slice(g).some((e) => e.classList.contains("rg-feather")), icons: document.querySelectorAll(".rg-pop .rg-palico").length, rows: document.querySelectorAll(".rg-pop .rg-pop-dyn > .rg-row").length }; });
+    check(`${M}: a region's pop-up, one bottom row: the color palette on the left (one palette button), every other control on the right, ending with tag autocomplete, wildcard, LLM, ＋LoRA (${rowReg}; ${JSON.stringify(palSide)})`,
+        /^x( x)* gap x (x )*(tag )?(wildcard )?llm ＋LoRA$/.test(rowReg) && palSide.left && palSide.first && palSide.feather && palSide.icons === 0 && palSide.rows === 1 && await rightEnd());
     const footTx = await page.evaluate(() => document.querySelector(".rg-pop .rg-pop-foot")?.textContent || "");
     await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("Control+End"); await page.keyboard.type(" XYZ");
     await page.keyboard.press("Escape"); await sleep(200);
