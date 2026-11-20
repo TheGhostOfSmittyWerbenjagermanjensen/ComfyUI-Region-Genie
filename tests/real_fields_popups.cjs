@@ -471,7 +471,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("Control+End"); await page.keyboard.type(" XYZ");
     await page.keyboard.press("Escape"); await sleep(200);
     const kv = await page.evaluate(() => window.__rg.__rgState().regions[1].prompt);
-    check(`${M}: a region's pop-up: Esc closes it and keeps the text (and the line at the bottom says so: ${footTx})`, !(await geo()) && kv === "a green dog XYZ" && /Esc: close \(the text stays\)/.test(foot) && !/Enter/.test(foot));
+    check(`${M}: a region's pop-up: Esc closes it and keeps the text (and the line at the bottom says so: ${footTx})`, !(await geo()) && kv === "a green dog XYZ" && /Esc: close \(the text stays\)/.test(footTx) && !/Enter/.test(footTx));
     // with a pop-up open
     await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-pwrap .rg-expand")][0]?.click()); await sleep(300);
     a = await tipAudit();

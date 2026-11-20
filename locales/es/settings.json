@@ -210,14 +210,6 @@
     "name": "Editor emergente: texto a renderizar",
     "tooltip": "Tamaño del texto en px para el cuadro Text del editor emergente de región (A− / A+ en su cabecera, con el cuadro Text en uso). Se aplica a todos los nodos."
   },
-  "RegionGenie_Popup_EscKeeps": {
-    "name": "Esc en un editor emergente",
-    "tooltip": "Qué hace Esc en los editores de texto emergentes (todos los nodos Region Genie y LoRAs regionales).\nRestaurar el texto: Esc lo cierra y el texto queda como estaba al abrirlo (Enter y ✕ conservan los cambios).\nConservar los cambios: Esc, Enter y ✕ lo cierran y conservan el texto.",
-    "options": {
-      "put the text back": "restaurar el texto",
-      "keep the edits": "conservar los cambios"
-    }
-  },
   "RegionGenie_Wildcards_PerField": {
     "name": "Una semilla por campo",
     "tooltip": "Desactivado: Todos los campos de prompt de un nodo usan la semilla de comodines del nodo tal cual (como los nodos de Impact Pack que comparten una semilla), así que el mismo comodín en dos campos suele elegir el mismo valor.\nActivado: Cada campo recibe su propia semilla, derivada de la semilla de comodines y del campo, así que eligen de forma independiente (el resultado sigue siendo el mismo con la misma semilla)."

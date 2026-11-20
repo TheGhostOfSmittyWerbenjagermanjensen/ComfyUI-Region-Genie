@@ -210,14 +210,6 @@
     "name": "Pop-up editor: text to render",
     "tooltip": "Text size in px for the Text box of the region pop-up editor (A− / A+ in its header, with the Text box in use). Applies to every node."
   },
-  "RegionGenie_Popup_EscKeeps": {
-    "name": "Esc in a pop-up editor",
-    "tooltip": "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node).\nPut the text back: Esc closes it and the text is as it was when it opened (Enter and ✕ keep the edits).\nKeep the edits: Esc, Enter and ✕ all close it and keep the text.",
-    "options": {
-      "put the text back": "put the text back",
-      "keep the edits": "keep the edits"
-    }
-  },
   "RegionGenie_Wildcards_PerField": {
     "name": "A seed per field",
     "tooltip": "Off: Every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing one seed), so the same wildcard in two fields usually picks the same value.\nOn: Each field gets its own seed, derived from the wildcard seed and the field, so they pick independently (still the same result for the same seed)."
