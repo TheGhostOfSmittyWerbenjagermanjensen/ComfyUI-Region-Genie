@@ -68,7 +68,8 @@ export function* footer(E) {
     // ---- mode: generate / edit
     const editSeg = segmented([
         ["generate", "Generate", "Generate a new image (mode)."],
-        ["edit", "Edit", "Edit: Change the image on 'image' (image-to-image). What may change and the mask's edge: The 'Edit area' line under Whole image.\n"
+        ["edit", "Edit", "Edit: Change the image on 'image' (image-to-image).\n"
+            + "Edit area: The line under Whole image sets what may change (the regions only, or the whole image) and the mask's grow and feather.\n"
             + "Connect: 'vae' too, and use the 'latent' output (sampler denoise below 1 for models without a reference image).\n"
             + "Size: The image's shape at the pixel count of width x height; the image is the backdrop.\n"
             + "Reference image: Sent to models that read one (Settings > Region Genie > Edit Mode).\n"

@@ -129,6 +129,40 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
     s = await socks();
     check(`${M}: the Control row removed: control_image goes again`, !s.inputs.includes("control_image"));
 
+    // ---------------- the rows at 700 px: nothing wraps, also in Edit Mode with keep-apart on and an image connected
+    const rows = () => page.evaluate(() => { const out = {};
+        for (const [name, sel] of [["tool bar", ".rg-bar"], ["list header", ".rg-head"], ["bottom bar", ".rg-foot"], ["size row", ".rg-size"]]) {
+            const c = document.querySelector(sel), cr = c.getBoundingClientRect();
+            const kids = [...c.querySelectorAll(":scope > *")].filter((k) => k.offsetParent && k.getBoundingClientRect().width > 0);
+            const lines = new Set(kids.map((k) => { const r = k.getBoundingClientRect(); return Math.round((r.top + r.height / 2 - cr.top) / 12); })).size;
+            const over = kids.some((k) => k.getBoundingClientRect().right > cr.right + 1.5);
+            if (lines > 1 || over) out[name] = lines > 1 ? "wraps" : "runs over";
+        }
+        const m = document.querySelector(".rg-foot .rg-sel.rg-model"); out.model = m ? Math.round(m.getBoundingClientRect().width) : 0; return out; });
+    await page.evaluate(async () => { const rg = window.__rg; window.__li.connect(0, rg, rg.inputs.findIndex((i) => i.name === "image")); await new Promise((r) => setTimeout(r, 1500)); });
+    let rw = await rows();
+    check(`${M}: Generate, an image connected: tool bar, list header, bottom bar and size row each on one line (${JSON.stringify(rw)})`, Object.keys(rw).length === 1);
+    await page.locator(".rg-apart").click(); await sleep(300);
+    await page.locator('.rg-foot [title^="Edit: Change the image"]').click(); await sleep(4200);      // (a message shows in the header for 3.5 s after the switch)
+    rw = await rows();
+    check(`${M}: Edit Mode with keep-apart on: still one line each; the model dropdown keeps its width (${JSON.stringify(rw)})`, Object.keys(rw).length === 1 && rw.model >= 100);
+    check(`${M}: …the Edit area line is under Whole image`, await page.locator(".rg-list .rg-row.editarea").count() === 1 && await page.locator(".rg-head .rg-editmask").count() === 0);
+    await page.locator(".rg-foot .rg-seg .rg-btn").first().click(); await sleep(500);
+    await page.locator(".rg-apart").click(); await sleep(200);
+    await page.evaluate(async () => { const rg = window.__rg; rg.disconnectInput(rg.inputs.findIndex((i) => i.name === "image")); await new Promise((r) => setTimeout(r, 500)); });
+
+    // ---------------- the wildcard seed group: only while a prompt has a wildcard
+    if (await page.evaluate(async () => (await (await fetch("/region_genie/wildcards")).json()).installed)) {
+        const wcShown = () => page.evaluate(() => { const e = document.querySelector(".rg-foot .rg-wc"); return !!e && getComputedStyle(e).display !== "none"; });
+        const none = await wcShown();
+        const ta = page.locator("textarea.rg-scene-ta").first();
+        await ta.click(); await page.keyboard.type("a __rgtest/color__ car"); await sleep(400);
+        const typed = await wcShown();
+        await ta.fill("a car"); await sleep(400);
+        check(`${M}: the wildcard seed group shows while a prompt has a wildcard, and only then (${none}, ${typed}, ${await wcShown()})`, none === false && typed === true && await wcShown() === false);
+        await ta.fill(""); await page.evaluate(() => document.activeElement?.blur?.());
+    } else console.log("SKIP the wildcard seed group: Impact Pack is not installed");
+
     // ---------------- save and load
     const round = await page.evaluate(async () => {
         const app = window.app, rg = window.__rg;

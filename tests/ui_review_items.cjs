@@ -305,6 +305,47 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await dd.click(); await page.waitForTimeout(150);
     check("a tool button's arrow still opens its list (the click area lies behind it)", await page.evaluate(() => window.__lastMenu?.items?.length === 8));
 
+    // ---- round 40: the rows. No size label in the tool bar; a fixed "Edit area" line in Edit Mode
+    check("the tool bar has no size label (the size row at the top shows the canvas size)", await page.locator(".rg-bar > .rg-hint").count() === 0
+        && await page.evaluate(() => { const b = [...document.querySelector(".rg-bar").children].filter((c) => c.offsetParent); return b[b.length - 1].matches('[title^="Clear all"], [data-rg-tip^="Clear all"]'); }));
+    check("Generate mode: no Edit area line; the list header has no mask fields, the bottom bar no edit_area", await page.locator(".rg-row.editarea").count() === 0 && await page.locator(".rg-head .rg-editmask").count() === 0
+        && await page.locator(".rg-foot select").evaluateAll((els) => els.every((e) => ![...e.options].some((o) => o.value === "whole image"))));
+    await page.locator('.rg-foot [title^="Edit: Change the image"]').click(); await page.waitForTimeout(200);
+    const ea = () => page.evaluate(() => { const r = document.querySelector(".rg-row.editarea"); if (!r) return null; const prev = r.previousElementSibling;
+        return { n: document.querySelectorAll(".rg-row.editarea").length, label: r.querySelector(".rg-pseudo")?.textContent, after: prev?.classList.contains("scene") || prev?.classList.contains("empty") || !!prev?.querySelector?.(".rg-hint"),
+            sel: [...(r.querySelector("select")?.options || [])].map((o) => o.value), nums: r.querySelectorAll(".rg-editmask input").length, x: !!r.querySelector('button[data-ic="close"]'),
+            oneLine: r.getBoundingClientRect().height < 30, head: document.querySelectorAll(".rg-head .rg-editmask").length }; });
+    let e1 = await ea();
+    check(`Edit Mode: one "Edit area" line under Whole image, with edit_area and the two mask fields, and no ✕ (${JSON.stringify(e1)})`, !!e1 && e1.n === 1 && e1.label === "Edit area" && e1.sel.join("|") === "only the regions|whole image"
+        && e1.nums === 2 && !e1.x && e1.oneLine && e1.head === 0);
+    await page.locator(".rg-row.editarea select").selectOption("whole image"); await page.waitForTimeout(100);
+    check("its dropdown sets edit_area", await page.evaluate(() => window.__node.widgets.find((w) => w.name === "edit_area").value) === "whole image");
+    await page.locator(".rg-row.editarea .rg-editmask input").first().fill("12"); await page.keyboard.press("Tab"); await page.waitForTimeout(150);
+    check("its first field sets the edit mask's grow", (await st()).editMask?.grow === 12);
+    const editX = page.locator('.rg-row.ctrl.edit button[data-ic="close"]').first();
+    if (await editX.count()) { await editX.click(); await page.waitForTimeout(150); }
+    e1 = await ea();
+    check("the Edit row removed (✕): the Edit area line stays, with its values", !!e1 && e1.n === 1 && await page.locator(".rg-row.editarea select").inputValue() === "whole image"
+        && await page.locator(".rg-row.editarea .rg-editmask input").first().inputValue() === "12");
+    await page.locator('.rg-foot .rg-seg .rg-btn').first().click(); await page.waitForTimeout(200);
+    check("back in Generate mode: the line is gone", await page.locator(".rg-row.editarea").count() === 0);
+    // ---- round 40: a node that shows only some outputs. The prompt's links get the Python node's output numbers
+    const mapped = await page.evaluate(async () => {
+        const { mapShownOutputs } = await import("./extensions/rg/editor/sockets.js");
+        const NAMES = ["model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes", "elements", "character_boxes", "region_info", "width", "height"];
+        const p = { "5": { class_type: "Region-Genie_Main", inputs: { outputs_shown: "model,positive,negative,latent,masks,height", paint_data: "{}" } },
+            "6": { class_type: "Region-Genie_Main", inputs: { outputs_shown: "" } },
+            "7": { class_type: "KSampler", inputs: { model: ["5", 0], positive: ["5", 1], latent_image: ["5", 3], steps: 20 } },
+            "8": { class_type: "MaskPreview", inputs: { mask: ["5", 4] } }, "9": { class_type: "PreviewAny", inputs: { source: ["5", 5] } },
+            "10": { class_type: "PreviewImage", inputs: { images: ["6", 5] } }, "11": { class_type: "Other", inputs: { a: ["12", 4], list: [1, 2] } } };
+        const moved = mapShownOutputs(p, NAMES);
+        return { moved, p };
+    });
+    check(`the shown outputs become the Python node's numbers: masks 4 -> 6, height 5 -> 12; the first four stay (${mapped.moved} changed)`, mapped.moved === 2 && mapped.p["8"].inputs.mask[1] === 6 && mapped.p["9"].inputs.source[1] === 12
+        && mapped.p["7"].inputs.model[1] === 0 && mapped.p["7"].inputs.latent_image[1] === 3);
+    check("outputs_shown is emptied; a node that shows all outputs, other nodes and plain values are left alone", mapped.p["5"].inputs.outputs_shown === "" && mapped.p["10"].inputs.images[1] === 5
+        && mapped.p["11"].inputs.a[1] === 4 && JSON.stringify(mapped.p["11"].inputs.list) === "[1,2]" && mapped.p["7"].inputs.steps === 20);
+
     // every button with a drawn icon: no text glyph left as a label
     const glyphs = await page.evaluate(() => [...document.querySelectorAll(".rg-wrap button")].filter((b) => /^[✕↑↓▲◉○✂⧉⤓⇄⌫🗑⇊↺⬆＋⚠ⓘ×]$/u.test(b.textContent.trim())).map((b) => b.textContent.trim() + " " + (b.title || "").slice(0, 30)));
     check(`no button is labelled with a bare symbol any more (${glyphs.join("; ")})`, !glyphs.length);
