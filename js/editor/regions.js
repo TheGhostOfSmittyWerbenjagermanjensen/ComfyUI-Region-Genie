@@ -1,7 +1,7 @@
 // Regions, undo / redo, what can be done to a layer (add, duplicate, copy / paste, merge, delete …), tool switching and hints.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
-import { getSetting, SET } from "../rg_shared.js";
-import { PALETTE, UNSPEC, ALL, HISTORY, CLIPBOARD, RASTER_MAX } from "./shared.js";
+import { getSetting, SET, regionColors } from "../rg_shared.js";
+import { UNSPEC, ALL, HISTORY, CLIPBOARD, RASTER_MAX } from "./shared.js";
 import { encodeRuns } from "./geometry.js";
 import { hsvHex, hexRgb, rgbLab, effectiveColors } from "./colors.js";
 
@@ -23,26 +23,27 @@ export function* regions(E) {
     };
     const colorOf = (rid) => rid === UNSPEC ? "#000000" : (effMap().get(rid) || regionById(rid)?.color); E.colorOf = colorOf;
     const regionLabel = (rid) => rid === UNSPEC ? "Hole" : (regionById(rid)?.prompt || `region ${E.state.regions.findIndex((r) => r.id === rid)}`);
-    // a new region's color: the one that looks most different from the colors already on the canvas
-    // (perceptual distance, CIELAB), from the built-in list first, then from a wider set of hues
+    // a new region's color: the first of the user's colors (Settings > Region Genie > Region Genie node > Region
+    // colors) that isn't on the canvas yet, nor looks like one that is; when all are in use, the one that looks
+    // most different from the colors on the canvas (perceptual distance, CIELAB), from that list and a set of calm hues
     function nextColor() {
+        const list = regionColors();
         const shown = E.state.regions.map((r) => colorOf(r.id) || r.color);
         const used = new Set([...E.state.regions.map((r) => r.color.toUpperCase()), ...shown.map((c) => c.toUpperCase())]);
-        if (!shown.length) return PALETTE[0];
+        if (!shown.length) return list[0];
         // black is in the set too: it is "unspecified" in the color map
         const labs = [...shown, "#000000"].map((c) => rgbLab(hexRgb(c)));
-        const vivid = (c) => { const [r, g, b] = hexRgb(c), mx = Math.max(r, g, b), mn = Math.min(r, g, b); return mx >= 150 && (mx - mn) / mx >= 0.35; };
-        const cands = [...PALETTE.filter(vivid).map((c) => [c, 3])];       // small preference for the list
-        for (let h = 0; h < 36; h++) for (const [sat, val] of [[1, 1], [0.8, 0.9], [0.55, 1], [1, 0.7]]) cands.push([hsvHex(h / 36, sat, val), 0]);
+        const dist = (c) => { const lab = rgbLab(hexRgb(c)); let d = Infinity; for (const q of labs) d = Math.min(d, Math.hypot(lab[0] - q[0], lab[1] - q[1], lab[2] - q[2])); return d; };
+        for (const c of list) if (!used.has(c) && dist(c) >= 16) return c;
+        const cands = [...list];
+        for (let h = 0; h < 36; h++) for (const [sat, val] of [[0.5, 0.85], [0.65, 0.7], [0.35, 0.95], [0.75, 0.9]]) cands.push(hsvHex(h / 36, sat, val));
         let best = null, bestScore = -Infinity;
-        for (const [c, bonus] of cands) {
+        for (const c of cands) {
             if (used.has(c)) continue;
-            const lab = rgbLab(hexRgb(c));
-            let dmin = Infinity;
-            for (const q of labs) dmin = Math.min(dmin, Math.hypot(lab[0] - q[0], lab[1] - q[1], lab[2] - q[2]));
-            if (dmin + bonus > bestScore) { bestScore = dmin + bonus; best = c; }
+            const d = dist(c);
+            if (d > bestScore) { bestScore = d; best = c; }
         }
-        return best || uniqueColor(PALETTE[E.state.regions.length % PALETTE.length], null);
+        return best || uniqueColor(list[E.state.regions.length % list.length], null);
     }
     // keep region colors unique and clearly not black (black = unspecified in the color map)
     function uniqueColor(hex, selfId) {
@@ -140,6 +141,7 @@ export function* regions(E) {
     function save() {
         E.version++;
         if (E.dataW) E.dataW.value = JSON.stringify(E.state);
+        E.wcRefresh?.();
         E.node.graph?.setDirtyCanvas?.(true, true);
     }
 
@@ -323,14 +325,17 @@ export function* regions(E) {
         for (const b of new Set(Object.values(E.toolBtns))) b.classList.toggle("on", E.toolBtns[t] === b);
         E.refreshVariantButtons();                       // the buttons show the tool in use; the strip its options
         E.bSlider.style.display = t === "brush" || t === "erase" ? "" : "none";
-        E.hideBTip(); E.updateBrushSlider();
+        E.hideBTip(); E.updateBrushSlider(); E.syncTips();
         if (performance.now() > keepHintUntil) hint("");       // a note just shown (e.g. region shown again) stays
         E.requestDraw();
     }
     E.hintTimer = 0; let keepHintUntil = 0;
+    // a short message in the list header: on the header's one line, cut with "…" when it doesn't fit (its tooltip has
+    // all of it), so the header doesn't jump to two lines for 3.5 s (round 40). Select object's standing instructions
+    // (stickyHint in selectTools.js) are long and stay as long as the tool waits: they get a line of their own.
     function hint(text) {
-        E.statusLbl.textContent = text || "";
+        E.statusLbl.textContent = text || ""; E.statusLbl.title = text || ""; E.statusLbl.classList.remove("wide");
         clearTimeout(E.hintTimer);
-        if (text) E.hintTimer = setTimeout(() => { E.statusLbl.textContent = ""; }, 3500);
+        if (text) E.hintTimer = setTimeout(() => { E.statusLbl.textContent = ""; E.statusLbl.title = ""; }, 3500);
     }
 }

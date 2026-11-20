@@ -2,6 +2,7 @@
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { svgIcon, autocompleteWidgets, getSetting, SET, autoApartSettings, editSettings, llmCacheSettings, controlFiles } from "../rg_shared.js";
 import { ALL } from "./shared.js";
+import { locale } from "../rg_i18n.js";
 import { emptyState } from "./state.js";
 
 export function* core(E) {
@@ -122,7 +123,17 @@ export function* core(E) {
     autocompleteWidgets(node, Object.keys(SCENE_FIELDS), (name, t) => {
         if (!SCENE_FIELDS[name]) return;
         sceneTA[SCENE_FIELDS[name]] = t;
+        if (!t.__rgWc) { t.__rgWc = true; t.addEventListener("input", () => E.wcRefresh?.()); }      // a wildcard typed: the seed group shows
         t.classList.add("rg-scene-ta");
+        t.dataset.rgField = name;                       // which field this text box is (tests/real_layering.cjs finds it by this)
+        // an empty scene prompt says what it is for (English; another language keeps ComfyUI's own placeholder).
+        // Legacy nodes show the input's name as the placeholder: it stays in front; Nodes 2.0 has it as a label.
+        if (locale() === "en" && !t.dataset.rgPlaceholder) {
+            const text = { positive: "the whole picture: setting, style, lighting ...", negative: "what to avoid in the whole picture",
+                           background: "behind the regions: ground, floor, sky, room ..." }[SCENE_FIELDS[name]];
+            t.placeholder = t.placeholder ? `${name}: ${text}` : text;
+            t.dataset.rgPlaceholder = "1";
+        }
         addExpandButton(t, "Open in the pop-up editor", () => E.editScene(SCENE_FIELDS[name]));
         t.dataset.baseTitle = t.title;
         t.addEventListener("input", () => wcMark(t, SCENE_KEYS[SCENE_FIELDS[name]], t.value));

@@ -7,7 +7,7 @@ import { PAL_MAX, normPalette, activePalette } from "./colors.js";
 
 export function* list(E) {
     Object.assign(E, {
-        activateRegion, refreshUI, ico, chevron, subHeader, toggleKind, updateExpandButtons, loraRows, addLoraTo, layerRows,
+        activateRegion, refreshUI, ico, chevron, grip, subHeader, toggleKind, updateExpandButtons, loraRows, addLoraTo, layerRows,
         regionSwatch, featherBox, paletteToggle, paletteRow,
     });
     yield;
@@ -25,7 +25,9 @@ export function* list(E) {
         if (L && L.shape === "star") E.sidesIn.value = String(L.sides);
         if (L && L.shape === "roundrect" && document.activeElement !== E.radiusIn) E.radiusIn.value = String(L.radius ?? 20);
         E.renderRegions();
+        E.syncSockets?.();                             // control_image comes and goes with the Control rows
         E.editor?.refresh();
+        E.syncTips();
         E.requestDraw();
     }
     function ico(symbol, title, fn, cls = "ico") {
@@ -67,6 +69,104 @@ export function* list(E) {
         });
         return c;
     }
+    // ---- drag to reorder (round 35): the grip at the start of a region's row or of a layer's row.
+    // A region lands between two regions (the list order is the output order and the stacking order). A layer lands
+    // above or below another layer, also another region's, or on a region's row (on top of that region's layers).
+    // A line (or the lit region row) shows where; letting go outside the list changes nothing. One undo step.
+    function grip(kind, id, onPick) {
+        const g = E.el("span", "rg-grip"); g.innerHTML = svgIcon("grip");
+        g.title = kind === "region" ? "Click: Make this region the active one.\nDrag: Move it up or down in the list (the output order; the top region is in front)."
+            : "Click: Select this layer.\nDrag: Move it above or below another layer, or onto another region's row.";
+        g.addEventListener("pointerdown", (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault(); e.stopPropagation();
+            onPick?.();                                          // pressing the grip picks its row, as its prompt / name field does
+            const line = E.el("div", "rg-dropline");
+            let target = null;                                   // region: { to } | layer: { lid, after } or { rid }
+            const self = () => E.regList.querySelector(kind === "region" ? `.rg-row.region[data-rid="${id}"]` : `.rg-row.layer[data-lid="${id}"]`);
+            self()?.classList.add("dragging");
+            E.wrap.classList.add("rg-sorting");
+            const clear = () => { line.remove(); E.regList.querySelector(".rg-row.dropon")?.classList.remove("dropon"); };
+            let last = null;
+            const move = (ev) => {
+                last = ev;
+                const box = E.regList.getBoundingClientRect(), y = ev.clientY;
+                clear(); target = null;
+                if (ev.clientX < box.left - 40 || ev.clientX > box.right + 40 || y < box.top - 30 || y > box.bottom + 30) return;
+                const mid = (el) => { const r = el.getBoundingClientRect(); return (r.top + r.bottom) / 2; };
+                if (kind === "region") {
+                    const rows = [...E.regList.querySelectorAll(".rg-row.region")];
+                    let to = rows.findIndex((el) => y < mid(el)); if (to < 0) to = rows.length;
+                    const from = E.state.regions.findIndex((r) => r.id === id);
+                    if (to === from || to === from + 1) return;                 // where it already is
+                    target = { to };
+                    if (to < rows.length) rows[to].before(line); else E.regList.appendChild(line);
+                    return;
+                }
+                const rows = [...E.regList.querySelectorAll(".rg-row.layer, .rg-row.region")];
+                let best = null, bd = Infinity;
+                for (const el of rows) { const r = el.getBoundingClientRect(), d = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0; if (d < bd) { bd = d; best = el; } }
+                if (!best) return;
+                if (best.classList.contains("region")) { target = { rid: Number(best.dataset.rid) }; best.classList.add("dropon"); return; }
+                if (best.dataset.lid === String(id)) return;
+                const after = y >= mid(best);
+                target = { lid: Number(best.dataset.lid), after };
+                if (after) best.after(line); else best.before(line);
+            };
+            // held near the list's top or bottom edge: the list scrolls, so a row out of view can be reached
+            const scroller = setInterval(() => {
+                if (!last) return;
+                const box = E.regList.getBoundingClientRect(), y = last.clientY, was = E.regList.scrollTop;
+                if (y < box.top + 16 && y > box.top - 30) E.regList.scrollTop -= 8; else if (y > box.bottom - 16 && y < box.bottom + 30) E.regList.scrollTop += 8;
+                if (E.regList.scrollTop !== was) move(last);
+            }, 40);
+            const done = (ev) => {
+                clearInterval(scroller);
+                for (const t of ["pointermove", "pointerup", "pointercancel"]) window.removeEventListener(t, t === "pointermove" ? move : done, true);
+                clear(); self()?.classList.remove("dragging"); E.wrap.classList.remove("rg-sorting");
+                if (ev.type === "pointerup" && target) (kind === "region" ? dropRegion : dropLayer)(id, target);
+                E.focusSink();
+            };
+            window.addEventListener("pointermove", move, true); window.addEventListener("pointerup", done, true); window.addEventListener("pointercancel", done, true);
+        });
+        for (const ev of ["mousedown", "click", "dblclick"]) g.addEventListener(ev, (e) => e.stopPropagation());
+        return g;
+    }
+    function dropRegion(id, { to }) {
+        const from = E.state.regions.findIndex((r) => r.id === id);
+        if (from < 0) return;
+        E.change(() => {
+            const [r] = E.state.regions.splice(from, 1);
+            E.state.regions.splice(to > from ? to - 1 : to, 0, r);
+            E.sortLayersByRegions();
+        });
+    }
+    function dropLayer(id, t) {
+        const L = E.state.layers.find((l) => l.id === id);
+        if (!L) return;
+        const hole = L.region === UNSPEC;
+        if (t.rid != null) {                                     // onto a region's row: on top of that region's layers
+            if (!E.regionById(t.rid)) return;
+            E.change(() => {
+                if (hole) L.owner = t.rid; else { L.region = t.rid; delete L.owner; E.curRegion = t.rid; }
+                E.state.layers.splice(E.state.layers.indexOf(L), 1);
+                E.state.layers.splice(E.slotFor(t.rid), 0, L);
+                E.selId = L.id; E.openSub(t.rid, "layers");
+            });
+            return;
+        }
+        const T = E.state.layers.find((l) => l.id === t.lid);
+        if (!T || T === L) return;
+        const rid = T.region === UNSPEC ? E.holeOwner(T) : T.region;        // the region the target is listed under
+        E.change(() => {
+            if (hole) { if (rid != null) L.owner = rid; } else if (rid != null && L.region !== rid) { L.region = rid; delete L.owner; E.curRegion = rid; }
+            E.state.layers.splice(E.state.layers.indexOf(L), 1);
+            // the list shows the top layer first: "below T in the list" is right under T in the stack
+            E.state.layers.splice(E.state.layers.indexOf(T) + (t.after ? 0 : 1), 0, L);
+            E.sortLayersByRegions();                             // regions stay together, holes keep their slots
+            E.selId = L.id; if (rid != null) E.openSub(rid, "layers");
+        });
+    }
     // a subsection header inside an open region: ▶ Layers (3)
     function subHeader(r, kind) {
         const key = `${r.id}:${kind}`, open = E.subOpen.has(key);
@@ -88,6 +188,7 @@ export function* list(E) {
     function kindTargets(kind) {
         const out = [];                                // [rowKey, subKey or null]
         for (const r of E.state.regions) {
+            if (kind === "all") out.push([r.id, null]);        // every region has its options line, also without layers
             for (const k of subKinds(r)) if (kind === "all" || kind === k) out.push([r.id, `${r.id}:${k}`]);
         }
         if ((kind === "loras" || kind === "all") && (E.state.sceneLoras || []).length) out.push([E.SCENE, null]);
@@ -156,8 +257,8 @@ export function* list(E) {
             str.value = String(lo.strength); str.title = "LoRA strength";
             str.addEventListener("change", () => { const v = +str.value; if (Number.isFinite(v)) E.change(() => { lo.strength = v; }); });
             str.addEventListener("keydown", (e) => e.stopPropagation());
-            const del = ico("✕", "Remove this LoRA", () => E.change(() => { list.splice(i, 1); }));
-            row.append(tag, on, pick, str, del);
+            const del = ico("@close", "Remove this LoRA", () => E.change(() => { list.splice(i, 1); }));
+            row.append(tag, on, pick, E.rowWord("strength", str), str, del);
             frag.appendChild(row);
             const chips = E.el("div", "rg-trig");
             frag.appendChild(chips);
@@ -177,10 +278,10 @@ export function* list(E) {
             const row = E.el("div", "rg-row lvl1 layer" + (L.id === E.selId ? " sel" : "") + (hole ? " hole" : ""));
             row.dataset.lid = String(L.id);
             row.addEventListener("pointerdown", (e) => { if (e.target === row || e.target.classList.contains("rg-sw")) E.selectLayer(L); });
-            const eye = ico(L.visible === false ? "○" : "◉", "Show / hide (hidden layers are not output)", () => E.change(() => { L.visible = L.visible === false; }));
+            const eye = ico(L.visible === false ? "@eyeOff" : "@eye", "Show / hide (hidden layers are not output)", () => E.change(() => { L.visible = L.visible === false; }));
             const sw = E.el("div", "rg-sw"); if (!hole) sw.style.background = E.colorOf(L.region) || "transparent";
             sw.title = hole ? "A hole: Select this layer" : "Select this layer";
-            const cut = ico("✂", hole ? "Hole: On. This layer cuts its area out of every layer below it (no region there; black in "
+            const cut = ico("@scissors", hole ? "Hole: On. This layer cuts its area out of every layer below it (no region there; black in "
                 + "color_map). Click to paint this region again." : "Hole: Off. Click to make this layer cut a hole through every "
                 + "layer below it (no region there).", () => E.toggleHole(L));
             cut.classList.toggle("on", hole);
@@ -188,11 +289,11 @@ export function* list(E) {
             name.addEventListener("focus", () => { if (E.selId !== L.id || E.hiddenSel === L.id) { E.selId = L.id; E.hiddenSel = null; E.curRegion = L.region; E.markLayerRows(); E.requestDraw(); } });
             name.addEventListener("change", () => E.change(() => { L.name = name.value; }));
             name.addEventListener("keydown", (e) => e.stopPropagation());
-            const up = ico("▲", L.region === UNSPEC ? "Move up one step in the stack (the hole then cuts through what it moved over)" : "Move up (in front of this region's other layers)", () => E.moveLayer(L, +1));
+            const up = ico("@up", L.region === UNSPEC ? "Move up one step in the stack (the hole then cuts through what it moved over)" : "Move up (in front of this region's other layers)", () => E.moveLayer(L, +1));
             up.disabled = E.moveTarget(L, +1) < 0;
-            const dn = ico("▼", L.region === UNSPEC ? "Move down one step in the stack (what it moved under is no longer cut)" : "Move down (behind this region's other layers)", () => E.moveLayer(L, -1));
+            const dn = ico("@down", L.region === UNSPEC ? "Move down one step in the stack (what it moved under is no longer cut)" : "Move down (behind this region's other layers)", () => E.moveLayer(L, -1));
             dn.disabled = E.moveTarget(L, -1) < 0;
-            const dup = ico("⧉", "Duplicate (Ctrl+D).\nRight-click: Duplicate into another region.", () => E.duplicate(L));
+            const dup = ico("@copy", "Duplicate (Ctrl+D).\nRight-click: Duplicate into another region.", () => E.duplicate(L));
             dup.classList.add("variants");
             dup.addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
             dup.addEventListener("contextmenu", (e) => {
@@ -202,15 +303,17 @@ export function* list(E) {
                 contextMenu(e, items, "Duplicate layer", (v) => { if (v && v.rid != null) E.duplicateTo(L, v.rid); E.focusSink(); });
             });
             const lower = (() => { const i = E.state.layers.indexOf(L); return E.state.layers.slice(0, i).reverse().find((l) => l.region === L.region && l.visible !== false); })();
-            const md = ico("⤓", "Merge down into the next lower layer of this region", () => E.mergeDown(L));
+            const md = ico("@mergeDown", "Merge down into the next lower layer of this region", () => E.mergeDown(L));
             md.disabled = !lower;
-            const mv = ico("⇄", "Move this layer to another region", (e) => {
+            const mv = ico("@moveTo", "Move this layer to another region", (e) => {
                 const items = E.regionTargets(L.region).map((it) => ({ content: `Move to ${it.label}`, rid: it.rid }));
                 contextMenu(e, items, "Move to region", (v) => { if (v && v.rid != null) E.moveLayerToRegion(L, v.rid); E.focusSink(); });
             });
-            const er = ico("⌫", "Erase layer: Remove its shapes and paint, keep the empty layer", () => E.eraseLayer(L));
-            const del = ico("🗑", "Delete layer (Del)", () => E.deleteSelected(L));
-            row.append(eye, sw, name, cut, up, dn, dup, md, mv, er, del);
+            const er = ico("@eraseLayer", "Erase layer: Remove its shapes and paint, keep the empty layer", () => E.eraseLayer(L));
+            const del = ico("@clear", "Delete layer (Delete / Backspace)", () => E.deleteSelected(L));
+            // the grip selects the layer the way its name field does (no rebuilt list under the pointer)
+            const pickLayer = () => { if (E.selId !== L.id || E.hiddenSel === L.id) { E.selId = L.id; E.hiddenSel = null; E.curRegion = L.region; E.markLayerRows(); E.markRegionRows(); E.requestDraw(); } };
+            row.append(grip("layer", L.id, pickLayer), eye, sw, name, cut, up, dn, dup, md, mv, er, del);
             frag.appendChild(row);
         }
         return frag;
@@ -347,7 +450,7 @@ export function* list(E) {
         if (pal.length < PAL_MAX) {
             // "+" adds a white swatch in its place ("+" moves right, or hides at 5 colors), then opens the
             // color picker on that new swatch
-            const add = E.el("button", "rg-paladd"); add.type = "button"; add.textContent = "+";
+            const add = E.el("button", "rg-paladd"); add.type = "button"; add.innerHTML = svgIcon("plus");
             add.title = `Add a color (${pal.length}/${PAL_MAX})`;
             add.addEventListener("pointerdown", (e) => e.stopPropagation());
             add.addEventListener("click", (e) => {

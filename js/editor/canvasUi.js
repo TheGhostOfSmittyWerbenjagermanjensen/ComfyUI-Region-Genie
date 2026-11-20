@@ -1,15 +1,74 @@
 // The brush size slider on the canvas, the list header's options (keep apart, edit mask), sub-sections and the list height.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { app } from "../../../scripts/app.js";
-import { svgIcon, setHTML, contextMenu, editMaskDefaults } from "../rg_shared.js";
-import { UNSPEC } from "./shared.js";
+import { svgIcon, setHTML, contextMenu, editMaskDefaults, getSetting, SET, hintsListeners } from "../rg_shared.js";
+import { UNSPEC, LASSO_MODES } from "./shared.js";
+import { keyed, keyText } from "../rg_keys.js";
 import { normLoraOpts, normEditMask } from "./state.js";
 
 export function* canvasUi(E) {
     Object.assign(E, {
-        updateBrushSlider, setAllApartBtn, syncEditMaskBox,
+        updateBrushSlider, setAllApartBtn, syncEditMaskBox, syncTips,
     });
     yield;
+
+    // ---- hints on the canvas (Settings > Region Genie > Canvas tools > Hints on the canvas): the active tool's
+    // gestures along the bottom edge, and the first steps while the canvas is empty. Neither takes clicks; the
+    // gestures fade while a button is held on the canvas, so they never cover what is being drawn.
+    const tips = E.el("div", "rg-tips"), startCard = E.el("div", "rg-start");
+    const setStartCard = () => { startCard.innerHTML = "<b>Start here</b>"
+        + keyed("<span><i>1</i>Pick a shape (R) and drag a box on the canvas: that is your first region.</span>")
+        + "<span><i>2</i>Type what belongs there in the region's prompt, in the list under the canvas.</span>"
+        + "<span><i>3</i>Connect model and clip, send positive, negative and latent to the sampler, and run.</span>"
+        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span>"; };
+    setStartCard(); E.setStartCard = setStartCard;
+    E.cvBox.append(tips, startCard);
+    // The keys come from the shortcut table (rg_keys.js), so the hints show the user's own; an entry whose key was
+    // taken away is left out ([null, …]).
+    const K = keyText, first = (id) => keyText(id).split(" / ")[0];
+    const join = (...ids) => { const ks = ids.map(first); return ks.every(Boolean) ? ks.join(" / ") : null; };
+    const arrows = () => (["left", "up", "right", "down"].map((d) => first("nudge." + d)).join("") === "←↑→↓" ? "Arrows" : join("nudge.left", "nudge.up", "nudge.right", "nudge.down"));
+    const ccp = () => (join("edit.copy", "edit.cut", "edit.paste") === "Ctrl+C / Ctrl+X / Ctrl+V" ? "Ctrl+C / X / V" : join("edit.copy", "edit.cut", "edit.paste"));
+    const size = () => { const a = first("brush.smaller"), b = first("brush.larger"); return a && b ? `${a} ${b} or Alt+wheel` : "Alt+wheel"; };
+    const VIEW_TIPS = () => [["Wheel", "Zoom"], [first("view.pan") && `${first("view.pan")}+drag`, "Pan"]];
+    const PICK_TIP = ["Alt+click", "Make the region under the pointer the active one"];
+    const LASSO_TIPS = () => [["Drag", "Freehand"], ["Click", "Add a point"], [K("draw.accept") ? `${first("draw.accept")} / double-click` : "Double-click", "Close the outline"],
+        [first("draw.back"), "Remove the last point"], [first("draw.cancel"), "Cancel"]];
+    const TIPS = {
+        select: () => (E.selLayer()
+            ? [["Drag", "Move"], ["Square handles", "Resize (Shift: Keep proportions, Alt: From the centre)"], ["Round handle", "Rotate (Shift: 15° steps)"],
+               [arrows(), "Nudge (Shift: ×10)"], [first("edit.duplicate"), "Duplicate"], [ccp(), "Copy, cut, paste"]]
+            : [["Click", "Select a layer"], ["Double-click a label", "Edit that region"], ...VIEW_TIPS(), [first("view.fit"), "Fit"]]),
+        shape: () => [["Drag", "Draw the shape"], ["Shift", "Equal sides"], ["Alt", "From the centre"], ["▾ on the button", "Other shapes"]],
+        brush: () => [["Drag", "Paint"], ["Shift+click", "A straight line from the last stroke"], [size(), "Brush size"], PICK_TIP],
+        lasso: () => [...LASSO_TIPS(), PICK_TIP],
+        lassoErase: () => LASSO_TIPS(),
+        fill: () => (["linear", "radial"].includes(LASSO_MODES.fill)
+            ? [["Drag", LASSO_MODES.fill === "linear" ? "From full strength to nothing, along the line" : "Outward from full strength to nothing"], PICK_TIP]
+            : [["Click", "Fill that area with the active region"], PICK_TIP]),
+        wand: () => [["Click", "Add the area of similar color to the active region"], PICK_TIP],
+        object: () => [["Click", "The object"], ["Ctrl+click", "Take that spot out of the selection"], ["Drag", "A box around it"], [first("draw.accept"), "Add the selection"],
+                       ["Shift+click", "Add it and start the next"], [first("draw.back"), "Remove the last point"], [first("draw.cancel"), "Discard"]],
+        erase: () => [["Drag", "Erase from the selected layer"], ["Shift+click", "A straight line from the last stroke"], [size(), "Eraser size"]],
+    };
+    let tipsShown = null;
+    function syncTips() {
+        const on = getSetting(SET.toolHints, true) !== false;
+        const empty = on && !E.state.layers.length && !E.state.regions.length && E.modeW?.value !== "use as color map";
+        const list = on ? (TIPS[E.tool]?.() || []).filter((t) => t[0]) : [];
+        const key = `${empty}|${list.map((t) => t.join(":")).join("|")}`;
+        if (key === tipsShown) return;
+        tipsShown = key;
+        startCard.style.display = empty ? "" : "none";
+        tips.style.display = list.length ? "" : "none";
+        tips.replaceChildren(...list.map(([k, text]) => {
+            const s = E.el("span"), b = E.el("b"); b.textContent = k; s.append(b, " " + text); return s;
+        }));
+    }
+    hintsListeners.add(syncTips);
+    E.cv.addEventListener("pointerdown", () => E.cvBox.classList.add("held"));
+    E.tipsRelease = () => E.cvBox.classList.remove("held");
+    for (const ev of ["pointerup", "pointercancel"]) window.addEventListener(ev, E.tipsRelease, true);      // capture: the canvas keeps its own events from bubbling
 
     // ---- brush size: vertical slider over the left edge of the canvas (brush and eraser tools)
     const BMIN = 0.002, BMAX = 0.3;
@@ -77,7 +136,7 @@ export function* canvasUi(E) {
     const hctx = hit.getContext("2d", { willReadFrequently: true }); E.hctx = hctx;
 
     // bottom: one tree: regions, each with its LoRAs and (expandable) layers
-    const tree = E.el("div", "rg-tree");
+    const tree = E.el("div", "rg-tree"); E.tree = tree;
     const treeHead = E.el("div", "rg-head");
     const treeTitle = E.el("span"); treeTitle.textContent = "Regions";
     const addRegionBtn = E.btn("", "Add a region with a new color (it goes on top)", () => {
@@ -86,6 +145,7 @@ export function* canvasUi(E) {
         E.setTool("shape");                          // the next thing to do is usually drawing its box
         setTimeout(() => regList.querySelector(`textarea[data-rid="${E.curRegion}"]`)?.focus(), 0);
     });
+    E.addRegionBtn = addRegionBtn;
     // show / hide one kind of subsection (layers, LoRAs, palettes) in every region at once, or everything
     // + Layer: an empty layer on top of the active region's layers (then paint, lasso or fill into it)
     const addLayerBtn = E.btn("", "Add an empty layer on top of the active region's layers; brush, lasso and fill then go into it", () => {
@@ -102,7 +162,7 @@ export function* canvasUi(E) {
         palette: E.btn("▼ Color Palettes", "Show or hide the color palettes of every region", () => E.toggleKind("palette")),
         all: E.btn("▼ All", "Show or hide everything in the list", () => E.toggleKind("all")),
     }; E.expandBtns = expandBtns;
-    const statusLbl = E.el("span", "rg-hint"); E.statusLbl = statusLbl;
+    const statusLbl = E.el("span", "rg-hint rg-status"); E.statusLbl = statusLbl;
     const loraOptsBox = E.el("span", "rg-loraopts");
     const sepIn = E.el("input", "rg-num"); E.sepIn = sepIn; sepIn.type = "number"; sepIn.min = "0"; sepIn.max = "1"; sepIn.step = "0.05";
     sepIn.title = "LoRA region separation: How much attention between the image of different LoRA regions is removed "
@@ -123,7 +183,7 @@ export function* canvasUi(E) {
         });
         E.refreshUI();
     });
-    allApartBtn.classList.add("icon", "toggle", "variants");
+    allApartBtn.classList.add("mixed", "toggle", "variants", "rg-apart");
     // right-click: the two choices as check items (keep all regions apart / share the background)
     allApartBtn.addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
     allApartBtn.addEventListener("contextmenu", (e) => {
@@ -154,7 +214,7 @@ export function* canvasUi(E) {
         const key = `${own}|${auto}|${!!opts.autoOff}|${shared}`;
         if (allApartShown === key) return;
         allApartShown = key;
-        setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart"));
+        setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart") + "<span>apart</span>");
         allApartBtn.classList.toggle("on", on);
         allApartBtn.title = (own ? "Keep all regions apart: ON."
             : auto ? "Keep all regions apart: ON automatically in the last run."
@@ -218,7 +278,7 @@ export function* canvasUi(E) {
         const show = E.isEdit() ? "" : "none";
         if (editMaskBox.style.display !== show) editMaskBox.style.display = show;
     }
-    loraOptsBox.prepend(editMaskBox);
+    E.editMaskBox = editMaskBox;                   // on the Edit Mode line of the list (rows.js); it was in this header until round 40
     treeHead.append(treeTitle, addRegionBtn, addLayerBtn, expandBtns.layers, expandBtns.loras, expandBtns.palette, expandBtns.all,
                     statusLbl, loraOptsBox);
     loraOptsBox.append(allApartBtn);           // always at the right end; the number fields come and go
@@ -234,7 +294,7 @@ export function* canvasUi(E) {
     // the divider between the canvas and the Regions list: dragging moves room between them (the node keeps its
     // size); the list's height is this node's (node.properties.rg_list_h); double-click: the usual 220 px
     const LIST_H = 220, LIST_MIN = 90, CV_MIN = 120; E.CV_MIN = CV_MIN;
-    const split = E.el("div", "rg-split");
+    const split = E.el("div", "rg-split"); E.split = split;
     split.title = "Drag: More room for the canvas or for the Regions list (this node keeps its size).\nDouble-click: The usual height.";
     const applyListH = () => {
         const h = Math.round(+E.node.properties?.rg_list_h || LIST_H);

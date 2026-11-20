@@ -94,3 +94,66 @@ Check once in legacy mode and once in Nodes 2.0.
 - Longer names (Spanish, Japanese) on the nodes: nothing cut off or overlapping at the default node width, in both node modes.
 - A workflow saved in one language opens and runs unchanged in English, and the other way round.
 - The wording itself: every translation is machine-drafted. A native speaker should read at least the node names, the input names and the dropdown choices (`glossary.json` in each language folder lists them).
+
+## 11. First-use help (round 33)
+
+- On the 4K display, both node modes: the three first steps on an empty canvas and the hint line along the canvas's bottom edge are readable at the zoom you normally work at, and the hint line fades while you draw.
+- After a real run: the button left of Export shows ⚠ with the number of notes (try a run without `clip`), and a click lists them under the canvas.
+- Node Info on a selected Region Genie node shows the guide and its picture.
+- R, V, B pressed while pointing at the toolbar or the region list pick the tool (and no longer trigger ComfyUI's own shortcuts).
+
+## 12. Region rows (round 34)
+
+- On the 4K display, both node modes: a region's prompt gets most of its row; ▶ opens the region to its options line (feather, palette, merge, move, delete) above its layers; feather and the palette set there act on the run as before.
+
+## 13. Labels, colors, dragging (round 35)
+
+- **MOSS-Image with a "color map" Control row and the new region colors** (purple, golden yellow, teal …): the regions are followed as before. The colors are only IDs to the control LoRA, but this was not run on a GPU.
+- On the 4K display, both node modes: each region shows its number and as much of its prompt as fits inside it, readable at your usual zoom; with an image connected (backdrop) the text gets its dark plate.
+- Drag a region and a layer by the six dots at the start of the row, also with the graph zoomed in or out: the line follows the pointer and the row lands where the line was.
+- Settings > Region Genie > Region Genie node > Region colors: clicking a swatch opens the color picker above the Settings dialog; a changed list is used by the next new region.
+- With ComfyUI's light theme: the region list, rows and pop-ups are readable.
+
+## 14. The large editor (round 36)
+
+- On the 4K display, both node modes: the button right of the labels button (or Alt+Enter over the editor) opens the editor in a window filling the page; drawing, the region list, pop-ups, the color picker and the tool menus all work in it and open above it.
+- Close it with ✕, the button, the key, or Esc with nothing selected: the editor is back in the node exactly as it was, at the node's size.
+- Type in the window's scene prompt boxes: the node's own fields have the text after closing.
+- Ctrl+Enter while the window is open queues the workflow; after the run the notes button in the window's bottom bar updates.
+- Switch to another workflow tab while it is open: the window closes and the editor is in its node when you come back.
+
+## 15. Pop-up lists and grips (round 37)
+
+- **Large editor, tag autocomplete on (ComfyUI-Custom-Scripts or ComfyUI-Lora-Manager):** type the start of a tag in the window's scene_prompt_positive and scene_prompt_negative boxes (and the background box with Ideogram 4): the list opens over the window, right under the line you type. Same for a wildcard (`__`).
+- With the graph zoomed in and out (not 100 %): in a region's pop-up editor and in the large editor the tag list still starts right under the typed line, not on it and not far below.
+- **ComfyUI-Lora-Manager's autocomplete** (with Custom-Scripts' switched off): its list also opens over the large editor and the pop-up editors. The automatic test only covers Custom-Scripts' list.
+- Click (don't drag) the six dots of a region row: that region becomes the active one. Click a layer's six dots: the layer is selected and its region active. A drag still moves the row.
+
+## 16. Tooltip, shortcut list, canvas menu, icons, node size (round 38)
+
+- **On the 4K display, both node modes:** point at a tool button: after about half a second the pack's tooltip shows under it (dark box, the name in bold, the shortcut as a key), readable at your display scaling, and **no second, browser tooltip** appears next to it, also after you click a button and keep the pointer on it.
+- Point at a few controls in each place: the tool bar, a region row, a layer row, the bottom bar, a pop-up editor, the LLM settings, the Regional LoRAs node, the Region colors field in Settings. Each shows the pack's tooltip.
+- **?** while the pointer is over the node, and the keyboard button left of Export: the shortcut sheet opens over the node, readable, with your own keys for the large editor and previous / next field. Check that ? does not trigger something of ComfyUI or another pack.
+- **Right-click on the canvas** (region and empty area), both node modes: the pack's menu opens at the pointer, ComfyUI's node menu does not. Right-click outside the canvas (the node's title, the tool bar) still opens what it did before.
+- The icons: every button is readable at your usual zoom; none shows as an empty box or a colored emoji.
+- Add a new Region Genie node (legacy mode): its canvas is square, and a workflow saved before keeps its node size.
+
+## 17. Click areas, your own shortcuts (round 39)
+
+- **Click areas, on the 4K display, both node modes:** click a row's small buttons (eye, ↑ ↓, ✕, the ▶ and the grip) slightly off: just above or below still counts; a click between two buttons goes to the nearer one, never to both. A tool button's small arrow still opens its list.
+- **Changing a key on a real keyboard:** press ? over a node, click a key, press a new one: a letter, a function key, a combination with Ctrl / Alt / Shift, and (on macOS) one with ⌘. The new key works on the canvas at once and the old one doesn't; the tooltip and the hint line show it. Try a key ComfyUI itself uses (R, Ctrl+S): it acts in the editor only while the pointer is over the node.
+- A non-US keyboard layout: the keys with symbols ([ ] ?) can be reached, or can be given keys that can.
+- **Settings > Region Genie > Region Genie node > Shortcuts > Edit…:** the list opens over the Settings dialog, takes a new key there, and closing it leaves the dialog open. After reloading ComfyUI the keys are still yours.
+- Reset all: every key is back; the large editor opens with Alt+Enter again.
+
+## 18. Sockets, size_from, the Edit area line (round 40)
+
+- **A real run with hidden outputs:** on a new node tick `masks` and `color_map` in the sockets list (the cable button in the size row), connect them (Mask Picker, a preview) and run with a model: each receives its own data. Then untick one that isn't connected and run again.
+- **Your own workflows from before this version:** open a few. Links are all still there (also into the old `size_from_image` / `size_from_latent` inputs, now on `size_from`), unconnected sockets are hidden, the node's box is where it was, and the run gives the same result as before.
+- **Both node modes, 4K display:** tick and untick sockets: the node's top moves, the editor and the node's bottom edge stay; wires to other nodes follow.
+- `size_from` with a real image and with a real latent (also one from another node than Empty Latent, where the size is only known after a run): the size at the right end of the size row and the canvas agree with the result.
+- Edit Mode: the **Edit area** line is under *Whole image*, its dropdown and two fields act as the bottom bar's dropdown and the header's fields did; removing the Edit row with ✕ leaves it.
+- A wildcard typed into any prompt brings the seed group into the bottom bar at once; removing the last wildcard hides it.
+- Subgraphs: a Region Genie node inside a subgraph, with only some outputs shown and one of them leaving the subgraph, runs with the right data. (Not tested here.)
+- "Save (API Format)" of a workflow whose node shows only some outputs: the file has the Python node's output numbers and an empty `outputs_shown`.
+

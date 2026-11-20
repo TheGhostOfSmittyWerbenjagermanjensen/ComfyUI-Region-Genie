@@ -118,7 +118,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const added = await page.evaluate(() => ({ set: window.app.extensionManager.setting.get("RegionGenie.Size.Presets"),
         extra: !!document.querySelector("select.rg-size-pre option[data-extra]") }));
     check(`${M}: ＋ Current size adds it to the list`, /1000x760/.test(added.set) && !added.extra);
-    await page.evaluate(() => [...document.querySelectorAll(".rg-presets button")].find((b) => b.textContent === "✕" && /Close/.test(b.title))?.click());
+    await page.evaluate(() => [...document.querySelectorAll(".rg-presets button")].find((b) => b.dataset.ic === "close" && /Close/.test(b.title))?.click());
     await page.evaluate(() => window.app.extensionManager.setting.set("RegionGenie.Size.Presets", "1024x1024; 1152x896; 896x1152; 1216x832; 832x1216; 1344x768; 768x1344; 1536x640; 640x1536"));
 
     // ---------------- the model dropdown sets the format; MOSS layout switch; background only for Ideogram 4
@@ -197,15 +197,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const hidden = lay();
         delete st.regions[0].hidden; rg.__rgRefresh(); await wait(600);
         rg.__rgSelectLayer(1); await wait(500);
-        const cut = [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.textContent === "✂");
+        const cut = [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.dataset.ic === "scissors");
         const offTitle = cut?.title || "";
         cut?.click(); await wait(900);
         const L = rg.__rgState().layers[0];
         const row = document.querySelector('.rg-list .rg-row.layer[data-lid="1"]');
         const asHole = { region: L.region, owner: L.owner, listed: !!row, hatched: !!row?.classList.contains("hole"),
-                         on: !![...(row?.querySelectorAll("button") || [])].find((b) => b.textContent === "✂" && b.classList.contains("on")) };
+                         on: !![...(row?.querySelectorAll("button") || [])].find((b) => b.dataset.ic === "scissors" && b.classList.contains("on")) };
         const holeOnly = lay();
-        [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.textContent === "✂")?.click(); await wait(900);
+        [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.dataset.ic === "scissors")?.click(); await wait(900);
         const back = { region: rg.__rgState().layers[0].region, owner: rg.__rgState().layers[0].owner };
         const again = lay();
         // an old workflow's 'Unspecified' layer (region 0, no owner): listed under the region of the layer below it
@@ -394,7 +394,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     if (!g1) await page.evaluate(() => document.querySelector(".rg-scene-ta")?.parentElement?.querySelector(".rg-expand")?.click());
     await sleep(200);
     const hb = await page.locator(".rg-pop .rg-pop-head span").first().boundingBox();
-    await page.mouse.move(hb.x + 5, hb.y + 5); await page.mouse.down(); await page.mouse.move(hb.x + 805, hb.y - 200, { steps: 6 }); await page.mouse.up();
+    await page.mouse.move(hb.x + 5, hb.y + 5); await page.mouse.down(); await page.mouse.move(hb.x + 805, hb.y - Math.min(200, Math.max(0, hb.y - 40)), { steps: 6 }); await page.mouse.up();      // (not past the top of the window: a pop-up reopens at least 6 px from it)
     const g2 = await geo();
     check(`${M}: dragged outside the node (to the right; ${g1?.x} -> ${g2.x})`, g2.x > g1.x + 700 && g2.x > 800);
     for (let i = 0; i < 3; i++) await page.evaluate(() => [...document.querySelectorAll(".rg-pop .rg-pop-font")].find((b) => b.textContent === "A+").click());
@@ -407,7 +407,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     for (let i = 0; i < 4; i++) seen.push(await step("▶"));
     check(`${M}: ▶ steps scene positive → negative → region 1 → region 2 → back to the first`,
         /negative/.test(seen[0].title) && seen[1].ta === "a red cat" && seen[2].ta === "a green dog" && /scene_prompt_positive/.test(seen[3].title));
-    check(`${M}: ... in the same place and size`, seen.every((g) => g.x === g2.x && g.y === g2.y && g.w === g2.w && g.h === g2.h));
+    check(`${M}: ... in the same place and size (${JSON.stringify([g2, ...seen].map((g) => [g.x, g.y, g.w, g.h]))})`, seen.every((g) => g.x === g2.x && g.y === g2.y && g.w === g2.w && g.h === g2.h));
     check(`${M}: ◀ / ▶ stay in one place in the header while stepping (${seen.map((g) => g.nav).join(", ")})`, seen.every((g) => g.nav === seen[0].nav));
     const back = await step("◀");
     check(`${M}: ◀ from the first goes to the last`, back.ta === "a green dog");

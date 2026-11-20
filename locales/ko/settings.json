@@ -166,6 +166,10 @@
     "name": "채우기: 틈 크기 (px)",
     "tooltip": "채우기, 작은 틈 닫기: 이 픽셀 수의 약 두 배보다 좁은 틈은 닫힙니다."
   },
+  "RegionGenie_Tools_Hints": {
+    "name": "캔버스의 힌트",
+    "tooltip": "켬: 캔버스 아래쪽 가장자리에 현재 도구의 키와 조작 방법을 표시하고, 캔버스가 비어 있을 때는 첫 단계도 표시합니다.\n끔: 캔버스에 힌트를 표시하지 않습니다.\n모든 Region Genie 노드에 바로 적용됩니다."
+  },
   "RegionGenie_Select_Model": {
     "name": "모델",
     "tooltip": "개체 선택(Select object) 도구가 사용하는 SAM 3.1 체크포인트입니다(ComfyUI의 기본 SAM 3 지원). huggingface.co/Comfy-Org/sam3.1에서 sam3.1_multiplex_fp16.safetensors를 내려받아 ComfyUI/models/checkpoints에 넣으세요. 이 파일이 없으면 그 폴더의 다른 SAM 3 체크포인트가 사용됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 ComfyUI가 실행되는 컴퓨터의 어느 위치에서든 체크포인트를 고를 수 있습니다."
@@ -205,14 +209,6 @@
   "RegionGenie_Text_PopupText": {
     "name": "팝업 편집기: 렌더링할 텍스트",
     "tooltip": "영역 팝업 편집기에 있는 Text 상자의 텍스트 크기(px)입니다(Text 상자를 사용 중일 때 헤더의 A− / A+로도 바꿀 수 있음). 모든 노드에 적용됩니다."
-  },
-  "RegionGenie_Popup_PrevKey": {
-    "name": "팝업 편집기: 이전 텍스트 입력란으로 가는 키",
-    "tooltip": "팝업 편집기에서 입력하는 동안, 편집기의 ◀ / ▶ 버튼처럼 노드의 이전 / 다음 텍스트 입력란으로 이동합니다. 기본값: Page Up.\n키는 브라우저가 부르는 이름으로, 보조 키를 앞에 붙여 적습니다: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn, Ctrl / Alt / Shift도 사용할 수 있습니다).\n비워 두기: 키 없음. 모든 Region Genie 노드와 영역별 LoRA 노드에 적용됩니다."
-  },
-  "RegionGenie_Popup_NextKey": {
-    "name": "팝업 편집기: 다음 텍스트 입력란으로 가는 키",
-    "tooltip": "팝업 편집기에서 입력하는 동안, 편집기의 ◀ / ▶ 버튼처럼 노드의 이전 / 다음 텍스트 입력란으로 이동합니다. 기본값: Page Down.\n키는 브라우저가 부르는 이름으로, 보조 키를 앞에 붙여 적습니다: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn, Ctrl / Alt / Shift도 사용할 수 있습니다).\n비워 두기: 키 없음. 모든 Region Genie 노드와 영역별 LoRA 노드에 적용됩니다."
   },
   "RegionGenie_Popup_EscKeeps": {
     "name": "팝업 편집기에서의 Esc",
@@ -288,6 +284,14 @@
       "ask before replacing": "교체 전에 묻기",
       "always replace": "항상 교체"
     }
+  },
+  "RegionGenie_Shortcuts": {
+    "name": "단축키",
+    "tooltip": "Region Genie 편집기의 모든 키: 도구, 실행 취소, 복사와 붙여넣기, 보기, 큰 편집기, 그리고 팝업 편집기에서 입력란 사이를 이동하는 키입니다.\nEdit…: 목록을 엽니다. 목록에서 키를 클릭한 다음 새 키나 조합을 누르세요. 각 단축키는 기본값으로 되돌릴 수 있습니다.\n포인터가 Region Genie 노드 위에 있을 때 ?를 누르거나 노드 아래쪽 막대의 키보드 버튼을 눌러도 같은 목록이 열립니다. 모든 노드에 적용됩니다."
+  },
+  "RegionGenie_Main_RegionColors": {
+    "name": "영역 색상",
+    "tooltip": "새 영역에 이 순서대로 지정되는 색상입니다 (캔버스에 이미 있는 색상은 건너뛰고, 모두 사용 중이면 노드가 그것들과 달라 보이는 색상을 고릅니다).\n색상 클릭: 변경합니다.\n색상 우클릭: 제거합니다.\n＋: 하나 추가합니다.\nDefaults: 기본 제공 색상으로 되돌립니다.\n이미 그린 영역은 색상을 그대로 유지합니다. 검은색은 사용할 수 없습니다: 색상 맵에서 '영역 없음'을 뜻합니다."
   },
   "RegionGenie_Main_Feather": {
     "name": "페더 (px, 연결된 영역)",

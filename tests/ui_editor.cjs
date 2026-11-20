@@ -81,7 +81,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("label drawn", lbl === 1);
 
     // shared background: right-click menu on the four-tiles button
-    const tiles = page.locator(".rg-loraopts > button.rg-btn.icon");
+    const tiles = page.locator(".rg-loraopts > button.rg-apart");
     await tiles.click({ button: "right" });
     const items = await page.evaluate(() => window.__lastMenu.items.map((i) => i.content));
     check("right-click menu: keep apart, automatic, off, share the background", items.length === 4 && /Keep all regions apart/.test(items[0]) && /^✓ Automatic/.test(items[1]) && /Off for this node/.test(items[2]) && /Share the background/.test(items[3]));

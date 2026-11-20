@@ -128,6 +128,30 @@ for (const sub of ["loras", "controlnet"]) {
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.Flux1", "(none)"); });
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Edit.LoRA.MOSS", "(none)"); });
     fs.rmSync(path.join(DIR, "..", "rgtest_outside"), { recursive: true, force: true });
+    // Shortcuts (round 39): one row with a button; its list opens over the dialog and takes a new key there
+    await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Shortcuts", "{}"); });
+    const keysBtn = page.locator('[role="dialog"] .rg-keys-set button');
+    await keysBtn.scrollIntoViewIfNeeded(); await sleep(200);
+    check("Shortcuts: one row with an Edit… button (no row per key)", await keysBtn.count() === 1 && (await page.locator('[role="dialog"] .rg-keys-set span').textContent()) === "All default"
+        && await page.evaluate(() => !/Large editor: key|key for the previous text field/.test(document.querySelector('[role="dialog"]').innerText)));
+    await keysBtn.click(); await sleep(400);
+    const onTop = await page.evaluate(() => { const b = document.querySelector(".rg-keys"); if (!b) return "not there"; const r = b.getBoundingClientRect();
+        const pts = [[r.left + 10, r.top + 10], [(r.left + r.right) / 2, (r.top + r.bottom) / 2], [r.right - 10, r.bottom - 10]];
+        return pts.every(([x, y]) => b.contains(document.elementFromPoint(x, y))) && r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight ? true : "covered or outside the window"; });
+    check(`Edit… opens the shortcut list over the Settings dialog, in the window (${onTop})`, onTop === true);
+    await page.locator('.rg-keys-row[data-cmd="tool.fill"] .rg-key').first().click(); await sleep(150);
+    await page.keyboard.press("Control+Shift+k"); await sleep(300);
+    const set1 = await page.evaluate(() => ({ chip: document.querySelector('.rg-keys-row[data-cmd="tool.fill"] .rg-key').textContent, saved: window.app.extensionManager.setting.get("RegionGenie.Shortcuts"),
+        info: document.querySelector('[role="dialog"] .rg-keys-set span')?.textContent, dlg: !!document.querySelector('[role="dialog"] .rg-keys-set') }));
+    check(`click Fill's key, press Ctrl+Shift+K: taken, saved, and the row says so (${JSON.stringify(set1)})`, set1.chip === "Ctrl+Shift+K" && set1.saved === '{"tool.fill":["Ctrl+Shift+K"]}' && set1.info === "1 changed" && set1.dlg);
+    await page.locator('.rg-keys-row[data-cmd="tool.fill"] .rg-key').first().click(); await sleep(150);
+    await page.keyboard.press("Escape"); await sleep(250);
+    check("Esc while it waits for a key: nothing changes, the list and the Settings dialog stay", await page.locator(".rg-keys").count() === 1 && await page.locator('[role="dialog"] .rg-keys-set').count() === 1
+        && (await page.locator('.rg-keys-row[data-cmd="tool.fill"] .rg-key').first().textContent()) === "Ctrl+Shift+K");
+    await page.locator(".rg-keys-head button", { hasText: "Reset all" }).click(); await sleep(300);
+    await page.keyboard.press("Escape"); await sleep(300);
+    check("Reset all, then Esc: the list closes, the Settings dialog stays open, nothing is saved", await page.locator(".rg-keys").count() === 0 && await page.locator('[role="dialog"] .rg-keys-set').count() === 1
+        && await page.evaluate(() => window.app.extensionManager.setting.get("RegionGenie.Shortcuts")) === "{}");
     await page.keyboard.press("Escape");
     await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Edit.LoRA.Krea2", "(none)");
         await s.set("RegionGenie.ModelFiles.Browse", false); });

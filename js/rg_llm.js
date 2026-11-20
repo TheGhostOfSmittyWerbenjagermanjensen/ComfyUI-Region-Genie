@@ -4,7 +4,7 @@
 // - the sparkles button used on the region rows and on the Whole image row
 // Not an extension by itself.
 import { api } from "../../scripts/api.js";
-import { pickLora, getSetting, setSetting, SET, fileField, LLM_ROWS, LLM_FILES } from "./rg_shared.js";
+import { svgIcon, pickLora, getSetting, setSetting, SET, fileField, LLM_ROWS, LLM_FILES } from "./rg_shared.js";
 
 export const LLM_TYPES = ["character", "object", "text", "scene"];
 const TYPE_LABEL = { character: "Character", object: "Object", text: "Text", scene: "Scene" };
@@ -263,7 +263,7 @@ export async function openLlmSettings(anchor, host) {
         const L = host.getLlm() || {};
         pop.textContent = "";
         const head = mk("div", "head"); const title = mk("b", null, "LLM Prompt Enhancer");
-        const x = mk("button", null, "✕"); x.title = "Close (Esc)"; x.addEventListener("click", close);
+        const x = mk("button", "rg-ib"); x.innerHTML = svgIcon("close"); x.title = "Close (Esc)"; x.addEventListener("click", close);
         head.append(title, x); pop.append(head);
 
         // what the LLM sees
@@ -308,7 +308,7 @@ export async function openLlmSettings(anchor, host) {
                     host.setLlm((l) => { l.assign = { ...(l.assign || {}) }; delete l.assign[t]; });
                     await saveLibrary(); render();
                 });
-                const reset = mk("button", null, "↺");
+                const reset = mk("button", "rg-ib"); reset.innerHTML = svgIcon("reset");
                 reset.title = `Back to the default ('${lib.defaults[t]}')`;
                 reset.addEventListener("click", () => { host.setLlm((l) => { l.assign = { ...(l.assign || {}) }; delete l.assign[t]; }); render(); });
                 row.append(mkDef, reset);
@@ -386,7 +386,7 @@ export async function openLlmSettings(anchor, host) {
                 const nm = loraPicker(x.lora, (name) => { x.lora = name; touch(); });
                 const st = mk("input"); st.type = "number"; st.step = "0.05"; st.min = "-100"; st.max = "100"; st.value = String(x.strength); st.title = "Strength";
                 st.addEventListener("change", () => { const v = +st.value; if (Number.isFinite(v)) { x.strength = v; touch(); } });
-                const del = mk("button", null, "✕"); del.title = "Remove";
+                const del = mk("button", "rg-ib"); del.innerHTML = svgIcon("close"); del.title = "Remove";
                 del.addEventListener("click", () => { draft.loras.splice(i, 1); touch(); renderLoras(); });
                 r.append(on, nm, st, del); lbox.append(r);
             });
@@ -603,7 +603,7 @@ function build(key, box) {
                 const pick = loraPicker(x.lora, (v) => { x.lora = v; saveLibrary(); });
                 const st = RS("input"); st.type = "number"; st.step = "0.05"; st.min = "-100"; st.max = "100"; st.value = String(x.strength); st.title = "Strength";
                 st.addEventListener("change", () => { const v = +st.value; if (Number.isFinite(v)) { x.strength = v; saveLibrary(); } });
-                const rm = RS("button", "", "✕"); rm.title = "Remove";
+                const rm = RS("button", "rg-ib"); rm.innerHTML = svgIcon("close"); rm.title = "Remove";
                 rm.addEventListener("click", () => { p.loras.splice(i, 1); saveLibrary(); drawLoras(); });
                 r.append(on, pick, st, rm); list.append(r);
             });

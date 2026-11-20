@@ -10,7 +10,7 @@ import { api } from "../../scripts/api.js";
 
 let all = null;                                             // { language: { regionGenie: { choices: { english: translated } } } }
 
-const locale = () => { try { return app.extensionManager?.setting?.get?.("Comfy.Locale") || "en"; } catch (e) { return "en"; } };
+export const locale = () => { try { return app.extensionManager?.setting?.get?.("Comfy.Locale") || "en"; } catch (e) { return "en"; } };
 const choices = () => all?.[locale()]?.regionGenie?.choices;
 
 // The label of a dropdown choice in ComfyUI's language (the value itself when there is no translation).

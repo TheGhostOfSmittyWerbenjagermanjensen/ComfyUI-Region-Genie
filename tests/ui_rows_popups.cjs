@@ -88,7 +88,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("2:3, 1.5 MP, x16 = 1024 x 1536", await ratioCase("2:3 (Portrait Photo)", 1.5, 16) === "[1024,1536]");
     check("21:9, 2 MP, x64 = 2240 x 960", await ratioCase("21:9 (Ultrawide)", 2, 64) === "[2240,960]");
     check("4:3, 16 MP, x128 = 4736 x 3584", await ratioCase("4:3 (Standard)", 16, 128) === "[4736,3584]");
-    check("readout and canvas follow", /4736 × 3584/.test(await sizeOut()) && /4736 x 3584/.test(await status()));
+    check("the size row's readout and the canvas follow", /4736 × 3584/.test(await sizeOut()) && JSON.stringify(await page.evaluate(() => window.__node.__rgDims())) === "[4736,3584]");
     await ratioCase("21:9 (Ultrawide)", 2, 64);
     await row.locator(".rg-size-part").first().locator(".rg-btn.icon").click(); await page.waitForTimeout(60);
     check("swap: 9:21 portrait = 960 x 2240", JSON.stringify(await wv()) === "[960,2240]");
@@ -107,7 +107,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const pop = page.locator(".rg-presets");
     check("Edit list… opens the editor, the choice stays", await pop.isVisible() && await pre.inputValue() === "1216x832");
     await pop.locator(".rg-presets-row").first().locator(".rg-presets-name").fill("square"); await pop.locator(".rg-presets-row").first().locator(".rg-presets-name").press("Tab");
-    await pop.locator(".rg-presets-row").nth(1).locator("button", { hasText: "✕" }).click();
+    await pop.locator(".rg-presets-row").nth(1).locator('button[data-ic="close"]').click();
     await page.waitForTimeout(60);
     const setTxt = () => page.evaluate(() => window.__settings["RegionGenie.Size.Presets"]);
     check("editing saves to the shared Setting", /^1024x1024 square; 896x1152;/.test(await setTxt() || ""));
@@ -133,7 +133,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator(".rg-presets button", { hasText: "Current size" }).click(); await page.waitForTimeout(60);
     check("＋ Current size adds 300 x 500 to the list", /300x500/.test(await setTxt() || "") && await pre.locator("option[data-extra]").count() === 0
         && await pre.inputValue() === "300x500");
-    await page.locator(".rg-presets button", { hasText: "✕" }).last().click().catch(() => {});
+    await page.locator('.rg-presets button[data-ic="close"]').last().click().catch(() => {});
     await page.mouse.click(5, 5); await page.waitForTimeout(60);
     await modeBtn("Image size from an aspect ratio").click(); await page.waitForTimeout(60);
     check("the other modes keep their own settings", JSON.stringify(await wv()) === "[960,2240]");

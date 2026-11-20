@@ -44,6 +44,10 @@
         "name": "image",
         "tooltip": "Optional.\nGenerate mode: A backdrop to trace over, or the color map itself (see image_mode).\nEdit mode: The picture to change.\nControl: Depth and canny maps are made from it when control_image isn't connected."
       },
+      "size_from": {
+        "name": "size_from",
+        "tooltip": "Optional. Take the image size from this image or latent (a latent: 16x for MOSS-Image / Flux.2 latents, 8x for SD / SDXL / Flux.1). It comes before the size row and the width / height inputs."
+      },
       "size_from_image": {
         "name": "size_from_image",
         "tooltip": "Take width/height from this image. Takes priority over size_from_latent and the width/height widgets."
@@ -82,15 +86,19 @@
       },
       "width_in": {
         "name": "width_in",
-        "tooltip": "Optional. The image width from another node. It overrides the size row at the top (size_from_image and size_from_latent still come first)."
+        "tooltip": "Optional. The image width from another node. It overrides the size row at the top (size_from still comes first)."
       },
       "height_in": {
         "name": "height_in",
-        "tooltip": "Optional. The image height from another node. It overrides the size row at the top (size_from_image and size_from_latent still come first)."
+        "tooltip": "Optional. The image height from another node. It overrides the size row at the top (size_from still comes first)."
       },
       "wildcard_seed": {
         "name": "wildcard_seed",
         "tooltip": "Seed for the wildcards in the prompt fields (ComfyUI Impact Pack's __name__ and {a|b} syntax)."
+      },
+      "outputs_shown": {
+        "name": "outputs_shown",
+        "tooltip": "Hidden. The outputs this node shows, when it doesn't show all of them (set with the sockets button in the size row). Leave it empty in API prompts."
       }
     },
     "outputs": {

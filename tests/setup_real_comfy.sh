@@ -36,6 +36,17 @@ ln -sfn "$PACK" "$DIR/custom_nodes/ComfyUI-Region-Genie"
 mkdir -p "$IMPACT/wildcards/rgtest"
 printf "red\ngreen\nblue\npurple\n" > "$IMPACT/wildcards/rgtest/color.txt"         # the test wildcard real_run_wildcards.cjs uses
 
+echo "== ComfyUI-Custom-Scripts (tag autocomplete, for tests/real_layering.cjs) and a LoRA file for the LoRA menu"
+SCRIPTS="$DIR/custom_nodes/ComfyUI-Custom-Scripts"
+[ -d "$SCRIPTS/.git" ] || git clone -q --depth 1 https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git "$SCRIPTS"
+mkdir -p "$SCRIPTS/user" "$DIR/models/loras"
+[ -s "$SCRIPTS/user/autocomplete.txt" ] || printf "blue_sky\nblack_cat\nblonde_hair\nblush\nblurry_background\n" > "$SCRIPTS/user/autocomplete.txt"
+[ -e "$DIR/models/loras/rgtest_layering.safetensors" ] || : > "$DIR/models/loras/rgtest_layering.safetensors"
+
+echo "== a test image in the input folder (real_smoke.cjs, real_sockets.cjs)"
+mkdir -p "$DIR/input"
+[ -e "$DIR/input/rg_test.png" ] || python3 -c "from PIL import Image; Image.new('RGB', (768, 512), (90, 140, 200)).save('$DIR/input/rg_test.png')"
+
 if [ "$START" = 1 ]; then
     echo "== starting ComfyUI on 127.0.0.1:$PORT (log: $DIR/comfy.log)"
     # detached: its own output goes to the log, so this script (and a pipe it writes to) can finish

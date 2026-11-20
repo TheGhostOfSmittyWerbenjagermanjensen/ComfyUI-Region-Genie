@@ -2,7 +2,7 @@
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { nodeOffCanvas, getSetting, SET, editLoras, controlFiles } from "../rg_shared.js";
+import { nodeOffCanvas, getSetting, SET, editLoras, controlFiles, hintsListeners, regionColors } from "../rg_shared.js";
 import { closeLlmSettings } from "../rg_llm.js";
 import { lassoRefreshers, ALL, DEFAULT_W, DEFAULT_H, LAYOUT_FORMAT } from "./shared.js";
 import { normLoraOpts, parseState } from "./state.js";
@@ -44,7 +44,7 @@ export function* lifecycle(E) {
 
     // ---------------- layout import / export ----------------
     const sizeLinked = () => (E.node.inputs || []).some((i) =>
-        ["width_in", "height_in", "size_from_image", "size_from_latent"].includes(i.name) && i.link != null);
+        ["width_in", "height_in", "size_from", "size_from_image", "size_from_latent"].includes(i.name) && i.link != null);
     // Edit Mode on: add the edit LoRA set in Settings for the model of the last run (for every model with one
     // when no run has said which), to the 'Whole image' LoRAs; off: remove the rows it added
     function onEditModeChanged() {
@@ -66,6 +66,13 @@ export function* lifecycle(E) {
     }
     function applyLayout(st, scene, sig, size, sceneNeg, madeFor, sceneBg) {
         E.hideBanner();
+        // a layout converted from another format (boxes, MOSS-Image / Ideogram JSON) has no colors of its own:
+        // its regions take the user's region colors, in order (Settings > Region Genie > Region Genie node)
+        if (st?.recolor && Array.isArray(st.regions)) {
+            const list = regionColors();
+            st = { ...st, regions: st.regions.map((r, i) => (i < list.length && !r.fromImage ? { ...r, color: list[i] } : r)) };
+            delete st.recolor;
+        }
         E.change(() => {
             E.state = parseState(JSON.stringify(st), ...(madeFor || E.dims()));     // madeFor: size of an older file
             if (sig) E.state.importSig = sig; else delete E.state.importSig;
@@ -129,6 +136,7 @@ export function* lifecycle(E) {
         E.onDimsChanged(); E.refreshUI();
     }
     chain(E.node, "onExecuted", function (message) {
+        if (Array.isArray(message?.region_info)) E.setRunInfo(message.region_info[0]);
         if (message?.dims) { E.execDims = message.dims; E.execGuess = E.guessInputDims(); E.onDimsChanged(); }
         if (Array.isArray(message?.prompt_format)) { E.lastFormat = String(message.prompt_format[0] || "") || null; E.syncModelSel(); }
         if (Array.isArray(message?.model_arch) && message.model_arch[0]) {
@@ -201,8 +209,8 @@ export function* lifecycle(E) {
         }
         E.onDimsChanged();
     });
-    chain(E.node, "onConfigure", function () { remapOutputs(E.node, E.nodeData.output_name, E.nodeData.output); E.configured = true;
-        E.moveSizeLinks(); setTimeout(() => { E.sizeCfg(); E.syncSizeRow(true); E.onDimsChanged(); }, 0); E.fixImportMode(); E.migrateFormat(); if (E.node.properties?.rg_list_h) E.cvBox.style.minHeight = E.CV_MIN + "px"; E.applyListH(); load(); E.pushLlmCache(); E.syncLlm(); E.updateLlmButtons(); });
+    chain(E.node, "onConfigure", function (saved) { E.applySockets(saved); E.configured = true;
+        E.moveSizeLinks(); E.renumberLinks(); setTimeout(() => { E.sizeCfg(); E.syncSizeRow(true); E.onDimsChanged(); }, 0); E.fixImportMode(); E.migrateFormat(); if (E.node.properties?.rg_list_h) E.cvBox.style.minHeight = E.CV_MIN + "px"; E.applyListH(); load(); E.pushLlmCache(); E.syncLlm(); E.updateLlmButtons(); });
     for (const w of [E.wW, E.hW]) if (w) chain(w, "callback", () => E.onDimsChanged());
     if (E.modeW) chain(E.modeW, "callback", () => E.requestDraw());
 
@@ -230,7 +238,7 @@ export function* lifecycle(E) {
         E.updateLlmButtons();
     }, 500);
     chain(E.node, "onRemoved", function () {
-        clearInterval(poll); E.closeEditor(true); ro.disconnect(); E.offLlmLib(); closeLlmSettings(); lassoRefreshers.delete(E.refreshVariantButtons); E.closeArrange(); if (E.pick) E.pickCancel();
+        clearInterval(poll); E.closeEditor(true); ro.disconnect(); E.offLlmLib(); closeLlmSettings(); lassoRefreshers.delete(E.refreshVariantButtons); hintsListeners.delete(E.syncTips); for (const ev of ["pointerup", "pointercancel"]) window.removeEventListener(ev, E.tipsRelease, true); E.closeArrange(); if (E.pick) E.pickCancel();
         for (const t of E.PAN_EVENTS) window.removeEventListener(t, E.midPan, true);
         window.removeEventListener("pointerdown", E.hideSelOutside, true);
         window.removeEventListener("mousedown", E.noAutoScroll, true);
@@ -253,6 +261,8 @@ export function* lifecycle(E) {
     E.node.__rgRefresh = () => { E.version++; E.save(); E.refreshUI(); };
     E.node.__rgActive = () => E.curRegion;
     E.node.__rgSetTool = (t) => E.setTool(t);
+    E.node.__rgTool = () => E.tool;
+    E.node.__rgDims = () => E.dims();                 // the canvas size (the size row shows the same)
     E.node.__rgSelectLayer = (id) => E.selectLayer(E.state.layers.find((l) => l.id === id) || null);    // tests
     E.node.__rgToolTips = () => Object.values(E.GROUPS).flatMap((g) => g.entries().map((e) => e[2]));   // tests: every tool version's tooltip
     E.node.__rgSetBackdrop = (img, ref) => { E.backdrop = img; E.backdropKey = "test:" + Math.random(); E.backdropRef = ref || null; E.requestDraw(); };
@@ -273,21 +283,27 @@ export function* lifecycle(E) {
     E.setTool("select");
     load();
     // wide enough for the whole toolbar in one row (Select ... labels eye) and a usable region list;
-    // a new node gets a square canvas (legacy mode: measured once laid out, since fonts differ per system)
+    // a new node gets a square canvas (legacy mode: measured once laid out, since fonts differ per system).
+    // Round 38 tried a fixed 700 x 1040 instead; the owner found the canvas too small and wants it square (round 39).
     if (!E.node.size || E.node.size[0] < DEFAULT_W) {
         E.node.setSize?.([DEFAULT_W, Math.max(E.node.size?.[1] || 0, DEFAULT_H)]);
-        let tries = 0;
+        let tries = 0, mine = null;
+        const t0 = performance.now();
         const square = () => {
             if (E.configured || !E.node.graph && tries > 2) return;
+            if (mine != null && Math.abs(E.node.size[1] - mine) > 1) return;     // the user (or something else) resized it meanwhile
             const b = E.cvBox.getBoundingClientRect();
             if (E.cvBox.closest("[data-node-id]")) return;                       // Nodes 2.0 lays out by itself
             if (!b.width || !b.height) { if (++tries < 30) requestAnimationFrame(square); return; }
             const k = app.canvas?.ds?.scale || 1;
             const d = (b.width - b.height) / k;
             if (Math.abs(d) > 1 && tries < 30) {
-                E.node.setSize([E.node.size[0], Math.round(E.node.size[1] + d)]); E.node.setDirtyCanvas?.(true, true);
+                mine = Math.round(E.node.size[1] + d);
+                E.node.setSize([E.node.size[0], mine]); E.node.setDirtyCanvas?.(true, true);
                 tries++; requestAnimationFrame(() => requestAnimationFrame(square));
-            }
+            // square now; the fields above the editor settle a little later (the background field hides, the prompt
+            // fields take their height), so look again a few times during the first seconds
+            } else if (performance.now() - t0 < 2500) setTimeout(square, 250);
         };
         setTimeout(square, 0);
         // Settings > Region Genie: defaults for a node that was just added (not loaded or pasted)

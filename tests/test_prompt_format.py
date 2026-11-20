@@ -102,5 +102,35 @@ check("a model without a layout format: keep all regions apart turns on by itsel
 check("switched off on the node (autoOff): it stays off", auto_apart({"autoOff": True}) is False)
 hl.model_arch, hl.one_pass_ok = _arch, _ok
 
+# ---- round 40: one size_from input (an image or a latent); the guard for a node that shows only some outputs
+import torch  # noqa: E402  (the stub)
+
+
+def size_of(**kw):
+    args = dict(width=64, height=64, scene_prompt_positive="", scene_prompt_negative="", image_mode=rg.IMAGE_MODES[0],
+                min_region_pixels=64, paint_data=json.dumps(BASE), prompt_format="auto")
+    args.update(kw)
+    r = node.run(**args)["result"]
+    return r[rg.RegionGenie.RETURN_NAMES.index("width")], r[rg.RegionGenie.RETURN_NAMES.index("height")]
+
+
+img = torch.zeros((1, 48, 80, 3))                       # an image batch: height 48, width 80
+lat = {"samples": torch.zeros((1, 4, 16, 24))}          # an SD-style latent: 8x -> 192 x 128
+check("size_from with an image: its size", size_of(size_from=img) == (80, 48))
+check("size_from with a latent: its size times the latent scale", size_of(size_from=lat) == (192, 128))
+check("size_from comes before the older size_from_latent socket", size_of(size_from=img, size_from_latent=lat) == (80, 48))
+check("a latent on size_from comes before an image on the older size_from_image socket", size_of(size_from=lat, size_from_image=img) == (192, 128))
+check("the older sockets still work (API prompts, old workflows)", size_of(size_from_image=img) == (80, 48) and size_of(size_from_latent=lat) == (192, 128))
+check("nothing connected: the size row's width and height", size_of() == (64, 64))
+try:
+    size_of(outputs_shown="model,positive,masks")
+    check("outputs_shown still set when the node runs: it stops with a clear message", False)
+except ValueError as e:
+    check("outputs_shown still set when the node runs: it stops with a clear message", "output numbers" in str(e))
+check("outputs_shown empty: runs as always", size_of(outputs_shown="") == (64, 64))
+check("the outputs are in the order the editor's script maps names to",
+      rg.RegionGenie.RETURN_NAMES == ("model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes",
+                                      "elements", "character_boxes", "region_info", "width", "height"))
+
 print("\nall passed" if not fails else f"\n{len(fails)} failed")
 sys.exit(1 if fails else 0)

@@ -166,6 +166,10 @@
     "name": "Relleno: tamaño de hueco (px)",
     "tooltip": "Relleno, cerrando huecos pequeños: Se cierran las aberturas más estrechas que aproximadamente el doble de esta cantidad de píxeles."
   },
+  "RegionGenie_Tools_Hints": {
+    "name": "Ayudas en el lienzo",
+    "tooltip": "Activado: El lienzo muestra en su borde inferior las teclas y los gestos de la herramienta activa, y los primeros pasos mientras está vacío.\nDesactivado: Sin ayudas en el lienzo.\nSe aplica de inmediato a todos los nodos Region Genie."
+  },
   "RegionGenie_Select_Model": {
     "name": "Modelo",
     "tooltip": "El checkpoint de SAM 3.1 que usa la herramienta Seleccionar objeto (el soporte nativo de SAM 3 de ComfyUI). Descarga sam3.1_multiplex_fp16.safetensors de huggingface.co/Comfy-Org/sam3.1 en ComfyUI/models/checkpoints. Cuando ese archivo no está, se usa otro checkpoint de SAM 3 de esa carpeta. Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona un checkpoint en cualquier lugar del equipo de ComfyUI."
@@ -205,14 +209,6 @@
   "RegionGenie_Text_PopupText": {
     "name": "Editor emergente: texto a renderizar",
     "tooltip": "Tamaño del texto en px para el cuadro Text del editor emergente de región (A− / A+ en su cabecera, con el cuadro Text en uso). Se aplica a todos los nodos."
-  },
-  "RegionGenie_Popup_PrevKey": {
-    "name": "Editor emergente: tecla para el campo de texto anterior",
-    "tooltip": "Pasa al campo de texto anterior / siguiente del nodo mientras escribes en un editor emergente, como sus botones ◀ / ▶. Predeterminado: Page Up.\nEscribe la tecla como la nombra el navegador, con los modificadores delante: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (también funcionan Left / Right / Up / Down, PgUp / PgDn y Ctrl / Alt / Shift).\nVacío: Sin tecla. Se aplica a todos los nodos Region Genie y LoRAs regionales."
-  },
-  "RegionGenie_Popup_NextKey": {
-    "name": "Editor emergente: tecla para el campo de texto siguiente",
-    "tooltip": "Pasa al campo de texto anterior / siguiente del nodo mientras escribes en un editor emergente, como sus botones ◀ / ▶. Predeterminado: Page Down.\nEscribe la tecla como la nombra el navegador, con los modificadores delante: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (también funcionan Left / Right / Up / Down, PgUp / PgDn y Ctrl / Alt / Shift).\nVacío: Sin tecla. Se aplica a todos los nodos Region Genie y LoRAs regionales."
   },
   "RegionGenie_Popup_EscKeeps": {
     "name": "Esc en un editor emergente",
@@ -288,6 +284,14 @@
       "ask before replacing": "preguntar antes de reemplazar",
       "always replace": "reemplazar siempre"
     }
+  },
+  "RegionGenie_Shortcuts": {
+    "name": "Atajos de teclado",
+    "tooltip": "Todas las teclas del editor de Region Genie: las herramientas, deshacer, copiar y pegar, la vista, el editor grande y las teclas que pasan de un campo de texto a otro en un editor emergente.\nEdit…: Abre la lista. Haz clic en una tecla y pulsa la nueva tecla o combinación; cada atajo se puede devolver a su valor predeterminado.\nLa misma lista se abre con ? mientras el puntero está sobre un nodo Region Genie, o con el botón del teclado de su barra inferior. Se aplica a todos los nodos."
+  },
+  "RegionGenie_Main_RegionColors": {
+    "name": "Colores de región",
+    "tooltip": "Los colores que reciben las regiones nuevas, en este orden (se omite un color que ya está en el lienzo; cuando todos están en uso, el nodo elige uno que se distinga de ellos).\nClic en un color: Cambiarlo.\nClic derecho en un color: Quitarlo.\n＋: Añadir uno.\nDefaults: Los colores integrados.\nLas regiones ya dibujadas conservan sus colores. No se puede usar el negro: Significa 'sin región' en mapa_de_color."
   },
   "RegionGenie_Main_Feather": {
     "name": "Difuminado (px, regiones vinculadas)",

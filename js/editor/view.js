@@ -141,7 +141,17 @@ export function* view(E) {
     E.execGuess = null;
     // Edit Mode with the image connected (and no size_from_* input): the image's shape at the pixel count of
     // width x height, in steps of 16 (edit_size in region_genie.py)
-    const editSized = () => E.isEdit() && isLinked("image") && !isLinked("size_from_image") && !isLinked("size_from_latent"); E.editSized = editSized;
+    // the size input in use (size_from; the two older sockets only until a loaded workflow's links are moved), and
+    // whether an image or a latent feeds it
+    const sizeFromName = () => ["size_from", "size_from_image", "size_from_latent"].find((n) => isLinked(n)) || null;
+    const sizeFromKind = () => {
+        const n = sizeFromName();
+        if (!n) return null;
+        if (n !== "size_from") return n === "size_from_image" ? "image" : "latent";
+        const f = feeder(E.node, n);
+        return /LATENT/i.test(String(f?.src?.outputs?.[f.slot]?.type || "")) ? "latent" : "image";
+    }; E.sizeFromKind = sizeFromKind;
+    const editSized = () => E.isEdit() && isLinked("image") && !sizeFromName(); E.editSized = editSized;
     function editDims() {
         const s = loadImageSize(srcOf("image"));
         if (!s) return null;
@@ -150,9 +160,10 @@ export function* view(E) {
         return [Math.max(16, pyRound(s[0] * sc / 16) * 16), Math.max(16, pyRound(s[1] * sc / 16) * 16)];
     }
     function guessInputDims() {
-        if (isLinked("size_from_image")) return loadImageSize(srcOf("size_from_image")) || null;
-        if (isLinked("size_from_latent")) {
-            const f = feeder(E.node, "size_from_latent");
+        const from = sizeFromName(), kind = sizeFromKind();
+        if (kind === "image") return loadImageSize(srcOf(from)) || null;
+        if (kind === "latent") {
+            const f = feeder(E.node, from);
             const w = numberOf(f?.src, "width"), h = numberOf(f?.src, "height");
             return w && h ? [w, h] : null;
         }
@@ -160,7 +171,7 @@ export function* view(E) {
         return null;
     }
     function inputDims() {
-        if (!isLinked("size_from_image") && !isLinked("size_from_latent") && !editSized()) return null;
+        if (!sizeFromName() && !editSized()) return null;
         const g = guessInputDims();
         if (E.execDims && JSON.stringify(g) === JSON.stringify(E.execGuess)) return E.execDims;
         return g || E.execDims || null;
@@ -196,10 +207,6 @@ export function* view(E) {
         if (W !== E.lastDims[0] || H !== E.lastDims[1]) {
             E.lastDims = [W, H];
             if (!E.userView) fitView();
-        }
-        {
-            E.dimsLbl.textContent = `${W} x ${H}` + (isLinked("size_from_image") ? " (from image)" : isLinked("size_from_latent") ? " (from latent)"
-                : isLinked("width_in") || isLinked("height_in") ? " (from input)" : "");
         }
         E.syncSizeRow();
         E.requestDraw();

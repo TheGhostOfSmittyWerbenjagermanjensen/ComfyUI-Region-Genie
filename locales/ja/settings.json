@@ -166,6 +166,10 @@
     "name": "塗りつぶし: 隙間サイズ（px）",
     "tooltip": "塗りつぶし（小さな隙間を閉じる）: このピクセル数の約 2 倍より狭い開口部が閉じられます。"
   },
+  "RegionGenie_Tools_Hints": {
+    "name": "キャンバス上のヒント",
+    "tooltip": "オン: キャンバスの下端に、使用中のツールのキーと操作方法を表示します。キャンバスが空のときは最初の手順も表示します。\nオフ: キャンバスにヒントを表示しません。\nすべての Region Genie ノードにすぐに適用されます。"
+  },
   "RegionGenie_Select_Model": {
     "name": "モデル",
     "tooltip": "「オブジェクトを選択」ツールが使う SAM 3.1 チェックポイント（ComfyUI 標準の SAM 3 対応）。sam3.1_multiplex_fp16.safetensors を huggingface.co/Comfy-Org/sam3.1 から ComfyUI/models/checkpoints にダウンロードしてください。このファイルがない場合は、同じフォルダー内の別の SAM 3 チェックポイントが使われます。「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンで ComfyUI マシン上の任意の場所にあるチェックポイントを選べます。"
@@ -205,14 +209,6 @@
   "RegionGenie_Text_PopupText": {
     "name": "ポップアップエディタ: 描画するテキスト",
     "tooltip": "領域ポップアップエディタの Text ボックスの文字サイズ（px。Text ボックスの使用中は、ヘッダーの A− / A+ でも変更できます）。すべてのノードに適用されます。"
-  },
-  "RegionGenie_Popup_PrevKey": {
-    "name": "ポップアップエディタ: 前のテキスト欄へ移動するキー",
-    "tooltip": "ポップアップエディタで入力中に、ノードの前 / 次のテキスト欄へ移動します（エディタの ◀ / ▶ ボタンと同じ）。デフォルト: Page Up。\nキーはブラウザでの名前で書き、修飾キーを前に付けます: PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn、Ctrl / Alt / Shift も使えます）。\n空欄: キーなし。すべての Region Genie ノードと 領域別LoRA ノードに適用されます。"
-  },
-  "RegionGenie_Popup_NextKey": {
-    "name": "ポップアップエディタ: 次のテキスト欄へ移動するキー",
-    "tooltip": "ポップアップエディタで入力中に、ノードの前 / 次のテキスト欄へ移動します（エディタの ◀ / ▶ ボタンと同じ）。デフォルト: Page Down。\nキーはブラウザでの名前で書き、修飾キーを前に付けます: PageUp、PageDown、Alt+ArrowLeft、Alt+ArrowRight、Ctrl+PageUp、F2 …（Left / Right / Up / Down、PgUp / PgDn、Ctrl / Alt / Shift も使えます）。\n空欄: キーなし。すべての Region Genie ノードと 領域別LoRA ノードに適用されます。"
   },
   "RegionGenie_Popup_EscKeeps": {
     "name": "ポップアップエディタでの Esc",
@@ -288,6 +284,14 @@
       "ask before replacing": "置き換える前に確認",
       "always replace": "常に置き換える"
     }
+  },
+  "RegionGenie_Shortcuts": {
+    "name": "ショートカット",
+    "tooltip": "Region Genie エディタのすべてのキー: ツール、元に戻す、コピーと貼り付け、表示、大きなエディタ、ポップアップエディタでテキスト欄を移動するキー。\nEdit…: 一覧を開きます。一覧のキーをクリックし、新しいキーまたは組み合わせを押します。各ショートカットはデフォルトに戻せます。\nポインタが Region Genie ノードの上にあるときに ? を押すか、ノード下部のバーにあるキーボードボタンを押しても、同じ一覧が開きます。すべてのノードに適用されます。"
+  },
+  "RegionGenie_Main_RegionColors": {
+    "name": "領域の色",
+    "tooltip": "新しい領域にこの順で割り当てられる色（キャンバスですでに使われている色は飛ばします。すべて使用中の場合は、それらと見分けやすい色をノードが選びます）。\n色をクリック: 変更します。\n色を右クリック: 削除します。\n＋: 1 色追加します。\nDefaults: 組み込みの色に戻します。\nすでに描いた領域の色は変わりません。黒は使えません: カラーマップでは「領域なし」を意味します。"
   },
   "RegionGenie_Main_Feather": {
     "name": "フェザー（px、リンクした領域）",

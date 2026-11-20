@@ -2,6 +2,8 @@
 // tag autocomplete from ComfyUI-Lora-Manager). Not an extension by itself.
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
+import { openColorPicker } from "./rg_colorpicker.js";
+import "./rg_tooltip.js";                 // the pack's own tooltip takes over every title in the pack's elements
 
 // ---------------------------------------------------------------- icons (16x16, stroke = text color)
 export const ICONS = {
@@ -13,30 +15,13 @@ export const ICONS = {
     erase: '<path d="M6.2 13.5L2.8 10.1a1.3 1.3 0 0 1 0-1.8l5.6-5.6a1.3 1.3 0 0 1 1.8 0l3.4 3.4a1.3 1.3 0 0 1 0 1.8l-5.6 5.6z"/><path d="M5.4 5.6l5 5"/><path d="M6.2 13.5h7.6"/>',
     lassoSpline: '<path d="M2.6 7.6C2.2 4.2 6.4 2.2 10.2 2.6c3.4.4 4.6 3 2.6 4.6-1.8 1.4-5.4 1.8-8.2 1"/><path d="M4.4 8.4c-1.4.9-1 2.4.3 2.8 1.3.4 1.6 1.7.7 2.8"/><rect x="1.3" y="6.3" width="2.6" height="2.6" fill="currentColor" stroke="none"/><rect x="8.9" y="1.3" width="2.6" height="2.6" fill="currentColor" stroke="none"/><rect x="12.4" y="4.9" width="2.6" height="2.6" fill="currentColor" stroke="none"/>',
     lassoEraseSpline: '<ellipse cx="7.6" cy="6.4" rx="5.4" ry="3.7" stroke-dasharray="2.2 1.6"/><rect x="0.9" y="5.1" width="2.6" height="2.6" fill="currentColor" stroke="none"/><rect x="6.3" y="1.4" width="2.6" height="2.6" fill="currentColor" stroke="none"/><rect x="11.7" y="5.1" width="2.6" height="2.6" fill="currentColor" stroke="none"/><path d="M10.6 10.6l3.6 3.6M14.2 10.6l-3.6 3.6"/>',
-    magnet: '<path d="M3 2.5h3v5.4a2 2 0 0 0 4 0V2.5h3v5.4a5 5 0 0 1-10 0z"/><path d="M3 5h3M10 5h3"/>',
-    magnetOff: '<path d="M3 2.5h3v5.4a2 2 0 0 0 4 0V2.5h3v5.4a5 5 0 0 1-10 0z"/><path d="M3 5h3M10 5h3"/><path d="M1.8 14.2L14.2 1.8"/>',
     lassoErase: '<ellipse cx="7.6" cy="6.4" rx="5.4" ry="3.7" stroke-dasharray="2.2 1.6"/><path d="M10.6 10.6l3.6 3.6M14.2 10.6l-3.6 3.6"/>',
-    undo: '<path d="M5.6 3.6L2.6 6.6l3 3"/><path d="M2.9 6.6h7.3a3.4 3.4 0 0 1 0 6.8H7.2"/>',
-    redo: '<path d="M10.4 3.6l3 3-3 3"/><path d="M13.1 6.6H5.8a3.4 3.4 0 0 0 0 6.8h3"/>',
-    clear: '<path d="M2.8 4.4h10.4"/><path d="M6.3 4.4V2.8h3.4v1.6"/><path d="M4.3 4.4l.7 9.2h6l.7-9.2"/><path d="M6.8 6.8v4.6M9.2 6.8v4.6"/>',
-    eye: '<path d="M1.4 8S3.8 3.6 8 3.6 14.6 8 14.6 8 12.2 12.4 8 12.4 1.4 8 1.4 8z"/><circle cx="8" cy="8" r="2.1"/>',
-    eyeOff: '<path d="M1.4 7.4S3.8 10.8 8 10.8s6.6-3.4 6.6-3.4"/><path d="M3.4 9.6l-1.3 1.7M8 10.8v2.2M12.6 9.6l1.3 1.7"/>',
-    link: '<path d="M6.4 9.6l3.2-3.2"/><path d="M7.4 4.6l1.4-1.4a2.6 2.6 0 0 1 3.7 3.7L11.1 8.3"/><path d="M8.6 11.4l-1.4 1.4a2.6 2.6 0 0 1-3.7-3.7l1.4-1.4"/>',
-    unlink: '<path d="M7.4 4.6l1.4-1.4a2.6 2.6 0 0 1 3.7 3.7L11.1 8.3"/><path d="M8.6 11.4l-1.4 1.4a2.6 2.6 0 0 1-3.7-3.7l1.4-1.4"/><path d="M5.4 2v1.8M2 5.4h1.8M10.6 14v-1.8M14 10.6h-1.8"/>',
     edges: '<rect x="2.5" y="2.5" width="11" height="11" stroke-dasharray="2 1.6"/><rect x="5.5" y="5.5" width="5" height="5" fill="currentColor" stroke="none" opacity=".55"/>',
-    feather: '<path d="M13.6 2.4C9.2 2.6 5 5.8 4.2 10.6L3.6 13"/><path d="M13.6 2.4c.4 4.6-2.6 8.8-7.9 9.6"/><path d="M4.3 10.2l4.6-4.6"/><path d="M6.4 11.6l3.3.1"/><path d="M8.4 5.2l3.4.2"/>',
     regionAdd: '<rect x="1.5" y="3" width="9" height="9" rx="1.5"/><path d="M13 1.8v4.4M10.8 4h4.4"/>',
-    layerAdd: '<path d="M6.5 3.5L1.5 6l5 2.5 5-2.5z"/><path d="M1.5 9l5 2.5 5-2.5"/><path d="M13 9.5v4.4M10.8 11.7h4.4"/>',
-    layers: '<path d="M8 2.5L2 5.5l6 3 6-3z"/><path d="M2 8.5l6 3 6-3"/><path d="M2 11.2l6 3 6-3"/>',
+    grip: '<g fill="currentColor" stroke="none"><circle cx="5.5" cy="3.5" r="1.2"/><circle cx="10.5" cy="3.5" r="1.2"/><circle cx="5.5" cy="8" r="1.2"/><circle cx="10.5" cy="8" r="1.2"/><circle cx="5.5" cy="12.5" r="1.2"/><circle cx="10.5" cy="12.5" r="1.2"/></g>',
     allApart: '<rect x="1.5" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="1.5" y="9.3" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="9.3" width="5.2" height="5.2" rx="1"/>',
     // the four tiles on a shaded backdrop: kept apart from each other, the background shared
     allApartShared: '<rect x="0.6" y="0.6" width="14.8" height="14.8" rx="2" fill="currentColor" stroke="none" opacity=".32"/><rect x="2.4" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="2.4" y="9.2" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="9.2" width="4.4" height="4.4" rx=".9"/>',
-    // Edit Mode: a region that changes (pencil) / is kept as it is in the source (lock)
-    pencil: '<path d="M11.3 2.3l2.4 2.4-8 8-3.1.7.7-3.1z"/><path d="M9.8 3.8l2.4 2.4"/>',
-    lock: '<rect x="3.4" y="7.2" width="9.2" height="6.8" rx="1.2"/><path d="M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2"/>',
-    // tag autocomplete on / off (lit / slashed, like the magnet and eye buttons)
-    tag: '<path d="M2.4 2.4h5.4l5.9 5.9-5.4 5.4-5.9-5.9z"/><circle cx="5.4" cy="5.4" r="1.1"/>',
-    tagOff: '<path d="M2.4 2.4h5.4l5.9 5.9-5.4 5.4-5.9-5.9z"/><circle cx="5.4" cy="5.4" r="1.1"/><path d="M1.6 14.4L14.4 1.6"/>',
     // image input: traced over (backdrop) / read as the color map
     imgBackdrop: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M1.8 11l3.6-3.6 3 3 2-2 3.8 3.8"/><circle cx="10.6" cy="5.9" r="1.1"/>',
     imgColorMap: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M8 2.8v10.4M1.8 8h6.2"/><rect x="2.6" y="3.6" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/><rect x="8.8" y="8.8" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/>',
@@ -44,10 +29,8 @@ export const ICONS = {
     sizeRatio: '<rect x="1.8" y="3.8" width="12.4" height="8.4" rx="1.2"/><path d="M4.4 9.6l7.2-3.2" stroke-dasharray="1.6 1.3"/>',
     sizeList: '<rect x="1.8" y="2.4" width="12.4" height="11.2" rx="1.2"/><path d="M4.4 5.6h7.2M4.4 8h7.2M4.4 10.4h4.6"/>',
     sizeManual: '<rect x="1.8" y="3.8" width="12.4" height="8.4" rx="1.2"/><path d="M4.4 8h2.6M9 8h2.6M5.3 6.6L4.2 8l1.1 1.4M10.7 6.6L11.8 8l-1.1 1.4"/>',
-    swapWH: '<path d="M4.6 2.4v10.8M2.6 11.2l2 2 2-2"/><path d="M11.4 13.6V2.8M9.4 4.8l2-2 2 2"/>',
     // wildcards (Impact Pack): the picker / seed label, seed modes (fixed = lock), use the filled text
     wildcard: '<path d="M5.4 2.6c-1.4 0-2 .7-2 2v1.6c0 .9-.5 1.5-1.4 1.8.9.3 1.4.9 1.4 1.8v1.6c0 1.3.6 2 2 2"/><path d="M10.6 2.6c1.4 0 2 .7 2 2v1.6c0 .9.5 1.5 1.4 1.8-.9.3-1.4.9-1.4 1.8v1.6c0 1.3-.6 2-2 2"/><path d="M8 5.4v5.2M5.8 6.7l4.4 2.6M10.2 6.7L5.8 9.3" stroke-width="1.2"/>',
-    dice: '<rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.2"/><circle cx="5.4" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="5.4" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="5.4" cy="10.6" r="1" fill="currentColor" stroke="none"/><circle cx="10.6" cy="10.6" r="1" fill="currentColor" stroke="none"/>',
     plusOne: '<path d="M2.4 8h4.4M4.6 5.8v4.4"/><path d="M9.6 5.2l2-1.6v8.8"/>',
     useFilled: '<path d="M8 1.8v7.6M4.8 6.4L8 9.6l3.2-3.2"/><path d="M2.4 12.8h11.2"/>',
     // Control (ControlNet): contour lines of a depth map
@@ -64,11 +47,6 @@ export const ICONS = {
     shapeHeart: '<path d="M8 13.6S2 9.9 2 5.9A3.1 3.1 0 0 1 8 4.6a3.1 3.1 0 0 1 6 1.3c0 4-6 7.7-6 7.7z"/>',
     // image opacity (the slider on the canvas's right edge)
     opacity: '<circle cx="8" cy="8" r="5.8"/><path d="M8 2.2v11.6A5.8 5.8 0 0 0 8 2.2z" fill="currentColor" stroke="none"/>',
-    // open a text field in the pop-up editor
-    expand: '<path d="M9.4 2.4h4.2v4.2M13.6 2.4L9.2 6.8M6.6 13.6H2.4V9.4M2.4 13.6l4.4-4.4"/>',
-    // Select object: add the pending selection / discard it
-    check: '<path d="M2.8 8.6l3.4 3.4 7-7.6"/>',
-    close: '<path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8"/>',
     // Select object (SAM): a frame, a figure and a pointer
     samSelect: '<path d="M2 5V3a1 1 0 0 1 1-1h2M11 2h2a1 1 0 0 1 1 1v2M14 11v2a1 1 0 0 1-1 1h-2M5 14H3a1 1 0 0 1-1-1v-2"/><circle cx="6.6" cy="5.8" r="1.6"/><path d="M3.8 11c.3-1.7 1.4-2.8 2.8-2.8"/><path d="M8.8 8.2l4.6 1.8-2 .8-.8 2z" fill="currentColor" stroke-width="1"/>',
     // magic wand (contiguous) and its 'all similar colors' variant
@@ -96,11 +74,64 @@ export const ICONS = {
     maskGrow: '<rect x="5.2" y="5.2" width="5.6" height="5.6" rx="1" fill="currentColor" stroke="none" opacity=".55"/><rect x="1.8" y="1.8" width="12.4" height="12.4" rx="1.5" stroke-dasharray="2 1.7"/><path d="M8 4.6V2.9M8 11.4v1.7M4.6 8H2.9M11.4 8h1.7"/>',
     mossLayout: '<rect x="1.5" y="2" width="13" height="12" rx="1.5"/><rect x="3.5" y="4" width="4.5" height="4" rx=".6"/><rect x="9" y="7.5" width="3.5" height="4.5" rx=".6"/>',
     mossStandard: '<rect x="1.5" y="2" width="13" height="12" rx="1.5"/><path d="M4 5.5h8M4 8h8M4 10.5h5"/>',
-    folder: '<path d="M1.8 4.2c0-.6.5-1.1 1.1-1.1h3.3l1.5 1.6h5.4c.6 0 1.1.5 1.1 1.1v6.7c0 .6-.5 1.1-1.1 1.1H2.9c-.6 0-1.1-.5-1.1-1.1z"/><path d="M1.8 6.4h12.4"/>',
-    palette: '<path d="M8 1.8C4.4 1.8 1.8 4.4 1.8 7.7c0 3.4 2.7 6.3 6 6.3 1 0 1.6-.6 1.6-1.4 0-.8-.6-1.1-.6-1.8 0-.8.6-1.4 1.5-1.4h1.6c1.6 0 2.4-1.2 2.4-2.6 0-2.8-2.9-5-6.3-5z"/><circle cx="5" cy="7" r=".9" fill="currentColor"/><circle cx="7.4" cy="4.6" r=".9" fill="currentColor"/><circle cx="10.5" cy="5.1" r=".9" fill="currentColor"/><circle cx="4.9" cy="10.1" r=".9" fill="currentColor"/>',
 };
-export const svgIcon = (name) =>
-    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
+// General-purpose icons, taken from Lucide 1.76 (https://lucide.dev, ISC license: see THIRD-PARTY-NOTICES.md). They are
+// drawn on a 24-unit grid; svgIcon() draws them at the weight of the pack's own 16-unit drawings above. To add one:
+// copy the inside of its .svg here, under the name the code uses (the comment keeps Lucide's name).
+export const LUCIDE = {
+    undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',   // undo-2
+    redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/>',   // redo-2
+    clear: '<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',   // trash-2
+    eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',   // eye
+    eyeOff: '<path d="m15 18-.722-3.25"/><path d="M2 8a10.645 10.645 0 0 0 20 0"/><path d="m20 15-1.726-2.05"/><path d="m4 15 1.726-2.05"/><path d="m9 18 .722-3.25"/>',   // eye-closed
+    link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',   // link
+    unlink: '<path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/>',   // unlink
+    pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',   // pencil
+    lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',   // lock
+    tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',   // tag
+    tagOff: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/><path d="m2 2 20 20"/>',   // tag + a slash
+    magnet: '<path d="m12 15 4 4"/><path d="M2.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.029-6.029a1 1 0 1 1 3 3l-6.029 6.029a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.365-6.367A1 1 0 0 0 8.716 4.282z"/><path d="m5 8 4 4"/>',   // magnet
+    magnetOff: '<path d="m12 15 4 4"/><path d="M2.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.029-6.029a1 1 0 1 1 3 3l-6.029 6.029a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.365-6.367A1 1 0 0 0 8.716 4.282z"/><path d="m5 8 4 4"/><path d="m2 2 20 20"/>',   // magnet + a slash
+    dice: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/>',   // dice-5
+    check: '<path d="M20 6 9 17l-5-5"/>',   // check
+    close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',   // x
+    folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',   // folder
+    palette: '<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>',   // palette
+    layers: '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/>',   // layers
+    layerAdd: '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 .83.18 2 2 0 0 0 .83-.18l8.58-3.9a1 1 0 0 0 0-1.831z"/><path d="M16 17h6"/><path d="M19 14v6"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 .825.178"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l2.116-.962"/>',   // layers-plus
+    expand: '<path d="M15 3h6v6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/><path d="M9 21H3v-6"/>',   // maximize-2
+    feather: '<path d="M14.086 18.412A2 2 0 0112.67 19H5v-7.672a2 2 0 01.586-1.414L11.75 3.75a6 6 0 118.49 8.49z"/><path d="M16 8 2 22"/><path d="M17.488 15H9"/>',   // feather
+    swapWH: '<path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/>',   // arrow-down-up
+    up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',   // arrow-up
+    down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',   // arrow-down
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',   // copy
+    scissors: '<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>',   // scissors
+    mergeDown: '<path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/>',   // arrow-down-to-line
+    mergeAll: '<g transform="rotate(180 12 12)"><path d="m8 6 4-4 4 4"/><path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22"/><path d="m20 22-5-5"/></g>',   // merge, turned upside down
+    moveTo: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',   // arrow-left-right
+    eraseLayer: '<path d="M10 5a2 2 0 0 0-1.344.519l-6.328 5.74a1 1 0 0 0 0 1.481l6.328 5.741A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="m12 9 6 6"/><path d="m18 9-6 6"/>',   // delete
+    reset: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',   // rotate-ccw
+    folderUp: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m9 13 3-3 3 3"/>',   // folder-up
+    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',   // plus
+    warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',   // triangle-alert
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',   // info
+    keyboard: '<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>',   // keyboard
+    sockets: '<path d="M17 19a1 1 0 0 1-1-1v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a1 1 0 0 1-1 1z"/><path d="M17 21v-2"/><path d="M19 14V6.5a1 1 0 0 0-7 0v11a1 1 0 0 1-7 0V10"/><path d="M21 21v-2"/><path d="M3 5V3"/><path d="M4 10a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2a2 2 0 0 1-2 2z"/><path d="M7 5V3"/>',   // cable
+    fit: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',   // maximize
+};
+const SVG_ATTRS = 'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"';
+export const svgIcon = (name) => (LUCIDE[name]
+    ? `<svg viewBox="0 0 24 24" ${SVG_ATTRS} stroke-width="2.25">${LUCIDE[name]}</svg>`
+    : `<svg viewBox="0 0 16 16" ${SVG_ATTRS} stroke-width="1.5">${ICONS[name]}</svg>`);
+// a button whose whole label is one icon (every editor and pop-up of the pack uses it, so the rule lives here)
+if (typeof document !== "undefined" && !document.getElementById("rg-ib-style")) {
+    const st = document.createElement("style"); st.id = "rg-ib-style";
+    st.textContent = `.rg-ib { display:inline-flex; align-items:center; justify-content:center; }
+.rg-ib > svg { width:14px; height:14px; display:block; flex:0 0 auto; pointer-events:none; }
+.rg-btn.rg-x { display:inline-flex; align-items:center; }
+.rg-x > svg { width:13px; height:13px; display:block; pointer-events:none; }`;
+    document.head.appendChild(st);
+}
 // set an element's content only when it changes: replacing what is under the mouse restarts (and so hides) its tooltip
 export const setHTML = (e, html) => { if (e && e.__rgHtml !== html) { e.__rgHtml = html; e.innerHTML = html; } };
 
@@ -249,7 +280,7 @@ export function openFileBrowser({ folders = ["loras"], home, title = "Choose a m
         const roots = mk("select"); roots.title = "Go to: One of ComfyUI's model folders, a drive or the home folder";
         head.appendChild(roots);
         const pathRow = mk("div", "rg-fb-path");
-        const up = mk("button", "", "⬆"); up.title = "Up one folder";
+        const up = mk("button", "rg-ib"); up.innerHTML = svgIcon("folderUp"); up.title = "Up one folder";
         const pathIn = mk("input"); pathIn.title = "The folder shown. Type or paste a folder (or a file's full path) and press Enter";
         pathRow.append(up, pathIn);
         const list = mk("div", "rg-fb-list");
@@ -558,6 +589,70 @@ const CHECK_CSS = `
 .rg-chk-out { align-self:stretch; font-size:12px; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; user-select:text; }
 .rg-chk-out.ok { color:#8c8; }
 .rg-chk-out.bad b { color:#e88; font-weight:600; }`;
+// ---- Settings > Region Genie > Region Genie node > Region colors (round 35): the colors new regions get, in
+// this order. Calm, clearly different tones by default (purple first, then golden yellow: the owner's choice);
+// a user who tells other colors apart better sets their own here. Stored as one text: "#RRGGBB, #RRGGBB, …".
+export const REGION_COLORS_DEFAULT = "#8F73D1, #E3B341, #3FA9A0, #DE7359, #5C9DDB, #7DB45C, #E08DB4, #4A58A6, #9BDDC0, #A27A52, #A8509C, #8496A6";
+const REGION_COLORS_MAX = 24;
+export function parseColorList(v) {
+    const out = [];
+    for (const m of String(v ?? "").toUpperCase().matchAll(/#?([0-9A-F]{6})\b/g)) {
+        const c = "#" + m[1];
+        const dark = Math.max(parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4, 6), 16)) < 32;
+        if (!dark && !out.includes(c)) out.push(c);             // black means "no region" in the color map
+        if (out.length >= REGION_COLORS_MAX) break;
+    }
+    return out;
+}
+export function regionColors() {
+    const list = parseColorList(getSetting(SET.regionColors, REGION_COLORS_DEFAULT));
+    return list.length ? list : parseColorList(REGION_COLORS_DEFAULT);
+}
+const COLORS_CSS = `
+.rg-colors { display:flex; flex-wrap:wrap; align-items:center; gap:5px; max-width:420px; justify-content:flex-end; }
+.rg-colors .sw { width:22px; height:22px; padding:0; border-radius:4px; border:1px solid rgba(128,128,128,.7); cursor:pointer; }
+.rg-colors .sw:hover, .rg-colors .sw:focus-visible { outline:2px solid var(--p-primary-color, #5b8fd0); outline-offset:1px; }
+.rg-colors .act { height:24px; padding:0 8px; border-radius:4px; border:1px solid var(--border-color, #555); background:var(--comfy-input-bg, #222);
+  color:inherit; font:inherit; cursor:pointer; }
+.rg-colors .act:disabled { opacity:.4; cursor:default; }`;
+const regionColorsType = () => (name, setter, value) => {
+    if (!document.getElementById("rg-colors-style")) { const s = document.createElement("style"); s.id = "rg-colors-style"; s.textContent = COLORS_CSS; document.head.appendChild(s); }
+    const box = document.createElement("div"); box.className = "rg-colors";
+    const defaults = parseColorList(REGION_COLORS_DEFAULT);
+    let list = parseColorList(value); if (!list.length) list = [...defaults];
+    const save = () => { const v = list.join(", "); try { setter(v); } catch (e) { /* the dialog is gone */ } setSetting(SET.regionColors, v); };
+    const render = () => {
+        box.replaceChildren();
+        list.forEach((c, i) => {
+            const b = document.createElement("button"); b.type = "button"; b.className = "sw"; b.style.background = c; b.dataset.color = c;
+            b.title = `${c}: Color ${i + 1} for new regions.\nClick: Change it.\nRight-click: Remove it.`;
+            b.addEventListener("click", (e) => {
+                e.preventDefault();
+                openColorPicker(b, list[i], {
+                    onInput: (hex) => { b.style.background = hex; },
+                    onClose: (hex, changed) => {
+                        const h = parseColorList(hex)[0];
+                        if (changed && h && !list.includes(h)) { list[i] = h; save(); }
+                        render();
+                    },
+                });
+            });
+            b.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); if (list.length > 1) { list.splice(i, 1); save(); render(); } });
+            box.appendChild(b);
+        });
+        const add = document.createElement("button"); add.type = "button"; add.className = "act rg-ib"; add.innerHTML = svgIcon("plus");
+        add.title = "Add a color at the end: The next of the built-in colors that isn't in the list (else white); click it to change it.";
+        add.disabled = list.length >= REGION_COLORS_MAX;
+        add.addEventListener("click", () => { list.push(defaults.find((c) => !list.includes(c)) || ["#FFFFFF", "#DDDDDD", "#BBBBBB", "#999999"].find((c) => !list.includes(c)) || "#777777"); save(); render(); });
+        const reset = document.createElement("button"); reset.type = "button"; reset.className = "act"; reset.textContent = "Defaults";
+        reset.title = "Put the built-in colors back.";
+        reset.disabled = list.join() === defaults.join();
+        reset.addEventListener("click", () => { list = [...defaults]; save(); render(); });
+        box.append(add, reset);
+    };
+    render();
+    return box;
+};
 const checkFilesType = () => () => {
     if (!document.getElementById("rg-chk-style")) { const s = document.createElement("style"); s.id = "rg-chk-style"; s.textContent = CHECK_CSS; document.head.appendChild(s); }
     const box = document.createElement("div"); box.className = "rg-chk";
@@ -1014,7 +1109,8 @@ export function wildcardSeedControl(node, mk, host) {
         seedW.afterQueued = () => { if (!before()) step(); };
     }
     function refresh() {
-        const show = wildcardsInstalled() && !!seedW ? "" : "none";
+        // host.hideIdle: only while a prompt field has a wildcard (the Region Genie node's bottom bar)
+        const show = wildcardsInstalled() && !!seedW && (!host.hideIdle || used()) ? "" : "none";
         if (box.style.display !== show) box.style.display = show;
         if (document.activeElement !== inp && seedW) inp.value = String(seedW.value ?? 0);
         const [icon, t] = WC_MODES[mode()];
@@ -1083,7 +1179,7 @@ export const popFootText = (nav = true) => {
 // a key name as the browser gives it, with modifiers, e.g. "PageUp", "Alt+ArrowLeft", "Ctrl+PageDown", "F2"; empty = off
 const KEY_ALIASES = { pgup: "pageup", "page up": "pageup", pgdn: "pagedown", pgdown: "pagedown", "page down": "pagedown",
     left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown", "←": "arrowleft", "→": "arrowright", "↑": "arrowup",
-    "↓": "arrowdown", esc: "escape", del: "delete", ins: "insert", space: " ", spacebar: " " };
+    "↓": "arrowdown", esc: "escape", del: "delete", ins: "insert", space: " ", spacebar: " ", plus: "+" };
 const MOD = { ctrl: "ctrl", control: "ctrl", alt: "alt", option: "alt", opt: "alt", shift: "shift", meta: "meta", cmd: "meta", command: "meta", win: "meta" };
 export function parseKey(text) {
     // "Alt + Arrow Left" → { alt, key: "arrowleft" }: the last part is the key, the parts before it modifiers
@@ -1097,6 +1193,7 @@ export function parseKey(text) {
 }
 const keyMatches = (e, k) => !!k && (e.key || "").toLowerCase() === k.key && e.ctrlKey === k.ctrl && e.altKey === k.alt && e.metaKey === k.meta
     && (e.shiftKey === k.shift || (k.key.length === 1 && !k.shift && /[^a-z0-9]/.test(k.key)));
+export const keyHit = (e, text) => keyMatches(e, parseKey(text));        // a key event is the key written as "Alt+Enter"
 export const popKeyText = (dir) => String(getSetting(dir < 0 ? SET.popPrevKey : SET.popNextKey, dir < 0 ? "PageUp" : "PageDown") ?? "");
 // -1 / 1 when the key event is the 'previous' / 'next' field key, else 0
 export function popNavDir(e) {
@@ -1117,7 +1214,7 @@ export function popNavTip(dir, what) {
     const k = keyLabel(popKeyText(dir));
     return (dir < 0 ? `The previous text field of this node (${what}), opened in this place and size; from the first it goes to the last.`
                     : `The next text field of this node (${what}), opened in this place and size; from the last it goes to the first.`)
-        + (k ? `\nKey: ${k} (Settings > Region Genie > Text size).` : "");
+        + (k ? `\nShortcut: Change it in the shortcut list (${k}).` : "");
 }
 // the owner node is gone, or not on the canvas any more (another workflow tab, or into / out of a subgraph)
 export const nodeOffCanvas = (node) => !node?.graph || (app.canvas?.graph != null && app.canvas.graph !== node.graph);
@@ -1156,7 +1253,7 @@ export function openFloatPopup(o) {
     const use = btn("icon", svgIcon("useFilled"), "", () => { const f = o.filled?.(ta.value); if (f != null) { ta.value = f; o.onInput(f); syncUse(); } });
     const syncUse = () => { const f = o.filled?.(ta.value); use.style.display = f != null ? "" : "none";
         use.title = f != null ? `Use the filled text: Replace the wildcards with what they produced (last run or preview):\n${f}` : ""; };
-    const x = btn("rg-x", "✕", "Close, keeping the edits (Enter).", () => close(true));
+    const x = btn("rg-x", svgIcon("close"), "Close, keeping the edits (Enter).", () => close(true));
     const geom = () => ({ left: box.offsetLeft, top: box.offsetTop, width: box.offsetWidth, height: box.offsetHeight });
     const prev = btn("rg-nav", "◀", popNavTip(-1, o.navWhat || "in order"), () => o.nav(-1, geom()));
     const next = btn("rg-nav", "▶", popNavTip(1, o.navWhat || "in order"), () => o.nav(1, geom()));
@@ -1325,9 +1422,14 @@ export function setAutocompleteFor(node, on) {
 
 // element -> { node, engine, inst, pys }
 const attached = new Map();
+// Forget fields that left the page. A field registered before it is put on the page is kept (round 37: the large
+// editor's first two scene boxes lost their registration to the third one's sweep, so they never got a list);
+// it is dropped only once it has been on the page, or after a minute without ever getting there.
 function sweepAutocomplete() {
+    const now = performance.now();
     for (const [el, st] of attached) {
-        if (el.isConnected) continue;
+        if (el.isConnected) { st.seen = true; continue; }
+        if (!st.seen && now - st.t0 < 60000) continue;
         if (st.engine === "lm" && st.inst) { try { st.inst.destroy(); } catch (e) { /* ignore */ } }
         if (st.pys) { try { st.pys.dropdown?.remove(); } catch (e) { /* ignore */ } }
         attached.delete(el);
@@ -1381,7 +1483,12 @@ function syncElement(el) {
             st.inst = new engines.lm.AutoComplete(el, "prompt", { maxItems: 20, minChars: 1, debounceDelay: 200, itemHeight: 24 });
             st.inst.dropdown?.classList.add("rg-ac");
         } else if (want === "pysssss") {
-            if (!st.pys) { st.pys = new engines.pysssss(el); st.pys.dropdown?.classList.add("rg-ac"); }
+            if (!st.pys) {
+                st.pys = new engines.pysssss(el); st.pys.dropdown?.classList.add("rg-ac");
+                // Custom-Scripts places its list by the graph's zoom, which is right for a field on a node but not
+                // for one in a pop-up editor or the large editor (not zoomed): use the field's real scale
+                if (st.pys.helper) st.pys.helper.getScale = () => (el.offsetHeight ? el.getBoundingClientRect().height / el.offsetHeight : 1);
+            }
             st.pys.overrideWords = undefined;                // its global word list again
         }
     } catch (e) { console.warn("[Region Genie] autocomplete:", e); st.engine = null; }
@@ -1392,7 +1499,7 @@ export function attachAutocomplete(el, node) {
     if (!el) return;
     if (attached.has(el)) { attached.get(el).node = node || attached.get(el).node; return; }
     sweepAutocomplete();
-    const st = { node, engine: null, inst: null, pys: null };
+    const st = { node, engine: null, inst: null, pys: null, seen: el.isConnected, t0: performance.now() };
     attached.set(el, st);
     attachWildcardComplete(el);
     // our listeners come first, so moving the cursor or clicking in the text closes the list before the
@@ -1526,6 +1633,9 @@ export const SET = {
     cmUntil: "RegionGenie.Main.SeparationUntil",
     cmSnap: "RegionGenie.Main.Snap",
     cmGrid: "RegionGenie.Main.Grid",
+    regionColors: "RegionGenie.Main.RegionColors",
+    bigKey: "RegionGenie.Main.LargeEditorKey",
+    shortcuts: "RegionGenie.Shortcuts",              // the user's keys for the editor's commands (rg_keys.js), a JSON text
     cmAllRegions: "RegionGenie.Main.AllRegionsApart",
     cmAutoApart: "RegionGenie.Main.AutoApart",
     cmShareBg: "RegionGenie.Main.ShareBackground",
@@ -1535,6 +1645,7 @@ export const SET = {
     toolWandTolerance: "RegionGenie.Tools.WandTolerance",
     toolFill: "RegionGenie.Tools.Fill",
     toolFillGap: "RegionGenie.Tools.FillGap",
+    toolHints: "RegionGenie.Tools.Hints",
     samModel: "RegionGenie.Select.Model",
     filePickers: "RegionGenie.ModelFiles.Browse",
     checkFiles: "RegionGenie.ModelFiles.Check",
@@ -1606,6 +1717,7 @@ export function toolDefault(tool) {
     const v = getSetting(TOOL_SETTING[tool], TOOL_VARIANTS[tool][0]);
     return TOOL_VARIANTS[tool].includes(v) ? v : TOOL_VARIANTS[tool][0];
 }
+export const hintsListeners = new Set();        // each node's syncTips: 'Hints on the canvas' was switched in Settings
 const toolListeners = new Set();
 // fn(tool, variant): a tool's default variant was changed in Settings
 export const onToolDefault = (fn) => { toolListeners.add(fn); return () => toolListeners.delete(fn); };
@@ -1637,6 +1749,29 @@ function postLlmCache(over) {
 }
 
 const NEW_NODES = "Applies to nodes added from now on; nodes already in a workflow keep their own value.";
+// Settings > Region Genie > Shortcuts: one row with a button, in place of a row per key. The shortcuts and their sheet
+// are rg_keys.js, which imports this file: so it is loaded here only when the row is shown (never 'import' it at the top).
+const SHORTCUTS_ROW_CSS = `.rg-keys-set { display:flex; align-items:center; gap:8px; }
+.rg-keys-set button { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer;
+  font:inherit; padding:3px 10px; }
+.rg-keys-set span { opacity:.7; font-size:12px; }`;
+const shortcutsSettingType = () => () => {
+    if (!document.getElementById("rg-keys-set-style")) { const st = document.createElement("style"); st.id = "rg-keys-set-style"; st.textContent = SHORTCUTS_ROW_CSS; document.head.appendChild(st); }
+    const keys = () => import("./rg_keys.js");
+    const box = document.createElement("div"); box.className = "rg-keys-set";
+    const btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Edit…";
+    btn.title = "Open the list of shortcuts: Click a key in it, then press the new one.";
+    const info = document.createElement("span");
+    let shown = false;                               // the row leaves the page with the Settings dialog: stop listening then
+    const sync = async () => {
+        if (box.isConnected) shown = true; else if (shown) { window.removeEventListener("rg-shortcuts", sync); return; }
+        try { const n = (await keys()).changedCount(); info.textContent = n ? `${n} changed` : "All default"; } catch (e) { info.textContent = ""; }
+    };
+    btn.addEventListener("click", async (e) => { e.preventDefault(); (await keys()).openShortcuts({ keep: (t) => btn.contains(t) }); });
+    window.addEventListener("rg-shortcuts", sync);
+    box.append(btn, info); sync();
+    return box;
+};
 const CAT = (section, key) => ["Region Genie", section, key];
 const SETTINGS = [
         // first: the model-file settings below take their form from it when they are registered
@@ -1767,6 +1902,13 @@ const SETTINGS = [
             onChange: (v) => toolChanged("fillGap", v),
         },
         {
+            id: SET.toolHints, name: "Hints on the canvas", type: "boolean", defaultValue: true,
+            tooltip: "On: The canvas shows the active tool's keys and gestures along its bottom edge, and the first steps while it is empty.\n"
+                + "Off: No hints on the canvas.\nApplies to every Region Genie node right away.",
+            category: CAT("Canvas tools", "7 hints"),
+            onChange: () => { for (const f of hintsListeners) f(); },
+        },
+        {
             id: SET.samModel, name: "Model", type: fileSettingType(["checkpoints"], SAM_DEFAULT, SET.samModel, "checkpoints", false), defaultValue: SAM_DEFAULT,
             tooltip: "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download "
                 + "sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. "
@@ -1800,15 +1942,10 @@ const SETTINGS = [
             .map(([k, name, ord, dflt, what]) => ({ id: SET[k], name, type: "number", defaultValue: dflt, attrs: { min: k.startsWith("fsNode") ? 0 : 8, max: 40, step: 1 },
                 tooltip: `Text size in px for ${what}. Applies to every node.`, category: CAT("Text size", `${ord} ${k}`) })),
         { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
-        ...[[SET.popPrevKey, "Pop-up editor: key for the previous text field", "PageUp", "8 prev key"],
-            [SET.popNextKey, "Pop-up editor: key for the next text field", "PageDown", "9 next key"]].map(([id, name, dflt, ord]) => ({
-            id, name, type: "text", defaultValue: dflt,
-            tooltip: "Steps to the previous / next text field of the node while you type in a pop-up editor, like its ◀ / ▶ buttons. "
-                + `Default: ${dflt === "PageUp" ? "Page Up" : "Page Down"}.\n`
-                + "Write a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, "
-                + "Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\n"
-                + "Empty: No key. Applies to every Region Genie and Regional LoRAs node.",
-            category: CAT("Text size", ord) })),
+        // the keys that step to the previous / next text field in a pop-up editor: changed in the shortcut list (round 39;
+        // they were two rows here), still saved under their own ids
+        { id: SET.popPrevKey, name: "Pop-up editor: key for the previous text field", type: "hidden", defaultValue: "PageUp" },
+        { id: SET.popNextKey, name: "Pop-up editor: key for the next text field", type: "hidden", defaultValue: "PageDown" },
         { id: SET.popEscKeeps, name: "Esc in a pop-up editor", type: "combo", defaultValue: "put the text back",
           options: ["put the text back", "keep the edits"],
           tooltip: "What Esc does in the pop-up text editors (every Region Genie and Regional LoRAs node).\n"
@@ -1852,6 +1989,21 @@ const SETTINGS = [
                 + "always replace: The new layout replaces the canvas right away.\n"
                 + "An empty canvas is always filled. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "05 import"),
+        },
+        // the large editor's key: changed in the shortcut list (round 39; it was a row here), still saved under its own id
+        { id: SET.bigKey, name: "Large editor: key", type: "hidden", defaultValue: "Alt+Enter" },
+        { id: SET.shortcuts, name: "Shortcuts", type: shortcutsSettingType(), defaultValue: "{}",
+          tooltip: "The keys of the Region Genie editor (the tools, undo, copy and paste, the view, the large editor) and the keys that step "
+              + "between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; "
+              + "each shortcut can be put back to its default.\nThe same list opens when you press the question mark key while the pointer "
+              + "is over a Region Genie node, or with the keyboard button in its bottom bar. Applies to every node.",
+          category: CAT("Region Genie node", "11 shortcuts") },
+        {
+            id: SET.regionColors, name: "Region colors", type: regionColorsType(), defaultValue: REGION_COLORS_DEFAULT,
+            tooltip: "The colors new regions get, in this order (a color already on the canvas is skipped; when all are in use, the node picks one that looks different from them).\n"
+                + "Click a color: Change it.\nRight-click a color: Remove it.\n＋: Add one.\nDefaults: The built-in colors.\n"
+                + "Regions already drawn keep their colors. Black can't be used: It means 'no region' in color_map.",
+            category: CAT("Region Genie node", "055 colors"),
         },
         { id: SET.cmFeather, name: "Feather (px, linked regions)", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: "The mask feather that linked regions share (regions start linked). " + NEW_NODES, category: CAT("Region Genie node", "06 feather") },
         { id: SET.cmSeparation, name: "LoRA region separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "07 separation") },

@@ -166,6 +166,10 @@
     "name": "Fill: gap size (px)",
     "tooltip": "Fill, closing small gaps: Openings narrower than about twice this many pixels are closed."
   },
+  "RegionGenie_Tools_Hints": {
+    "name": "Hints on the canvas",
+    "tooltip": "On: The canvas shows the active tool's keys and gestures along its bottom edge, and the first steps while it is empty.\nOff: No hints on the canvas.\nApplies to every Region Genie node right away."
+  },
   "RegionGenie_Select_Model": {
     "name": "Model",
     "tooltip": "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. When this file isn't there, another SAM 3 checkpoint in that folder is used. With 'Browse… for model files' on (Model files), a folder button picks a checkpoint anywhere on the ComfyUI machine."
@@ -205,14 +209,6 @@
   "RegionGenie_Text_PopupText": {
     "name": "Pop-up editor: text to render",
     "tooltip": "Text size in px for the Text box of the region pop-up editor (A− / A+ in its header, with the Text box in use). Applies to every node."
-  },
-  "RegionGenie_Popup_PrevKey": {
-    "name": "Pop-up editor: key for the previous text field",
-    "tooltip": "Steps to the previous / next text field of the node while you type in a pop-up editor, like its ◀ / ▶ buttons. Default: Page Up.\nWrite a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\nEmpty: No key. Applies to every Region Genie and Regional LoRAs node."
-  },
-  "RegionGenie_Popup_NextKey": {
-    "name": "Pop-up editor: key for the next text field",
-    "tooltip": "Steps to the previous / next text field of the node while you type in a pop-up editor, like its ◀ / ▶ buttons. Default: Page Down.\nWrite a key as the browser names it, with modifiers before it: PageUp, PageDown, Alt+ArrowLeft, Alt+ArrowRight, Ctrl+PageUp, F2 … (Left / Right / Up / Down, PgUp / PgDn and Ctrl / Alt / Shift work too).\nEmpty: No key. Applies to every Region Genie and Regional LoRAs node."
   },
   "RegionGenie_Popup_EscKeeps": {
     "name": "Esc in a pop-up editor",
@@ -288,6 +284,14 @@
       "ask before replacing": "ask before replacing",
       "always replace": "always replace"
     }
+  },
+  "RegionGenie_Shortcuts": {
+    "name": "Shortcuts",
+    "tooltip": "The keys of the Region Genie editor (the tools, undo, copy and paste, the view, the large editor) and the keys that step between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; each shortcut can be put back to its default.\nThe same list opens when you press the question mark key while the pointer is over a Region Genie node, or with the keyboard button in its bottom bar. Applies to every node."
+  },
+  "RegionGenie_Main_RegionColors": {
+    "name": "Region colors",
+    "tooltip": "The colors new regions get, in this order (a color already on the canvas is skipped; when all are in use, the node picks one that looks different from them).\nClick a color: Change it.\nRight-click a color: Remove it.\n＋: Add one.\nDefaults: The built-in colors.\nRegions already drawn keep their colors. Black can't be used: It means 'no region' in color_map."
   },
   "RegionGenie_Main_Feather": {
     "name": "Feather (px, linked regions)",

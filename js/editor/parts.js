@@ -15,6 +15,7 @@ import { model } from "./model.js";
 import { rows } from "./rows.js";
 import { canvasUi } from "./canvasUi.js";
 import { sizeRow } from "./sizeRow.js";
+import { sockets } from "./sockets.js";
 import { view } from "./view.js";
 import { regions } from "./regions.js";
 import { render } from "./render.js";
@@ -24,8 +25,11 @@ import { popups } from "./popups.js";
 import { list } from "./list.js";
 import { llm } from "./llm.js";
 import { lifecycle } from "./lifecycle.js";
+import { big } from "./big.js";
+import { keys } from "./keys.js";
+import { menu } from "./menu.js";
 
-const PARTS = [core, toolbar, footer, model, rows, canvasUi, sizeRow, view, regions, render, selectTools, pointer, popups, list, llm, lifecycle];
+const PARTS = [core, toolbar, footer, model, rows, canvasUi, sizeRow, sockets, view, regions, render, selectTools, pointer, popups, list, llm, lifecycle, big, keys, menu];
 
 export function buildEditor(node, outer = {}) {
     const E = { node, ...outer };
