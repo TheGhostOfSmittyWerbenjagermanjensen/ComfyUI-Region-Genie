@@ -860,6 +860,14 @@ function ensureActiveCanvas() {
     const LGC = window.LGraphCanvas;
     if (LGC && !LGC.active_canvas && app.canvas) LGC.active_canvas = app.canvas;
 }
+// Esc in a pop-up editor closes what is on top first: a menu of ComfyUI that one of its buttons opened (a short menu
+// takes no keys itself, so the key arrives in the pop-up). Returns true when there was one.
+export function closeComfyMenus() {
+    const open = [...document.querySelectorAll(".litecontextmenu")];
+    try { globalThis.LiteGraph?.closeAllContextMenus?.(); } catch (e) { /* older */ }
+    open.forEach((m) => m.remove());
+    return open.length > 0;
+}
 export function contextMenu(ev, items, title, onPick) {
     ensureActiveCanvas();
     new LiteGraph.ContextMenu(items, {
@@ -1407,7 +1415,7 @@ export function openFloatPopup(o) {
         e.stopPropagation();
         const dir = o.nav ? popNavDir(e) : 0;
         if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); o.nav(dir, geom()); return; }
-        if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); close(); }
+        if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); if (!closeComfyMenus()) close(); }
     });
     if (o.node) attachAutocomplete(ta, o.node);
     document.body.appendChild(box);

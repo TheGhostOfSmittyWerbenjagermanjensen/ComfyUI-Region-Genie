@@ -2,7 +2,7 @@
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import {
     svgIcon, popFootText, naturalHeight, popNavDir, popNavTip, appendWord, autocompleteOnFocus, autocompleteOpen, autocompleteToggle, SET,
-    pickWildcard, insertAtCursor, wildcardsInstalled, textHistory, historyButtons,
+    pickWildcard, insertAtCursor, wildcardsInstalled, textHistory, historyButtons, closeComfyMenus,
 } from "../rg_shared.js";
 import { recentSetting, rememberSetting, CLIPBOARD } from "./shared.js";
 import { keyIs, keyUpIs } from "../rg_keys.js";
@@ -191,7 +191,7 @@ export function* popups(E) {
             e.stopPropagation();                           // editor shortcuts (Delete, V, B, ...) stay off
             const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
             if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
-            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); closeEditor(true); }
+            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); if (!closeComfyMenus()) closeEditor(true); }
         });
         // header: number, color, close
         const head = E.el("div", "rg-pop-head");
@@ -342,7 +342,7 @@ export function* popups(E) {
             e.stopPropagation();
             const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
             if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
-            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); closeEditor(true); }
+            if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); if (!closeComfyMenus()) closeEditor(true); }
         });
         const head = E.el("div", "rg-pop-head");
         const title = E.el("span");
