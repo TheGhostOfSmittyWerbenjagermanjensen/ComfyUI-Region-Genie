@@ -90,8 +90,9 @@ def _png16(rgb, alpha, level, text):
     filt = cand[pick, np.arange(h)]
     raw = np.concatenate([pick.astype(np.uint8)[:, None], filt], 1).tobytes()
     out = [b"\x89PNG\r\n\x1a\n", _chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 16, 6 if c == 4 else 2, 0, 0, 0))]
+    from .gen_params import png_text_chunk                 # tEXt, or iTXt for text that isn't Latin-1 (a prompt in Chinese)
     for k, v in (text or {}).items():
-        out.append(_chunk(b"tEXt", k.encode("latin-1", "replace") + b"\x00" + v.encode("latin-1", "replace")))
+        out.append(_chunk(*png_text_chunk(k, v)))
     out += [_chunk(b"IDAT", zlib.compress(raw, level)), _chunk(b"IEND", b"")]
     return b"".join(out)
 
@@ -193,23 +194,28 @@ def metadata_disabled():
         return False
 
 
-def png_text(prompt, extra):
-    """PNG tEXt chunks: 'prompt' and one per extra_pnginfo key (e.g. 'workflow'); None when there is nothing."""
-    if metadata_disabled() or (prompt is None and not extra):
+def png_text(prompt, extra, params=None):
+    """PNG text chunks: 'prompt' and one per extra_pnginfo key (e.g. 'workflow'), and 'parameters' (the settings as
+    text, where A1111 / Forge keep them: gen_params.py); None when there is nothing."""
+    if metadata_disabled() or (prompt is None and not extra and not params):
         return None
     import json
     out = {}
+    if params:
+        out["parameters"] = params
     if prompt is not None:
         out["prompt"] = json.dumps(prompt)
     for k, v in (extra or {}).items():
-        out[k] = json.dumps(v)
+        if k != "parameters" or not params:
+            out[k] = json.dumps(v)
     return out
 
 
-def comfy_exif(prompt, extra):
+def comfy_exif(prompt, extra, params=None):
     """EXIF for WebP / AVIF / JPEG: 0x0110 = 'prompt:<json>', then 0x010F, 0x010E, ... = '<key>:<json>' per
-    extra_pnginfo key (ComfyUI's layout). None when there is nothing."""
-    if metadata_disabled() or (prompt is None and not extra):
+    extra_pnginfo key (ComfyUI's layout); and the settings as text in UserComment, where A1111 / Forge keep them for
+    these formats (gen_params.py). None when there is nothing."""
+    if metadata_disabled() or (prompt is None and not extra and not params):
         return None
     import json
     ex = Image.Exif()
@@ -219,6 +225,9 @@ def comfy_exif(prompt, extra):
     for k, v in (extra or {}).items():
         ex[tag] = f"{k}:{json.dumps(v)}"
         tag -= 1
+    if params:
+        from .gen_params import user_comment
+        ex.get_ifd(0x8769)[0x9286] = user_comment(params)
     return ex.tobytes()
 
 
@@ -230,12 +239,14 @@ def workflow_json(extra):
     return json.dumps(extra["workflow"])
 
 
-def avif_metadata(prompt, extra):
+def avif_metadata(prompt, extra, params=None):
     """The dict core's AVIF helper takes (the PyAV route), or None."""
-    if metadata_disabled() or (prompt is None and not extra):
+    if metadata_disabled() or (prompt is None and not extra and not params):
         return None
     out = {} if prompt is None else {"prompt": prompt}
     out.update(extra or {})
+    if params:
+        out["parameters"] = params
     return out
 
 
@@ -250,6 +261,47 @@ EXR_MISSING = "EXR needs the EXR support of ComfyUI's own Save Image (Advanced) 
 
 class ExrUnavailable(RuntimeError):
     pass
+
+
+class _Any(str):
+    """An input type every output may be connected to (a sampler's or scheduler's name comes as a list of choices)."""
+    def __ne__(self, other):
+        return False
+
+
+ANY = _Any("*")
+NOTE_SETTINGS = ("Settings text: {} not found in the workflow (another node sets {}); connect it at this node's inputs "
+                 "(the cable button above filename_prefix)")
+
+
+def _plain(v):
+    """A connected value as text or a number; anything else (an object some node hands over) counts as not connected."""
+    if isinstance(v, (list, tuple)) and len(v) == 1:
+        v = v[0]
+    return v if isinstance(v, (str, int, float)) and not isinstance(v, bool) else None
+
+
+def _model_path(folder, name):
+    """A model file's full path (for its metadata file), or None."""
+    try:
+        import folder_paths
+    except Exception:
+        return None
+    for f in dict.fromkeys((folder, "checkpoints", "diffusion_models", "unet", "loras", "vae")):
+        try:
+            p = folder_paths.get_full_path(f, name)
+        except Exception:
+            p = None
+        if p:
+            return p
+    return name if os.path.isabs(str(name)) and os.path.isfile(str(name)) else None
+
+
+def settings_text(prompt, unique_id, size, overrides):
+    """(the A1111-style settings text or None, the settings that couldn't be read) for the image this node saves."""
+    from . import gen_params
+    traced = gen_params.trace(prompt if isinstance(prompt, dict) else {}, unique_id)
+    return gen_params.build(traced, size, overrides, _model_path)
 
 
 def _core_exr():
@@ -384,8 +436,41 @@ class SaveImageRG:
                 "invert_mask": ("BOOLEAN", {"default": False, "tooltip": (
                     "On: Mask 1 = opaque instead. Use it for a region mask from Region Genie or Mask Picker, to keep "
                     "the region and clear the rest.")}),
+                # round 44: what the image was made with, as text for other interfaces
+                "a1111_metadata": ("BOOLEAN", {"default": True, "tooltip": (
+                    "On: Also writes what the image was made with (prompt, seed, steps, sampler, cfg, model, LoRAs) into "
+                    "the file as text, the way A1111 and Forge do, so other interfaces and sites can read it. The values "
+                    "are read from the workflow that ran; ComfyUI's own workflow data stays in the file as before. Not "
+                    "for EXR.\n"
+                    "Off: Only ComfyUI's own workflow data.")}),
+                # round 44: values for that text when the workflow doesn't say them (another node computes them). The
+                # node hides these inputs until they are ticked in its inputs list (js/save_image.js)
+                "positive_prompt": ("STRING", {"forceInput": True, "tooltip": (
+                    "Optional. The prompt to write into the settings text, in place of the one read from the workflow.")}),
+                "negative_prompt": ("STRING", {"forceInput": True, "tooltip": (
+                    "Optional. The negative prompt to write into the settings text, in place of the one read from the "
+                    "workflow.")}),
+                "seed": ("INT", {"forceInput": True, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "tooltip": (
+                    "Optional. The seed to write into the settings text. Connect it when the sampler gets its seed from "
+                    "another node, which the workflow doesn't show.")}),
+                "steps": ("INT", {"forceInput": True, "min": 0, "max": 100000, "tooltip": (
+                    "Optional. The number of steps to write into the settings text, in place of the one read from the "
+                    "workflow.")}),
+                "cfg": ("FLOAT", {"forceInput": True, "min": -1000.0, "max": 1000.0, "tooltip": (
+                    "Optional. The cfg to write into the settings text, in place of the one read from the workflow.")}),
+                "sampler_name": (ANY, {"forceInput": True, "tooltip": (
+                    "Optional. The sampler's name to write into the settings text (as ComfyUI names it, e.g. "
+                    "euler_ancestral), in place of the one read from the workflow.")}),
+                "scheduler": (ANY, {"forceInput": True, "tooltip": (
+                    "Optional. The scheduler's name to write into the settings text (as ComfyUI names it, e.g. karras), "
+                    "in place of the one read from the workflow.")}),
+                "denoise": ("FLOAT", {"forceInput": True, "min": 0.0, "max": 1.0, "tooltip": (
+                    "Optional. The denoise to write into the settings text, in place of the one read from the workflow.")}),
+                "model_name": (ANY, {"forceInput": True, "tooltip": (
+                    "Optional. The model's name to write into the settings text, in place of the one read from the "
+                    "workflow.")}),
             },
-            "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+            "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO", "unique_id": "UNIQUE_ID"},
         }
 
     RETURN_TYPES = ("IMAGE",)
@@ -400,7 +485,9 @@ class SaveImageRG:
 
     def run(self, images, filename_prefix, format, png_compression, png_bit_depth, webp_lossless, webp_quality,
             jpeg_quality, jpeg_extension, jpeg_workflow, avif_quality, exr_bit_depth="16-bit float",
-            exr_color_space="sRGB", mask=None, invert_mask=False, prompt=None, extra_pnginfo=None):
+            exr_color_space="sRGB", mask=None, invert_mask=False, prompt=None, extra_pnginfo=None,
+            a1111_metadata=True, positive_prompt=None, negative_prompt=None, seed=None, steps=None, cfg=None, sampler_name=None,
+            scheduler=None, denoise=None, model_name=None, unique_id=None):
         import folder_paths
         fmt = format if format in FORMATS else "png"
         if fmt == "exr":
@@ -427,6 +514,21 @@ class SaveImageRG:
                 f.write(data)
             saved.append({"name": name, "bytes": len(data)})
 
+        # round 44: the settings as text for other interfaces (gen_params.py); the same for every image of the batch
+        params = None
+        if a1111_metadata and fmt != "exr" and not metadata_disabled():
+            try:
+                params, missing = settings_text(prompt, unique_id, (w, h), dict(
+                    positive=_plain(positive_prompt), negative=_plain(negative_prompt), seed=_plain(seed), steps=_plain(steps),
+                    cfg=_plain(cfg), sampler_name=_plain(sampler_name), scheduler=_plain(scheduler),
+                    denoise=_plain(denoise), model_name=_plain(model_name)))
+                if params and missing:
+                    note(NOTE_SETTINGS.format(", ".join(missing), "it" if len(missing) == 1 else "them"))
+            except Exception as e:                  # never lose an image over its settings text
+                import logging
+                logging.warning(f"[Region Genie] Save Image: the settings text could not be made ({e})")
+                params = None
+
         bump = 0                                   # names found taken while saving (never overwrite a file)
 
         for i in range(b):
@@ -439,26 +541,30 @@ class SaveImageRG:
             sidecar = None
             if fmt == "png":
                 data = encode_png(rgb, alpha, int(png_compression), 16 if png_bit_depth == "16-bit" else 8,
-                                  png_text(prompt, extra_pnginfo))
+                                  png_text(prompt, extra_pnginfo, params))
             elif fmt == "webp":
-                data = encode_webp(rgb, alpha, bool(webp_lossless), int(webp_quality), comfy_exif(prompt, extra_pnginfo))
+                data = encode_webp(rgb, alpha, bool(webp_lossless), int(webp_quality), comfy_exif(prompt, extra_pnginfo, params))
             elif fmt == "exr":
                 data = encode_exr(rgb, alpha, exr_bit_depth, exr_color_space, prompt, extra_pnginfo)
             elif fmt == "avif":
                 if alpha is not None and not features.check("avif"):
                     note(NOTE_AVIF_ALPHA)
-                data = encode_avif(rgb, alpha, int(avif_quality), comfy_exif(prompt, extra_pnginfo),
-                                   avif_metadata(prompt, extra_pnginfo))
+                data = encode_avif(rgb, alpha, int(avif_quality), comfy_exif(prompt, extra_pnginfo, params),
+                                   avif_metadata(prompt, extra_pnginfo, params))
             else:
                 if alpha is not None:
                     note(NOTE_JPEG_MASK)
-                exif = comfy_exif(prompt, extra_pnginfo) if jpeg_workflow == JPEG_WORKFLOW[2] else None
+                # the settings text is small and always goes into the JPEG; the workflow only when asked for
+                exif = comfy_exif(prompt, extra_pnginfo, params) if jpeg_workflow == JPEG_WORKFLOW[2] else comfy_exif(None, None, params)
                 if jpeg_workflow == JPEG_WORKFLOW[0]:
                     sidecar = workflow_json(extra_pnginfo)
                 try:
                     data = encode_jpeg(rgb, int(jpeg_quality), exif)
                 except ExifTooLong:
-                    data = encode_jpeg(rgb, int(jpeg_quality), None)
+                    try:
+                        data = encode_jpeg(rgb, int(jpeg_quality), comfy_exif(None, None, params))
+                    except ExifTooLong:
+                        data = encode_jpeg(rgb, int(jpeg_quality), None)
                     sidecar = workflow_json(extra_pnginfo)
                     note(NOTE_EXIF if sidecar is not None else NOTE_EXIF_NOT_SAVED)
             while True:
@@ -480,5 +586,6 @@ class SaveImageRG:
                 if preview is not None:
                     entry["asset_preview"] = preview
             results.append(entry)
-        summary = {"label": _label(fmt, a), "files": saved, "total": sum(f["bytes"] for f in saved), "notes": notes}
+        summary = {"label": _label(fmt, a), "files": saved, "total": sum(f["bytes"] for f in saved), "notes": notes,
+                   "settings": (params or "")[:6000]}       # the node shows it in its status line's tooltip
         return {"ui": {"images": results, "rg_saved": [summary]}, "result": (images,)}

@@ -472,6 +472,46 @@
       "invert_mask": {
         "name": "invert_mask",
         "tooltip": "On: Mask 1 = opaque instead. Use it for a region mask from Region Genie or Mask Picker, to keep the region and clear the rest."
+      },
+      "a1111_metadata": {
+        "name": "a1111_metadata",
+        "tooltip": "On: Also writes what the image was made with (prompt, seed, steps, sampler, cfg, model, LoRAs) into the file as text, the way A1111 and Forge do, so other interfaces and sites can read it. The values are read from the workflow that ran; ComfyUI's own workflow data stays in the file as before. Not for EXR.\nOff: Only ComfyUI's own workflow data."
+      },
+      "positive_prompt": {
+        "name": "positive_prompt",
+        "tooltip": "Optional. The prompt to write into the settings text, in place of the one read from the workflow."
+      },
+      "negative_prompt": {
+        "name": "negative_prompt",
+        "tooltip": "Optional. The negative prompt to write into the settings text, in place of the one read from the workflow."
+      },
+      "seed": {
+        "name": "seed",
+        "tooltip": "Optional. The seed to write into the settings text. Connect it when the sampler gets its seed from another node, which the workflow doesn't show."
+      },
+      "steps": {
+        "name": "steps",
+        "tooltip": "Optional. The number of steps to write into the settings text, in place of the one read from the workflow."
+      },
+      "cfg": {
+        "name": "cfg",
+        "tooltip": "Optional. The cfg to write into the settings text, in place of the one read from the workflow."
+      },
+      "sampler_name": {
+        "name": "sampler_name",
+        "tooltip": "Optional. The sampler's name to write into the settings text (as ComfyUI names it, e.g. euler_ancestral), in place of the one read from the workflow."
+      },
+      "scheduler": {
+        "name": "scheduler",
+        "tooltip": "Optional. The scheduler's name to write into the settings text (as ComfyUI names it, e.g. karras), in place of the one read from the workflow."
+      },
+      "denoise": {
+        "name": "denoise",
+        "tooltip": "Optional. The denoise to write into the settings text, in place of the one read from the workflow."
+      },
+      "model_name": {
+        "name": "model_name",
+        "tooltip": "Optional. The model's name to write into the settings text, in place of the one read from the workflow."
       }
     },
     "outputs": {

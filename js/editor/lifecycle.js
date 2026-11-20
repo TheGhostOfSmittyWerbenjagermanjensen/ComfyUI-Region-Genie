@@ -137,7 +137,8 @@ export function* lifecycle(E) {
         E.syncSettings();
         E.onDimsChanged(); E.refreshUI();
     }
-    chain(E.node, "onExecuted", function (message) {
+    // (the results of a run come by themselves: a redraw of the list they cause waits for a field being typed in)
+    const onRun = (message) => {
         if (Array.isArray(message?.region_info)) E.setRunInfo(message.region_info[0]);
         if (message?.dims) { E.execDims = message.dims; E.execGuess = E.guessInputDims(); E.onDimsChanged(); }
         if (Array.isArray(message?.prompt_format)) { E.lastFormat = String(message.prompt_format[0] || "") || null; E.syncModelSel(); }
@@ -171,7 +172,7 @@ export function* lifecycle(E) {
                 cms.forEach((cm, k) => {
                     if (!cm?.filename) return;
                     const img = new Image();
-                    img.onload = () => { E.controlMaps[k] = img; E.renderRegions(); E.requestDraw(); };
+                    img.onload = () => E.background(() => { E.controlMaps[k] = img; E.renderRegions(); E.requestDraw(); });
                     img.src = api.apiURL(`/view?filename=${encodeURIComponent(cm.filename)}&type=${cm.type}&subfolder=${encodeURIComponent(cm.subfolder || "")}&t=${Date.now()}`);
                 });
             }
@@ -210,7 +211,8 @@ export function* lifecycle(E) {
             });
         }
         E.onDimsChanged();
-    });
+    };
+    chain(E.node, "onExecuted", function (message) { E.background(() => onRun(message)); });
     chain(E.node, "onConfigure", function (saved) { E.applySockets(saved); E.configured = true;
         E.moveSizeLinks(); E.renumberLinks(); setTimeout(() => { E.sizeCfg(); E.syncSizeRow(true); E.onDimsChanged(); }, 0); E.fixImportMode(); E.migrateFormat(); if (E.node.properties?.rg_list_h) E.cvBox.style.minHeight = E.CV_MIN + "px"; E.applyListH(); load(); E.pushLlmCache(); E.syncLlm(); E.updateLlmButtons(); });
     for (const w of [E.wW, E.hW]) if (w) chain(w, "callback", () => E.onDimsChanged());
@@ -241,9 +243,10 @@ export function* lifecycle(E) {
         if (now !== want) E.foot.style.marginTop = want ? want + "px" : "";
     }
     E.centerFoot = centerFoot;
-    const poll = setInterval(() => {
+    const poll = setInterval(() => E.background(() => {
         if (E.editor && nodeOffCanvas(E.node)) E.closeEditor(true);     // another workflow tab, a subgraph, removed
         if (!E.node.graph) return;
+        E.flushRegions();                                              // a redraw held back whose field is gone
         centerFoot();
         for (const t of Object.values(E.sceneTA || {})) t?.__rgPlaceExpand?.();      // a scene prompt set by something else: its scroll bar may have come or gone
         if (E.pruneManagedLoras()) { E.save(); E.renderRegions(); }
@@ -262,7 +265,7 @@ export function* lifecycle(E) {
         liveBackdrop();
         E.syncLlm();
         E.updateLlmButtons();
-    }, 500);
+    }), 500);
     chain(E.node, "onRemoved", function () {
         clearInterval(poll); E.closeEditor(true); ro.disconnect(); E.offLlmLib(); closeLlmSettings(); lassoRefreshers.delete(E.refreshVariantButtons); hintsListeners.delete(E.syncTips); for (const ev of ["pointerup", "pointercancel"]) window.removeEventListener(ev, E.tipsRelease, true); E.closeArrange(); if (E.pick) E.pickCancel();
         for (const t of E.PAN_EVENTS) window.removeEventListener(t, E.midPan, true);
@@ -285,6 +288,9 @@ export function* lifecycle(E) {
     };
     E.node.__rgState = () => E.state;
     E.node.__rgRefresh = () => { E.version++; E.save(); E.refreshUI(); };
+    // tests: a redraw of the list as the editor's own checks cause one; how many redraws were done / held back
+    E.node.__rgBackgroundRedraw = () => E.background(() => E.renderRegions());
+    E.node.__rgRedraws = () => ({ ...E.redraws, pending: E.renderPending });
     E.node.__rgActive = () => E.curRegion;
     E.node.__rgSetTool = (t) => E.setTool(t);
     E.node.__rgTool = () => E.tool;

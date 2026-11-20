@@ -9,7 +9,7 @@ Regional prompting and regional LoRAs for ComfyUI, built around bbox layout mode
 | **BBoxes to Masks** | Bboxes from any layout node → one mask, all masks and the box's prompt |
 | **Regional LoRAs** | Any number of regional LoRAs from a batch of masks: model, positive and negative ready for the sampler |
 | **Create Hook LoRA (Quantized)** | Drop-in replacement for core "Create Hook LoRA" that works on int8 / fp8 models |
-| **Save Image (Region Genie)** | Saves images as PNG with the compression you pick, WebP, JPEG or AVIF with a quality, to save disk space; optional transparency from a mask; shows the saved file sizes |
+| **Save Image (Region Genie)** | Saves images as PNG with the compression you pick, WebP, JPEG or AVIF with a quality, to save disk space; optional transparency from a mask; shows the saved file sizes; also writes the settings (prompt, seed, steps, sampler, model …) as text the way A1111 / Forge do, read from the workflow that ran |
 
 <img src="docs/images/editor.png" alt="The Region Genie node: regions painted on the canvas, with their prompts in the list below" width="520">
 
@@ -43,7 +43,7 @@ A starter workflow is in [`examples/`](examples/): drag `region-genie-starter-sd
 | [LLM Prompt Enhancer](docs/llm-prompt-enhancer.md) | Writing and improving prompts with a local LLM |
 | [Wildcards](docs/wildcards.md) | Impact Pack wildcards in every prompt field |
 | [BBoxes to Masks and Mask Picker](docs/mask-nodes.md) | The two small mask nodes |
-| [Save Image (Region Genie)](docs/save-image.md) | Formats, quality, transparency, file sizes |
+| [Save Image (Region Genie)](docs/save-image.md) | Formats, quality, transparency, file sizes, settings text for other interfaces (A1111 / Forge style) |
 | [Languages](docs/languages.md) | Which languages there are, what is translated, correcting a translation |
 | [Setup notes](docs/setup-notes.md) | Finding the nodes, tag autocomplete, coming from Regional Mask Kit |
 

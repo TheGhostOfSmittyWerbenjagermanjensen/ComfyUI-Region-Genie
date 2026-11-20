@@ -268,5 +268,6 @@
   "Load LoRA (Text Encoder) (core node)": "Cargar LoRA (codificador de texto)",
   "shortcut": "atajo de teclado",
   "size_from": "tamaño_desde",
-  "outputs_shown": "salidas_mostradas"
+  "outputs_shown": "salidas_mostradas",
+  "settings text": "texto de ajustes"
 }

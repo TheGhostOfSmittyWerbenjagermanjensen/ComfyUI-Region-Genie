@@ -15,7 +15,7 @@
 // A socket that is connected always stays. Changing the sockets keeps the node's bottom edge where it is: the editor
 // keeps its height and the node's top moves (the owner's choice).
 import { app } from "../../../scripts/app.js";
-import { svgIcon } from "../rg_shared.js";
+import { svgIcon, socksStyle } from "../rg_shared.js";
 import { linkOf, remapOutputs } from "./graph.js";
 
 const NODE = "Region-Genie_Main";
@@ -58,21 +58,6 @@ export function installOutputMapping(names) {
     };
 }
 
-const CSS = `.rg-socks { position:fixed; z-index:10000; box-sizing:border-box; min-width:230px; max-width:min(320px, calc(100vw - 12px)); max-height:calc(100vh - 12px);
-  overflow:auto; padding:6px 8px 8px; border-radius:7px; outline:none; pointer-events:auto; user-select:none;
-  font:12.5px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--input-text,#ddd);
-  background:var(--comfy-menu-bg,#2b2b2b); border:1px solid var(--border-color,#555); box-shadow:0 6px 22px rgba(0,0,0,.5); }
-.rg-socks h4 { margin:6px 0 3px; font-size:11px; font-weight:650; letter-spacing:.06em; text-transform:uppercase; opacity:.7; }
-.rg-socks h4:first-child { margin-top:0; }
-.rg-socks label { display:flex; align-items:center; gap:7px; padding:2.5px 4px; border-radius:4px; cursor:pointer; white-space:nowrap; }
-.rg-socks label:hover { background:color-mix(in srgb, currentColor 10%, transparent); }
-.rg-socks label.off { opacity:.55; cursor:default; }
-.rg-socks label.off:hover { background:none; }
-.rg-socks input { margin:0; flex:0 0 auto; }
-.rg-socks .rg-socks-why { margin-left:auto; padding-left:10px; font-size:11px; opacity:.65; }
-.rg-socks-acts { display:flex; gap:6px; margin-top:7px; }
-.rg-socks-acts button { flex:1 1 0; background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px;
-  cursor:pointer; font:inherit; font-size:12px; padding:2px 6px; }`;
 let panel = null;                                    // one sockets list at a time, on the whole page
 
 export function* sockets(E) {
@@ -269,7 +254,7 @@ export function* sockets(E) {
     function closeSockets() { if (panel?.E === E) panel.close(); }
     function toggleSockets() {
         if (panel) { const mine = panel.E === E; panel.close(); if (mine) return; }
-        if (!document.getElementById("rg-socks-style")) { const st = document.createElement("style"); st.id = "rg-socks-style"; st.textContent = CSS; document.head.appendChild(st); }
+        socksStyle();
         const box = E.el("div", "rg-socks"); box.tabIndex = -1;
         const row = (it, apply) => {
             const l = E.el("label"), c = E.el("input"), t = E.el("span"); c.type = "checkbox"; c.checked = it.on; t.textContent = it.label;

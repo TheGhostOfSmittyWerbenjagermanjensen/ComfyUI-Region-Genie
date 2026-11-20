@@ -472,6 +472,46 @@
       "invert_mask": {
         "name": "invertir_máscara",
         "tooltip": "Activado: En su lugar, máscara 1 = opaco. Úsalo con una máscara de región de Region Genie o Selector de máscaras, para conservar la región y vaciar el resto."
+      },
+      "a1111_metadata": {
+        "name": "metadatos_a1111",
+        "tooltip": "Activado: También escribe en el archivo, como texto, con qué se hizo la imagen (prompt, semilla, pasos, muestreador, cfg, modelo, LoRAs), tal como lo hacen A1111 y Forge, para que otras interfaces y sitios puedan leerlo. Los valores se leen del flujo de trabajo que se ejecutó; los datos de flujo de trabajo propios de ComfyUI siguen en el archivo como antes. No se aplica a EXR.\nDesactivado: Solo los datos de flujo de trabajo propios de ComfyUI."
+      },
+      "positive_prompt": {
+        "name": "prompt_positivo",
+        "tooltip": "Opcional. El prompt que se escribe en el texto de ajustes, en lugar del leído del flujo de trabajo."
+      },
+      "negative_prompt": {
+        "name": "prompt_negativo",
+        "tooltip": "Opcional. El prompt negativo que se escribe en el texto de ajustes, en lugar del leído del flujo de trabajo."
+      },
+      "seed": {
+        "name": "semilla",
+        "tooltip": "Opcional. La semilla que se escribe en el texto de ajustes. Conéctala cuando el muestreador recibe su semilla de otro nodo y el flujo de trabajo no la muestra."
+      },
+      "steps": {
+        "name": "pasos",
+        "tooltip": "Opcional. El número de pasos que se escribe en el texto de ajustes, en lugar del leído del flujo de trabajo."
+      },
+      "cfg": {
+        "name": "cfg",
+        "tooltip": "Opcional. El cfg que se escribe en el texto de ajustes, en lugar del leído del flujo de trabajo."
+      },
+      "sampler_name": {
+        "name": "nombre_del_muestreador",
+        "tooltip": "Opcional. El nombre del muestreador que se escribe en el texto de ajustes (como lo llama ComfyUI, p. ej. euler_ancestral), en lugar del leído del flujo de trabajo."
+      },
+      "scheduler": {
+        "name": "programador",
+        "tooltip": "Opcional. El nombre del programador que se escribe en el texto de ajustes (como lo llama ComfyUI, p. ej. karras), en lugar del leído del flujo de trabajo."
+      },
+      "denoise": {
+        "name": "reducción_de_ruido",
+        "tooltip": "Opcional. La reducción de ruido que se escribe en el texto de ajustes, en lugar de la leída del flujo de trabajo."
+      },
+      "model_name": {
+        "name": "nombre_del_modelo",
+        "tooltip": "Opcional. El nombre del modelo que se escribe en el texto de ajustes, en lugar del leído del flujo de trabajo."
       }
     },
     "outputs": {

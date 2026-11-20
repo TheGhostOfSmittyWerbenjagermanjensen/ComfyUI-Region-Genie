@@ -188,7 +188,20 @@ export function* llm(E) {
             append: (words) => E.change(() => { for (const w of words) r.prompt = appendWord(r.prompt, w); }),
         });
     }
+    // a text or number field of the list has the cursor (not a checkbox, a dropdown or a button: those hold no typing)
+    const listFieldBusy = () => {
+        const a = document.activeElement;
+        return !!a && E.regList.contains(a) && (a.tagName === "TEXTAREA"
+            || (a.tagName === "INPUT" && !["checkbox", "radio", "button", "range", "color", "file"].includes(a.type)));
+    };
+    // the redraw that was held back (see E.background in core.js), once the cursor has left the field
+    function flushRegions() { if (E.renderPending && !listFieldBusy() && E.wrap.isConnected) renderRegions(); }
+    E.flushRegions = flushRegions;
+    E.regList.addEventListener("focusout", () => setTimeout(flushRegions, 0));      // after the field's own change was handled
+    E.redraws = { done: 0, held: 0 };                  // for tests
     function renderRegions() {
+        if (E.inBackground && listFieldBusy()) { E.renderPending = true; E.redraws.held++; return; }
+        E.renderPending = false; E.redraws.done++;
         const scroll = E.regList.scrollTop;
         E.regList.textContent = "";
         llmBtns.clear();

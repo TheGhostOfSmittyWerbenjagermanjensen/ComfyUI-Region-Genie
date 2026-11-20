@@ -237,12 +237,45 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("Whole image doesn't list the Control LoRA (no duplicate)", await page.locator(".rg-list .rg-row.lora .rg-hint", { hasText: "Control" }).count() === 0);
     await crow.locator("select").selectOption("canny"); await page.waitForTimeout(80);
     check("canny: the MOSS LoRA goes (it reads color / depth only)", !((await st()).sceneLoras || []).some((x) => x.control));
+    // (after a change of kind the list is drawn again at once, and sometimes once more within the editor's half-second
+    // check, when the row's LoRA is put back. Until round 44 a number typed just then was dropped with the old row, which
+    // failed this check once on GitHub's runner; now such a redraw waits for the field: checked right below.)
     await crow.locator("select").selectOption("color"); await page.waitForTimeout(80);
     const [cs, ca, cb] = [crow.locator("input.rg-num").nth(0), crow.locator("input.rg-num").nth(1), crow.locator("input.rg-num").nth(2)];
     await cs.fill("0.8"); await cs.press("Enter"); await ca.fill("10"); await ca.press("Enter"); await cb.fill("70"); await cb.press("Enter");
     await page.waitForTimeout(80);
     s = await st();
     check("strength / start / end", s.controls[0].kind === "color" && s.controls[0].strength === 0.8 && Math.abs(s.controls[0].start - 0.1) < 1e-9 && Math.abs(s.controls[0].end - 0.7) < 1e-9);
+    // round 44c: a redraw of the list that nobody asked for (the half-second check, a run's results) waits while a field
+    // of the list is being typed in, so the typed number isn't dropped
+    const redraws = () => page.evaluate(() => window.__node.__rgRedraws());
+    const rd0 = await redraws();
+    await cs.fill("0.55");                                 // typed, not entered yet
+    await page.evaluate(() => window.__node.__rgBackgroundRedraw());
+    const mid = await page.evaluate(() => ({ r: window.__node.__rgRedraws(), v: document.activeElement?.value, inList: !!document.activeElement?.closest(".rg-list") }));
+    check(`a redraw the editor starts by itself while a number is being typed: held back, the field and its text stay (${JSON.stringify(mid)})`,
+        mid.r.held === rd0.held + 1 && mid.r.done === rd0.done && mid.r.pending && mid.v === "0.55" && mid.inList);
+    await cs.press("Enter"); await page.waitForTimeout(150);
+    const rd1 = await redraws();
+    check("Enter: the number is taken, and the list is drawn again (nothing left waiting)", (await st()).controls[0].strength === 0.55 && rd1.done > rd0.done && !rd1.pending);
+    await page.evaluate(() => window.__node.__rgBackgroundRedraw());
+    check("with no field in use the same redraw happens at once", (await redraws()).done === rd1.done + 1 && (await redraws()).held === rd1.held);
+    // a region's prompt keeps the cursor through such a redraw, and the list catches up when the cursor leaves
+    const pta = page.locator(".rg-list textarea.rg-prompt").first();
+    await pta.click(); await page.keyboard.press("Control+End"); await page.keyboard.type(" zz");
+    const rd2 = await redraws();
+    await page.evaluate(() => window.__node.__rgBackgroundRedraw());
+    await page.keyboard.type("y");
+    const typed = await page.evaluate(() => ({ v: document.activeElement?.value || "", ta: document.activeElement?.tagName, r: window.__node.__rgRedraws() }));
+    check(`a region's prompt being typed: the redraw waits, typing goes on in the same box (${JSON.stringify(typed.v.slice(-6))})`, typed.ta === "TEXTAREA" && / zzy$/.test(typed.v) && typed.r.held === rd2.held + 1 && typed.r.pending);
+    await page.evaluate(() => document.activeElement.blur()); await page.waitForTimeout(150);
+    const rd3 = await redraws();
+    check("the cursor leaves the box: the list is drawn, with the typed prompt", !rd3.pending && rd3.done > rd2.done && / zzy$/.test((await st()).regions.find((r) => / zzy$/.test(r.prompt))?.prompt || ""));
+    // a dropdown that has the focus holds nothing back (it has no typed text to lose)
+    await crow.locator("select").focus();
+    await page.evaluate(() => window.__node.__rgBackgroundRedraw());
+    check("a dropdown with the focus doesn't hold a redraw back", (await redraws()).done === rd3.done + 1 && !(await redraws()).pending);
+    await cs.fill("0.8"); await cs.press("Enter"); await page.waitForTimeout(100);
     check("the kind's tooltip names the file (model not known: says so)", /The file depends on the model/.test(await crow.locator("select").getAttribute("title")));
     // a second row
     await ctlAdd(); await page.waitForTimeout(80);

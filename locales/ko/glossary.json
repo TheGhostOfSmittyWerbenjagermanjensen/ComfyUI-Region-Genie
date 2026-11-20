@@ -258,5 +258,6 @@
   "queue": "실행 대기열",
   "shortcut": "단축키",
   "size_from": "크기 원본",
-  "outputs_shown": "표시할 출력"
+  "outputs_shown": "표시할 출력",
+  "settings text": "설정 텍스트"
 }
