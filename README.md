@@ -26,7 +26,8 @@
 - **Place prompts by region.** A knight here, a dragon there: each region gets its own prompt.
 - **Write in a large editor.** Every prompt opens in a pop-up editor with undo, LoRAs, wildcards and the LLM button at hand.
 - **Give a region its own LoRA.** A character or style LoRA acts only inside the region you choose.
-- **Draw any shape.** Boxes, ellipses, stars, brush strokes, lasso outlines, fills, or objects picked out of a photo.
+- **Draw any shape.** Boxes, ellipses, stars, brush strokes, lasso outlines and fills.
+- **Start from a picture.** Click an object in a photo to make it a region, or turn a color sketch into regions.
 - **Guide the layout.** ControlNet-style control (depth, canny, color map) from the same node.
 - **Edit existing pictures.** Paint over a photo and change only the regions you mark.
 - **Let an LLM write for you.** A local LLM can expand short region prompts when the workflow runs.
@@ -94,7 +95,7 @@ The node helps as you go:
 
 ### Regions on a canvas
 
-Draw regions with shapes, a brush, a lasso or a fill. Each region is one color with one prompt. Layers let you build a region from several pieces, cut holes, and move or resize things later. On a connected photo, the magic wand and **Select object** (SAM 3.1) pick out areas for you.
+Draw regions with shapes, a brush, a lasso or a fill. Each region is one color with one prompt.
 
 → [Region Genie (the node)](docs/region-genie.md)
 
@@ -125,6 +126,41 @@ The easiest way to write prompts. Every text field opens in a large editor that 
 Drag the title bar to move a pop-up, and the corner grip to resize it. It stays open while you draw.
 
 → [Text boxes and pop-up editors](docs/region-genie.md#text-boxes-and-pop-up-editors)
+
+### Regions from a picture
+
+Connect a picture to `image` and let the node find the regions:
+
+- **Select object** (Q): click an object, or type what to find (`person`, `red car, dog`), and it becomes a region. It uses SAM 3.1 and needs one model file ([download](https://huggingface.co/Comfy-Org/sam3.1/resolve/main/checkpoints/sam3.1_multiplex_fp16.safetensors), about 1.7 GB) in `ComfyUI/models/checkpoints`.
+- **Magic wand** (W): click an area of similar color to add it.
+- **Color map:** a sketch in flat colors becomes regions by itself, one per color.
+- **Backdrop:** or just show the picture under the canvas and trace over it.
+
+→ [Select object](docs/region-genie.md#select-object-sam-31) · [Magic wand](docs/region-genie.md#magic-wand) · [Working from an image](docs/region-genie.md#working-from-an-image)
+
+### Layers and Arrange
+
+A region can be made of several **layers**. Move, resize and turn each one later, cut holes with a hole layer, reorder them by dragging, and copy or paste them (also into another node).
+
+**Arrange** works on the selected layer: flip it, align it to an edge or the centre of the image, and grow or shrink it by a number of pixels.
+
+→ [Layers](docs/region-genie.md#layers) · [Arrange](docs/region-genie.md#arrange-flip-align-grow--shrink)
+
+### Colors and palettes
+
+Click a region's color to change it with the built-in color picker. A region can also carry a **color palette** of up to five colors that tells the model which colors to use there (MOSS-Image and Ideogram 4 read it).
+
+→ [Colors and the color palette](docs/region-genie.md#colors-and-the-color-palette)
+
+### Image size
+
+The row at the top of the node replaces a separate size node. Pick the size in one of three ways:
+
+- **Aspect ratio:** a ratio and megapixels, like ComfyUI's Resolution Selector.
+- **Presets:** your own list of sizes, shared by every Region Genie node.
+- **Manual:** width and height, with a step size for their arrows.
+
+→ [Image size](docs/region-genie.md#image-size)
 
 ### Regional LoRAs
 
@@ -167,13 +203,21 @@ Good starting points:
 
 ### Edit Mode
 
-Switch the bottom bar to **Edit**, connect a picture, and paint over the parts to change. Each region can be set to change or to stay exactly as it is.
+Switch the bottom bar to **Edit**, connect a picture, and paint over the parts to change.
+
+- Each region can be set to **change** or to **stay** exactly as it is.
+- Change only the regions (like inpainting), or let the whole image change.
+- An edit LoRA for your model is added for you once you pick it in Settings.
 
 → [Edit Mode](docs/edit-mode.md)
 
 ### LLM Prompt Enhancer
 
 The sparkles button on a region lets a local LLM rewrite that prompt when the workflow runs. Your own text stays, and you can go back to it at any time.
+
+- It uses the text encoder you already have connected, or an LLM file of your choice.
+- **Presets** hold the system prompt and the LLM's settings, one each for characters, objects, text and the scene.
+- The LLM can see just the one prompt, or the scene and the other regions as context.
 
 → [LLM Prompt Enhancer](docs/llm-prompt-enhancer.md)
 
@@ -191,9 +235,25 @@ The **large editor** opens the same editor in a window that fills the page.
 
 → [Node size and the large editor](docs/region-genie.md#node-size-and-the-large-editor)
 
+### Shortcuts and Settings
+
+**Press ?** over the node for every key and mouse gesture. Click a key in that sheet to change it to your own.
+
+**Settings > Region Genie** holds the defaults for new nodes and the model files. Each topic has an **Edit…** button that opens its page in one settings window, with a search.
+
+<img src="docs/images/settings-window.png" alt="The Region Genie settings window: topics on the left, their settings on the right" width="640">
+
+→ [Shortcuts](docs/region-genie.md#shortcuts) · [Settings and model files](docs/region-genie.md#settings-and-model-files)
+
+### Export and import
+
+**Export** saves a layout (regions, prompts, LoRAs, palettes, size) as a `.json` file, and **Import** loads it into any Region Genie node. Import also reads MOSS-Image and Ideogram layouts and boxes from other nodes.
+
+→ [Export and import](docs/region-genie.md#export-and-import)
+
 ### Save Image
 
-Saves as PNG, WebP, JPEG or AVIF with the quality you pick, and shows the file sizes. It also writes the settings (prompt, seed, steps, sampler, model) as text that A1111, Forge and Civitai can read.
+Saves as PNG, WebP, JPEG or AVIF with the quality you pick, and shows the file sizes. It also writes the settings (prompt, seed, steps, sampler, model) as text that A1111, Forge and Civitai can read. Two-pass workflows are covered too: hi-res fix, upscalers, a refiner and detailers each land in the fields those tools expect.
 
 <img src="docs/images/save-image.png" alt="The Save Image node showing the saved picture and its file size" width="360">
 

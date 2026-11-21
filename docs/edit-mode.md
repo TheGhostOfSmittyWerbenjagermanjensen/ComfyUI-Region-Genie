@@ -2,6 +2,15 @@
 
 Set **mode** (bottom left of the node) to **edit** to change an existing picture: connect it to `image`, connect `vae`, and use the `latent` output for the sampler. The regions you paint say *where* to change what.
 
+**In short:**
+
+1. Set the bottom bar to **Edit**. Connect your picture to `image` and connect `vae`.
+2. Paint a region over each part to change, and type what it should become.
+3. Use the node's `latent` output for the sampler, and run.
+4. For an edit model (MOSS-Image, Flux.1 Kontext, Flux.2 / Klein, Flux 3, Krea 2), pick its edit LoRA once in **Settings > Region Genie > Edit Mode**. For other models, set the sampler's denoise below 1.
+
+**The details:**
+
 - **The canvas** takes the image's shape at the pixel count of `width` × `height` (in steps of 16): a 900×600 photo at 1024×1024 gives 1248×832. `size_from` still overrides it. The image is the backdrop to paint over (the image mode buttons and min px are hidden: the source is never read as a color map).
 - **The Edit area line** (the first line under *Whole image* in Edit Mode; it is always there). Its dropdown (the `edit_area` input): *regions only* (default) puts a mask of the regions on the `latent` output, so the sampler changes only those areas and keeps the rest (like inpainting); *whole image* lets everything change while the regions still steer where each prompt goes.
 - **Keep or change, per region:** in edit, each region row (and its pop-up editor) has a pencil / lock button after the sparkles. Pencil (default): the region may change. Lock: the region stays exactly as it is in the source, and it is hatched on the canvas (its label shows a lock before the prompt). With *regions only*, the mask covers the change regions; with *whole image*, everything except the kept regions. Kept regions still go into the prompt and every other output, so they can describe what's there.

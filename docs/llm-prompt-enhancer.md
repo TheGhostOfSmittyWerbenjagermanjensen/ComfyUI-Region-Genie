@@ -2,6 +2,17 @@
 
 Region prompts and `scene_prompt_positive` can be rewritten by an LLM when the workflow runs, before the layout is built, so the LLM never sees or touches the JSON.
 
+**In short:**
+
+1. Press the sparkles button on a region (or on *Whole image*). Lit means on.
+2. Run the workflow. The LLM rewrites that prompt; a green dot on the button says the result is ready (hover to read it).
+3. Click the lit button to go back to your own text, or to keep the LLM's text and edit it.
+4. The sparkles button in the bottom bar opens **LLM Settings**: which LLM, what it sees, and the presets.
+
+Nothing needs installing: by default it uses the text encoder already connected to `clip`.
+
+**The details:**
+
 - **Turning it on:** the sparkles button on a region row (or on the *Whole image* row, for `scene_prompt_positive`; the same button is in the corner of the `scene_prompt_positive` box itself, and that box has a blue outline while its enhancer is on). Lit = on. A green dot means the text used in the last run is ready; hover to read it (and the thinking, if any). An orange dot means the LLM returned nothing last time, so the typed prompt was used.
 - **Turning it off:** click the lit button: *restore my original prompt* (your typed prompt is used again) or *keep the enhanced text to edit* (the enhanced text replaces your prompt in the field, for editing by hand; Ctrl+Z undoes it for regions). With no result yet it just turns off.
 - **Right-click** the button: run again with a new seed, copy the enhanced text or the thinking, keep the enhanced text, or open LLM Settings.
