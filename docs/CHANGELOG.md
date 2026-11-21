@@ -2,6 +2,10 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 55 (Nov 21): the pop-up text editors in the README
+- Asked: a more prominent mention of the pop-up text editors in the README / repository, with a picture of each kind (scene_prompt_positive, a region) and their buttons and controls; and a list of other features of that scale with little coverage (given in the chat, for the owner to pick from).
+- Built: README: a line in "What you can do with it", a link from the quick start, and "Pop-up text editors" as the second entry of the feature tour (how to open, two pictures, a table of the controls). docs/region-genie.md: the same pictures and a fuller table at the top of "Text boxes and pop-up editors". `tests/shot_readme.cjs` takes `popup-scene.png` and `popup-region.png`. No code change, no new version.
+
 ## Round 54 (Nov 21): Firefox for tests
 - Asked: the snap-back of round 53 was in Firefox on Windows; the owner allowed archive.mozilla.org and asked for Firefox to be installed for future tests of bugs reported in Firefox, with Chromium staying the default (not every suite in both browsers).
 - Built: `tests/setup_firefox.sh` (Firefox with its checksum checked, geckodriver, selenium-webdriver, into `/opt/rg-firefox`) and `tests/firefox_size_row.cjs` (real ComfyUI, real mouse: 40 fast clicks sent as one gesture on the arrows of width and of the step box, every one must count). Rules in CLAUDE.md and tests/README.md.

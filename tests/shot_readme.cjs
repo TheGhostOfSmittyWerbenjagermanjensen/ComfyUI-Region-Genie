@@ -1,5 +1,5 @@
 // The README's pictures: docs/images/editor.png (the whole node), editor-numbered.png (its parts numbered), lora.png (a
-// region with a LoRA), large-editor.png, rows.png (a Control row and an Edit row under Whole image) and save-image.png
+// region with a LoRA), popup-scene.png and popup-region.png (the pop-up editors), large-editor.png, rows.png (a Control row and an Edit row under Whole image) and save-image.png
 // (Save Image after a run; it uses input/rg_demo.png when there is one). Needs a running ComfyUI with this pack (legacy mode, English, dark palette):
 //   node tests/shot_readme.cjs
 // Retake them when the node's look changes.
@@ -62,6 +62,20 @@ const { chromium } = require("playwright");
   await page.mouse.move(4, 4); await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "lora.png"), clip: loraClip });
   await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(200);
+  // popup-scene.png, popup-region.png: the pop-up editors of scene_prompt_positive and of a region's prompt
+  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || [])[0];
+    s.sceneLoras = [{ lora: lo || "styles/oil_painting.safetensors", strength: 0.6, on: true }];
+    s.regions[1].palette = ["#c0c7d1", "#b3261e", "#3b2a1a"]; s.regions[1].paletteOn = true; n.__rgRefresh(); });
+  await page.waitForTimeout(300);
+  const popShot = async (name) => {
+    await page.waitForTimeout(500); await page.mouse.move(4, 4); await page.waitForTimeout(600);
+    const c = await page.evaluate(() => { const r = document.querySelector(".rg-pop").getBoundingClientRect(); return { x: r.x - 2, y: r.y - 2, width: r.width + 4, height: r.height + 4 }; });
+    await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", name), clip: c });
+  };
+  await page.locator(".rg-expand").first().click(); await popShot("popup-scene.png");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+  await page.locator(".rg-row.region").nth(1).locator(".rg-expand").first().click(); await popShot("popup-region.png");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   // large-editor.png: the same editor in a window that fills the page
   await page.setViewportSize({ width: 1760, height: 960 });
   await page.locator('[title^="Large editor"]').first().click(); await page.waitForTimeout(900);

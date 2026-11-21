@@ -24,6 +24,7 @@
 ## ✨ What you can do with it
 
 - **Place prompts by region.** A knight here, a dragon there: each region gets its own prompt.
+- **Write in a large editor.** Every prompt opens in a pop-up editor with undo, LoRAs, wildcards and the LLM button at hand.
 - **Give a region its own LoRA.** A character or style LoRA acts only inside the region you choose.
 - **Draw any shape.** Boxes, ellipses, stars, brush strokes, lasso outlines, fills, or objects picked out of a photo.
 - **Guide the layout.** ControlNet-style control (depth, canny, color map) from the same node.
@@ -67,7 +68,7 @@ flowchart LR
 
 1. Add the **Region Genie** node (search for "genie"). Connect your loader's `model`, `clip` and `vae` to it.
 2. Set the image size in the row at the top of the node: by aspect ratio, from your presets list, or by hand (width and height, with a step size for their arrows).
-3. Press the add-region button under the canvas and drag a box. Type that region's prompt in the list. Repeat for each region.
+3. Press the add-region button under the canvas and drag a box. Type that region's prompt in the list, or press ⤢ on the prompt for a [large pop-up editor](#pop-up-text-editors). Repeat for each region.
 4. Describe the whole picture in `scene_prompt_positive`.
 5. Connect the node's `model`, `positive`, `negative` and `latent` outputs to your sampler, and run.
 
@@ -96,6 +97,34 @@ The node helps as you go:
 Draw regions with shapes, a brush, a lasso or a fill. Each region is one color with one prompt. Layers let you build a region from several pieces, cut holes, and move or resize things later. On a connected photo, the magic wand and **Select object** (SAM 3.1) pick out areas for you.
 
 → [Region Genie (the node)](docs/region-genie.md)
+
+### Pop-up text editors
+
+The easiest way to write prompts. Every text field opens in a large editor that floats over the page, so you can type long prompts without scrolling a small box.
+
+**To open one:** press the arrows button (⤢) in the corner of any text field, or double-click a region's label on the canvas.
+
+<img src="docs/images/popup-scene.png" alt="The pop-up editor of scene_prompt_positive, with a whole-image LoRA" width="560">
+
+<img src="docs/images/popup-region.png" alt="The pop-up editor of a region: type buttons, prompt, color palette, feather and a LoRA" width="500">
+
+| Where | Control | What it does |
+|---|---|---|
+| Title bar | ◀ ▶ | Go to the previous / next text field without closing (also Page Up / Page Down) |
+| | Undo / Redo | Take back or repeat your typing in this field (also Ctrl+Z, Ctrl+Y) |
+| | A− / A+ | Smaller / larger text |
+| | Close | Closes the pop-up (also Esc). Your text always stays |
+| Region only | Object / Character / Text | What kind of region this is |
+| | Color palette | Colors the region should use: on / off, the colors, **+** to add one |
+| | Feather | How soft the region's edge is |
+| Bottom row | Tag autocomplete | Tag suggestions while you type, on / off |
+| | Wildcards | Insert a wildcard (with ComfyUI Impact Pack) |
+| | LLM Prompt Enhancer | Let a local LLM rewrite this prompt when the workflow runs |
+| | ＋LoRA | Add a LoRA: for this region, or for the whole image on `scene_prompt_positive` |
+
+Drag the title bar to move a pop-up, and the corner grip to resize it. It stays open while you draw.
+
+→ [Text boxes and pop-up editors](docs/region-genie.md#text-boxes-and-pop-up-editors)
 
 ### Regional LoRAs
 
@@ -156,7 +185,7 @@ With ComfyUI Impact Pack installed, every prompt field takes its wildcards: `__n
 
 ### Room to work
 
-The **large editor** opens the same editor in a window that fills the page. Every prompt box has a pop-up editor for longer text.
+The **large editor** opens the same editor in a window that fills the page.
 
 <img src="docs/images/large-editor.png" alt="The large editor: the canvas on the left, prompts and the region list on the right" width="640">
 

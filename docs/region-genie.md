@@ -260,6 +260,36 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 
 ## Text boxes and pop-up editors
 
+Every text field of the node opens in a **pop-up editor**: a large text box that floats over the page. Open one with the **⤢** button in the field's corner, or by double-clicking a region's label on the canvas.
+
+<img src="images/popup-scene.png" alt="The pop-up editor of scene_prompt_positive, with a whole-image LoRA" width="560">
+
+*The pop-up of `scene_prompt_positive`.*
+
+<img src="images/popup-region.png" alt="The pop-up editor of a region" width="500">
+
+*The pop-up of a region.*
+
+| Where | Control | What it does |
+|---|---|---|
+| Title bar | ◀ ▶ | The previous / next text field, in the same place and size (Page Up / Page Down) |
+| | Undo / Redo | This field's own text steps (Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y) |
+| | A− / A+ | Text size of the box you're typing in |
+| | Close | Closes the pop-up (Esc); the text stays |
+| | The bar itself | Drag to move the pop-up; double-click to put it back next to its field |
+| Region only | The color square | The region's color |
+| | Object / Character / Text | The region's type (Text adds a box for the text to render) |
+| | Color palette (left of the bottom row) | On / off, the colors, **+** |
+| | Feather | The value, the chain that links it to other regions, and edges on the image border |
+| | Kept / changed | Edit Mode only |
+| Bottom row | Tag autocomplete | On / off |
+| | Wildcards | The wildcard list (ComfyUI Impact Pack) |
+| | LLM Prompt Enhancer | On / off for this field (not on `scene_prompt_negative`) |
+| | ＋LoRA | A LoRA for this region; for the whole image on `scene_prompt_positive`. Each LoRA row: on / off, file, strength, remove, trigger-word chips |
+| Corner | ◢ grip | Drag to resize; double-click for the default size |
+
+The details:
+
 - **`scene_prompt_background`** (under the two scene prompts; Ideogram 4 only): the background or setting behind the regions (ground, floor, sky, room ...), the `background` of the Ideogram JSON prompt, which Ideogram 4 requires. It shows only while the model (bottom bar) is Ideogram 4, picked or found; other models don't use it. Its text is kept while it is hidden.
 - **Scene prompts in a pop-up:** the **⤢** button in the bottom-right corner of `scene_prompt_positive`, `scene_prompt_negative` or `scene_prompt_background` opens it in a larger pop-up editor (Enter: a new line; Esc or the close button: close, the text stays). The positive one also has the LLM Prompt Enhancer button and the whole-image LoRAs (add, strengths, trigger-word chips). The region pop-up editor (double-click a region's label on the canvas, or ⤢ on its prompt in the region list) has the LLM Prompt Enhancer button too.
 - **The pop-up editors** open large, next to the field, and float over the page: drag the title bar to move one anywhere on the screen (double-click the title bar to put it back next to the field), drag the ◢ grip in the bottom-right corner to resize it (remembered for every Region Genie node; double-click the grip for the default size).
