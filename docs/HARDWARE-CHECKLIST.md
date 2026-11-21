@@ -34,7 +34,7 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] The size row: presets pop-up, the chain button, the seed control
 - [ ] The message bar under the canvas: selecting text, right-click, Copy link
 
-- [ ] Manual size mode at the default node width, both node modes: the ± step box fits in the row; clicking the small arrows of W / H with the mouse changes the value by the step
+- [ ] Manual size mode at the default node width, both node modes: the ± step box fits in the row; clicking the small arrows of W / H with the mouse changes the value by the step; many fast clicks (up, down, mixed) on W, H, ±, MP and × all count, none snaps back (reported in Firefox 160 on Windows, legacy mode, very fast clicks; fixed and checked in Firefox on Linux with the focus kept out of the field: please confirm on Windows)
 
 ## 3. Model files (Settings, Edit rows, LLM)
 

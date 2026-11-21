@@ -83,6 +83,16 @@ export function* sizeRow(E) {
         const i = el("input", "rg-num"); i.type = "number"; i.min = String(min); i.max = String(max); i.step = String(step);
         i.title = title; if (width) i.style.width = width;
         i.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") i.blur(); });
+        // a value changed in the field and not taken over yet (between a click on one of the field's arrows, "input",
+        // and its release, "change"): syncSizeRow() must not write the old value back meanwhile. It used to go by
+        // the focus alone, and a click on the arrows doesn't put the focus into the field in Firefox on Windows
+        // (it does in Chromium, and in Firefox on Linux), so the editor's half-second check could undo a click. If no "change" follows (no focus: no blur
+        // either), the value is taken over after a moment
+        i.addEventListener("input", () => {
+            i.__rgPending = true; clearTimeout(i.__rgPendT);
+            i.__rgPendT = setTimeout(() => { if (i.__rgPending && document.activeElement !== i) i.dispatchEvent(new Event("change")); }, 400);
+        });
+        i.addEventListener("change", () => { i.__rgPending = false; clearTimeout(i.__rgPendT); });
         return i;
     };
     const tiny = (text, title) => { const t = el("span", "rg-hint"); t.textContent = text; t.title = title; return t; };
@@ -197,7 +207,7 @@ export function* sizeRow(E) {
         ratioBox.style.display = c.mode === "aspect ratio" ? "" : "none";
         preBox.style.display = c.mode === "presets" ? "" : "none";
         manBox.style.display = c.mode === "manual" ? "" : "none";
-        const idle = (i) => force || document.activeElement !== i;
+        const idle = (i) => force || (document.activeElement !== i && !i.__rgPending);
         if (idle(aspSel)) aspSel.value = c.ratio.aspect;
         if (idle(mpIn)) mpIn.value = String(c.ratio.mp);
         if (idle(multIn)) multIn.value = String(c.ratio.multiple);

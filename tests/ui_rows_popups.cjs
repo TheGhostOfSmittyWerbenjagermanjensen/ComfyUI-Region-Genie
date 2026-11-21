@@ -153,6 +153,23 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await wIn.fill("1001"); await wIn.press("Enter"); await page.waitForTimeout(60);
     check(`a typed width can be any number (${await wv()})`, JSON.stringify(await wv()) === "[1001,472]" && await wIn.evaluate((i) => i.validity.valid));
     await stepIn.fill("64"); await stepIn.press("Enter"); await wIn.fill("1000"); await wIn.press("Enter"); await hIn.fill("600"); await hIn.press("Enter"); await page.waitForTimeout(60);
+    // a click on a field's arrows where the click doesn't focus the field (Safari, Firefox on macOS): "input" now,
+    // "change" on release. The editor's own refresh in between must not put the old value back
+    const pend = await page.evaluate(async () => {
+        const part = document.querySelectorAll(".rg-size .rg-size-part")[2], [w, , st] = part.querySelectorAll("input");
+        document.activeElement?.blur?.();
+        const out = [];
+        for (const [i, v] of [[w, "1064"], [st, "72"]]) {
+            i.value = v; i.dispatchEvent(new Event("input", { bubbles: true }));
+            window.__node.__rgSyncSize(); out.push(i.value);                  // the half-second check
+            i.dispatchEvent(new Event("change", { bubbles: true })); window.__node.__rgSyncSize(); out.push(i.value);
+        }
+        w.value = "1128"; w.dispatchEvent(new Event("input", { bubbles: true }));     // and no "change" at all: taken over by itself
+        await new Promise((r) => setTimeout(r, 600)); window.__node.__rgSyncSize();
+        return { out, late: w.value, wv: window.__node.widgets.find((x) => x.name === "width").value, step: window.__node.properties.rg_size.manual.step };
+    });
+    check(`an arrow click without focus isn't undone by the editor's refresh (${pend.out}; later ${pend.late}, width ${pend.wv}, step ${pend.step})`, pend.out.join() === "1064,1064,72,72" && pend.late === "1128" && pend.wv === 1128 && pend.step === 72);
+    await stepIn.fill("64"); await stepIn.press("Enter"); await wIn.fill("1000"); await wIn.press("Enter"); await page.waitForTimeout(60);
     const tips3 = await row.locator(".rg-seg .rg-btn").evaluateAll((bs) => bs.map((b) => b.title));
     check(`the three mode buttons' tooltips start with their names (${tips3.map((t) => t.split(":")[0])})`, tips3[0] === "Aspect ratio: Image size from an aspect ratio and megapixels, like ComfyUI's Resolution Selector"
         && tips3[1] === "Presets: Image size from the presets list (shared by every Region Genie node; 'Edit list…' at its end)" && tips3[2] === "Manual: Image size from manually selected width and height values");

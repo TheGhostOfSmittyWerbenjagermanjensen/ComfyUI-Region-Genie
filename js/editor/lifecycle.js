@@ -296,6 +296,7 @@ export function* lifecycle(E) {
         return c.toDataURL();
     };
     E.node.__rgState = () => E.state;
+    E.node.__rgSyncSize = () => E.syncSizeRow();           // tests: the size row's refresh, as the half-second check does it
     E.node.__rgRefresh = () => { E.version++; E.save(); E.refreshUI(); };
     // tests: a redraw of the list as the editor's own checks cause one; how many redraws were done / held back
     E.node.__rgBackgroundRedraw = () => E.background(() => E.renderRegions());
