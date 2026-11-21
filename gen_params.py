@@ -70,6 +70,11 @@ SCHEDULER_NODES = {
     "GITSScheduler": "gits", "LaplaceScheduler": "laplace", "VPScheduler": "vp", "Flux2Scheduler": "simple",
 }
 LATENT_INPUTS = ("latent_image", "latent", "samples", "latents")
+# a sampler that takes a picture instead of a latent (tiled upscalers such as Ultimate SD Upscale, detailers)
+IMAGE_INPUTS = ("image", "images", "pixels", "upscaled_image")
+# what a walk back along the picture never follows: these inputs bring something else than the picture
+NOT_PICTURE = ("model", "positive", "negative", "vae", "clip", "conditioning", "control_net", "controlnet", "upscale_model",
+               "sampler", "sigmas", "noise", "guider", "mask", "clip_vision", "style_model")
 RG_MAIN, RG_LORAS = "Region-Genie_Main", "Region-Genie_RegionalLoRAs"
 MAX_NODES = 600                                    # a walk never looks at more nodes than this
 
@@ -118,8 +123,12 @@ def _is_sampler(n):
     ins, ct = n["inputs"], str(n.get("class_type", ""))
     if ct in ("KSampler", "KSamplerAdvanced", "SamplerCustom", "SamplerCustomAdvanced"):
         return True
-    return (("steps" in ins or "sigmas" in ins) and any(k in ins for k in ("seed", "noise_seed", "noise"))
-            and any(k in ins for k in LATENT_INPUTS))
+    if not (("steps" in ins or "sigmas" in ins) and any(k in ins for k in ("seed", "noise_seed", "noise"))):
+        return False
+    if any(k in ins for k in LATENT_INPUTS):
+        return True
+    # fed a picture: it must also take a model (or a guider), or a node that only has steps and a seed would count
+    return any(_is_link(ins.get(k)) for k in IMAGE_INPUTS) and any(_is_link(ins.get(k)) for k in ("model", "guider", "positive"))
 
 
 def _sampler_name(graph, v):
@@ -173,7 +182,10 @@ def _read_sampler(graph, nid):
     for k in ("model", "positive", "negative"):
         if _is_link(ins.get(k)):
             s[k] = ins[k]
-    s["latent"] = next((ins[k] for k in LATENT_INPUTS if _is_link(ins.get(k))), None)
+    s["latent"] = next((ins[k] for k in LATENT_INPUTS + IMAGE_INPUTS if _is_link(ins.get(k))), None)
+    up = _upscaler(graph, n)                                   # a node that upscales and samples in one
+    if up:
+        s["upscaler"] = up
     # KSampler (Advanced): a pass that starts part-way has no denoise value; the steps say it
     start, end = _num(_value(graph, ins.get("start_at_step"))), _num(_value(graph, ins.get("end_at_step")))
     if s["denoise"] is None and s["steps"] and start:
@@ -205,6 +217,23 @@ def _read_sampler(graph, nid):
     return s
 
 
+def _upscaler(graph, n):
+    """What a node enlarges the picture with: an upscale model's name, 'Latent' (+ the method), or the method. None
+    when it doesn't enlarge anything."""
+    ins, ct = n["inputs"], str(n.get("class_type", ""))
+    if _is_link(ins.get("upscale_model")):
+        ln = _node(graph, ins["upscale_model"][0])
+        name = _value(graph, ln["inputs"].get("model_name")) if ln is not None else None
+        return _stem(name) if isinstance(name, str) and name else "Upscale model"
+    if re.search(r"upscale|scale|resize", ct, re.I) and not re.search(r"model|loader", ct, re.I):
+        m = _value(graph, ins.get("upscale_method", ins.get("method", ins.get("interpolation"))))
+        m = m.capitalize() if isinstance(m, str) and m else ""
+        if "latent" in ct.lower():
+            return ("Latent (%s)" % m.lower()) if m and m.lower() != "nearest-exact" else "Latent"
+        return m or None
+    return None
+
+
 def find_samplers(graph, start):
     """The samplers the image came from, first pass first. `start`: the link the save node's image comes in by."""
     seen, queue, last = set(), [start], None
@@ -227,10 +256,12 @@ def find_samplers(graph, start):
     while last is not None and len(chain) < 8:
         s = _read_sampler(graph, last)
         chain.append(s)
-        # an earlier pass: back along the latent, through nodes that only change it (an upscale, a decode + encode)
-        last, seen2, q = None, set(), [s["latent"]]
-        while q and len(seen2) < MAX_NODES:
-            v = q.pop(0)
+        # an earlier pass: back along the picture (latent or image), through nodes that only change it (an upscale,
+        # a decode + encode). The inputs that usually carry it first; then, only when those end, any other input
+        # that isn't known to carry something else (a switch or a node of another pack names its inputs its own way)
+        last, seen2, q, rest = None, set(), [s["latent"]], []
+        while (q or rest) and len(seen2) < MAX_NODES:
+            v = q.pop(0) if q else rest.pop(0)
             if not _is_link(v) or str(v[0]) in seen2:
                 continue
             seen2.add(str(v[0]))
@@ -241,7 +272,14 @@ def find_samplers(graph, start):
                 if str(v[0]) not in {c["id"] for c in chain}:
                     last = str(v[0])
                 break
-            q += [n["inputs"][k] for k in ("samples", "latent", "latent_image", "image", "images", "pixels") if _is_link(n["inputs"].get(k))]
+            if not s.get("upscaler"):
+                up = _upscaler(graph, n)
+                if up:
+                    s["upscaler"] = up
+            ins = n["inputs"]
+            first = ("samples", "latent", "latent_image", "latents", "image", "images", "pixels", "upscaled_image")
+            q += [ins[k] for k in first if _is_link(ins.get(k))]
+            rest += [x for k, x in ins.items() if _is_link(x) and k not in first and k.lower() not in NOT_PICTURE]
     chain.reverse()
     return chain
 
@@ -533,7 +571,9 @@ def build(traced, size=None, overrides=None, path_of=None):
     o = {k: v for k, v in (overrides or {}).items() if v is not None and v != ""}
     chain = traced.get("samplers") or []
     first = chain[0] if chain else {}
-    second = chain[-1] if len(chain) > 1 else None
+    # a later pass, written as hi-res fix: the one that enlarged the picture when there are several, else the last
+    later = chain[1:]
+    second = next((c for c in later if c.get("upscaler")), later[-1] if later else None)
 
     def pick(key, okey=None):
         return o[okey or key] if (okey or key) in o else first.get(key)
@@ -603,6 +643,17 @@ def build(traced, size=None, overrides=None, path_of=None):
                 add("Hires upscale", _fmt(round(final[0] / base[0], 2)))
         if second.get("steps") is not None:
             add("Hires steps", _fmt(second["steps"]))
+        if second.get("upscaler"):
+            add("Hires upscaler", second["upscaler"])
+        # the second pass's own sampler, schedule and CFG, where they differ from the first pass's (as Forge writes them)
+        s2 = second.get("sampler")
+        if isinstance(s2, str) and s2 and s2 != first.get("sampler"):
+            add("Hires sampler", SAMPLERS.get(s2.lower(), s2))
+        c2 = second.get("scheduler")
+        if isinstance(c2, str) and c2 and c2 != first.get("scheduler"):
+            add("Hires schedule type", SCHEDULERS.get(c2.lower(), c2))
+        if second.get("cfg") is not None and second.get("cfg") != first.get("cfg"):
+            add("Hires CFG Scale", _fmt(second["cfg"]))
     elif denoise is not None and float(denoise) < 1:
         add("Denoising strength", _fmt(denoise))
     if traced.get("clip_skip") and traced["clip_skip"] > 1:

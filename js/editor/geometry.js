@@ -53,18 +53,47 @@ export function distanceMap(src, w, h) {
     }
     return d;
 }
-// a 0/1 mask grown (r > 0) or shrunk (r < 0) by r px
+// exact squared distance (px², between pixel centres) from every pixel to the nearest pixel where src[i] is set
+// (Felzenszwalb & Huttenlocher: one pass along the columns, one along the rows); Float64Array. The chamfer map above
+// is only near enough for closing gaps: growing by it cuts every corner off at 45°
+export function distanceSq(src, w, h) {
+    const INF = 1e20, d = new Float64Array(w * h), n = Math.max(w, h);
+    const f = new Float64Array(n), v = new Int32Array(n), z = new Float64Array(n + 1), out = new Float64Array(n);
+    const pass = (len) => {                               // lower envelope of the parabolas f[q] + (x - q)²
+        let k = 0; v[0] = 0; z[0] = -INF; z[1] = INF;
+        for (let q = 1; q < len; q++) {
+            let s;
+            do { const p = v[k]; s = ((f[q] + q * q) - (f[p] + p * p)) / (2 * q - 2 * p); } while (s <= z[k] && --k >= 0);
+            k++; v[k] = q; z[k] = s; z[k + 1] = INF;
+        }
+        k = 0;
+        for (let q = 0; q < len; q++) { while (z[k + 1] < q) k++; const p = v[k]; out[q] = (q - p) * (q - p) + f[p]; }
+    };
+    for (let x = 0; x < w; x++) {
+        for (let y = 0; y < h; y++) f[y] = src[y * w + x] ? 0 : INF;
+        pass(h);
+        for (let y = 0; y < h; y++) d[y * w + x] = out[y];
+    }
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) f[x] = d[y * w + x];
+        pass(w);
+        for (let x = 0; x < w; x++) d[y * w + x] = out[x];
+    }
+    return d;
+}
+// a 0/1 mask grown (r > 0) or shrunk (r < 0) by r px, measured straight (a round brush of that radius run along the edge)
 export function growMask01(mask, w, h, r) {
     if (!r) return mask;
-    const out = new Uint8Array(w * h);
+    const out = new Uint8Array(w * h), lim = r * r + 1e-6;
     if (r > 0) {
-        const d = distanceMap(mask, w, h);
-        for (let i = 0; i < out.length; i++) out[i] = d[i] <= r + 1e-6 ? 1 : 0;
+        const d = distanceSq(mask, w, h);
+        for (let i = 0; i < out.length; i++) out[i] = d[i] <= lim ? 1 : 0;
     } else {
         const inv = new Uint8Array(w * h);
         for (let i = 0; i < inv.length; i++) inv[i] = mask[i] ? 0 : 1;
-        const d = distanceMap(inv, w, h);
-        for (let i = 0; i < out.length; i++) out[i] = mask[i] && d[i] > -r + 1e-6 ? 1 : 0;
+        // the image's border is no edge of the layer: a layer that runs off the image isn't eaten into from there
+        const d = distanceSq(inv, w, h);
+        for (let i = 0; i < out.length; i++) out[i] = mask[i] && d[i] > lim ? 1 : 0;
     }
     return out;
 }

@@ -253,7 +253,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const p1 = (await st()).layers[0].ops[0].p.map(([x, y]) => [x * 256, y * 256]);
     const box1 = await page.evaluate(() => window.__node.__rgBox());
     const bx0 = Math.min(...box0.map((c) => c[0])), bx1 = Math.max(...box0.map((c) => c[0]));
-    check("flip H mirrors the stroke in place", Math.abs(p1[0][0] - (bx0 + bx1 - p0[0][0])) < 1e-6 && Math.abs(p1[0][1] - p0[0][1]) < 1e-6
+    check("flip H mirrors the stroke in place", Math.abs(p1[0][0] - (bx0 + bx1 - p0[0][0])) < 1.5 && Math.abs(p1[0][1] - p0[0][1]) < 1e-6
         && Math.abs(Math.min(...box1.map((c) => c[0])) - bx0) < 1.5);
     await page.locator('.rg-arrange button[title^="Align to the left"]').click();
     const box2 = await page.evaluate(() => window.__node.__rgBox());

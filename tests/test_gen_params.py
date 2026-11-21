@@ -118,6 +118,66 @@ check(f"the text describes the first pass, and the second the way A1111 writes h
       "Steps: 28, Sampler: DPM++ 2M SDE" in textt and "Seed: 123456789012" in textt and "Size: 1024x768" in textt
       and "Denoising strength: 0.45, Hires resize: 1536x1152, Hires upscale: 1.5, Hires steps: 12" in textt)
 
+check("…with what enlarged the picture, and the second pass's own sampler, schedule and CFG where they differ",
+      "Hires upscaler: Latent (bislerp), Hires sampler: Euler, Hires schedule type: Normal, Hires CFG Scale: 5" in textt)
+
+# a tiled upscale: a node that takes the decoded picture, enlarges it and samples it again in tiles (Ultimate SD Upscale)
+USDU = json.loads(json.dumps(PLAIN))
+USDU["40"] = N("UpscaleModelLoader", model_name="ESRGAN/4x-UltraSharp.pth")
+USDU["41"] = N("UltimateSDUpscale", image=["7", 0], model=["2", 0], positive=["3", 0], negative=["4", 0], vae=["1", 2],
+               upscale_model=["40", 0], upscale_by=2.0, seed=77, steps=20, cfg=6.5, sampler_name="dpmpp_2m_sde",
+               scheduler="karras", denoise=0.3, mode_type="Linear", tile_width=1024, tile_height=1024)
+USDU["9"]["inputs"]["images"] = ["41", 0]
+tu = gp.trace(USDU, "9")
+textu, missu = gp.build(tu, (2048, 1536))
+check(f"a tiled upscaler fed the decoded picture: the first pass is found behind it ({[s['id'] for s in tu['samplers']]})",
+      [s["id"] for s in tu["samplers"]] == ["6", "41"] and tu["base_size"] == (1024, 768) and missu == [])
+check(f"…the first pass's settings, the upscale as hi-res fix with its upscale model ({textu.splitlines()[-1]!r})",
+      "Steps: 28, Sampler: DPM++ 2M SDE, Schedule type: Karras, CFG scale: 6.5, Seed: 123456789012, Size: 1024x768" in textu
+      and "Denoising strength: 0.3, Hires resize: 2048x1536, Hires upscale: 2, Hires steps: 20, Hires upscaler: 4x-UltraSharp" in textu
+      and "Hires sampler" not in textu and "Hires CFG" not in textu)
+check("…the prompt and the model are the first pass's", textu.startswith("a red fox, in snow") and "Model: juggernaut" in textu)
+
+# tiled sampling with a plain sampler: decode, upscale with a model, encode in tiles, sample; the picture passes through
+# a switch of another pack, whose inputs have names of their own
+TIL = json.loads(json.dumps(PLAIN))
+TIL["40"] = N("UpscaleModelLoader", model_name="4x_foolhardy_Remacri.safetensors")
+TIL["41"] = N("ImageUpscaleWithModel", upscale_model=["40", 0], image=["7", 0])
+TIL["42"] = N("Any Switch (rgthree)", any_01=["41", 0], any_02=["3", 0])
+TIL["43"] = N("VAEEncodeTiled", pixels=["42", 0], vae=["1", 2], tile_size=512)
+TIL["44"] = N("TiledDiffusion", model=["2", 0], method="MultiDiffusion", tile_width=1024, tile_height=1024)
+TIL["45"] = N("KSampler", model=["44", 0], positive=["3", 0], negative=["4", 0], latent_image=["43", 0], seed=9, steps=16,
+              cfg=6.5, sampler_name="dpmpp_2m_sde", scheduler="karras", denoise=0.35)
+TIL["46"] = N("VAEDecodeTiled", samples=["45", 0], vae=["1", 2], tile_size=512)
+TIL["9"]["inputs"]["images"] = ["46", 0]
+tl = gp.trace(TIL, "9")
+textl, _ = gp.build(tl, (4096, 3072))
+check(f"a second sampler reached through a switch with its own input names: both passes ({[s['id'] for s in tl['samplers']]})",
+      [s["id"] for s in tl["samplers"]] == ["6", "45"])
+check(f"…written as hi-res fix ({textl.splitlines()[-1]!r})", "Steps: 28" in textl and "Seed: 123456789012" in textl and "Size: 1024x768" in textl
+      and "Denoising strength: 0.35, Hires resize: 4096x3072, Hires upscale: 4, Hires steps: 16, Hires upscaler: 4x_foolhardy_Remacri" in textl)
+# the walk prefers the picture's own inputs: a sampler that only made a ControlNet's hint picture is no earlier pass
+SIDE = json.loads(json.dumps(PLAIN))
+SIDE["50"] = N("KSampler", model=["2", 0], positive=["3", 0], negative=["4", 0], latent_image=["5", 0], seed=1, steps=3, cfg=1.0,
+               sampler_name="euler", scheduler="simple", denoise=1.0)
+SIDE["51"] = N("VAEDecode", samples=["50", 0], vae=["1", 2])
+SIDE["52"] = N("ControlNetApplyAdvanced", positive=["3", 0], negative=["4", 0], control_net=["53", 0], image=["51", 0], strength=1.0)
+SIDE["53"] = N("ControlNetLoader", control_net_name="cn.safetensors")
+SIDE["6"]["inputs"]["positive"] = ["52", 0]
+check("a sampler that only feeds the prompt side (a ControlNet's picture) isn't taken for an earlier pass",
+      [s["id"] for s in gp.trace(SIDE, "9")["samplers"]] == ["6"])
+# three passes: the one that enlarged the picture is the hi-res pass
+THREE = json.loads(json.dumps(USDU))
+THREE["60"] = N("FaceDetailer", image=["41", 0], model=["2", 0], positive=["3", 0], negative=["4", 0], vae=["1", 2], seed=3, steps=8,
+                cfg=4.0, sampler_name="euler", scheduler="normal", denoise=0.5)
+THREE["9"]["inputs"]["images"] = ["60", 0]
+t3 = gp.trace(THREE, "9")
+text3p, _ = gp.build(t3, (2048, 1536))
+check(f"three passes (sampler, tiled upscale, a detailer): all found; hi-res fix is the pass that enlarged ({[s['id'] for s in t3['samplers']]})",
+      [s["id"] for s in t3["samplers"]] == ["6", "41", "60"] and "Hires steps: 20, Hires upscaler: 4x-UltraSharp" in text3p and "Denoising strength: 0.3" in text3p)
+check("a node with steps and a seed but no model (a noise picture) is no sampler",
+      gp.trace({"1": N("NoiseImage", image=["2", 0], steps=4, seed=1), "2": N("LoadImage", image="x.png"), "9": N("Region-Genie_SaveImage", images=["1", 0])}, "9")["samplers"] == [])
+
 # ---------------------------------------------------------------- the pack's own nodes say what a run really used
 RG = {
     "1": N("UNETLoader", unet_name="moss.safetensors"),

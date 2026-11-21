@@ -4,13 +4,13 @@ import { api } from "../../../scripts/api.js";
 import { getSetting, SET } from "../rg_shared.js";
 import { keyText } from "../rg_keys.js";
 import { LASSO_MODES, TOOL_NUMS, UNSPEC, RASTER_MAX } from "./shared.js";
-import { distanceMap, growMask01, encodeRuns, decodeRuns, bitmapCache } from "./geometry.js";
+import { distanceMap, growMask01, encodeRuns, decodeRuns, bitmapCache, shapeVerts } from "./geometry.js";
 import { hexRgb } from "./colors.js";
 
 export function* selectTools(E) {
     Object.assign(E, {
         gradFill, fillAt, wandAt, edgeMap, pickPointer, pickSettle, pickFind, pickCancel, pickUndo, pickAccept, drawPick,
-        flipLayer, alignLayer, growLayer,
+        flipLayer, alignLayer, growLayer, layerMask,
     });
     yield;
 
@@ -381,6 +381,7 @@ export function* selectTools(E) {
     }
 
     // ---------------- arrange: flip, align, grow / shrink ----------------
+    const bounds = (P) => { const xs = P.map((p) => p[0]), ys = P.map((p) => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
     function mirrorOps(L, axis, c) {                 // mirror the layer's ops in its own frame: x -> c - x (or y)
         const i = axis === "h" ? 0 : 1;
         if (L.grad) for (const q of [L.grad.a, L.grad.b]) q[i] = c - q[i];
@@ -398,36 +399,53 @@ export function* selectTools(E) {
             }
         }
     }
+    // Flip: the layer is mirrored as it looks on the image (left-right, or upside down), about the middle of its
+    // box, so it stays where it is. A layer is drawn as: its own frame, scaled, turned by `rot`, moved. Mirroring the
+    // picture of that is the same as mirroring the frame's content and turning the other way (rot -> -rot). A shape's
+    // outline is the same left and right but not up and down (a triangle), so upside down is done as left-right
+    // plus half a turn (rot -> 180 - rot).
     function flipLayer(L, axis) {
+        const at = pixelMid(L);                                        // image px: the line it is mirrored about runs through here
+        if (!at) return;
+        const s = E.short(), mid = E.imgToLayer(L, ...at);
         E.change(() => {
             E.boxCache.delete(L);
-            if (L.shape) {
-                // shapes are mirror-symmetric left-right: a flip mirrors the ops; upside down = turned 180° + mirrored
-                if (axis === "v") L.rot = ((L.rot + 180 + 180) % 360) - 180;
-                mirrorOps(L, "h", L.bw);
-            } else {
-                const b = E.contentBox(L);
-                if (!b) return;
-                mirrorOps(L, axis, axis === "h" ? b[0] + b[2] : b[1] + b[3]);
-            }
+            const own = axis === "v" && !L.shape ? "v" : "h", i = own === "h" ? 0 : 1;   // the axis mirrored in the layer's own frame
+            if (L.shape) { mirrorOps(L, "h", L.bw); mid[0] = L.bw - mid[0]; }      // a shape: about the middle of its frame
+            else mirrorOps(L, own, 2 * mid[i]);                                    // paint: about that point (the frame stays)
+            L.rot = (axis === "v" && L.shape ? 180 : 0) - L.rot;
+            L.rot = ((L.rot + 180) % 360 + 360) % 360 - 180;
+            const now = E.layerToImg(L, ...mid);                        // that point goes back where it was
+            if (Math.hypot(at[0] - now[0], at[1] - now[1]) > 1e-9) { L.ox += (at[0] - now[0]) / s; L.oy += (at[1] - now[1]) / s; }
             E.boxCache.delete(L);
         });
     }
-    function alignLayer(L, how) {
+    // the box around the layer's pixels on the image [x0, y0, x1, y1] (image px), or null for an empty layer.
+    // A shape with nothing painted on it: worked out from its outline (exact). Anything else: counted on a raster
+    function pixelBox(L) {
+        if (L.shape && !L.ops.length) {
+            return bounds(shapeVerts(L.shape, L.sides, L.bw, L.bh, L.radius).map(([u, v]) => E.layerToImg(L, u * L.bw, v * L.bh)));
+        }
         const cs = E.boxCornersImg(L);
-        if (!cs) return;
-        const [W, H] = E.dims(), s = Math.min(W, H);
-        const x0 = Math.min(...cs.map((c) => c[0])), x1 = Math.max(...cs.map((c) => c[0]));
-        const y0 = Math.min(...cs.map((c) => c[1])), y1 = Math.max(...cs.map((c) => c[1]));
-        let dx = 0, dy = 0;
-        if (how === "l") dx = -x0; else if (how === "r") dx = W - x1; else if (how === "ch" || how === "c") dx = W / 2 - (x0 + x1) / 2;
-        if (how === "t") dy = -y0; else if (how === "b") dy = H - y1; else if (how === "cv" || how === "c") dy = H / 2 - (y0 + y1) / 2;
-        if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) return;
-        E.change(() => { L.ox += dx / s; L.oy += dy / s; });
+        if (!cs) return null;
+        // a raster over the layer's box (which may run off the image), at most RASTER_MAX px on its longer side
+        const box = bounds(cs), bw = box[2] - box[0], bh = box[3] - box[1], r = Math.min(1, (RASTER_MAX - 4) / Math.max(bw, bh, 1));
+        const w = Math.ceil(bw * r) + 4, h = Math.ceil(bh * r) + 4, ox = Math.floor(box[0]) - 2 / r, oy = Math.floor(box[1]) - 2 / r;
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        const x = c.getContext("2d", { willReadFrequently: true });
+        const saved = E.view;
+        E.view = { z: r, x: -ox * r, y: -oy * r };
+        try { E.drawLayerOn(x, L, null, null, "#ffffff"); } finally { E.view = saved; }
+        const d = x.getImageData(0, 0, w, h).data;
+        let x0 = w, x1 = -1, y0 = h, y1 = -1;
+        for (let yy = 0, i = 3; yy < h; yy++) for (let xx = 0; xx < w; xx++, i += 4) if (d[i] >= 128) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; }
+        if (x1 < 0) return box;
+        return [ox + x0 / r, oy + y0 / r, ox + (x1 + 1) / r, oy + (y1 + 1) / r];
     }
-    // grow (px > 0) or shrink the layer's pixels; the layer becomes a plain paint layer (pixels) covering the image
-    function growLayer(L, px) {
-        const R = rasterSize(), { W, H, w, h, r } = R, s = Math.min(W, H);
+    function pixelMid(L) { const b = pixelBox(L); return b ? [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2] : null; }
+    // the layer's pixels on the working raster: { W, H, w, h, r, m (0/1 per raster pixel) }
+    function layerMask(L) {
+        const R = rasterSize(), { w, h, r } = R;
         const c = document.createElement("canvas"); c.width = w; c.height = h;
         const x = c.getContext("2d", { willReadFrequently: true });
         const saved = E.view;
@@ -435,14 +453,102 @@ export function* selectTools(E) {
         try { E.drawLayerOn(x, L, null, null, "#ffffff"); } finally { E.view = saved; }
         const d = x.getImageData(0, 0, w, h).data, m = new Uint8Array(w * h);
         for (let i = 0; i < m.length; i++) m[i] = d[i * 4 + 3] >= 128 ? 1 : 0;
-        const out = growMask01(m, w, h, px * r);
+        return { ...R, m, canvas: c };
+    }
+    // Align: by the layer's own pixels (a turned layer's box has empty corners; they don't count)
+    function alignLayer(L, how) {
+        const b = pixelBox(L);
+        if (!b) return;
+        const [W, H] = E.dims(), s = Math.min(W, H), [x0, y0, x1, y1] = b;
+        let dx = 0, dy = 0;
+        if (how === "l") dx = -x0; else if (how === "r") dx = W - x1; else if (how === "ch" || how === "c") dx = W / 2 - (x0 + x1) / 2;
+        if (how === "t") dy = -y0; else if (how === "b") dy = H - y1; else if (how === "cv" || how === "c") dy = H / 2 - (y0 + y1) / 2;
+        if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
+        E.change(() => { L.ox += dx / s; L.oy += dy / s; });
+    }
+
+    // ---- grow / shrink
+    // a closed outline moved out by g px (in by a negative g), corners kept as corners: every side moves g px along
+    // its own direction and neighbouring sides meet again where they cross
+    function offsetOutline(P, g) {
+        const n = P.length;
+        let area = 0;
+        for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % n]; area += a[0] * b[1] - b[0] * a[1]; }
+        const sgn = area >= 0 ? 1 : -1, N = [];
+        for (let i = 0; i < n; i++) {
+            const a = P[i], b = P[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1e-9;
+            N.push([sgn * dy / len, -sgn * dx / len]);            // points away from the inside
+        }
+        return P.map((v, i) => {
+            const n1 = N[(i + n - 1) % n], n2 = N[i], k = Math.max(0.05, 1 + n1[0] * n2[0] + n1[1] * n2[1]);
+            return [v[0] + g * (n1[0] + n2[0]) / k, v[1] + g * (n1[1] + n2[1]) / k];
+        });
+    }
+    // A layer that is only a shape stays that shape: its box is resized so that every side moves g px (rectangle,
+    // ellipse, triangle, polygon, star: exactly, while the shape isn't stretched; a heart: its box; a rounded rectangle's corners keep
+    // their centre, so their radius changes by g too). Returns false when it would shrink to nothing.
+    function growShape(L, g) {
+        const s = E.short(), kx = L.sx * s, ky = L.sy * s, w = L.bw * kx, h = L.bh * ky;       // the box in image px
+        let w2 = w + 2 * g, h2 = h + 2 * g, dx = 0, dy = 0, radius = L.radius;
+        if (L.shape === "roundrect") {
+            const k = (kx + ky) / 2, r0 = Math.max(0, Math.min(50, Number.isFinite(+L.radius) ? +L.radius : 20)) / 100 * Math.min(L.bw, L.bh) * k;
+            if (w2 >= 1 && h2 >= 1) radius = Math.max(0, Math.min(50, (r0 > 0 ? Math.max(0, r0 + g) : 0) / (Math.min(w2 / kx, h2 / ky) * k) * 100));
+        } else if (L.shape !== "rect" && L.shape !== "ellipse" && L.shape !== "heart") {
+            const U = shapeVerts(L.shape, L.sides, L.bw, L.bh, L.radius), ub = bounds(U);
+            const P = U.map(([u, v]) => [u * w, v * h]), b0 = bounds(P), Q = offsetOutline(P, g), b1 = bounds(Q);
+            // shrunk past its middle, the outline turns inside out: sides that pointed one way now point the other
+            const turned = g < 0 && Q.some((q, i) => { const a = P[i], b = P[(i + 1) % P.length], c = Q[(i + 1) % Q.length]; return (b[0] - a[0]) * (c[0] - q[0]) + (b[1] - a[1]) * (c[1] - q[1]) <= 0; });
+            if (turned) return false;
+            w2 = w * (b1[2] - b1[0]) / (b0[2] - b0[0]); h2 = h * (b1[3] - b1[1]) / (b0[3] - b0[1]);
+            dx = (b1[0] - ub[0] * w2) + w2 / 2 - w / 2; dy = (b1[1] - ub[1] * h2) + h2 / 2 - h / 2;   // the new box's middle, from the old one's
+        }
+        // a heart (a curve, with a notch): its box moves g px on every side
+        if (!(w2 >= 1 && h2 >= 1) || (L.shape === "heart" && -g >= 0.22 * Math.min(w, h))) return false;
+        const grad = L.grad ? [E.layerToImg(L, ...L.grad.a), E.layerToImg(L, ...L.grad.b)] : null;
+        E.change(() => {
+            E.boxCache.delete(L);
+            const th = L.rot * Math.PI / 180;
+            L.ox += (Math.cos(th) * dx - Math.sin(th) * dy) / s; L.oy += (Math.sin(th) * dx + Math.cos(th) * dy) / s;
+            L.bw = w2 / kx; L.bh = h2 / ky;
+            if (L.shape === "roundrect") L.radius = radius;
+            if (grad) { L.grad.a = E.imgToLayer(L, ...grad[0]); L.grad.b = E.imgToLayer(L, ...grad[1]); }   // the fade stays where it is on the image
+        });
+        return true;
+    }
+    // grow (px > 0) or shrink the layer by px image pixels on every side
+    function growLayer(L, px) {
+        if (!E.contentBox(L)) return;
+        const tooSmall = () => E.hint(`The layer is too small to shrink by ${-px} px`);
+        if (L.shape && !L.ops.length) { if (!growShape(L, px)) tooSmall(); return; }
+        // anything painted (brush, lasso, fill, selections, a shape with paint or erasing on it) becomes pixels
+        const { W, H, w, h, r, m, canvas } = layerMask(L), s = Math.min(W, H);
+        let out = growMask01(m, w, h, px * r);
+        if (px > 0 && !L.ops.some((o) => o.e)) {
+            // growing rounds every corner. With nothing erased, the corners of the shape and of lasso outlines are put
+            // back: their outlines drawn px wide outside, with pointed joins
+            const x = canvas.getContext("2d");
+            x.setTransform(1, 0, 0, 1, 0, 0);
+            x.strokeStyle = "#ffffff"; x.lineWidth = 2 * px * r; x.lineJoin = "miter"; x.miterLimit = 4;
+            const trace = (pts) => {
+                if (pts.length < 3) return;
+                x.beginPath();
+                pts.forEach(([lx, ly], i) => { const [ix, iy] = E.layerToImg(L, lx, ly); if (i) x.lineTo(ix * r, iy * r); else x.moveTo(ix * r, iy * r); });
+                x.closePath(); x.stroke();
+            };
+            if (L.shape) trace(shapeVerts(L.shape, L.sides, L.bw, L.bh, L.radius).map(([u, v]) => [u * L.bw, v * L.bh]));
+            for (const o of L.ops) if (o.t === "poly" && Array.isArray(o.p)) trace(o.p);
+            const d = x.getImageData(0, 0, w, h).data;
+            out = out.slice();
+            for (let i = 0; i < out.length; i++) if (d[i * 4 + 3] >= 128) out[i] = 1;
+        }
+        if (!out.some((v) => v)) { tooSmall(); return; }
         // a gradient stays where it is on the image (the layer's frame becomes the whole image below)
         const grad = L.grad ? { k: L.grad.k, a: E.layerToImg(L, ...L.grad.a).map((v) => v / s), b: E.layerToImg(L, ...L.grad.b).map((v) => v / s) } : null;
         E.change(() => {
             E.boxCache.delete(L);
             if (grad) L.grad = grad;
             Object.assign(L, { shape: null, sides: 5, bw: W / s, bh: H / s, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0,
-                ops: out.some((v) => v) ? [{ t: "bitmap", e: false, w, h, runs: encodeRuns(out), x0: 0, y0: 0, x1: W / s, y1: H / s }] : [] });
+                ops: [{ t: "bitmap", e: false, w, h, runs: encodeRuns(out), x0: 0, y0: 0, x1: W / s, y1: H / s }] });
             delete L.radius;
         });
     }

@@ -242,10 +242,10 @@ export function* toolbar(E) {
             return b;
         };
         row("Flip").append(
-            act("flipH", "Flip horizontally (mirror left-right)", (L) => E.flipLayer(L, "h")),
-            act("flipV", "Flip vertically (upside down)", (L) => E.flipLayer(L, "v")));
+            act("flipH", "Flip horizontally (mirror left-right), in place", (L) => E.flipLayer(L, "h")),
+            act("flipV", "Flip vertically (upside down), in place", (L) => E.flipLayer(L, "v")));
         row("Align").append(
-            act("alignL", "Align to the left edge of the image", (L) => E.alignLayer(L, "l")),
+            act("alignL", "Align to the left edge of the image (by the layer's own pixels)", (L) => E.alignLayer(L, "l")),
             act("alignCH", "Centre horizontally in the image", (L) => E.alignLayer(L, "ch")),
             act("alignR", "Align to the right edge of the image", (L) => E.alignLayer(L, "r")),
             act("alignT", "Align to the top edge of the image", (L) => E.alignLayer(L, "t")),
@@ -256,10 +256,11 @@ export function* toolbar(E) {
         pxIn.title = "How many image pixels to grow or shrink by";
         pxIn.addEventListener("keydown", (e) => e.stopPropagation());
         pxIn.addEventListener("change", () => { growPx = Math.max(1, Math.min(512, parseInt(pxIn.value) || 8)); pxIn.value = String(growPx); });
-        const GROW_NOTE = " The layer becomes pixels (a shape can't be edited as a shape any more). Undoable.";
+        const GROW_NOTE = "\nA shape with nothing painted on it: Stays that shape; its sides move and its corners stay as they are.\n"
+            + "Anything painted (brush, lasso, fill, a selection, a shape painted or erased on): Becomes pixels.";
         row("Edge").append(
-            act("layerGrow", "Grow the layer's area by this many pixels on every side." + GROW_NOTE, (L) => E.growLayer(L, growPx)),
-            act("layerShrink", "Shrink the layer's area by this many pixels on every side." + GROW_NOTE, (L) => E.growLayer(L, -growPx)),
+            act("layerGrow", "Grow the layer by this many pixels on every side." + GROW_NOTE, (L) => E.growLayer(L, growPx)),
+            act("layerShrink", "Shrink the layer by this many pixels on every side." + GROW_NOTE, (L) => E.growLayer(L, -growPx)),
             pxIn);
         const hintPx = E.el("span", "rg-hint"); hintPx.textContent = "px"; pop.lastChild.appendChild(hintPx);
         document.body.appendChild(pop);
