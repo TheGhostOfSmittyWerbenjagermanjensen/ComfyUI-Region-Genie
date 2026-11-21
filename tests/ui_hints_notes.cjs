@@ -124,6 +124,10 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator('.rg-row.scene [title^="Add a Control row"]').click(); await page.waitForTimeout(200); await page.keyboard.press("Escape"); await page.waitForTimeout(100);
     const words = await page.locator(".rg-row.ctrl .rg-word").allInnerTexts();
     check(`a Control row labels its numbers (${words.join(" / ")})`, words.join("|") === "strength|steps");
+    await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = "560px"; }); await page.waitForTimeout(150);
+    check("a Control row fits the list at the default width (its remove button isn't cut off)", await page.evaluate(() => { const row = document.querySelector(".rg-row.ctrl"), list = document.querySelector(".rg-list").getBoundingClientRect();
+        const last = [...row.children].filter((e) => e.getClientRects().length).pop().getBoundingClientRect(); return last.right <= list.right - 2 && row.scrollWidth <= row.clientWidth + 1; }));
+    await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = ""; }); await page.waitForTimeout(100);
     check("the words carry their number's tooltip", await page.evaluate(() => [...document.querySelectorAll(".rg-row.ctrl .rg-word")].every((w) => w.title && w.title === w.nextElementSibling.title)));
     check("the model dropdown says 'auto: no model yet' before anything is known", (await page.locator(".rg-model option").first().innerText()) === "auto: no model yet");
 

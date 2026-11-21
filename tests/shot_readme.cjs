@@ -47,19 +47,23 @@ const { chromium } = require("playwright");
     at(".rg-size", 1); at(document.querySelector("textarea.rg-scene-ta") || document.querySelector("textarea"), 2); at(".rg-bar", 3); at(".rg-cv", 4, 200); at(".rg-tree", 5); at(".rg-foot", 6);
   });
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "editor-numbered.png"), clip: { ...clip, x: clip.x - 34, width: clip.width + 34 } });
+  // the same picture is the help page's (js/docs/Region-Genie_Main.md, shown under Node Info)
+  require("fs").copyFileSync(path.join(__dirname, "..", "docs", "images", "editor-numbered.png"), path.join(__dirname, "..", "js", "docs", "region-genie-parts.png"));
   await page.evaluate(() => document.querySelectorAll(".rg-shot-num").forEach((e) => e.remove()));
   // lora.png: a region opened, with a LoRA of its own
-  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || [])[0];
+  // a LoRA that is really there (no red "not found" name in the picture): the first one ComfyUI lists
+  await page.evaluate(async () => { try { const r = await (await fetch("/object_info/LoraLoaderModelOnly")).json(); window.__loras = r.LoraLoaderModelOnly.input.required.lora_name[0]; } catch (e) { window.__loras = []; } });
+  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || []).find((x) => /dragon|char|style/i.test(x)) || (window.__loras || [])[0];
     s.regions[1].loras = [{ lora: lo || "characters/silver_knight.safetensors", strength: 0.8, on: true }]; n.__rgRefresh(); });
   await page.waitForTimeout(300);
   await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(400);
-  const loraClip = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), rows = [...document.querySelectorAll(".rg-list .rg-row")], last = rows[Math.min(rows.length - 1, 6)].getBoundingClientRect();
-    return { x: list.x - 6, y: head.y - 6, width: list.width + 12, height: last.bottom - head.y + 12 }; });
+  const loraClip = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), rows = [...document.querySelectorAll(".rg-list .rg-row")], lr = [...document.querySelectorAll(".rg-list .rg-row.lora, .rg-list .rg-lora")].pop(), last = (lr || rows[Math.min(rows.length - 1, 6)]).getBoundingClientRect();
+    return { x: list.x - 6, y: head.y - 6, width: list.width + 12, height: last.bottom - head.y + 30 }; });
   await page.mouse.move(4, 4); await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "lora.png"), clip: loraClip });
   await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(200);
   // large-editor.png: the same editor in a window that fills the page
-  await page.setViewportSize({ width: 1500, height: 900 });
+  await page.setViewportSize({ width: 1760, height: 960 });
   await page.locator('[title^="Large editor"]').first().click(); await page.waitForTimeout(900);
   await page.mouse.move(4, 4); await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "large-editor.png") });
@@ -70,7 +74,7 @@ const { chromium } = require("playwright");
   await page.locator('[title^="Edit: Change the image"]').click(); await page.waitForTimeout(300);
   await page.locator('[title^="Add a Control row"]').first().click(); await page.waitForTimeout(400); await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   const rows = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), last = [...document.querySelectorAll(".rg-row.ctrl")].pop().getBoundingClientRect(); return { x: list.x - 6, y: head.y - 6, width: list.width + 12, height: last.bottom - head.y + 46 }; });
-  await page.mouse.move(4, 4); await page.waitForTimeout(700);        // the pointer away: no tooltip in the picture
+  await page.mouse.move(4, 4); await page.waitForTimeout(4000);       // the pointer away: no tooltip in the picture; the header's message gone
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "rows.png"), clip: rows });
   // save-image.png: Save Image (Region Genie) after a run, with the picture and its file size
   await page.evaluate(async () => {

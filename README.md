@@ -101,7 +101,7 @@ Draw regions with shapes, a brush, a lasso or a fill. Each region is one color w
 
 **＋LoRA** on a region adds a LoRA that acts only inside that region. **＋LoRA** on *Whole image* adds one for the whole picture. Trigger words show as chips you can click into the prompt.
 
-<img src="docs/images/lora.png" alt="A region opened in the list, with a LoRA row and its trigger words" width="460">
+<img src="docs/images/lora.png" alt="A region opened in the list, with a LoRA of its own" width="460">
 
 → [Regional LoRAs](docs/regional-loras.md)
 

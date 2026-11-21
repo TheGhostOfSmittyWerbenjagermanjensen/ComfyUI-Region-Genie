@@ -352,7 +352,7 @@ textarea.rg-scene-ta.rg-llm-on, textarea.rg-big-ta.rg-llm-on { outline:1.5px sol
 .rg-row .rg-ff-browse { width:22px; height:20px; border-radius:4px; }
 .rg-row .rg-ff-browse svg { width:14px; height:14px; }
 .rg-row.ctrl .rg-num { width:44px; }
-.rg-row.ctrl .rg-sel { min-width:150px; max-width:190px; }
+.rg-row.ctrl .rg-sel { flex:0 1 190px; min-width:90px; max-width:190px; }      /* gives way first: the row fits a 580 px node (round 48) */
 .rg-settings .rg-sel.rg-model { max-width:150px; }
 .rg-settings .rg-sel.rg-model.picked { border-color:#c9a14a; }
 .rg-subbody.ctrl .rg-ctrl-help { white-space:normal; line-height:14px; opacity:.8; }

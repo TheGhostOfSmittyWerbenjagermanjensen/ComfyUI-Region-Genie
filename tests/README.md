@@ -50,7 +50,7 @@ Smoke test: start ComfyUI with `--cpu --listen 127.0.0.1 --port 8188` and an `ex
 
 Round 9 (`real_run_wildcards.cjs`): clone ComfyUI-Impact-Pack into `custom_nodes` too (`pip install` its requirements without the two SAM lines, plus `segment-anything`), add a wildcard file `custom_nodes/ComfyUI-Impact-Pack/wildcards/rgtest/color.txt` (a few colors, one per line), start ComfyUI with `--cpu`, then `node tests/real_run_wildcards.cjs` and `node tests/real_run_wildcards.cjs vue`. No model files are needed (the run only produces the color map). Without Impact Pack the wildcard checks are skipped.
 
-**The help page's picture** (`js/docs/region-genie-parts.png`): `node tests/shot_help.cjs js/docs/region-genie-parts.png` with ComfyUI running (legacy mode, English). Retake it when the node's look changes.
+**The help page's picture** (`js/docs/region-genie-parts.png`): `node tests/shot_readme.cjs` with ComfyUI running (legacy mode, English): it is a copy of the README's `docs/images/editor-numbered.png`, taken with the README's other pictures. Retake it when the node's look changes.
 
 **The README's pictures** (`docs/images/editor.png`, `rows.png`): `node tests/shot_readme.cjs` with ComfyUI running. Retake them when the node's look changes.
 
