@@ -147,7 +147,8 @@ Drag the title bar to move a pop-up, and the corner grip to resize it. It stays 
 
 Connect a picture to `image` and let the node find the regions:
 
-- **Select object** (Q): click an object, or type what to find (`person`, `red car, dog`), and it becomes a region. It uses SAM 3.1 and needs one model file ([download](https://huggingface.co/Comfy-Org/sam3.1/resolve/main/checkpoints/sam3.1_multiplex_fp16.safetensors), about 1.7 GB) in `ComfyUI/models/checkpoints`.
+- **Select object** (Q): click an object, or type what to find (`person`, `red car, dog`), and it becomes a region.
+  - It uses SAM 3.1 and needs one model file ([download](https://huggingface.co/Comfy-Org/sam3.1/resolve/main/checkpoints/sam3.1_multiplex_fp16.safetensors), about 1.7 GB) in `ComfyUI/models/checkpoints`.
 - **Magic wand** (W): click an area of similar color to add it.
 - **Color map:** a sketch in flat colors becomes regions by itself, one per color.
 - **Backdrop:** or just show the picture under the canvas and trace over it.

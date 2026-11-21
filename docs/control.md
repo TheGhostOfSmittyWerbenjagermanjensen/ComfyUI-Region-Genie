@@ -3,9 +3,16 @@
 The **Control** rows under *Whole image* make the model follow a map, with what ComfyUI supports for the connected model. **＋Control** on the *Whole image* row adds a row, and a row's **✕** removes it (the first row you add again starts as the last one removed). Each row has what the model follows (its tooltip also names the file used for the node's model), the **strength** (1 = as trained) and the part of the steps (**steps**: start – end %; ending early keeps the layout and lets the shapes loosen at the end), and an eye that shows that row's map of the last run on the canvas. **Several rows** combine where the model allows it: ControlNets (SD1.5, SDXL, Flux.1) chain and Anima's LLLite patches stack (e.g. depth + canny). MOSS-Image's control LoRA and Flux.1's depth / canny LoRAs feed their map through the model's one extra input, so only the first such row is used (its control LoRA reads color and depth together for MOSS-Image). A row that won't be used shows a **⚠** and is dimmed, with the reason in the ⚠'s tooltip; `region_info` also says when a row is left out. Each region's control switch turns all rows on or off for that region.
 
 **What each kind does**
-- **color map (MOSS):** a *shape map*. Each flat color marks one region; the colors are only IDs, not the colors to paint (the region's prompt says what it is and what color it has). Without it MOSS gets each region as a box plus its caption; with it the model also follows the exact painted outline. It follows rough outlines too: a rectangle drawn for a person pushes towards a person filling that rectangle. So it works best with regions painted roughly in the shape you want; with quick boxes, set **end** to about 30–50 % (the shapes guide the layout early, then loosen) or lower the strength. Region Genie's flat maps are exactly what it expects; no detail is needed.
+- **color map (MOSS):** a *shape map*. Each flat color marks one region.
+  - The colors are only IDs, not the colors to paint (the region's prompt says what it is and what color it has).
+  - Without it MOSS gets each region as a box plus its caption; with it the model also follows the exact painted outline.
+  - It follows rough outlines too: a rectangle drawn for a person pushes towards a person filling that rectangle. So it works best with regions painted roughly in the shape you want.
+  - With quick boxes, set **end** to about 30–50 % (the shapes guide the layout early, then loosen) or lower the strength.
+  - Region Genie's flat maps are exactly what it expects; no detail is needed.
 - **color map + depth (MOSS):** the outlines plus how far away things are.
-- **depth:** a grey map of distances (near = white). The model keeps the 3D layout (what is in front, the shape of a room or a landscape) but is free with textures, colors and details. Good for keeping a scene's composition while changing everything else.
+- **depth:** a grey map of distances (near = white).
+  - The model keeps the 3D layout (what is in front, the shape of a room or a landscape) but is free with textures, colors and details.
+  - Good for keeping a scene's composition while changing everything else.
 - **canny:** the edge lines of a picture. The model keeps outlines and composition closely; good for redrawing a picture in another style. It follows lines more strictly than depth.
 - **your control_image:** any map you make with other nodes (pose skeletons, lineart, scribble, segmentation …), on the `control_image` input. The file set for *other* must read that kind of map (a union ControlNet reads several).
 
@@ -36,9 +43,13 @@ The **Control** rows under *Whole image* make the model follow a map, with what 
 
 **The model** (bottom bar, after Generate / Edit): which model the node works with: it sets the format of `prompt` and `positive` (see [Which format `prompt` uses](region-genie.md)) and the LoRAs Control and Edit Mode add. *auto* uses the last run's model while `model` still comes from the same loader, else a guess from the graph: it follows `model` through LoRA loaders and reroutes to the loader and reads its file name (e.g. `moss_image…`, `flux1-dev…`, `…sdxl…`) or the text encoder loader's type. A run always says for sure. If the guess is wrong (a renamed file, an unusual loader), pick the right model there; *auto* goes back to guessing. When nothing can be guessed, every configured LoRA is added until the first run.
 
-- The control **LoRAs** (MOSS, Flux.1 depth / canny) are used while a Control row needs them, only with their model, and aren't listed under *Whole image* (their Control row is where they're set). ControlNet files and LLLite patches are applied by the node (on `positive` / `negative`, or on `model` for Anima).
+- The control **LoRAs** (MOSS, Flux.1 depth / canny) are used while a Control row needs them, only with their model.
+  - They aren't listed under *Whole image* (their Control row is where they're set).
+- ControlNet files and LLLite patches are applied by the node (on `positive` / `negative`, or on `model` for Anima).
 - **Per region:** while control is on, each region row has a control button. Switch regions off and the control acts only inside the regions still on (the rest follows the prompt freely); with every region on, it acts on the whole image.
 - **Preview:** after a run, the eye button at the end of the Control row shows the map the model followed on the canvas.
-- The kind dropdown's tooltip names the file used for the node's model and what the kind does. **Settings > Region Genie > Check model files** lists every file set there (and in the LLM presets) that ComfyUI can't find. If something is missing (no file, no `vae`, no `control_image`), the run still goes ahead without control and `region_info` says why.
+- The kind dropdown's tooltip names the file used for the node's model and what the kind does.
+- **Settings > Region Genie > Check model files** lists every file set there (and in the LLM presets) that ComfyUI can't find.
+- If something is missing (no file, no `vae`, no `control_image`), the run still goes ahead without control and `region_info` says why.
 
 [← Back to the README](../README.md)
