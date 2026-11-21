@@ -77,7 +77,7 @@ const FIXED = {
     "View": [[null, "Wheel", "Zoom the canvas"], ["view.pan", "Middle-drag", "Pan the canvas"]],
     "Text": [[null, "Enter", "A region's prompt in the list: Done (Shift+Enter: a new line). Pop-up editor: A new line"],
              ["text.next", "Esc", "Pop-up editor: Close (the text stays as it is)"],
-             ["text.next", "Ctrl+Up / Ctrl+Down", "A prompt box: Raise or lower the strength of the word at the cursor, or of the selected words, as (word:1.05). ComfyUI's own keys"]],
+             ["text.next", "Ctrl+Up / Ctrl+Down", "A prompt box: Raise or lower the weight of the word or tag at the cursor, or of the selected words, as (tag:1.05). ComfyUI's own keys"]],
 };
 const GROUPS = ["Tools", "While drawing", "Layers and regions", "View", "Text"];
 const COLUMN_OF = { "Layers and regions": 1, "View": 1, "Text": 1 };      // the sheet's second column; the rest: the first

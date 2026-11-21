@@ -517,7 +517,7 @@ export async function openModelMenu(ev, { roots, home, none, noneLabel, title, o
 }
 // the field: the file's name (red when ComfyUI doesn't list it), a click opens the menu; Browse… beside it with the
 // Settings switch on. Returns the element; .set(v) changes what it shows.
-// ---- Ctrl+Up / Ctrl+Down: the strength of the word at the cursor (or of the selection), "(word:1.05)" ----
+// ---- Ctrl+Up / Ctrl+Down: the weight of the word or tag at the cursor (or of the selection), "(tag:1.05)" ----
 // This is ComfyUI's own feature (its extension Comfy.EditAttention; the step is its Setting "Ctrl+up/down precision",
 // 0.05). ComfyUI listens for the keys on the window, and the pack's own text fields (region prompts, text to render,
 // the pop-up editors) keep their key presses from getting there, so the keys did nothing in them. For those fields

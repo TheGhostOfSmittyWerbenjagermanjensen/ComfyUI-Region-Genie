@@ -132,7 +132,7 @@ The easiest way to write prompts. Every text field opens in a large editor that 
 |---|---|---|
 | Title bar | ◀ ▶ | Go to the previous / next text field without closing (also Page Up / Page Down) |
 | | Undo / Redo | Take back or repeat your typing in this field (also Ctrl+Z, Ctrl+Y) |
-| Text box | Ctrl+Up / Ctrl+Down | Raise or lower the strength of the word at the cursor, or of the selected words: `(tag:1.05)` |
+| Text box | Ctrl+Up / Ctrl+Down | Raise or lower the weight of the word or tag at the cursor, or of the selected words: `(tag:1.05)` |
 | | A− / A+ | Smaller / larger text |
 | | Close | Closes the pop-up (also Esc). Your text always stays |
 | Region only | Object / Character / Text | What kind of region this is |

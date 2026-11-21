@@ -1,4 +1,4 @@
-// Ctrl+Up / Ctrl+Down (ComfyUI's own "edit attention": the strength of the word at the cursor, "(word:1.05)") in every
+// Ctrl+Up / Ctrl+Down (ComfyUI's own "edit attention": the weight of the word or tag at the cursor, "(tag:1.05)") in every
 // text field of the pack, in the real ComfyUI frontend. ComfyUI handles a node's own text boxes; the pack does the same
 // edit in its own fields (rg_shared.js, editAttention), whose key presses don't reach ComfyUI's listener.
 // Usage: node real_attention.cjs [vue]   ("vue" = Nodes 2.0). Needs ComfyUI on 127.0.0.1:8188 with this pack.

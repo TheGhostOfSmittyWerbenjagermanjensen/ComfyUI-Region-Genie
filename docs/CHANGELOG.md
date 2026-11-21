@@ -2,8 +2,8 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
-## Round 59 (Nov 21): Ctrl+Up / Ctrl+Down (word strength) in every text field
-- Asked: find out where the "Ctrl+Up / Ctrl+Down changes a word's strength, `(tag:1.05)`" feature comes from, and make every prompt field of the pack work with it.
+## Round 59 (Nov 21): Ctrl+Up / Ctrl+Down (tag weight) in every text field
+- Asked: find out where the "Ctrl+Up / Ctrl+Down changes a tag's weight, `(tag:1.05)`" feature comes from, and make every prompt field of the pack work with it.
 - Found: it is ComfyUI's own (extension `Comfy.EditAttention`; step = Setting *Ctrl+up/down precision*, 0.05). Tried on the real page: it worked in the scene prompt boxes and in none of the pack's own fields (region prompt and text in the list, the pop-up editors), because those keep their key presses from reaching ComfyUI's listener.
 - Built: the same edit for the pack's fields (rg_shared.js `editAttention`, using ComfyUI's own helper functions), each change its own Undo step; a row in the shortcut sheet; manual and README. Version 0.45.0.
 - Tests: new `tests/real_attention.cjs [vue]`: up, back to plain, down in 11 fields (scene prompts, list, pop-up editors, large editor, the Regional LoRAs node), several selected words, Undo, the node's data.

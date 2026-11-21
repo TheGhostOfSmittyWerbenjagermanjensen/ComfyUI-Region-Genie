@@ -447,9 +447,9 @@ The details:
 - **◀ / ▶** in a pop-up's header step to the previous / next text field of the node without closing it.
   - The order: `scene_prompt_positive`, `scene_prompt_negative`, `scene_prompt_background` (when shown), then each region's prompt in list order, wrapping around at both ends.
   - The next field opens in the same place and size. They sit in the header left of Undo / Redo and A− / A+, always in the same place, so they don't move while you step.
-  - **Ctrl+Up / Ctrl+Down** raise or lower the strength of the word the cursor is in, or of the words you selected: `tag` becomes `(tag:1.05)`, `(tag:0.95)` and so on.
+  - **Ctrl+Up / Ctrl+Down** raise or lower the weight of the word or tag the cursor is in, or of the words you selected: `tag` becomes `(tag:1.05)`, `(tag:0.95)` and so on.
     - This is ComfyUI's own feature, and it works in every text box of the pack: on the node, in the list, in the pop-up editors and in the large editor.
-    - A strength of 1 removes the brackets again. The step (0.05) is ComfyUI's setting *Ctrl+up/down precision*.
+    - A weight of 1 removes the brackets again. The step (0.05) is ComfyUI's setting *Ctrl+up/down precision*.
     - Each change is one step of the field's Undo.
   - **Page Up / Page Down** do the same while you type; other keys can be set in the shortcut list (press **?** over a Region Genie node, or **Settings > Region Genie > Shortcuts**).
 - **Text size** (Settings > Region Genie > Text size): one size per kind of field (scene prompts, region prompts, text to render), set separately for the pop-up editors and for the node's own fields (0 = as before).
