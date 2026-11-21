@@ -178,6 +178,108 @@ check(f"three passes (sampler, tiled upscale, a detailer): all found; hi-res fix
 check("a node with steps and a seed but no model (a noise picture) is no sampler",
       gp.trace({"1": N("NoiseImage", image=["2", 0], steps=4, seed=1), "2": N("LoadImage", image="x.png"), "9": N("Region-Genie_SaveImage", images=["1", 0])}, "9")["samplers"] == [])
 
+# ---------------------------------------------------------------- other ways of upscaling, refiners, detailers (round 46)
+K2 = dict(model=["2", 0], positive=["3", 0], negative=["4", 0], seed=222, steps=12, cfg=6.5, sampler_name="dpmpp_2m_sde", scheduler="karras", denoise=0.4)
+
+
+def last_line(extra, save_from, size, change=None):
+    g = json.loads(json.dumps(PLAIN))
+    g.update(extra)
+    g["9"]["inputs"]["images"] = save_from
+    if change:
+        change(g)
+    tr = gp.trace(g, "9")
+    return gp.build(tr, size)[0].splitlines()[-1], tr
+
+
+UPM = {"19": N("UpscaleModelLoader", model_name="ESRGAN/4x-UltraSharp.pth"), "20": N("ImageUpscaleWithModel", upscale_model=["19", 0], image=["7", 0])}
+ln, _ = last_line({"20": N("ImageScaleBy", image=["7", 0], upscale_method="lanczos", scale_by=2.0), "21": N("VAEEncode", pixels=["20", 0], vae=["1", 2]),
+                   "22": N("KSampler", latent_image=["21", 0], **K2), "23": N("VAEDecode", samples=["22", 0], vae=["1", 2])}, ["23", 0], (2048, 1536))
+check(f"the picture resized, encoded and sampled again: hi-res fix with the resize method ({ln!r})",
+      "Size: 1024x768" in ln and "Denoising strength: 0.4, Hires resize: 2048x1536, Hires upscale: 2, Hires steps: 12, Hires upscaler: Lanczos" in ln)
+ln, _ = last_line({**UPM, "20b": N("ImageScale", image=["20", 0], upscale_method="bicubic", width=2048, height=1536, crop="disabled"),
+                   "21": N("VAEEncode", pixels=["20b", 0], vae=["1", 2]), "22": N("KSampler", latent_image=["21", 0], **K2),
+                   "23": N("VAEDecode", samples=["22", 0], vae=["1", 2])}, ["23", 0], (2048, 1536))
+check(f"an upscale model, then a resize to the wanted size: the upscaler is the model, not the resize ({ln!r})",
+      "Hires resize: 2048x1536, Hires upscale: 2, Hires steps: 12, Hires upscaler: 4x-UltraSharp" in ln)
+ln, tr = last_line(UPM, ["20", 0], (4096, 3072))
+check(f"enlarged by an upscale model alone, nothing sampled again: the size it was made at, and the upscale as hi-res fix ({ln!r})",
+      len(tr["samplers"]) == 1 and "Seed: 123456789012, Size: 1024x768" in ln and "Hires resize: 4096x3072, Hires upscale: 4, Hires upscaler: 4x-UltraSharp" in ln
+      and "Denoising" not in ln and "Hires steps" not in ln)
+ln, _ = last_line({"20": N("SeedVR2VideoUpscaler", images=["7", 0], seed=5, resolution=2160, dit=["21", 0]), "21": N("SeedVR2LoadDiTModel", model="seedvr2.safetensors")},
+                  ["20", 0], (2880, 2160))
+check(f"an upscaler of another pack that says neither model nor method: named by its node ({ln!r})",
+      "Size: 1024x768" in ln and "Hires resize: 2880x2160, Hires upscale: 2.81, Hires upscaler: SeedVR2VideoUpscaler" in ln)
+ln, tr = last_line({"20": N("PixelKSampleUpscalerProvider", scale_method="lanczos", model=["2", 0], vae=["1", 2], seed=222, steps=12, cfg=6.5, sampler_name="euler",
+                            scheduler="normal", positive=["3", 0], negative=["4", 0], denoise=0.4, upscale_model_opt=["19", 0]),
+                    "19": N("UpscaleModelLoader", model_name="4x_NMKD-Siax_200k.pth"),
+                    "22": N("IterativeLatentUpscale", samples=["6", 0], upscale_factor=2.0, steps=3, upscaler=["20", 0]),
+                    "23": N("VAEDecode", samples=["22", 0], vae=["1", 2])}, ["23", 0], (2048, 1536))
+check(f"Impact Pack's iterative upscale: the sampler settings are read from its provider node ({ln!r})",
+      [s["class"] for s in tr["samplers"]] == ["KSampler", "IterativeLatentUpscale"] and "Steps: 28" in ln
+      and "Denoising strength: 0.4, Hires resize: 2048x1536, Hires upscale: 2, Hires steps: 12, Hires upscaler: 4x_NMKD-Siax_200k, Hires sampler: Euler, Hires schedule type: Normal" in ln)
+ln, tr = last_line({"20": N("LatentUpscaleBy", samples=["6", 0], upscale_method="bislerp", scale_by=1.5), "22": N("KSampler", latent_image=["20", 0], **K2),
+                    "23": N("VAEDecode", samples=["22", 0], vae=["1", 2]), "19": N("UpscaleModelLoader", model_name="4x-UltraSharp.pth"),
+                    "24": N("UltimateSDUpscale", image=["23", 0], vae=["1", 2], upscale_model=["19", 0], upscale_by=2.0, **{**K2, "steps": 20, "denoise": 0.25})},
+                   ["24", 0], (3072, 2304))
+check(f"hi-res fix, then a tiled upscale: the hi-res size is the hi-res pass's own, the later upscale as A1111's Extras writes one ({ln!r})",
+      len(tr["samplers"]) == 3 and "Size: 1024x768" in ln and "Denoising strength: 0.4, Hires resize: 1536x1152, Hires upscale: 1.5, Hires steps: 12, Hires upscaler: Latent (bislerp)" in ln
+      and "Postprocess upscale by: 2, Postprocess upscaler: 4x-UltraSharp" in ln)
+ln, _ = last_line({"20": N("LatentUpscaleBy", samples=["6", 0], upscale_method="nearest-exact", scale_by=1.5), "22": N("KSampler", latent_image=["20", 0], **K2),
+                   "23": N("VAEDecode", samples=["22", 0], vae=["1", 2]), "19": N("UpscaleModelLoader", model_name="4x-UltraSharp.pth"),
+                   "24": N("ImageUpscaleWithModel", upscale_model=["19", 0], image=["23", 0])}, ["24", 0], (6144, 4608))
+check(f"hi-res fix, then an upscale model with nothing sampled: the same two groups ({ln!r})",
+      "Hires resize: 1536x1152, Hires upscale: 1.5, Hires steps: 12, Hires upscaler: Latent, Postprocess upscale by: 4, Postprocess upscaler: 4x-UltraSharp" in ln)
+ln, _ = last_line({"22": N("KSampler", latent_image=["6", 0], **K2), "23": N("VAEDecode", samples=["22", 0], vae=["1", 2])}, ["23", 0], (1024, 768))
+check(f"a second pass at the same size: its strength and steps, no resize ({ln!r})", "Denoising strength: 0.4, Hires steps: 12" in ln and "Hires resize" not in ln and "Hires upscaler" not in ln)
+
+# a base model and a refiner sharing the steps (two advanced samplers): A1111's Refiner fields, not hi-res fix
+ADV = dict(positive=["3", 0], negative=["4", 0], noise_seed=111, steps=30, cfg=6.5, sampler_name="euler", scheduler="normal")
+
+
+def refiner(g, same=False):
+    g["6"] = N("KSamplerAdvanced", model=["2", 0], latent_image=["5", 0], add_noise="enable", start_at_step=0, end_at_step=24, return_with_leftover_noise="enable", **ADV)
+
+
+REF = {"30": N("CheckpointLoaderSimple", ckpt_name="SDXL/sd_xl_refiner_1.0.safetensors"),
+       "22": N("KSamplerAdvanced", model=["30", 0], latent_image=["6", 0], add_noise="disable", start_at_step=24, end_at_step=10000, return_with_leftover_noise="disable", **ADV),
+       "23": N("VAEDecode", samples=["22", 0], vae=["1", 2])}
+ln, tr = last_line(REF, ["23", 0], (1024, 768), refiner)
+check(f"a refiner: its model and where it took over, the steps of the whole run, nothing written as hi-res fix ({ln!r})",
+      "Steps: 30," in ln and "Seed: 111" in ln and "Model: juggernaut, Refiner: sd_xl_refiner_1.0, Refiner switch at: 0.8" in ln and "Hires" not in ln and "Denoising" not in ln)
+same = json.loads(json.dumps(REF)); same["22"]["inputs"]["model"] = ["2", 0]
+ln, _ = last_line(same, ["23", 0], (1024, 768), refiner)
+check(f"one run split over two samplers with the same model: one pass, no refiner ({ln!r})", "Steps: 30," in ln and "Refiner" not in ln and "Hires" not in ln and "Denoising" not in ln)
+ln, _ = last_line({**REF, "40": N("LatentUpscaleBy", samples=["22", 0], upscale_method="bislerp", scale_by=2.0), "41": N("KSampler", latent_image=["40", 0], **K2),
+                   "23": N("VAEDecode", samples=["41", 0], vae=["1", 2])}, ["23", 0], (2048, 1536), refiner)
+check(f"a refiner and hi-res fix after it: both ({ln!r})", "Refiner: sd_xl_refiner_1.0, Refiner switch at: 0.8, Denoising strength: 0.4, Hires resize: 2048x1536, Hires upscale: 2, Hires steps: 12" in ln)
+with tempfile.TemporaryDirectory() as RD:
+    rp = os.path.join(RD, "sd_xl_refiner_1.0.safetensors"); open(rp, "wb").write(b"\0" * 16)
+    json.dump({"sha256": "7440042BBD" + "0" * 54}, open(os.path.join(RD, "sd_xl_refiner_1.0.metadata.json"), "w"))
+    g = json.loads(json.dumps(PLAIN)); g.update(REF); refiner(g)
+    g["9"]["inputs"]["images"] = ["23", 0]
+    txt = gp.build(gp.trace(g, "9"), (1024, 768), path_of=lambda folder, name: rp if "refiner" in name else None)[0]
+    check("the refiner's hash, where a metadata file has one, in A1111's brackets", "Refiner: sd_xl_refiner_1.0 [7440042bbd], Refiner switch at: 0.8" in txt)
+
+# detailers: in the names of A1111's ADetailer extension
+DET = {"50": N("UltralyticsDetectorProvider", model_name="bbox/face_yolov8m.pt"),
+       "22": N("FaceDetailer", image=["7", 0], vae=["1", 2], bbox_detector=["50", 0], bbox_threshold=0.5, bbox_dilation=10, feather=5, **{**K2, "denoise": 0.5})}
+ln, tr = last_line(DET, ["22", 0], (1024, 768))
+check(f"a face detailer after one pass: ADetailer's fields, not hi-res fix ({ln!r})",
+      "Hires" not in ln and "Denoising strength: 0.5" not in ln.replace("ADetailer denoising strength", "")
+      and "ADetailer model: face_yolov8m.pt, ADetailer confidence: 0.5, ADetailer dilate erode: 10, ADetailer mask blur: 5, ADetailer denoising strength: 0.5, ADetailer use separate steps: True, ADetailer steps: 12" in ln)
+ln, _ = last_line({**DET, "51": N("UltralyticsDetectorProvider", model_name="bbox/hand_yolov8s.pt"), "52": N("BboxDetectorSEGS", bbox_detector=["51", 0], image=["22", 0], threshold=0.4, dilation=4),
+                   "53": N("DetailerForEach", image=["22", 0], segs=["52", 0], vae=["1", 2], feather=5, **{**K2, "steps": 28, "denoise": 0.35, "cfg": 4.0})}, ["53", 0], (1024, 768))
+check(f"two detailers (the second given its areas by a detector node): the second with '2nd' after each name ({ln!r})",
+      "ADetailer model: face_yolov8m.pt" in ln and "ADetailer model 2nd: hand_yolov8s.pt, ADetailer confidence 2nd: 0.4, ADetailer dilate erode 2nd: 4, ADetailer mask blur 2nd: 5, ADetailer denoising strength 2nd: 0.35, ADetailer use separate CFG scale 2nd: True, ADetailer CFG scale 2nd: 4" in ln
+      and "ADetailer steps 2nd" not in ln)
+ln, _ = last_line({"19": N("UpscaleModelLoader", model_name="4x-UltraSharp.pth"),
+                   "41": N("UltimateSDUpscale", image=["7", 0], vae=["1", 2], upscale_model=["19", 0], upscale_by=2.0, **{**K2, "steps": 20, "denoise": 0.3}),
+                   "22": {**DET["22"], "inputs": {**DET["22"]["inputs"], "image": ["41", 0]}}, "50": DET["50"]}, ["22", 0], (2048, 1536))
+check(f"tiled upscale, then a detailer: hi-res fix for the upscale and ADetailer's fields for the detailer ({ln!r})",
+      "Denoising strength: 0.3, Hires resize: 2048x1536, Hires upscale: 2, Hires steps: 20, Hires upscaler: 4x-UltraSharp" in ln and "ADetailer model: face_yolov8m.pt" in ln and "Postprocess" not in ln)
+
+
 # ---------------------------------------------------------------- the pack's own nodes say what a run really used
 RG = {
     "1": N("UNETLoader", unet_name="moss.safetensors"),
