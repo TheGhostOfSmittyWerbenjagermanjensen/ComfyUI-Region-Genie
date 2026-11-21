@@ -2,6 +2,10 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 57 (Nov 21): SDXL-based models named
+- Asked: where SDXL support is mentioned, say that it includes SDXL-based models such as Illustrious-XL and NoobAI-XL, if that is true.
+- Checked: yes. A run recognises SDXL by the model's structure, so any checkpoint built on SDXL is SDXL to the node, whatever it is called; the editor's guess from file names already knew "illustrious", "noob" and "pony". Written where the supported models are stated (README table and starter workflow, the prompt formats table, Regional LoRAs, Control, the main help page), not at every later mention of "SDXL / SD1.5". Added to the hardware checklist: try one such checkpoint.
+
 ## Round 56 (Nov 21): long bullet points split and tightened
 - Asked: go through the README / repository / manual for bullet points that are too long; split them, shorten them without losing information, or both; where unsure, ask.
 - Built: 118 bullets over 250 characters (63 on docs/region-genie.md; the rest on the other manual pages, one each in the README and the main help page) became a short parent bullet with one nested bullet per fact, option or exception. None over 250 characters is left (817 bullets in all). Headings, contents lists, tables, pictures and the "In short" steps untouched. Checked by script per page: every term in backticks, every bold term, every link and every number is still there, no word disappeared, every link and anchor still resolves.

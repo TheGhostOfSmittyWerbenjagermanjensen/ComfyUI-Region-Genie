@@ -21,7 +21,9 @@ The **Control** rows under *Whole image* make the model follow a map, with what 
 **What applies it, per model**
 - **MOSS-Image** reads the maps through its **color / depth control LoRA**: the maps are VAE-encoded and given next to the image (needs `vae`), the LoRA teaches the model to follow them.
 - **Flux.1** has Black Forest Labs' **depth / canny LoRAs** for Flux.1 [dev], which work the same way (the map next to the image, at the Control row's strength), or classic **ControlNet** files.
-- **SDXL / SD1.5** use **ControlNet** files: a separate network reads the map and steers the model at every step. **Control-LoRAs** are small SDXL ControlNets; **union** ControlNets read many kinds of map with one file.
+- **SDXL / SD1.5** use **ControlNet** files: a separate network reads the map and steers the model at every step.
+  - **Control-LoRAs** are small SDXL ControlNets; **union** ControlNets read many kinds of map with one file.
+  - SDXL-based models such as Illustrious-XL and NoobAI-XL count as SDXL and use SDXL's files.
 - **Anima** uses **LLLite** patches: a small control network on the model itself (the region switches go to it directly).
 - **Krea 2, Flux.2 / Klein, Flux 3, Ideogram 4:** ComfyUI has no ControlNet support for them yet; the node says so instead of failing.
 

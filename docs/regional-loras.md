@@ -48,7 +48,7 @@ Everything happens in one model pass:
     - **Share the background**: the kept-separate regions (all regions, or those with LoRAs) are then kept separate from each other only, not from the image around them, so lighting, perspective and setting stay one picture.
       - Each caption still speaks only to its own region.
       - The icon shows the tiles on a shaded backdrop while it is on.
-  - Needs a MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model on `model`.
+  - Needs a MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model on `model`. SDXL includes SDXL-based models such as Illustrious-XL and NoobAI-XL.
   - While active, attention can't use fused kernels, so sampling is a little slower and uses more VRAM.
   - Without regional LoRAs and with the switch off, separation does nothing.
 - **separation / until**: the two number fields in the list header, each after its icon (arrows pointing away from a line, and an hourglass). See [Separation and until](#separation-and-until) below.

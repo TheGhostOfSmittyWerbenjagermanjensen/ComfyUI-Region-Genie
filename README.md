@@ -56,7 +56,7 @@
 | MOSS-Image | Its own layout format: each region's box and prompt |
 | Ideogram 4 | Its own caption format: each region's box and prompt |
 | Krea 2, Flux.1, Flux.2 / Klein, Flux 3 | By attention: the **Separate** button ties each prompt to its region (it turns on by itself) |
-| Anima, SDXL, SD1.5 | By attention, as above |
+| Anima, SDXL (and SDXL-based models such as Illustrious-XL and NoobAI-XL), SD1.5 | By attention, as above |
 
 The node picks the right format from the connected model. See [Prompt formats by model](docs/region-genie.md#prompt-formats-by-model) for the details.
 
@@ -89,7 +89,7 @@ flowchart LR
 4. Describe the whole picture in `scene_prompt_positive`.
 5. Connect the node's `model`, `positive`, `negative` and `latent` outputs to your sampler, and run.
 
-**Prefer a ready-made workflow?** Drag [`examples/region-genie-starter-sdxl.json`](examples/) onto ComfyUI and pick your own SDXL checkpoint.
+**Prefer a ready-made workflow?** Drag [`examples/region-genie-starter-sdxl.json`](examples/) onto ComfyUI and pick your own SDXL checkpoint (SDXL itself, or an SDXL-based model such as Illustrious-XL or NoobAI-XL).
 
 <img src="docs/images/editor-numbered.png" alt="The Region Genie node with its parts numbered" width="460">
 
