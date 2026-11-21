@@ -290,14 +290,14 @@
     "tooltip": "联动的区域共用的遮罩羽化（区域初始为联动）。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
   },
   "RegionGenie_Main_RegionSeparation": {
-    "name": "LoRA 区域分离",
-    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+    "name": "separation（分离强度）",
+    "tooltip": "separation：图像形成过程中，阻止各区域相互影响的强度（0 到 1；越高越分离）。\n物体、角色和风格的平滑融合：0.4，配合 until 0.1（默认值）。\n强烈的风格分离：0.85-0.99，配合 until 0.1-0.5。\n适用于此后添加的节点；工作流中已有的节点保留各自的值。"
   },
   "RegionGenie_Main_SeparationUntil": {
-    "name": "LoRA 分离截止",
-    "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
+    "name": "until（分离截止）",
+    "tooltip": "until：从第一步算起，保持各区域分离的步数比例（0 到 1）；其余步骤将它们融合在一起。\n物体、角色和风格的平滑融合：0.1，配合 separation 0.4（默认值）。\n强烈的风格分离：0.1-0.5，配合 separation 0.85-0.99。\n适用于此后添加的节点；工作流中已有的节点保留各自的值。"
   },
-  "RegionGenie_Main_AllRegionsApart": {
+  "RegionGenie_Main_AllRegionsSeparate": {
     "name": "分离所有区域（不仅是带 LoRA 的区域）",
     "tooltip": "适用于此后添加的节点；工作流中已有的节点保留各自的值。"
   },
@@ -305,11 +305,11 @@
     "name": "区域分离：共享背景",
     "tooltip": "被分离的区域彼此保持分离，但不与周围的图像分离，因此光照和环境保持为同一幅画面。适用于此后添加的节点；工作流中已有的节点保留各自的值。"
   },
-  "RegionGenie_Main_AutoApart": {
+  "RegionGenie_Main_AutoSeparate": {
     "name": "纯文本提示词：自动分离所有区域",
     "tooltip": "Krea 2、Flux、Flux 3、Anima 和 SDXL / SD1.5（以及标准模式和编辑模式下的 MOSS-Image）以普通句子的形式得到各区域。Region Genie 节点通过在注意力中把每个区域的句子绑定到其区域来安放各区域（即分离所有区域）。\n开启：当“模型”上连接了这类模型、已连接 clip 且至少有一个区域提示词时，运行时会分离所有区域，除非节点的 Separate 按钮设为“Off for this node”。\n关闭：只有 Separate 按钮已开启的节点才分离区域。\n下面的设置可针对单个模型更改。在下次运行时适用于每个 Region Genie 节点。"
   },
-  "RegionGenie_Main_AutoApart_MOSS": {
+  "RegionGenie_Main_AutoSeparate_MOSS": {
     "name": "MOSS-Image（标准模式、编辑模式）：自动分离所有区域",
     "tooltip": "仅用于 MOSS-Image 模型。“按所有模型的设置”遵循上面的设置。",
     "options": {
@@ -318,7 +318,7 @@
       "Off": "关闭"
     }
   },
-  "RegionGenie_Main_AutoApart_Krea2": {
+  "RegionGenie_Main_AutoSeparate_Krea2": {
     "name": "Krea 2：自动分离所有区域",
     "tooltip": "仅用于 Krea 2 模型。“按所有模型的设置”遵循上面的设置。",
     "options": {
@@ -327,7 +327,7 @@
       "Off": "关闭"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux": {
+  "RegionGenie_Main_AutoSeparate_Flux": {
     "name": "Flux：自动分离所有区域",
     "tooltip": "仅用于 Flux 模型。“按所有模型的设置”遵循上面的设置。",
     "options": {
@@ -336,7 +336,7 @@
       "Off": "关闭"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux3": {
+  "RegionGenie_Main_AutoSeparate_Flux3": {
     "name": "Flux 3：自动分离所有区域",
     "tooltip": "仅用于 Flux 3 模型。“按所有模型的设置”遵循上面的设置。",
     "options": {
@@ -345,7 +345,7 @@
       "Off": "关闭"
     }
   },
-  "RegionGenie_Main_AutoApart_Anima": {
+  "RegionGenie_Main_AutoSeparate_Anima": {
     "name": "Anima：自动分离所有区域",
     "tooltip": "仅用于 Anima 模型。“按所有模型的设置”遵循上面的设置。",
     "options": {
@@ -354,7 +354,7 @@
       "Off": "关闭"
     }
   },
-  "RegionGenie_Main_AutoApart_SDXL": {
+  "RegionGenie_Main_AutoSeparate_SDXL": {
     "name": "SDXL / SD1.5：自动分离所有区域",
     "tooltip": "仅用于 SDXL / SD1.5 模型。“按所有模型的设置”遵循上面的设置。",
     "options": {
@@ -611,7 +611,7 @@
     "name": "图像尺寸",
     "tooltip": "新建 Region Genie 节点的尺寸行如何开始，以及预设列表。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie 节点",
     "tooltip": "新建 Region Genie 节点的初始设置（图像模式、羽化、分离、网格、区域颜色、标签自动补全、通配符）。\nEdit…：在此页打开 Region Genie 设置。"
   },

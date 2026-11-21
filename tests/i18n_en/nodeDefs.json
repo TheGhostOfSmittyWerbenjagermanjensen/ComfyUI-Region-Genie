@@ -336,11 +336,11 @@
       },
       "region_separation": {
         "name": "region_separation",
-        "tooltip": "inside the model only. How strongly regions are kept separate in attention. It applies to the image of different LoRA regions (every mask with separate_all_regions) for the first separation_until of the steps, and to each LoRA region's caption against the other regions at every step. Higher keeps each LoRA's style in its region.\n1: Fully separate (may look like a collage at the seams).\n0: Off."
+        "tooltip": "inside the model only.\nregion_separation: How strongly the regions are kept from influencing each other while the image forms (0 to 1; higher = more separate). It applies to the regions with LoRAs, or to every mask with separate_all_regions.\nSmooth integration of objects, characters and styles: 0.4 with separation_until 0.1 (the default).\nStrong style separation: 0.85-0.99 with separation_until 0.1-0.5."
       },
       "separation_until": {
         "name": "separation_until",
-        "tooltip": "inside the model only. Keep the image of the regions separate for this fraction of the steps (1 = all steps). Early steps set the layout and style of each region; letting the later steps see across regions blends the seams (0.1-0.5 works well with region_separation 0.85-0.99)."
+        "tooltip": "inside the model only.\nseparation_until: The share of the steps, counted from the start, in which the regions are kept separate (0 to 1); the remaining steps blend them together.\nSmooth integration of objects, characters and styles: 0.1 with region_separation 0.4 (the default).\nStrong style separation: 0.1-0.5 with region_separation 0.85-0.99."
       },
       "loras_data": {
         "name": "loras_data"

@@ -290,14 +290,14 @@
     "tooltip": "リンクした領域が共有するマスクのフェザー（領域は最初はリンクされています）。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
   },
   "RegionGenie_Main_RegionSeparation": {
-    "name": "LoRA の領域の分離",
-    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+    "name": "separation（分離の強さ）",
+    "tooltip": "separation: 画像ができていく間、領域同士が影響し合うのをどれだけ強く抑えるか（0 ～ 1。高いほど分離）。\nオブジェクト、キャラクター、スタイルをなめらかに統合: 0.4 と until 0.1（既定値）。\nスタイルを強く分離: 0.85-0.99 と until 0.1-0.5。\n今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
   },
   "RegionGenie_Main_SeparationUntil": {
-    "name": "LoRA の分離期間",
-    "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+    "name": "until（分離期間）",
+    "tooltip": "until: 最初のステップから数えて、領域を分離しておくステップの割合（0 ～ 1）。残りのステップで全体をなじませます。\nオブジェクト、キャラクター、スタイルをなめらかに統合: 0.1 と separation 0.4（既定値）。\nスタイルを強く分離: 0.1-0.5 と separation 0.85-0.99。\n今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
   },
-  "RegionGenie_Main_AllRegionsApart": {
+  "RegionGenie_Main_AllRegionsSeparate": {
     "name": "すべての領域を分離（LoRA のある領域だけでなく）",
     "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
   },
@@ -305,11 +305,11 @@
     "name": "領域の分離: 背景を共有",
     "tooltip": "分離される領域は互いには分離されますが、周囲の画像とは分離されないため、光や舞台が 1 枚の絵としてまとまります。今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
   },
-  "RegionGenie_Main_AutoApart": {
+  "RegionGenie_Main_AutoSeparate": {
     "name": "プレーンテキストのプロンプト: すべての領域を自動的に分離",
     "tooltip": "Krea 2、Flux、Flux 3、Anima、SDXL / SD1.5（および標準モードと編集モードの MOSS-Image）には、領域が通常の文として渡されます。Region Genie ノードは、アテンションで各領域の文をその領域に結び付けることで、領域を配置します（すべての領域を分離します）。\nオン: 「モデル」にこうしたモデルが接続され、clip も接続され、領域プロンプトが 1 つ以上あれば、実行時にすべての領域を分離します。ただし、ノードの Separate ボタンが「Off for this node」のときは除きます。\nオフ: Separate ボタンがオンになっているノードだけが分離します。\n下の設定で、モデルごとに変更できます。すべての Region Genie ノードに、次回の実行から適用されます。"
   },
-  "RegionGenie_Main_AutoApart_MOSS": {
+  "RegionGenie_Main_AutoSeparate_MOSS": {
     "name": "MOSS-Image（標準モード、編集モード）: すべての領域を自動的に分離",
     "tooltip": "MOSS-Image モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
     "options": {
@@ -318,7 +318,7 @@
       "Off": "オフ"
     }
   },
-  "RegionGenie_Main_AutoApart_Krea2": {
+  "RegionGenie_Main_AutoSeparate_Krea2": {
     "name": "Krea 2: すべての領域を自動的に分離",
     "tooltip": "Krea 2 モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
     "options": {
@@ -327,7 +327,7 @@
       "Off": "オフ"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux": {
+  "RegionGenie_Main_AutoSeparate_Flux": {
     "name": "Flux: すべての領域を自動的に分離",
     "tooltip": "Flux モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
     "options": {
@@ -336,7 +336,7 @@
       "Off": "オフ"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux3": {
+  "RegionGenie_Main_AutoSeparate_Flux3": {
     "name": "Flux 3: すべての領域を自動的に分離",
     "tooltip": "Flux 3 モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
     "options": {
@@ -345,7 +345,7 @@
       "Off": "オフ"
     }
   },
-  "RegionGenie_Main_AutoApart_Anima": {
+  "RegionGenie_Main_AutoSeparate_Anima": {
     "name": "Anima: すべての領域を自動的に分離",
     "tooltip": "Anima モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
     "options": {
@@ -354,7 +354,7 @@
       "Off": "オフ"
     }
   },
-  "RegionGenie_Main_AutoApart_SDXL": {
+  "RegionGenie_Main_AutoSeparate_SDXL": {
     "name": "SDXL / SD1.5: すべての領域を自動的に分離",
     "tooltip": "SDXL / SD1.5 モデルのみ対象。「モデル全体の設定に従う」は上の設定に従います。",
     "options": {
@@ -611,7 +611,7 @@
     "name": "画像サイズ",
     "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie ノード",
     "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
   },

@@ -74,7 +74,9 @@ export function* lifecycle(E) {
             delete st.recolor;
         }
         E.change(() => {
+            const own = E.state.loraOpts;                    // a layout that says nothing about separation keeps this node's
             E.state = parseState(JSON.stringify(st), ...(madeFor || E.dims()));     // madeFor: size of an older file
+            if (!E.state.loraOpts && own) E.state.loraOpts = own;
             if (sig) E.state.importSig = sig; else delete E.state.importSig;
             E.selId = null; E.filter = ALL; E.clickPoly = null;
             E.curRegion = E.state.regions[0]?.id ?? null;
@@ -126,6 +128,13 @@ export function* lifecycle(E) {
         const [W, H] = E.dims();
         const wasV1 = (() => { try { const d = JSON.parse(E.dataW?.value || ""); return d && !Array.isArray(d.layers) && Array.isArray(d.ops); } catch (e) { return false; } })();
         E.state = parseState(E.dataW?.value, W, H);
+        // separation / until (round 52): a node always says them from here on. Data that doesn't: a node saved while
+        // 0.85 / 0.25 were the defaults keeps those (the Python side reads missing values the same way); a node that
+        // is new takes the Settings' values (0.4 / 0.1 unless changed)
+        if (!E.state.loraOpts) {
+            E.state.loraOpts = normLoraOpts(E.configured ? { separation: 0.85, until: 0.25 }
+                : { separation: +getSetting(SET.cmSeparation, 0.4), until: +getSetting(SET.cmUntil, 0.1) });
+        }
         E.version++;                                       // new state: drop cached label boxes / indices
         if (wasV1) E.save();
         E.undoStack = []; E.redoStack = [];
@@ -348,12 +357,12 @@ export function* lifecycle(E) {
             E.applySize();
             setWidget(E.modeW, getSetting(SET.cmImageMode, "backdrop (trace over)"));
             const f = Math.max(0, Math.round(+getSetting(SET.cmFeather, 0)) || 0);
-            const sp = +getSetting(SET.cmSeparation, 0.85), un = +getSetting(SET.cmUntil, 0.25);
+            const sp = +getSetting(SET.cmSeparation, 0.4), un = +getSetting(SET.cmUntil, 0.1);
             if (f) E.state.feather = f;
             const allSeparate = !!getSetting(SET.cmAllRegions, false), shareBg = !!getSetting(SET.cmShareBg, false);
-            if (sp !== 0.85 || un !== 0.25 || allSeparate || shareBg) {
-                E.state.loraOpts = normLoraOpts({ separation: sp, until: un, allRegions: allSeparate, shareBg });
-            }
+            // always written (round 52): a node without it is one saved while 0.85 / 0.25 were the defaults, and keeps
+            // those (normLoraOpts in state.js, and the Python side)
+            E.state.loraOpts = normLoraOpts({ separation: sp, until: un, allRegions: allSeparate, shareBg });
             E.save(); E.syncSettings(); E.onDimsChanged(); E.refreshUI();
         }, 0);
     }

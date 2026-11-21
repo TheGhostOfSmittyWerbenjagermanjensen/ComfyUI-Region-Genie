@@ -215,7 +215,7 @@ for (const sub of ["loras", "controlnet"]) {
     check(`a number: typing works inside the window and is saved; out of range goes to the limit (${typed}, ${await get("RegionGenie.Tools.WandTolerance")})`, typed === 48 && await get("RegionGenie.Tools.WandTolerance") <= 255);
     // a slider with its number
     await toPage("node");
-    const sl = rowOf("LoRA region separation");
+    const sl = rowOf("separation");
     await sl.locator('input[type="number"]').fill("0.6"); await sl.locator('input[type="number"]').press("Tab"); await sleep(250);
     check("a slider: its number field sets it, and the slider follows", await get("RegionGenie.Main.RegionSeparation") === 0.6 && await sl.locator('input[type="range"]').inputValue() === "0.6");
     // the pack's own rows: the region colors (its color picker over the window)

@@ -1,7 +1,7 @@
 // The brush size slider on the canvas, the list header's options (keep separate, edit mask), sub-sections and the list height.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { app } from "../../../scripts/app.js";
-import { svgIcon, setHTML, contextMenu, editMaskDefaults, getSetting, setSetting, SET, hintsListeners } from "../rg_shared.js";
+import { svgIcon, setHTML, contextMenu, editMaskDefaults, getSetting, setSetting, SET, hintsListeners, SEPARATION_TIP, UNTIL_TIP } from "../rg_shared.js";
 import { UNSPEC, LASSO_MODES } from "./shared.js";
 import { keyed, keyText } from "../rg_keys.js";
 import { normLoraOpts, normEditMask } from "./state.js";
@@ -184,11 +184,9 @@ export function* canvasUi(E) {
     const statusLbl = E.el("span", "rg-hint rg-status"); E.statusLbl = statusLbl;
     const loraOptsBox = E.el("span", "rg-loraopts");
     const sepIn = E.el("input", "rg-num"); E.sepIn = sepIn; sepIn.type = "number"; sepIn.min = "0"; sepIn.max = "1"; sepIn.step = "0.05";
-    sepIn.title = "separation: How much attention between the image of different LoRA regions is removed "
-        + "(MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5; model output). Higher keeps each LoRA's style in its region; 1 = fully separate.";
+    sepIn.title = SEPARATION_TIP;
     const untilIn = E.el("input", "rg-num"); E.untilIn = untilIn; untilIn.type = "number"; untilIn.min = "0"; untilIn.max = "1"; untilIn.step = "0.05";
-    untilIn.title = "until: The separation is applied for this fraction of the steps; the rest blends the seams. "
-        + "0.1-0.5 with separation 0.85-0.99 works well.";
+    untilIn.title = UNTIL_TIP;
     const optChange = () => E.change(() => {
         E.state.loraOpts = normLoraOpts({ ...normLoraOpts(E.state.loraOpts), separation: sepIn.value, until: untilIn.value });
     });

@@ -317,7 +317,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: the model dropdown's tooltip says it sets the prompt format`, /format of the 'prompt' and 'positive'/.test(tip));
     // round 13: MOSS-Image's standard mode is plain text too, so it has its own 'keep all regions separate automatically'
     const mossSeparate = await page.evaluate(async () => {
-        const s = window.app.extensionManager.setting, id = "RegionGenie.Main.AutoApart.MOSS";
+        const s = window.app.extensionManager.setting, id = "RegionGenie.Main.AutoSeparate.MOSS";
         const def = window.app.ui.settings.settingsParamLookup?.[id] || s.settingsById?.[id];
         await s.set(id, "off");
         const pd = JSON.parse(await window.__rg.widgets.find((w) => w.name === "paint_data").serializeValue());      // await: another pack may wrap it (ComfyUI-Custom-Scripts does)

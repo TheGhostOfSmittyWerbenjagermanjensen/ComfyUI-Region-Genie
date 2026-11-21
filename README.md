@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.42.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.43.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -104,6 +104,29 @@ Draw regions with shapes, a brush, a lasso or a fill. Each region is one color w
 <img src="docs/images/lora.png" alt="A region opened in the list, with a LoRA of its own" width="460">
 
 → [Regional LoRAs](docs/regional-loras.md)
+
+### Separation and until
+
+Two numbers in the list header decide how much the regions are kept from influencing each other. They show once a region has a LoRA or **Separate** is on.
+
+**separation** (0 to 1): how strongly.
+
+- **Low:** the regions blend into one picture. Lighting and style stay consistent, but styles and details can mix between regions.
+- **High:** each region keeps its own look. Styles stay where they belong, but the seams between regions can show, like a collage.
+
+**until** (0 to 1): for how much of the sampling, counted from the first step.
+
+- **Low:** only the first steps are separate. They set where things go; the rest blends everything together.
+- **High:** the regions stay separate for longer. 1 means every step.
+
+Good starting points:
+
+| Goal | separation | until |
+|---|---|---|
+| Smooth integration of objects, characters and styles (the default) | 0.4 | 0.1 |
+| Strong style separation | 0.85–0.99 | 0.1–0.5 |
+
+→ [More in the manual](docs/regional-loras.md#separation-and-until)
 
 ### Control
 

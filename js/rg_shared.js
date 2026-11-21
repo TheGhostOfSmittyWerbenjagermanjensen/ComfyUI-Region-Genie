@@ -1808,8 +1808,8 @@ export const SET = {
     regionColors: "RegionGenie.Main.RegionColors",
     bigKey: "RegionGenie.Main.LargeEditorKey",
     shortcuts: "RegionGenie.Shortcuts",              // the user's keys for the editor's commands (rg_keys.js), a JSON text
-    cmAllRegions: "RegionGenie.Main.AllRegionsApart",
-    cmAutoSeparate: "RegionGenie.Main.AutoApart",
+    cmAllRegions: "RegionGenie.Main.AllRegionsSeparate",
+    cmAutoSeparate: "RegionGenie.Main.AutoSeparate",
     cmShareBg: "RegionGenie.Main.ShareBackground",
     toolLasso: "RegionGenie.Tools.Lasso",
     toolLassoErase: "RegionGenie.Tools.LassoErase",
@@ -1944,6 +1944,13 @@ const shortcutsSettingType = () => () => {
     box.append(info, btn); sync();                   // the button at the row's end, like the page rows'
     return box;
 };
+// separation / until (the list header's two fields, and their Settings): the owner's wording (round 52). The defaults
+// 0.4 / 0.1 blend the regions into one picture; 0.85-0.99 / 0.1-0.5 (the defaults until then) keep styles strictly separate
+export const SEPARATION_DEFAULT = 0.4, UNTIL_DEFAULT = 0.1;
+export const SEPARATION_TIP = "separation: How strongly the regions are kept from influencing each other while the image forms (0 to 1; higher = more separate).\n"
+    + "Smooth integration of objects, characters and styles: 0.4 with until 0.1 (the default).\nStrong style separation: 0.85-0.99 with until 0.1-0.5.";
+export const UNTIL_TIP = "until: The share of the steps, counted from the start, in which the regions are kept separate (0 to 1); the remaining steps blend them together.\n"
+    + "Smooth integration of objects, characters and styles: 0.1 with separation 0.4 (the default).\nStrong style separation: 0.1-0.5 with separation 0.85-0.99.";
 const CAT = (section, key) => ["Region Genie", section, key];
 const SETTINGS = [
         // first: the model-file settings below take their form from it when they are registered
@@ -2173,8 +2180,8 @@ const SETTINGS = [
             category: CAT("Region Genie node", "055 colors"),
         },
         { id: SET.cmFeather, name: "Feather (px, linked regions)", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: "The mask feather that linked regions share (regions start linked). " + NEW_NODES, category: CAT("Region Genie node", "06 feather") },
-        { id: SET.cmSeparation, name: "LoRA region separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "07 separation") },
-        { id: SET.cmUntil, name: "LoRA separation until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "08 until") },
+        { id: SET.cmSeparation, name: "separation", type: "slider", defaultValue: 0.4, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: SEPARATION_TIP + "\n" + NEW_NODES, category: CAT("Region Genie node", "07 separation") },
+        { id: SET.cmUntil, name: "until", type: "slider", defaultValue: 0.1, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: UNTIL_TIP + "\n" + NEW_NODES, category: CAT("Region Genie node", "08 until") },
         { id: SET.cmAllRegions, name: "Keep all regions separate (not only those with LoRAs)", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Region Genie node", "085 all regions") },
         {
             id: SET.cmShareBg, name: "Keep regions separate: share the background", type: "boolean", defaultValue: false,
@@ -2256,7 +2263,7 @@ const SETTINGS = [
         },
         { id: SET.hlFeather, name: "feather", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "1 feather") },
         { id: SET.hlMasking, name: "lora_masking", type: "combo", defaultValue: "inside the model (one pass)", options: ["inside the model (one pass)", "separate passes (classic hooks)"], tooltip: NEW_NODES, category: CAT("Regional LoRAs", "2 masking") },
-        { id: SET.hlSeparation, name: "region_separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "3 separation") },
+        { id: SET.hlSeparation, name: "region_separation", type: "slider", defaultValue: 0.4, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "3 separation") },
         { id: SET.hlAllRegions, name: "separate_all_regions", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "5 all regions") },
         { id: SET.hlShareBg, name: "share_background", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "6 share background") },
         // Save Image (Region Genie): how a new node starts
@@ -2287,7 +2294,7 @@ const SETTINGS = [
           tooltip: "The color space of the images coming in (the EXR is always scene-linear).\n"
               + "sRGB: sRGB-encoded Rec.709, the usual.\nHDR: HLG-encoded Rec.2020.\nlinear: Already scene-linear Rec.709.\n"
               + "linear ACEScg: Already scene-linear ACEScg.\n" + NEW_NODES, category: CAT("Save Image", "91 exr space") },
-        { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
+        { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.1, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
 // ---------------------------------------------------------------- a short tab, and pages (round 50)
 // ComfyUI's Settings listed 123 rows for this pack, ten screens of them. Now the tab holds the few switches that are

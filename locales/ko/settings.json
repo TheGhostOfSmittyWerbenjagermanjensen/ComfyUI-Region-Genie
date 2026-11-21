@@ -290,14 +290,14 @@
     "tooltip": "연결된 영역이 공유하는 마스크 페더입니다(영역은 처음에 연결된 상태입니다). 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
   },
   "RegionGenie_Main_RegionSeparation": {
-    "name": "LoRA 영역 분리",
-    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+    "name": "separation (분리 강도)",
+    "tooltip": "separation: 이미지가 만들어지는 동안 영역들이 서로 영향을 주지 않도록 막는 강도 (0~1, 높을수록 더 분리).\n사물, 캐릭터, 스타일의 자연스러운 통합: 0.4와 until 0.1 (기본값).\n강한 스타일 분리: 0.85-0.99와 until 0.1-0.5.\n지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
   },
   "RegionGenie_Main_SeparationUntil": {
-    "name": "LoRA 분리 종료",
-    "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+    "name": "until (분리 종료)",
+    "tooltip": "until: 처음부터 세어, 영역들을 분리된 상태로 유지하는 스텝의 비율 (0~1). 나머지 스텝에서 서로 어우러집니다.\n사물, 캐릭터, 스타일의 자연스러운 통합: 0.1과 separation 0.4 (기본값).\n강한 스타일 분리: 0.1-0.5와 separation 0.85-0.99.\n지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
   },
-  "RegionGenie_Main_AllRegionsApart": {
+  "RegionGenie_Main_AllRegionsSeparate": {
     "name": "모든 영역을 서로 분리 (LoRA가 있는 영역만이 아니라)",
     "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
   },
@@ -305,11 +305,11 @@
     "name": "영역 분리: 배경 공유",
     "tooltip": "분리되는 영역들이 서로는 분리되지만 주변 이미지와는 분리되지 않아, 조명과 배경이 하나의 그림으로 유지됩니다. 지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
   },
-  "RegionGenie_Main_AutoApart": {
+  "RegionGenie_Main_AutoSeparate": {
     "name": "일반 텍스트 프롬프트: 모든 영역을 자동으로 분리",
     "tooltip": "Krea 2, Flux, Flux 3, Anima, SDXL / SD1.5(그리고 표준 모드와 편집 모드의 MOSS-Image)는 영역을 일반 문장으로 받습니다. Region Genie 노드는 어텐션에서 각 영역의 문장을 해당 영역에 묶는 방식으로 영역을 배치합니다(모든 영역을 분리).\n켬: 이런 모델이 '모델'에 연결되고, clip이 연결되고, 영역 프롬프트가 하나 이상 있으면 실행 시 모든 영역을 분리합니다. 단, 노드의 Separate 버튼이 'Off for this node'로 설정된 경우는 제외합니다.\n끔: Separate 버튼이 켜진 노드만 영역을 분리합니다.\n아래 설정으로 모델별로 바꿀 수 있습니다. 모든 Region Genie 노드에 다음 실행부터 적용됩니다."
   },
-  "RegionGenie_Main_AutoApart_MOSS": {
+  "RegionGenie_Main_AutoSeparate_MOSS": {
     "name": "MOSS-Image (표준 모드, 편집 모드): 모든 영역을 자동으로 분리",
     "tooltip": "MOSS-Image 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
     "options": {
@@ -318,7 +318,7 @@
       "Off": "끔"
     }
   },
-  "RegionGenie_Main_AutoApart_Krea2": {
+  "RegionGenie_Main_AutoSeparate_Krea2": {
     "name": "Krea 2: 모든 영역을 자동으로 분리",
     "tooltip": "Krea 2 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
     "options": {
@@ -327,7 +327,7 @@
       "Off": "끔"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux": {
+  "RegionGenie_Main_AutoSeparate_Flux": {
     "name": "Flux: 모든 영역을 자동으로 분리",
     "tooltip": "Flux 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
     "options": {
@@ -336,7 +336,7 @@
       "Off": "끔"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux3": {
+  "RegionGenie_Main_AutoSeparate_Flux3": {
     "name": "Flux 3: 모든 영역을 자동으로 분리",
     "tooltip": "Flux 3 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
     "options": {
@@ -345,7 +345,7 @@
       "Off": "끔"
     }
   },
-  "RegionGenie_Main_AutoApart_Anima": {
+  "RegionGenie_Main_AutoSeparate_Anima": {
     "name": "Anima: 모든 영역을 자동으로 분리",
     "tooltip": "Anima 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
     "options": {
@@ -354,7 +354,7 @@
       "Off": "끔"
     }
   },
-  "RegionGenie_Main_AutoApart_SDXL": {
+  "RegionGenie_Main_AutoSeparate_SDXL": {
     "name": "SDXL / SD1.5: 모든 영역을 자동으로 분리",
     "tooltip": "SDXL / SD1.5 모델에만 적용됩니다. '모든 모델 설정을 따름'은 위의 설정을 따릅니다.",
     "options": {
@@ -611,7 +611,7 @@
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie 노드",
     "tooltip": "새 Region Genie 노드의 초기 설정(이미지 모드, 페더, 분리, 그리드, 영역 색상, 태그 자동 완성, 와일드카드).\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },

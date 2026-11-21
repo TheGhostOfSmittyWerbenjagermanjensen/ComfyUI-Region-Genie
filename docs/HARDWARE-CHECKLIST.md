@@ -66,6 +66,9 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] MOSS-Image, Krea 2, Flux, Anima, SDXL: a LoRA on one region acts only there
 - [ ] On an int8 / fp8 (quantized) model
 - [ ] The Regional LoRAs node and Create Hook LoRA (Quantized)
+- [ ] separation 0.4 / until 0.1 (the defaults since 0.43): objects, characters and styles blend into one picture; 0.85-0.99 with until 0.1-0.5: styles stay strictly in their regions. Is 0.4 / 0.1 a good default on each model you use?
+- [ ] A workflow saved before 0.43 whose separation / until were never changed opens with 0.85 / 0.25 and gives the same picture as before
+- [ ] After updating to 0.43: the "keep all regions separate" Settings (all regions, and the per-model ones) are back at their defaults; set them again if you had changed them
 
 ## 7. Select object, lasso, wand
 

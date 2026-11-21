@@ -14,7 +14,7 @@
   "RegionGenie_LLM_NewRegionsOn": {
     "name": "New regions start with the LLM Prompt Enhancer on"
   },
-  "RegionGenie_Main_AutoApart": {
+  "RegionGenie_Main_AutoSeparate": {
     "name": "Plain-text prompts: keep all regions separate automatically",
     "tooltip": "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get the regions as plain sentences. The Region Genie node places each region by tying its sentence to its region in attention (keeping all regions separate).\nOn: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions separate, unless the node's Separate button is set to 'Off for this node'.\nOff: Only a node whose Separate button is on keeps them separate.\nThe settings below change it for one model. Applies to every Region Genie node at its next run."
   },
@@ -26,7 +26,7 @@
     "name": "Image size",
     "tooltip": "How the size row of a new Region Genie node starts, and the list of presets.\nEdit…: Opens the Region Genie settings on this page."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie node",
     "tooltip": "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards).\nEdit…: Opens the Region Genie settings on this page."
   },
@@ -342,14 +342,14 @@
     "tooltip": "The mask feather that linked regions share (regions start linked). Applies to nodes added from now on; nodes already in a workflow keep their own value."
   },
   "RegionGenie_Main_RegionSeparation": {
-    "name": "LoRA region separation",
-    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+    "name": "separation",
+    "tooltip": "separation: How strongly the regions are kept from influencing each other while the image forms (0 to 1; higher = more separate).\nSmooth integration of objects, characters and styles: 0.4 with until 0.1 (the default).\nStrong style separation: 0.85-0.99 with until 0.1-0.5.\nApplies to nodes added from now on; nodes already in a workflow keep their own value."
   },
   "RegionGenie_Main_SeparationUntil": {
-    "name": "LoRA separation until",
-    "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+    "name": "until",
+    "tooltip": "until: The share of the steps, counted from the start, in which the regions are kept separate (0 to 1); the remaining steps blend them together.\nSmooth integration of objects, characters and styles: 0.1 with separation 0.4 (the default).\nStrong style separation: 0.1-0.5 with separation 0.85-0.99.\nApplies to nodes added from now on; nodes already in a workflow keep their own value."
   },
-  "RegionGenie_Main_AllRegionsApart": {
+  "RegionGenie_Main_AllRegionsSeparate": {
     "name": "Keep all regions separate (not only those with LoRAs)",
     "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
   },
@@ -357,7 +357,7 @@
     "name": "Keep regions separate: share the background",
     "tooltip": "Regions that are kept separate stay separate from each other, but not from the image around them, so lighting and setting stay one picture. Applies to nodes added from now on; nodes already in a workflow keep their own value."
   },
-  "RegionGenie_Main_AutoApart_MOSS": {
+  "RegionGenie_Main_AutoSeparate_MOSS": {
     "name": "MOSS-Image (standard mode, Edit Mode): keep all regions separate automatically",
     "tooltip": "For MOSS-Image models only. 'As set for all models' follows the setting above.",
     "options": {
@@ -366,7 +366,7 @@
       "Off": "Off"
     }
   },
-  "RegionGenie_Main_AutoApart_Krea2": {
+  "RegionGenie_Main_AutoSeparate_Krea2": {
     "name": "Krea 2: keep all regions separate automatically",
     "tooltip": "For Krea 2 models only. 'As set for all models' follows the setting above.",
     "options": {
@@ -375,7 +375,7 @@
       "Off": "Off"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux": {
+  "RegionGenie_Main_AutoSeparate_Flux": {
     "name": "Flux: keep all regions separate automatically",
     "tooltip": "For Flux models only. 'As set for all models' follows the setting above.",
     "options": {
@@ -384,7 +384,7 @@
       "Off": "Off"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux3": {
+  "RegionGenie_Main_AutoSeparate_Flux3": {
     "name": "Flux 3: keep all regions separate automatically",
     "tooltip": "For Flux 3 models only. 'As set for all models' follows the setting above.",
     "options": {
@@ -393,7 +393,7 @@
       "Off": "Off"
     }
   },
-  "RegionGenie_Main_AutoApart_Anima": {
+  "RegionGenie_Main_AutoSeparate_Anima": {
     "name": "Anima: keep all regions separate automatically",
     "tooltip": "For Anima models only. 'As set for all models' follows the setting above.",
     "options": {
@@ -402,7 +402,7 @@
       "Off": "Off"
     }
   },
-  "RegionGenie_Main_AutoApart_SDXL": {
+  "RegionGenie_Main_AutoSeparate_SDXL": {
     "name": "SDXL / SD1.5: keep all regions separate automatically",
     "tooltip": "For SDXL / SD1.5 models only. 'As set for all models' follows the setting above.",
     "options": {
