@@ -606,5 +606,49 @@
   "RegionGenie_RegionalLoRAs_SeparationUntil": {
     "name": "分離期間",
     "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height": {
+    "name": "画像サイズ",
+    "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions apart not only those with LoRAs , Keep regions apart: share the background, Snap to grid on, Grid size image px ": {
+    "name": "Region Genie ノード",
+    "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
+    "name": "キャンバスツール",
+    "tooltip": "投げ縄、マジックワンド、塗りつぶしの各ボタンが最初に使うバージョン、ワンドの許容値、塗りつぶしの隙間サイズ、キャンバス上のヒント。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render": {
+    "name": "文字サイズ",
+    "tooltip": "ノード上とポップアップエディターでの、プロンプト欄の文字サイズ。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_control: MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
+    "name": "コントロール",
+    "tooltip": "各モデルが Control 行で使うコントロール LoRA、ControlNet、LLLite のファイルと、深度モデル。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_edit: MOSS-Image: edit LoRA, Krea 2: edit LoRA, Ideogram 4: edit LoRA, Flux_1: edit LoRA, Flux_2: edit LoRA, Flux 3: edit LoRA, Anima: edit LoRA, SDXL: edit LoRA, SD1_5: edit LoRA, MOSS-Image: send the source image as a reference, Krea 2: send the source image as a reference, Flux_1: send the source image as a reference, Flux_2: send the source image as a reference, Flux 3: send the source image as a reference, Reference image size long edge, px 0 output size , MOSS-Image edit layout, Edit mask: grow px negative shrinks , Edit mask: feather px ": {
+    "name": "編集モード",
+    "tooltip": "各モデルの編集 LoRA、元画像を参照として送るかどうか、編集マスクの拡張とフェザー。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_llm: What the LLM Prompt Enhancer sees, New regions start with the LLM Prompt Enhancer on, Default preset: Character, Default preset: Object, Default preset: Text, Default preset: Scene, Preset to edit, Preset: name, Preset: LLM, Preset: LLM type, Preset: LLM LoRAs, Preset: system prompt, Preset: max_length, Preset: sampling, Preset: temperature, Preset: top_k, Preset: top_p, Preset: min_p, Preset: repetition_penalty, Preset: presence_penalty, Preset: seed, Preset: thinking, Preset: default template, Preset: mtp, Keep LLM results on disk between ComfyUI restarts, Forget LLM results after days 0 never , Most LLM results to keep": {
+    "name": "LLMプロンプトエンハンサー",
+    "tooltip": "LLM に見せる内容、プロンプトの種類ごとの既定プリセット、プリセットそのもの、LLM キャッシュ。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_apart: Plain-text prompts: keep all regions apart automatically, MOSS-Image standard mode, Edit Mode : keep all regions apart automatically, Krea 2: keep all regions apart automatically, Flux: keep all regions apart automatically, Flux 3: keep all regions apart automatically, Anima: keep all regions apart automatically, SDXL SD1_5: keep all regions apart automatically": {
+    "name": "領域の分離（モデル別）",
+    "tooltip": "レイアウト形式を持たない各モデルで、実行時にすべての領域を自動的に分離するかどうか。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_sam: Model, After a selection, Find all: confidence": {
+    "name": "オブジェクトを選択",
+    "tooltip": "SAM 3.1 のモデルファイル、読み込んだままにするかどうか、「すべて検索」の信頼度。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_hl: feather, lora_masking, region_separation, separate_all_regions, share_background, separation_until": {
+    "name": "領域別LoRA",
+    "tooltip": "新しい Regional LoRAs ノードの初期設定。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Page_save: format, PNG compression, WebP lossless, WebP quality, JPEG quality, JPEG extension, JPEG workflow, AVIF quality, EXR bit depth, EXR color space": {
+    "name": "画像を保存",
+    "tooltip": "新しい Save Image (Region Genie) ノードが最初に使う形式と、各形式の設定。\nEdit…: このページで Region Genie の設定を開きます。"
   }
 }

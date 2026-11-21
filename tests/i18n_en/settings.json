@@ -1,4 +1,63 @@
 {
+  "RegionGenie_Tools_Hints": {
+    "name": "Hints on the canvas",
+    "tooltip": "On: The canvas shows the active tool's keys and gestures along its bottom edge, and the first steps while it is empty.\nOff: No hints on the canvas.\nApplies to every Region Genie node right away."
+  },
+  "RegionGenie_Main_Snap": {
+    "name": "Snap to grid on",
+    "tooltip": "Whether snap to grid is on when a Region Genie node is added or a workflow is opened."
+  },
+  "RegionGenie_Autocomplete_DefaultOn": {
+    "name": "Tag autocomplete on in new Region Genie nodes",
+    "tooltip": "Default for the 'autocomplete' switch on the Region Genie and Regional LoRAs nodes (nodes where you set the switch yourself keep their own choice). The autocomplete itself comes from ComfyUI-Custom-Scripts (preferred when enabled) or ComfyUI-Lora-Manager and follows that pack's settings."
+  },
+  "RegionGenie_LLM_NewRegionsOn": {
+    "name": "New regions start with the LLM Prompt Enhancer on"
+  },
+  "RegionGenie_Main_AutoApart": {
+    "name": "Plain-text prompts: keep all regions apart automatically",
+    "tooltip": "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get the regions as plain sentences. The Region Genie node places each region by tying its sentence to its region in attention (keeping all regions apart).\nOn: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, unless the node's Separate button is set to 'Off for this node'.\nOff: Only a node whose Separate button is on keeps them apart.\nThe settings below change it for one model. Applies to every Region Genie node at its next run."
+  },
+  "RegionGenie_Shortcuts": {
+    "name": "Shortcuts",
+    "tooltip": "The keys of the Region Genie editor (the tools, undo, copy and paste, the view, the large editor) and the keys that step between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; each shortcut can be put back to its default.\nThe same list opens when you press the question mark key while the pointer is over a Region Genie node, or with the keyboard button in its bottom bar. Applies to every node."
+  },
+  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height": {
+    "name": "Image size",
+    "tooltip": "How the size row of a new Region Genie node starts, and the list of presets.\nEdit…: Opens the Region Genie settings on this page."
+  },
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions apart not only those with LoRAs , Keep regions apart: share the background, Snap to grid on, Grid size image px ": {
+    "name": "Region Genie node",
+    "tooltip": "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards).\nEdit…: Opens the Region Genie settings on this page."
+  },
+  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
+    "name": "Canvas tools",
+    "tooltip": "Which version the lasso, magic wand and fill buttons start as, the wand tolerance, the fill gap size, the hints on the canvas.\nEdit…: Opens the Region Genie settings on this page."
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render": {
+    "name": "Text size",
+    "tooltip": "The text size of the prompt boxes, on the node and in the pop-up editors.\nEdit…: Opens the Region Genie settings on this page."
+  },
+  "RegionGenie_Page_control: MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
+    "name": "Control",
+    "tooltip": "The control LoRA, ControlNet or LLLite file each model uses for a Control row, and the depth model.\nEdit…: Opens the Region Genie settings on this page."
+  },
+  "RegionGenie_Page_edit: MOSS-Image: edit LoRA, Krea 2: edit LoRA, Ideogram 4: edit LoRA, Flux_1: edit LoRA, Flux_2: edit LoRA, Flux 3: edit LoRA, Anima: edit LoRA, SDXL: edit LoRA, SD1_5: edit LoRA, MOSS-Image: send the source image as a reference, Krea 2: send the source image as a reference, Flux_1: send the source image as a reference, Flux_2: send the source image as a reference, Flux 3: send the source image as a reference, Reference image size long edge, px 0 output size , MOSS-Image edit layout, Edit mask: grow px negative shrinks , Edit mask: feather px ": {
+    "name": "Edit Mode",
+    "tooltip": "The edit LoRA of each model, whether the source image is sent as a reference, and the edit mask's grow and feather.\nEdit…: Opens the Region Genie settings on this page."
+  },
+  "RegionGenie_Page_llm: What the LLM Prompt Enhancer sees, New regions start with the LLM Prompt Enhancer on, Default preset: Character, Default preset: Object, Default preset: Text, Default preset: Scene, Preset to edit, Preset: name, Preset: LLM, Preset: LLM type, Preset: LLM LoRAs, Preset: system prompt, Preset: max_length, Preset: sampling, Preset: temperature, Preset: top_k, Preset: top_p, Preset: min_p, Preset: repetition_penalty, Preset: presence_penalty, Preset: seed, Preset: thinking, Preset: default template, Preset: mtp, Keep LLM results on disk between ComfyUI restarts, Forget LLM results after days 0 never , Most LLM results to keep": {
+    "name": "LLM Prompt Enhancer",
+    "tooltip": "What the LLM sees, the default preset of each prompt type, the presets themselves, and the LLM cache.\nEdit…: Opens the Region Genie settings on this page."
+  },
+  "RegionGenie_Page_apart: Plain-text prompts: keep all regions apart automatically, MOSS-Image standard mode, Edit Mode : keep all regions apart automatically, Krea 2: keep all regions apart automatically, Flux: keep all regions apart automatically, Flux 3: keep all regions apart automatically, Anima: keep all regions apart automatically, SDXL SD1_5: keep all regions apart automatically": {
+    "name": "Keeping regions apart, per model",
+    "tooltip": "Whether a run keeps all regions apart by itself, for each model without a layout format.\nEdit…: Opens the Region Genie settings on this page."
+  },
+  "RegionGenie_Page_sam: Model, After a selection, Find all: confidence": {
+    "name": "Select object",
+    "tooltip": "The SAM 3.1 model file, whether it stays loaded, and the confidence of Find all.\nEdit…: Opens the Region Genie settings on this page."
+  },
   "RegionGenie_ModelFiles_Browse": {
     "name": "Browse… for model files",
     "tooltip": "Off (default): A model-file field opens ComfyUI's menu of the files in ComfyUI's model folders.\nOn: Each field also gets a folder button (Browse…) that picks a file anywhere on the ComfyUI machine (saved by its full path), in these Settings (once the dialog is opened again), on the node's Edit rows and in the LLM Settings pop-up. Files picked with it keep working when it is off."
@@ -7,9 +66,13 @@
     "name": "Check model files",
     "tooltip": "Looks up every model file set in these Settings (Control, Edit Mode, Select object) and in the LLM presets, and lists the ones ComfyUI can't find (moved, renamed or deleted)."
   },
-  "RegionGenie_Autocomplete_DefaultOn": {
-    "name": "Tag autocomplete on in new Region Genie nodes",
-    "tooltip": "Default for the 'autocomplete' switch on the Region Genie and Regional LoRAs nodes (nodes where you set the switch yourself keep their own choice). The autocomplete itself comes from ComfyUI-Custom-Scripts (preferred when enabled) or ComfyUI-Lora-Manager and follows that pack's settings."
+  "RegionGenie_Page_hl: feather, lora_masking, region_separation, separate_all_regions, share_background, separation_until": {
+    "name": "Regional LoRAs",
+    "tooltip": "What a new Regional LoRAs node starts with.\nEdit…: Opens the Region Genie settings on this page."
+  },
+  "RegionGenie_Page_save: format, PNG compression, WebP lossless, WebP quality, JPEG quality, JPEG extension, JPEG workflow, AVIF quality, EXR bit depth, EXR color space": {
+    "name": "Save Image",
+    "tooltip": "The format a new Save Image (Region Genie) node starts with, and each format's settings.\nEdit…: Opens the Region Genie settings on this page."
   },
   "RegionGenie_LLM_Context": {
     "name": "What the LLM Prompt Enhancer sees",
@@ -18,9 +81,6 @@
       "Only the prompt": "Only the prompt",
       "The prompt + the scene and the other regions": "The prompt + the scene and the other regions"
     }
-  },
-  "RegionGenie_LLM_NewRegionsOn": {
-    "name": "New regions start with the LLM Prompt Enhancer on"
   },
   "RegionGenie_LLM_Default_character": {
     "name": "Default preset: Character",
@@ -166,10 +226,6 @@
     "name": "Fill: gap size (px)",
     "tooltip": "Fill, closing small gaps: Openings narrower than about twice this many pixels are closed."
   },
-  "RegionGenie_Tools_Hints": {
-    "name": "Hints on the canvas",
-    "tooltip": "On: The canvas shows the active tool's keys and gestures along its bottom edge, and the first steps while it is empty.\nOff: No hints on the canvas.\nApplies to every Region Genie node right away."
-  },
   "RegionGenie_Select_Model": {
     "name": "Model",
     "tooltip": "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. When this file isn't there, another SAM 3 checkpoint in that folder is used. With 'Browse… for model files' on (Model files), a folder button picks a checkpoint anywhere on the ComfyUI machine."
@@ -277,10 +333,6 @@
       "always replace": "always replace"
     }
   },
-  "RegionGenie_Shortcuts": {
-    "name": "Shortcuts",
-    "tooltip": "The keys of the Region Genie editor (the tools, undo, copy and paste, the view, the large editor) and the keys that step between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; each shortcut can be put back to its default.\nThe same list opens when you press the question mark key while the pointer is over a Region Genie node, or with the keyboard button in its bottom bar. Applies to every node."
-  },
   "RegionGenie_Main_RegionColors": {
     "name": "Region colors",
     "tooltip": "The colors new regions get, in this order (a color already on the canvas is skipped; when all are in use, the node picks one that looks different from them).\nClick a color: Change it.\nRight-click a color: Remove it.\n＋: Add one.\nDefaults: The built-in colors.\nRegions already drawn keep their colors. Black can't be used: It means 'no region' in color_map."
@@ -304,10 +356,6 @@
   "RegionGenie_Main_ShareBackground": {
     "name": "Keep regions apart: share the background",
     "tooltip": "Regions that are kept apart stay apart from each other, but not from the image around them, so lighting and setting stay one picture. Applies to nodes added from now on; nodes already in a workflow keep their own value."
-  },
-  "RegionGenie_Main_AutoApart": {
-    "name": "Plain-text prompts: keep all regions apart automatically",
-    "tooltip": "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get the regions as plain sentences. The Region Genie node places each region by tying its sentence to its region in attention (keeping all regions apart).\nOn: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, unless the node's Separate button is set to 'Off for this node'.\nOff: Only a node whose Separate button is on keeps them apart.\nThe settings below change it for one model. Applies to every Region Genie node at its next run."
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image (standard mode, Edit Mode): keep all regions apart automatically",
@@ -362,10 +410,6 @@
       "On": "On",
       "Off": "Off"
     }
-  },
-  "RegionGenie_Main_Snap": {
-    "name": "Snap to grid on",
-    "tooltip": "Whether snap to grid is on when a Region Genie node is added or a workflow is opened."
   },
   "RegionGenie_Main_Grid": {
     "name": "Grid size (image px)",

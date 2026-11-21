@@ -214,7 +214,7 @@ body:has(.rg-llm-pop) .litecontextmenu, body:has(.rg-llm-pop) .litegraph.litecon
 // ---------------------------------------------------------------- shared by the pop-up and Settings
 const CLIP_LABEL = "The connected clip (MOSS-Image: Qwen3.5 9B; Krea 2 / Ideogram 4: Qwen3-VL)";
 const LLM_TIP = "The connected clip is used as it is (no extra memory). A file from ComfyUI's text_encoders folders (or anywhere "
-    + "with 'Browse… for model files' on in Settings > Region Genie > Model files) is loaded once and kept while in use.\n"
+    + "with 'Browse… for model files' on in Settings > Region Genie) is loaded once and kept while in use.\n"
     + "Click to choose it in ComfyUI's menu.";
 // an LLM LoRA's file: ComfyUI's menu of models/loras (Browse… beside it with the Settings switch on)
 function loraPicker(value, onPick) {
@@ -502,7 +502,9 @@ const rowRefreshers = new Set();
 function refreshRows(except) {
     for (const f of [...rowRefreshers]) {
         if (!f.box.isConnected) { rowRefreshers.delete(f); continue; }
-        if (f.box === except || f.box.contains(document.activeElement)) continue;     // don't rebuild what is being typed in
+        // don't rebuild what is being typed in (a row whose button was just clicked is rebuilt: New, Delete)
+        const ae = document.activeElement;
+        if (f.box === except || (f.box.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.type !== "checkbox")) continue;
         f();
     }
 }
@@ -641,7 +643,7 @@ function build(key, box) {
     }
 }
 LLM_ROWS.render = renderRow;
-// for Settings > Region Genie > Model files > Check model files: the files the LLM presets use
+// for Settings > Region Genie > Check model files: the files the LLM presets use
 LLM_FILES.list = () => {
     const out = [];
     for (const [name, s] of Object.entries(lib?.presets || {})) {

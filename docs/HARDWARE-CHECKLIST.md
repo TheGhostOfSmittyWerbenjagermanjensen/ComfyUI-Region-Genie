@@ -39,7 +39,7 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] A model-file field opens ComfyUI's menu on the right folders; with rgthree-comfy's Auto Nest on, subfolders show as folders
 - [ ] Typing in the menu finds a file in any subfolder
 - [ ] The Region Genie tab in Settings opens quickly with your full library
-- [ ] Check model files (Settings > Region Genie > Model files) reports nothing missing when everything is in place, and names a file after you move it away
+- [ ] Check model files (Settings > Region Genie) reports nothing missing when everything is in place, and names a file after you move it away
 - [ ] Browse… (with its switch on) picks a file outside ComfyUI's model folders, and a run loads it (Windows / Stability Matrix paths)
 
 ## 4. Control
@@ -143,7 +143,7 @@ Check once in legacy mode and once in Nodes 2.0.
 - **Click areas, on the 4K display, both node modes:** click a row's small buttons (eye, ↑ ↓, ✕, the ▶ and the grip) slightly off: just above or below still counts; a click between two buttons goes to the nearer one, never to both. A tool button's small arrow still opens its list.
 - **Changing a key on a real keyboard:** press ? over a node, click a key, press a new one: a letter, a function key, a combination with Ctrl / Alt / Shift, and (on macOS) one with ⌘. The new key works on the canvas at once and the old one doesn't; the tooltip and the hint line show it. Try a key ComfyUI itself uses (R, Ctrl+S): it acts in the editor only while the pointer is over the node.
 - A non-US keyboard layout: the keys with symbols ([ ] ?) can be reached, or can be given keys that can.
-- **Settings > Region Genie > Region Genie node > Shortcuts > Edit…:** the list opens over the Settings dialog, takes a new key there, and closing it leaves the dialog open. After reloading ComfyUI the keys are still yours.
+- **Settings > Region Genie > Shortcuts > Edit…:** the list opens over the Settings dialog, takes a new key there, and closing it leaves the dialog open. After reloading ComfyUI the keys are still yours.
 - Reset all: every key is back; the large editor opens with Alt+Enter again.
 
 ## 18. Sockets, size_from, the Edit area line (round 40)
@@ -222,3 +222,13 @@ Tested in a stub page by the layers' pixels; worth a look on the real canvas at 
 - The hints fade when the pointer comes onto the canvas, return when it leaves, and show for about three seconds after a tool switch (B, V …).
 - The ? button in the canvas's lower right corner hides and shows the hints, in the large editor too; it doesn't sit on anything else there.
 - Nodes 2.0: a new node is 580 px wide; its canvas is wider than tall (left as it is on purpose).
+
+## 25. Settings: the short tab and the settings window (round 50)
+
+- Settings > Region Genie is one screen: three sections, each topic one row with Edit….
+- Your saved settings are all still there: open a few pages (Control, Edit Mode, LLM Prompt Enhancer) and check the files and presets you had set.
+- A page's model-file field opens ComfyUI's menu over the window; with rgthree's nested folders on, the folders open and a file can be picked; Browse… (when on) opens its browser over the window.
+- Region colors (page Region Genie node): the color picker opens over the window and Esc closes only the picker.
+- Typing in ComfyUI's Search Settings a setting name (e.g. "WebP quality") shows the page's row.
+- At 4K with a large ComfyUI font: the window fits the dialog, the left list isn't cut off, long rows don't run under their controls.
+- Another language (Settings > Language): the window's pages, names and tooltips are in that language.

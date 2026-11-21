@@ -569,7 +569,7 @@ const fileSettingType = (roots, none, id, home, noneLabel) => (name, setter, val
     fileField({ roots, home, none, noneLabel, value: typeof value === "string" && value ? value : none, title: name,
                 onPick: (v) => { try { setter(v); } catch (e) { /* the dialog is gone */ } if (id) setSetting(id, v); } });
 
-// ---- Settings > Region Genie > Model files > Check model files (round 24): every model file set in these Settings
+// ---- Settings > Region Genie > Check model files (round 24): every model file set in these Settings
 // (Control, edit LoRAs, Select object) and in the LLM presets is looked up now; the ones not found are listed.
 export const LLM_FILES = { list: null };          // rg_llm.js fills it in: () => [{ what, value, roots, home }]
 function configuredModelFiles() {
@@ -1539,7 +1539,7 @@ export const FPOP_CSS = `
 //    (Settings > pysssss > Text Autocomplete: separator, underscores, Tab/Enter, suggestion count ...)
 //  - the Tag Autocomplete of ComfyUI-Lora-Manager (Settings > LoRA Manager > Autocomplete)
 // Every Region Genie node has its own on/off switch; new nodes start with the global default
-// (Settings > Region Genie > Tag autocomplete). Without either pack nothing happens.
+// (Settings > Region Genie > Tag autocomplete on in new Region Genie nodes). Without either pack nothing happens.
 export const AC_DEFAULT_SETTING = "RegionGenie.Autocomplete.DefaultOn";
 export const AC_PROPERTY = "rg_autocomplete";
 const engines = { pysssss: undefined, lm: undefined };       // undefined = not looked for yet, null = not installed
@@ -1907,7 +1907,7 @@ const toolChanged = (tool, v) => {
     for (const f of toolListeners) { try { f(tool, v); } catch (e) { console.warn(e); } }
 };
 
-// LLM cache (Settings > Region Genie > LLM cache): told to the server at start-up and whenever one changes; also
+// LLM cache (Settings > Region Genie > LLM Prompt Enhancer > LLM cache): told to the server at start-up and whenever one changes; also
 // sent with every run in paint_data
 export function llmCacheSettings(over = {}) {
     const num = (id, d) => { const v = Number(over[id] ?? getSetting(id, d)); return Number.isFinite(v) ? Math.round(v) : d; };
@@ -1941,7 +1941,7 @@ const shortcutsSettingType = () => () => {
     };
     btn.addEventListener("click", async (e) => { e.preventDefault(); (await keys()).openShortcuts({ keep: (t) => btn.contains(t) }); });
     window.addEventListener("rg-shortcuts", sync);
-    box.append(btn, info); sync();
+    box.append(info, btn); sync();                   // the button at the row's end, like the page rows'
     return box;
 };
 const CAT = (section, key) => ["Region Genie", section, key];
@@ -2289,6 +2289,91 @@ const SETTINGS = [
               + "linear ACEScg: Already scene-linear ACEScg.\n" + NEW_NODES, category: CAT("Save Image", "91 exr space") },
         { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
+// ---------------------------------------------------------------- a short tab, and pages (round 50)
+// ComfyUI's Settings listed 123 rows for this pack, ten screens of them. Now the tab holds the few switches that are
+// flipped often, and one row per topic with a button that opens the Region Genie settings window on that topic's page
+// (js/rg_settings_window.js). A setting that moved to a page is still a ComfyUI setting with the same id, value and
+// onChange: only its type is "hidden" here, so ComfyUI doesn't list it (its own type is kept in rgType, and the window
+// draws it from that). ComfyUI's "Search Settings" matches a row's name and id, so a topic row's id carries the names
+// of the settings on its page: searching for "WebP quality" finds the Save Image row.
+// [key, the row's and page's name, the tab section, the row's tooltip]
+export const SETTINGS_PAGES = [
+    ["size", "Image size", "node", "How the size row of a new Region Genie node starts, and the list of presets."],
+    ["node", "Region Genie node", "node", "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards)."],
+    ["tools", "Canvas tools", "node", "Which version the lasso, magic wand and fill buttons start as, the wand tolerance, the fill gap size, the hints on the canvas."],
+    ["text", "Text size", "node", "The text size of the prompt boxes, on the node and in the pop-up editors."],
+    ["control", "Control", "files", "The control LoRA, ControlNet or LLLite file each model uses for a Control row, and the depth model."],
+    ["edit", "Edit Mode", "files", "The edit LoRA of each model, whether the source image is sent as a reference, and the edit mask's grow and feather."],
+    ["llm", "LLM Prompt Enhancer", "files", "What the LLM sees, the default preset of each prompt type, the presets themselves, and the LLM cache."],
+    ["apart", "Keeping regions apart, per model", "files", "Whether a run keeps all regions apart by itself, for each model without a layout format."],
+    ["sam", "Select object", "files", "The SAM 3.1 model file, whether it stays loaded, and the confidence of Find all."],
+    ["hl", "Regional LoRAs", "other", "What a new Regional LoRAs node starts with."],
+    ["save", "Save Image", "other", "The format a new Save Image (Region Genie) node starts with, and each format's settings."],
+];
+// the pages are named as the old sections were, so "Settings > Region Genie > Edit Mode" in a tooltip or the manual still leads there
+const TAB_SECTIONS = { node: "Basics", files: "Models and files", other: "Other nodes" };
+const PAGE_OF_SECTION = { "Tag autocomplete": "node", "Wildcards (Impact Pack)": "node", "Region Genie node": "node", "Image size": "size",
+    "Canvas tools": "tools", "Select object": "sam", "Text size": "text", "LLM Prompt Enhancer": "llm", "LLM cache": "llm", "Control": "control",
+    "Edit Mode": "edit", "Regional LoRAs": "hl", "Save Image": "save" };
+const PAGE_ROW_CSS = `.rg-page-row { display:flex; align-items:center; gap:8px; }
+.rg-page-row button { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer;
+  font:inherit; padding:3px 10px; }
+.rg-page-row span { opacity:.7; font-size:12px; }`;
+// how many settings of a page differ from their defaults (what a topic row shows next to its button)
+export function pageChanged(key) {
+    let n = 0;
+    for (const d of SETTINGS) {
+        if (d.rgPage !== key) continue;
+        const v = getSetting(d.id, d.defaultValue);
+        if (String(v) !== String(d.defaultValue)) n++;
+    }
+    return n;
+}
+const pageRowType = (key) => () => {
+    if (!document.getElementById("rg-page-row-style")) { const st = document.createElement("style"); st.id = "rg-page-row-style"; st.textContent = PAGE_ROW_CSS; document.head.appendChild(st); }
+    const box = document.createElement("div"); box.className = "rg-page-row"; box.dataset.page = key;
+    const info = document.createElement("span");
+    const btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Edit…";
+    btn.title = "Open this page of the Region Genie settings.";
+    let shown = false;                               // the row leaves the page with the Settings dialog: stop listening then
+    const sync = () => {
+        if (box.isConnected) shown = true; else if (shown) { window.removeEventListener("rg-settings", sync); return; }
+        const n = pageChanged(key); info.textContent = n ? `${n} changed` : "";
+    };
+    btn.addEventListener("click", async (e) => { e.preventDefault(); (await import("./rg_settings_window.js")).openSettingsWindow(btn, key); });
+    window.addEventListener("rg-settings", sync);
+    box.append(info, btn); setTimeout(sync, 0);
+    return box;
+};
+(() => {
+    // which rows stay in the tab (they are on their page too), and where
+    const stay = new Map([[SET.toolHints, ["node", "01"]], [SET.cmSnap, ["node", "02"]], [SET.acDefault, ["node", "03"]], [SET.llmNewRegions, ["node", "04"]],
+        [SET.cmAutoApart, ["node", "05"]], [SET.shortcuts, ["node", "06"]], [SET.filePickers, ["files", "80"]], [SET.checkFiles, ["files", "81"]]]);
+    const names = {};
+    SETTINGS.forEach((d, i) => { d.rgIndex = i; });                         // a page lists its settings in the order they are written above
+    for (const d of SETTINGS) {
+        const sec = d.category?.[1];
+        if (!sec) continue;                                                // the hidden ones (pop-up sizes, older keys)
+        d.rgSection = sec;
+        d.rgPage = d.id === SET.shortcuts ? null : d.id === SET.cmAutoApart || String(d.id).startsWith(SET.cmAutoApart + ".") ? "apart" : PAGE_OF_SECTION[sec] || null;
+        if (d.rgPage) (names[d.rgPage] ||= []).push(d.name);
+        const st = stay.get(d.id);
+        if (st) d.category = CAT(TAB_SECTIONS[st[0]], st[1]);
+        else { d.rgType = d.type; d.type = "hidden"; }
+    }
+    const rows = SETTINGS_PAGES.map(([key, name, sec, tooltip], i) => ({
+        // the id carries the page's setting names for ComfyUI's search (letters, digits, spaces and . , : _ - only)
+        id: `RegionGenie.Page.${key}: ${(names[key] || []).join(", ").replace(/[^A-Za-z0-9 .,:_\-]+/g, " ").replace(/\s+/g, " ")}`,
+        name, type: pageRowType(key), defaultValue: "", tooltip: tooltip + "\nEdit…: Opens the Region Genie settings on this page.",
+        category: CAT(TAB_SECTIONS[sec], `${sec === "node" ? 10 + i : 20 + i}`), rgRow: key,
+    }));
+    // the tab's order: the Region Genie node section (switches, Shortcuts, its pages), Models and files, Other nodes
+    const order = (d) => (d.type === "hidden" || !d.category ? 9000
+        : (d.category[1] === TAB_SECTIONS.node ? 1 : d.category[1] === TAB_SECTIONS.files ? 2 : 3) * 1000 + (parseInt(d.category[2], 10) || 0));
+    const all = [...SETTINGS, ...rows].map((d, i) => [d, i]).sort((x, y) => (order(x[0]) - order(y[0])) || (x[1] - y[1])).map((x) => x[0]);
+    SETTINGS.length = 0; SETTINGS.push(...all);
+})();
+export const settingDefs = () => SETTINGS;
 SETTINGS.forEach((x, i) => { x.sortOrder = 1000 - i; });         // listed in this order (higher sortOrder first)
 app.registerExtension({
     name: "RegionGenie.Settings",

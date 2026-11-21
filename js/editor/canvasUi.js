@@ -245,7 +245,7 @@ export function* canvasUi(E) {
             + "sampling is a little slower and uses more VRAM.\n"
             + "Off: Only regions with LoRAs are kept apart.\n"
             + "Automatic (default): A run turns it on for a model without a layout format when a region has a prompt "
-            + "(Settings > Region Genie > Region Genie node > '… keep all regions apart automatically').\n"
+            + "(Settings > Region Genie > '… keep all regions apart automatically', and per model under 'Keeping regions apart, per model').\n"
             + (shared ? "Share the background: ON. The regions are kept apart from each other only, so lighting, "
                 + "perspective and setting stay one picture.\n"
                 : "Share the background: OFF. The regions are kept apart from the background too.\n")

@@ -49,7 +49,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - **+** next to a key adds a second key for the same thing, **✕** (shown while a key waits) removes a key, the round arrow on a changed row puts its default back, and **Reset all** puts every default back.
   - A key that another shortcut already uses is taken from that one, and the sheet says which. The buttons' tooltips, the hints on the canvas and the right-click menu show the keys you chose.
   - Mouse gestures and held keys (Shift for equal sides, the wheel, right-click …) are listed with a dashed outline and can't be changed; Esc can't be given to something else by pressing it (it cancels), but the shortcuts that use it can be given another key.
-  - The same sheet opens from **Settings > Region Genie > Region Genie node > Shortcuts > Edit…**; the keys apply to every Region Genie node and are saved with ComfyUI's settings, not with the workflow.
+  - The same sheet opens from **Settings > Region Genie > Shortcuts > Edit…**; the keys apply to every Region Genie node and are saved with ComfyUI's settings, not with the workflow.
 
 ### Right-click menu
 
@@ -275,7 +275,7 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 - **`scene_prompt_positive` shows its LLM Prompt Enhancer:** the sparkles button is also in the box's corner, left of ⤢ (dimmed when off, lit when on; a click switches it, exactly like the button in the *Whole image* row), and the box has a blue outline while the enhancer is on. `scene_prompt_negative` has no enhancer.
 - **◀ / ▶** in a pop-up's header step to the previous / next text field of the node without closing it: `scene_prompt_positive`, `scene_prompt_negative`, `scene_prompt_background` (when shown), then each region's prompt in list order, wrapping around at both ends.
   - The next field opens in the same place and size. They sit in the header left of Undo / Redo and A− / A+, always in the same place, so they don't move while you step.
-  - **Page Up / Page Down** do the same while you type; other keys can be set in the shortcut list (press **?** over a Region Genie node, or **Settings > Region Genie > Region Genie node > Shortcuts**).
+  - **Page Up / Page Down** do the same while you type; other keys can be set in the shortcut list (press **?** over a Region Genie node, or **Settings > Region Genie > Shortcuts**).
 - **Text size** (Settings > Region Genie > Text size): one size per kind of field (scene prompts, region prompts, text to render), set separately for the pop-up editors and for the node's own fields (0 = as before).
 
 ## Undo and redo
@@ -303,14 +303,32 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 
 ## Settings and model files
 
+**Where the settings are.** ComfyUI's **Settings > Region Genie** is a short list in three sections:
+
+- **Basics:** the switches used most (hints on the canvas, snap to grid, tag autocomplete in new nodes, new regions start with the LLM on, keep all regions apart automatically), **Shortcuts**, and the pages *Region Genie node*, *Image size*, *Canvas tools* and *Text size*.
+- **Models and files:** the pages *Control*, *Edit Mode*, *LLM Prompt Enhancer*, *Keeping regions apart, per model* and *Select object*, then **Browse… for model files** and **Check model files**.
+- **Other nodes:** the pages *Regional LoRAs* and *Save Image*.
+
+A page row's **Edit…** opens the **Region Genie settings** window on that page. It covers ComfyUI's Settings while it is open:
+
+- Every page is listed on the left; a number next to a page says how many of its settings differ from their defaults (the row in the tab says the same: "3 changed").
+- Changes are saved as you make them.
+- **Search these settings…** (top right) lists matching settings from every page.
+- **Defaults for this page** puts that page back to its defaults; it asks for a second click first. Model files, region colors and LLM presets have their own reset or "None" and aren't touched by it.
+- **Esc** or **✕** goes back to ComfyUI's Settings. With a menu or the search open, Esc closes that first.
+- ComfyUI's own **Search Settings** finds a page by the name of any setting on it: searching for "WebP quality" shows the *Save Image* row.
+
+So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: the *Edit Mode* row, **Edit…**.
+
+
 - **Settings > Region Genie** (ComfyUI's Settings) holds the defaults for new nodes: tag autocomplete, what the LLM sees, whether new regions start with the LLM on, the Region Genie node's image size (mode, aspect ratio, megapixels, multiple, manual width / height; the presets list is shared by every node), image_mode, feather, separation / until, keep all regions apart, share the background, snap and grid size, and Regional LoRAs' feather, lora_masking, region_separation, separation_until, separate_all_regions and share_background. Nodes already in a workflow keep their own values. Some settings apply to every node at its next run instead: **Plain-text prompts: keep all regions apart automatically** (on by default) and one per model (MOSS-Image in standard mode and Edit Mode, Krea 2, Flux, Flux 3, Anima, SDXL / SD1.5: as set for all models / on / off), see *Which format `prompt` uses*; the **Edit Mode** section (see [Edit Mode](edit-mode.md)); **Canvas tools** (which version the lasso, lasso erase, magic wand and fill buttons start as, the wand tolerance and the fill gap size); **min region pixels** and **import_json when the canvas isn't empty**; and **LLM cache** (see [LLM Prompt Enhancer](llm-prompt-enhancer.md)).
 - **Model files** (in Settings: control LoRAs, ControlNets, Anima LLLite patches, Depth Anything 3, edit LoRAs, the Select object model; on the node: the Edit rows; in the LLM settings: the LLM and its LoRAs) are fields showing the file's name.
   - A click opens **ComfyUI's classic menu**, in both legacy mode and Nodes 2.0: the control and edit files open on ComfyUI's model folders (📁 controlnet, 📁 loras, 📁 model_patches, 📁 geometry_estimation; a file from another folder than the setting's own is saved with its folder), Select object on `checkpoints`, the LLM on `text_encoders`.
   - With **rgthree-comfy**'s *Auto Nest Subdirectories in Menus* on, the menu shows subfolders as folders. Typing searches every folder and subfolder at once (the matches with their paths).
   - The list is read when the menu opens, so the Settings tab stays fast with any number of files (checked with 10 000 LoRAs). A name in red isn't in ComfyUI's model folders (moved, renamed or deleted, or added since ComfyUI started: press R).
-  - **Settings > Region Genie > Model files > Browse… for model files** (off by default) adds a **folder button (Browse…)** to each field: it opens a browser of the ComfyUI machine's folders and drives (it starts in the setting's own folder).
+  - **Settings > Region Genie > Browse… for model files** (off by default) adds a **folder button (Browse…)** to each field: it opens a browser of the ComfyUI machine's folders and drives (it starts in the setting's own folder).
   - A file picked inside one of ComfyUI's model folders is saved by its usual name; a file anywhere else (e.g. Stability Matrix's shared `Models` folder) is saved by its full path and loaded from there. Files picked by full path keep working with the switch off.
-  - **Check model files** (Settings > Region Genie > Model files) looks up every file set in these Settings and in the LLM presets, and lists the ones that can't be found (moved, renamed or deleted).
+  - **Check model files** (Settings > Region Genie) looks up every file set in these Settings and in the LLM presets, and lists the ones that can't be found (moved, renamed or deleted).
 
 ## Outputs
 

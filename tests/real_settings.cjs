@@ -41,9 +41,21 @@ for (const sub of ["loras", "controlnet"]) {
     await page.keyboard.press("Control+,"); await sleep(1500);
     const t0 = Date.now();
     page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); }).catch(() => {});
+    // round 50: the tab holds a few rows; the model-file fields are on pages of the Region Genie settings window
+    const openPage = async (key) => { const b = page.locator(`[role="dialog"] .rg-page-row[data-page="${key}"] button`); await b.scrollIntoViewIfNeeded(); await b.click();
+        await page.waitForSelector(`.rg-setwin .rg-setwin-nav button.on[data-page="${key}"]`, { timeout: 8000 }); await sleep(250); };
+    const toPage = async (key) => { await page.locator(`.rg-setwin .rg-setwin-nav button[data-page="${key}"]`).click(); await sleep(350); };
+    const closeWin = async () => { if (await page.locator(".rg-setwin").count()) { await page.locator(".rg-setwin .rg-setwin-x").click(); await sleep(250); } };
+    const PAGES = ["size", "node", "tools", "text", "control", "edit", "llm", "apart", "sam", "hl", "save"];
+    // what every page shows, gathered by walking through them: { text, fields, browse, selects }
+    const walk = async () => { const out = { text: "", fields: 0, browse: 0, selects: 0 };
+        for (const k of PAGES) { await toPage(k); const r = await page.evaluate(() => { const w = document.querySelector(".rg-setwin-page"), f = [...w.querySelectorAll(".rg-ff")];
+            return { text: w.innerText, fields: f.length, browse: f.filter((x) => x.querySelector(".rg-ff-browse svg")).length, selects: f.filter((x) => x.querySelector("select")).length }; });
+            out.text += "\n" + r.text; out.fields += r.fields; out.browse += r.browse; out.selects += r.selects; }
+        return out; };
     let shownMs = -1;
     for (let i = 0; i < 100; i++) {
-        const n = await Promise.race([page.evaluate(() => document.querySelectorAll('[role="dialog"] .rg-ff').length), sleep(10000).then(() => -1)]);
+        const n = await Promise.race([page.evaluate(() => document.querySelectorAll('[role="dialog"] .rg-page-row').length), sleep(10000).then(() => -1)]);
         if (n > 0) { shownMs = Date.now() - t0; break; }
         await sleep(50);
     }
@@ -53,23 +65,27 @@ for (const sub of ["loras", "controlnet"]) {
     const r = await page.evaluate(() => {
         const txt = document.querySelector('[role="dialog"]')?.innerText || "";
         const all = Object.values(window.app.ui.settings.settingsParamLookup).filter((d) => /^RegionGenie/.test(d.id) && d.type !== "hidden");
-        return { missing: all.filter((d) => !txt.includes(d.name.trim())).map((d) => d.name), n: all.length };
+        return { missing: all.filter((d) => !txt.includes(d.name.trim())).map((d) => d.name), n: all.length, heads: [...document.querySelectorAll('[role="dialog"] h3')].map((h) => h.textContent.trim()).filter((t) => /^(Basics|Models and files|Other nodes)$/.test(t)) };
     });
-    check(`every Region Genie setting shows in the dialog (${r.n}; missing: ${r.missing.slice(0, 6).join(" | ")})`, r.n > 80 && !r.missing.length);
+    check(`the tab is short: ${r.n} rows in three sections, all shown (${r.heads.join(" | ")}; missing: ${r.missing.slice(0, 6).join(" | ")})`, r.n >= 15 && r.n <= 22 && !r.missing.length
+        && r.heads.join("|") === "Basics|Models and files|Other nodes");
+    const tp = Date.now(); await openPage("edit"); const pageMs = Date.now() - tp;
+    check(`a page opens quickly with ${BIG.length + ODD.length} LoRAs (${pageMs} ms)`, pageMs < 3000);
+    const all0 = await walk();
+    const moved = await page.evaluate(() => Object.values(window.app.ui.settings.settingsParamLookup).filter((d) => /^RegionGenie/.test(d.id) && d.rgPage && d.type === "hidden").map((d) => d.name.trim()));
+    const lost = moved.filter((n) => !all0.text.includes(n));
+    check(`every setting that left the tab is on a page of the window (${moved.length}; missing: ${lost.slice(0, 6).join(" | ")})`, moved.length > 95 && !lost.length);
+    await toPage("edit");
     const i18n = errors.filter((e) => /SyntaxError|i18n|compile/i.test(e));
     check(`no translation errors while it shows (${i18n.slice(0, 2).join(" | ")})`, !i18n.length);
     // round 23: every model-file setting is a field that opens ComfyUI's classic menu (no Browse… by default)
-    const off = await page.evaluate(() => {
-        const f = [...document.querySelectorAll('[role="dialog"] .rg-ff')];
-        return { n: f.length, browse: document.querySelectorAll('[role="dialog"] .rg-ff-browse').length,
-                 selects: [...f].filter((x) => x.querySelector("select")).length };
-    });
+    const off = { n: all0.fields, browse: all0.browse, selects: all0.selects };
     check(`Browse… off (default): every model-file setting is a file field, no dropdown, no Browse buttons (${off.n} fields, ${off.browse} buttons)`,
         off.n >= 27 && off.browse === 0 && off.selects === 0);
     // the edit LoRA field: its value as it is; the menu opens inside the dialog on the model folders, and the search finds a
     // 'sub\@author' name in a subfolder
     const kreaName = await page.evaluate(() => {
-        const sp = [...document.querySelectorAll('[role="dialog"] span')].find((e) => e.textContent.trim() === "Krea 2: edit LoRA");
+        const sp = [...document.querySelectorAll('[role="dialog"] .rg-setwin label')].find((e) => e.textContent.trim() === "Krea 2: edit LoRA");
         let r = sp; while (r && !r.querySelector?.(".rg-ff")) r = r.parentElement;
         const n = r.querySelector(".rg-ff-name"); n.id = "rgkrea"; n.scrollIntoView({ block: "center" }); return n.textContent;
     });
@@ -89,8 +105,9 @@ for (const sub of ["loras", "controlnet"]) {
     await page.keyboard.press("Control+,"); await sleep(1500);
     await page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); });
     await sleep(2500);
-    const pk = await page.evaluate(() => { const f = [...document.querySelectorAll('[role="dialog"] .rg-ff')];
-        return { n: f.length, buttons: f.filter((p) => p.querySelector(".rg-ff-browse svg")).length }; });
+    await openPage("edit");
+    const all1 = await walk(); await toPage("edit");
+    const pk = { n: all1.fields, buttons: all1.browse };
     check(`Browse… on: every model-file field has a Browse… button (${pk.n} fields, ${pk.buttons} buttons)`, pk.n >= 27 && pk.buttons === pk.n);
     // Browse…: a file outside ComfyUI's folders is saved by its full path
     const outDir = path.join(DIR, "..", "rgtest_outside", "@author");
@@ -98,7 +115,7 @@ for (const sub of ["loras", "controlnet"]) {
     const outFile = path.join(outDir, "moss_edit_outside.safetensors");
     fs.writeFileSync(outFile, "");
     await page.evaluate(() => {
-        const row = [...document.querySelectorAll('[role="dialog"] span')].find((e) => e.textContent.trim() === "MOSS-Image: edit LoRA");
+        const row = [...document.querySelectorAll('[role="dialog"] .rg-setwin label')].find((e) => e.textContent.trim() === "MOSS-Image: edit LoRA");
         let p = row; while (p && !p.querySelector?.(".rg-ff")) p = p.parentElement;
         p.querySelector(".rg-ff-browse").click();
     });
@@ -112,7 +129,8 @@ for (const sub of ["loras", "controlnet"]) {
     const saved = await page.evaluate(() => window.app.extensionManager.setting.get("RegionGenie.Edit.LoRA.MOSS"));
     const still = await page.evaluate(() => !!document.querySelector('[role="dialog"] .rg-ff') && !document.querySelector(".rg-fb")
         && [...document.querySelectorAll('[role="dialog"] .rg-ff-name')].some((x) => x.textContent === "moss_edit_outside.safetensors"));
-    check("the Settings dialog stays open after Browse…, its field shows the picked file", still);
+    check("the Settings dialog and the window stay open after Browse…, the field shows the picked file", still && await page.locator(".rg-setwin").count() === 1);
+    await closeWin();
     check(`Browse…: starts in ComfyUI's loras folder (${startPath})`, /models[\\/]loras$/.test(startPath));
     check(`Browse…: a file anywhere is listed, picked and saved by its full path (${listed}; ${saved})`, listed === 1 && saved === path.resolve(outFile));
     const exists = await page.evaluate(async (n) => (await (await fetch(`/region_genie/model_exists?folders=loras&name=${encodeURIComponent(n)}`)).json()).found, saved);
@@ -152,6 +170,110 @@ for (const sub of ["loras", "controlnet"]) {
     await page.keyboard.press("Escape"); await sleep(300);
     check("Reset all, then Esc: the list closes, the Settings dialog stays open, nothing is saved", await page.locator(".rg-keys").count() === 0 && await page.locator('[role="dialog"] .rg-keys-set').count() === 1
         && await page.evaluate(() => window.app.extensionManager.setting.get("RegionGenie.Shortcuts")) === "{}");
+    // ---------------------------------------------------------------- round 50: the Region Genie settings window
+    const get = (id) => page.evaluate((id) => window.app.extensionManager.setting.get(id), id);
+    const rowOf = (name) => page.locator(".rg-setwin-row").filter({ has: page.locator("label", { hasText: new RegExp("^" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$") }) });
+    const onTopOf = (sel) => page.evaluate((sel) => { const b = document.querySelector(sel); if (!b) return "not there"; const r = b.getBoundingClientRect();
+        const pts = [[r.left + 6, r.top + 6], [(r.left + r.right) / 2, (r.top + r.bottom) / 2], [r.right - 6, r.bottom - 6]];
+        return pts.every(([x, y]) => b.contains(document.elementFromPoint(x, y))) ? true : "covered"; }, sel);
+    const SAVE = ["RegionGenie.Tools.Hints", "RegionGenie.Tools.Lasso", "RegionGenie.Tools.WandTolerance", "RegionGenie.Main.RegionSeparation", "RegionGenie.Size.Presets", "RegionGenie.Control.Flux1Depth", "RegionGenie.Main.RegionColors"];
+    const before = {}; for (const id of SAVE) before[id] = await get(id);
+    // ComfyUI's own search finds a topic row by the name of a setting on its page
+    const search = page.locator('[role="dialog"] input[placeholder*="Search"]').first();
+    const found2 = {};
+    for (const q of ["WebP quality", "canny ControlNet", "Magic wand", "Manual: width"]) { await search.fill(q); await sleep(900);
+        found2[q] = await page.evaluate(() => [...document.querySelectorAll('[role="dialog"] .rg-page-row')].filter((e) => e.getClientRects().length).map((e) => e.dataset.page)); }
+    await search.fill(""); await sleep(600);
+    check(`ComfyUI's Search Settings finds the page of a setting that moved (${JSON.stringify(found2)})`, found2["WebP quality"].join() === "save" && found2["canny ControlNet"].join() === "control"
+        && found2["Magic wand"].join() === "tools" && found2["Manual: width"].join() === "size");
+    await page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); });
+    await sleep(1200);
+    // every topic row opens the window on its own page
+    const opened = [];
+    for (const k of PAGES) { await openPage(k); opened.push(await page.evaluate(() => document.querySelector(".rg-setwin-nav button.on")?.dataset.page + ":" + document.querySelectorAll(".rg-setwin-row").length)); await closeWin(); }
+    check(`each of the ${PAGES.length} topic rows opens the window on its page, with rows on it (${opened.join(" ")})`, opened.every((o, i) => o.split(":")[0] === PAGES[i] && +o.split(":")[1] > 0));
+    await openPage("tools");
+    const geo = await page.evaluate(() => { const w = document.querySelector(".rg-setwin"), d = w.closest('[role="dialog"]'), a = w.getBoundingClientRect(), b = d.getBoundingClientRect();
+        return { inDlg: !!d, covers: Math.abs(a.left - b.left) < 3 && Math.abs(a.top - b.top) < 3 && Math.abs(a.right - b.right) < 3 && Math.abs(a.bottom - b.bottom) < 3,
+            scrollX: document.querySelector(".rg-setwin-page").scrollWidth <= document.querySelector(".rg-setwin-page").clientWidth + 1 }; });
+    check(`the window lives inside the Settings dialog and covers it; nothing of the dialog shows through (${JSON.stringify(geo)}, ${await onTopOf(".rg-setwin")})`, geo.inDlg && geo.covers && geo.scrollX && await onTopOf(".rg-setwin") === true);
+    // a switch
+    const sw = rowOf("Hints on the canvas").locator(".rg-setwin-sw");
+    const h0 = await get("RegionGenie.Tools.Hints"); await sw.click(); await sleep(250);
+    check("a switch: one click changes the setting and the switch", await get("RegionGenie.Tools.Hints") === !h0 && await sw.evaluate((b, on) => b.classList.contains("on") === on, !h0));
+    check("…the page's entry on the left counts it", (await page.locator('.rg-setwin-nav button[data-page="tools"] span').textContent()) === "1");
+    // a dropdown
+    await rowOf("Lasso: default").locator("select").selectOption("spline"); await sleep(250);
+    check("a dropdown: the choice is saved by its value", await get("RegionGenie.Tools.Lasso") === "spline");
+    // a number: typed (the Settings dialog doesn't take the keyboard away from the window), clamped
+    const num = rowOf("Magic wand: tolerance").locator('input[type="number"]');
+    await num.click(); await num.fill("48"); await num.press("Tab"); await sleep(250);
+    const typed = await get("RegionGenie.Tools.WandTolerance");
+    await num.fill("99999"); await num.press("Tab"); await sleep(250);
+    check(`a number: typing works inside the window and is saved; out of range goes to the limit (${typed}, ${await get("RegionGenie.Tools.WandTolerance")})`, typed === 48 && await get("RegionGenie.Tools.WandTolerance") <= 255);
+    // a slider with its number
+    await toPage("node");
+    const sl = rowOf("LoRA region separation");
+    await sl.locator('input[type="number"]').fill("0.6"); await sl.locator('input[type="number"]').press("Tab"); await sleep(250);
+    check("a slider: its number field sets it, and the slider follows", await get("RegionGenie.Main.RegionSeparation") === 0.6 && await sl.locator('input[type="range"]').inputValue() === "0.6");
+    // the pack's own rows: the region colors (its color picker over the window)
+    const colors = rowOf("Region colors");
+    check("the region colors are drawn as in the old tab (swatches, +, Defaults)", await colors.locator(".rg-colors .sw").count() >= 6);
+    // a text
+    await toPage("size");
+    const txt = rowOf("Presets").locator('input[type="text"]');
+    const pre0 = await txt.inputValue(); await txt.fill(pre0 + ", 640x640"); await txt.press("Tab"); await sleep(250);
+    check("a text field is saved", String(await get("RegionGenie.Size.Presets")).endsWith("640x640"));
+    // a model-file field: ComfyUI's menu opens over the window, inside the dialog; picking saves
+    await toPage("control");
+    const ff = rowOf("Flux.1: depth LoRA (e.g. flux1-depth-dev-lora)").locator(".rg-ff-name");
+    await ff.click(); await page.waitForSelector(".litecontextmenu", { timeout: 10000 }); await sleep(300);
+    const mn = await page.evaluate(() => { const m = document.querySelector(".litecontextmenu"), r = m.getBoundingClientRect(); const e = document.elementFromPoint(r.left + 20, r.top + 20);
+        return { inDlg: !!m.closest('[role="dialog"]'), top: m.contains(e), inView: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight }; });
+    check(`a model-file field: ComfyUI's menu opens over the window, inside the dialog, in view (${JSON.stringify(mn)})`, mn.inDlg && mn.top && mn.inView);
+    await page.locator(".litecontextmenu .comfy-context-menu-filter").first().fill("flux1-depth"); await sleep(700);
+    check("…typing in the menu's filter works there too", await page.evaluate(() => [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].filter((e) => e.offsetParent).some((e) => /flux1-depth-dev-lora/.test(e.textContent))));
+    await page.keyboard.press("Escape"); await sleep(300);
+    check("Esc with the menu open closes only the menu: the window stays", await page.locator(".litecontextmenu").count() === 0 && await page.locator(".rg-setwin").count() === 1);
+    await ff.click(); await page.waitForSelector(".litecontextmenu", { timeout: 10000 });
+    await page.locator(".litecontextmenu .comfy-context-menu-filter").first().fill("flux1-depth"); await sleep(700);
+    await page.locator(".litecontextmenu .litemenu-entry", { hasText: "flux1-depth-dev-lora" }).first().click(); await sleep(500);
+    check(`…picking a file saves it and the field shows it (${await get("RegionGenie.Control.Flux1Depth")})`, /flux1-depth-dev-lora/.test(String(await get("RegionGenie.Control.Flux1Depth"))) && /flux1-depth-dev-lora/.test(await ff.textContent()));
+    // the LLM rows are the pack's own rows too
+    await toPage("llm");
+    check("the LLM page: the preset rows are drawn (a preset to edit, its fields), not placeholders", await page.locator(".rg-setwin-row select, .rg-setwin-row input").count() >= 10
+        && !(await page.evaluate(() => [...document.querySelectorAll(".rg-setwin-ctl")].some((c) => c.textContent.trim() === "…"))));
+    // the pack's tooltip, over the window; the browser's own never next to it
+    await toPage("save");
+    await page.evaluate(() => { window.__rgTakeTitles = true; });         // as for a person: the title is put aside while the pointer is on it
+    const lab = rowOf("WebP quality").locator("label"); await lab.hover(); await sleep(900);
+    const tip = await page.evaluate(() => { const t = document.querySelector(".rg-tip.on"); if (!t) return null; const r = t.getBoundingClientRect(); t.style.pointerEvents = "auto"; const top = t.contains(document.elementFromPoint(r.left + 8, r.top + 8)); t.style.pointerEvents = ""; return { text: t.innerText.slice(0, 40), top }; });
+    check(`pointing at a setting's name shows the pack's tooltip, over the window (${JSON.stringify(tip)})`, !!tip && tip.text.length > 5 && tip.top
+        && await lab.evaluate((l) => l.getAttribute("title") === ""));
+    await page.mouse.move(5, 5); await sleep(200);
+    await page.evaluate(() => { window.__rgTakeTitles = false; });
+    // the window's own search, across pages
+    const ws = page.locator(".rg-setwin-head input");
+    await ws.fill("quality"); await sleep(300);
+    const sr = await page.evaluate(() => ({ rows: [...document.querySelectorAll(".rg-setwin-row label")].map((l) => l.textContent), grp: [...document.querySelectorAll(".rg-setwin-grp")].map((g) => g.textContent) }));
+    check(`the window's search lists matching settings of every page, under their page's name (${sr.rows.join(" | ")})`, sr.rows.length >= 3 && sr.rows.every((t) => /quality/i.test(t)) && sr.grp.includes("Save Image"));
+    await page.keyboard.press("Escape"); await sleep(200);
+    check("Esc with a search typed clears the search; the window stays", await ws.inputValue() === "" && await page.locator(".rg-setwin").count() === 1);
+    // Defaults for this page: asks first
+    await toPage("tools");
+    const def = page.locator(".rg-setwin-foot button");
+    await def.click(); await sleep(150);
+    const asked = await def.textContent(), unchanged = await get("RegionGenie.Tools.Lasso");
+    await def.click(); await sleep(500);
+    check(`Defaults for this page: the first click asks ("${asked}"), the second resets the page`, /again/i.test(asked) && unchanged === "spline" && await get("RegionGenie.Tools.Lasso") === "plain"
+        && await get("RegionGenie.Tools.WandTolerance") === 32 && await get("RegionGenie.Tools.Hints") === true && (await page.locator('.rg-setwin-nav button[data-page="tools"] span').textContent()) === "");
+    // Esc closes the window, not ComfyUI's dialog; the tab's row shows what changed
+    await page.keyboard.press("Escape"); await sleep(300);
+    check("Esc closes the window; ComfyUI's Settings stay open behind it", await page.locator(".rg-setwin").count() === 0 && await page.locator('[role="dialog"] .rg-page-row').count() === PAGES.length);
+    check(`a topic row says how many of its settings were changed (${await page.locator('.rg-page-row[data-page="control"] span').textContent()})`, (await page.locator('.rg-page-row[data-page="control"] span').textContent()) === "1 changed"
+        && (await page.locator('.rg-page-row[data-page="tools"] span').textContent()) === "");
+    check("no script errors from the window", !errors.some((e) => /rg_settings_window|settings row/.test(e)));
+    for (const id of SAVE) await page.evaluate(async ([id, v]) => { await window.app.extensionManager.setting.set(id, v); }, [id, before[id]]);
     await page.keyboard.press("Escape");
     await page.evaluate(async () => { const s = window.app.extensionManager.setting; await s.set("RegionGenie.Edit.LoRA.Krea2", "(none)");
         await s.set("RegionGenie.ModelFiles.Browse", false); });

@@ -49,10 +49,13 @@ fs.writeFileSync(outLlm, "");
         await page.keyboard.press("Control+,"); await sleep(1500);
         await page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.click(); });
         await sleep(2500);
+        // round 50: the LLM settings are a page of the Region Genie settings window
+        const b = page.locator('[role="dialog"] .rg-page-row[data-page="llm"] button'); await b.scrollIntoViewIfNeeded(); await b.click();
+        await page.waitForSelector('.rg-setwin .rg-setwin-nav button.on[data-page="llm"]', { timeout: 8000 }); await sleep(500);
     };
     await openSettings();
     const rowOf = (label) => page.evaluate((label) => {
-        const span = [...document.querySelectorAll('[role="dialog"] span')].find((e) => e.textContent.trim() === label);
+        const span = [...document.querySelectorAll('[role="dialog"] .rg-setwin label')].find((e) => e.textContent.trim() === label);
         let row = span; while (row && !row.querySelector?.(".rg-lset")) row = row.parentElement;
         if (row) row.querySelector(".rg-lset").dataset.test = label;
         return !!row;
@@ -135,7 +138,9 @@ fs.writeFileSync(outLlm, "");
     await rowOf("Default preset: Text");
     const opts = await page.locator(`${sel("Default preset: Text")} select option`).allTextContents();
     check(`${M}: 'Default preset' rows list the presets (${opts.length})`, opts.length >= 2);
-    await page.keyboard.press("Escape"); await sleep(600);
+    await page.keyboard.press("Escape"); await sleep(400);          // the window
+    check(`${M}: Esc closes the settings window first, ComfyUI's Settings stay`, await page.locator(".rg-setwin").count() === 0 && await page.locator('[role="dialog"] .rg-page-row').count() > 5);
+    await page.keyboard.press("Escape"); await sleep(600);          // ComfyUI's Settings
 
     // ---- the node's LLM settings pop-up shows the same values, with Browse… for the LLM file and the LoRAs
     await page.evaluate(() => document.querySelector(".rg-llmset")?.click()); await sleep(1200);
