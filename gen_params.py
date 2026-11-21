@@ -13,6 +13,11 @@ Where the values come from:
     sampler (KSampler, KSampler (Advanced), SamplerCustom, SamplerCustomAdvanced with their helper nodes; any other
     node that looks like a sampler is read by its input names), on to the model loader and the LoRA loaders, and to
     the prompts. Only values that are written in the graph can be read: a seed that another node computes can't.
+  - later passes (round 46): from the first sampler found, _back() walks on to earlier ones; each later pass notes what
+    enlarged the picture before it ("ups"), and trace() also notes what enlarged it after the last pass ("post").
+    build() sorts them: a detailer (ADetailer's field names), a refiner (it starts part-way through the steps with
+    another model: A1111's Refiner fields), the hi-res pass (the first one the picture was enlarged for), and
+    anything that enlarged it after that (A1111's Extras fields, "Postprocess upscale by / upscaler").
   - RUNS: what a Region Genie / Regional LoRAs node really used in its last run (the text after wildcards and the LLM,
     the LoRAs it applied). Those nodes call record(); it is kept in memory only, never written anywhere.
   - overrides: values connected to the save node's optional inputs win over everything read.
@@ -119,9 +124,21 @@ def _num(x):
         return None
 
 
-def _is_sampler(n):
+def _provider(graph, n):
+    """Impact Pack's iterative upscale: the node takes the picture, its sampler settings sit on an 'upscaler provider'
+    node connected to it. Returns that node, or None."""
+    v = n["inputs"].get("upscaler") if graph is not None else None
+    pn = _node(graph, v[0]) if _is_link(v) else None
+    if pn is not None and "steps" in pn["inputs"] and any(k in pn["inputs"] for k in ("seed", "noise_seed")):
+        return pn
+    return None
+
+
+def _is_sampler(n, graph=None):
     ins, ct = n["inputs"], str(n.get("class_type", ""))
     if ct in ("KSampler", "KSamplerAdvanced", "SamplerCustom", "SamplerCustomAdvanced"):
+        return True
+    if _provider(graph, n) is not None and any(_is_link(ins.get(k)) for k in LATENT_INPUTS + IMAGE_INPUTS):
         return True
     if not (("steps" in ins or "sigmas" in ins) and any(k in ins for k in ("seed", "noise_seed", "noise"))):
         return False
@@ -172,6 +189,9 @@ def _read_sampler(graph, nid):
     n = _node(graph, nid)
     ins, ct = n["inputs"], str(n.get("class_type", ""))
     s = {"id": str(nid), "class": ct}
+    pn = _provider(graph, n)
+    if pn is not None:                                         # the settings from the provider node, the picture from this one
+        ins = {**pn["inputs"], **{k: v for k, v in ins.items() if k in LATENT_INPUTS + IMAGE_INPUTS}}
     s["seed"] = _num(_value(graph, ins.get("seed", ins.get("noise_seed"))))
     s["steps"] = _num(_value(graph, ins.get("steps")))
     s["cfg"] = _num(_value(graph, ins.get("cfg")))
@@ -182,12 +202,16 @@ def _read_sampler(graph, nid):
     for k in ("model", "positive", "negative"):
         if _is_link(ins.get(k)):
             s[k] = ins[k]
-    s["latent"] = next((ins[k] for k in LATENT_INPUTS + IMAGE_INPUTS if _is_link(ins.get(k))), None)
-    up = _upscaler(graph, n)                                   # a node that upscales and samples in one
-    if up:
-        s["upscaler"] = up
-    # KSampler (Advanced): a pass that starts part-way has no denoise value; the steps say it
     start, end = _num(_value(graph, ins.get("start_at_step"))), _num(_value(graph, ins.get("end_at_step")))
+    s["latent"] = next((ins[k] for k in LATENT_INPUTS + IMAGE_INPUTS if _is_link(ins.get(k))), None)
+    s["ups"] = [u for u in (_upscaler(graph, n), _upscaler(graph, pn) if pn is not None else None) if u]   # upscales and samples in one
+    if pn is not None and s["ups"]:
+        f = _num(_value(graph, n["inputs"].get("upscale_factor")))
+        s["ups"] = [{**s["ups"][-1], "factor": f, "target": None}]   # the provider says what with, the node how far
+    s["start_at_step"] = start
+    if re.search(r"detailer", ct, re.I):
+        s["detailer"] = _detailer(graph, n)
+    # KSampler (Advanced): a pass that starts part-way has no denoise value; the steps say it
     if s["denoise"] is None and s["steps"] and start:
         s["denoise"] = round(max(0.0, 1 - start / s["steps"]), 2)
     if end is not None and s["steps"] and end < s["steps"]:
@@ -218,70 +242,112 @@ def _read_sampler(graph, nid):
 
 
 def _upscaler(graph, n):
-    """What a node enlarges the picture with: an upscale model's name, 'Latent' (+ the method), or the method. None
-    when it doesn't enlarge anything."""
+    """What a node enlarges the picture with, or None when it doesn't:
+    {name: an upscale model's name, 'Latent' (+ the method) or the method; model: True for an upscale model;
+     factor: how many times larger (None when the node doesn't say); target: (width, height) it resizes to, or None}."""
     ins, ct = n["inputs"], str(n.get("class_type", ""))
-    if _is_link(ins.get("upscale_model")):
-        ln = _node(graph, ins["upscale_model"][0])
+    factor = next((f for f in (_num(_value(graph, ins.get(k))) for k in ("upscale_by", "scale_by", "upscale_factor", "scale_factor", "scale"))
+                   if f is not None and f > 0), None)
+    link = next((ins[k] for k in ("upscale_model", "upscale_model_opt") if _is_link(ins.get(k))), None)
+    if link is not None:
+        ln = _node(graph, link[0])
         name = _value(graph, ln["inputs"].get("model_name")) if ln is not None else None
-        return _stem(name) if isinstance(name, str) and name else "Upscale model"
-    if re.search(r"upscale|scale|resize", ct, re.I) and not re.search(r"model|loader", ct, re.I):
-        m = _value(graph, ins.get("upscale_method", ins.get("method", ins.get("interpolation"))))
+        name = _stem(name) if isinstance(name, str) and name else "Upscale model"
+        if factor is None:                                     # the model's own factor is in its name: 4x-UltraSharp, RealESRGAN_x2
+            m = re.search(r"(?<![0-9a-z])([2-8])x|x([2-8])(?![0-9a-z])", name, re.I)
+            factor = int(m.group(1) or m.group(2)) if m else None
+        return {"name": name, "model": True, "factor": factor, "target": None}
+    if re.search(r"upscale|scale|resize", ct, re.I) and not re.search(r"model|loader|cfg|schedul|provider", ct, re.I) \
+            and any(_is_link(ins.get(k)) for k in LATENT_INPUTS + IMAGE_INPUTS):
+        m = _value(graph, ins.get("upscale_method", ins.get("scale_method", ins.get("method", ins.get("interpolation")))))
         m = m.capitalize() if isinstance(m, str) and m else ""
         if "latent" in ct.lower():
-            return ("Latent (%s)" % m.lower()) if m and m.lower() != "nearest-exact" else "Latent"
-        return m or None
+            m = ("Latent (%s)" % m.lower()) if m and m.lower() != "nearest-exact" else "Latent"
+        w, h = _num(_value(graph, ins.get("width"))), _num(_value(graph, ins.get("height")))
+        target = (int(w), int(h)) if w and h and w > 0 and h > 0 else None
+        return {"name": m or ct, "model": False, "factor": None if target else factor, "target": target}
+    if ct.endswith("UpscalerProvider"):                        # Impact Pack's provider without an upscale model
+        m = _value(graph, ins.get("scale_method"))
+        return {"name": m.capitalize() if isinstance(m, str) and m else "Resize", "model": False, "factor": None, "target": None}
     return None
 
 
-def find_samplers(graph, start):
-    """The samplers the image came from, first pass first. `start`: the link the save node's image comes in by."""
-    seen, queue, last = set(), [start], None
-    while queue and len(seen) < MAX_NODES and last is None:
-        v = queue.pop(0)
+def _detailer(graph, n):
+    """A detailer node's own settings, in the terms of A1111's ADetailer extension."""
+    ins = n["inputs"]
+    dn = None
+    for k, v in ins.items():                                   # the detector: on the node, or behind the areas it is given
+        if dn is None and _is_link(v) and ("detector" in k.lower() or "segs" in k.lower()):
+            _, dn = _find_upstream(graph, v, lambda m: isinstance(m["inputs"].get("model_name"), str)
+                                   and "etect" in str(m.get("class_type", "")))
+    # the detector's threshold and dilation: on the detailer itself (FaceDetailer), or on the node that found the
+    # areas for it (Detailer (SEGS) after BBOX Detector (SEGS))
+    src = ins
+    if "bbox_threshold" not in ins and "threshold" not in ins and _is_link(ins.get("segs")):
+        _, sn = _find_upstream(graph, ins["segs"], lambda m: "threshold" in m["inputs"] or "bbox_threshold" in m["inputs"])
+        src = sn["inputs"] if sn is not None else ins
+    return {"model": os.path.basename(str(dn["inputs"]["model_name"]).replace("\\", "/")) if dn is not None else None,
+            "confidence": _num(_value(graph, src.get("bbox_threshold", src.get("threshold")))),
+            "dilate": _num(_value(graph, src.get("bbox_dilation", src.get("dilation")))),
+            "blur": _num(_value(graph, ins.get("feather")))}
+
+
+def _back(graph, link, known=()):
+    """Back along the picture (latent or image) from `link`, through nodes that only change it (an upscale, a decode +
+    encode), to the sampler it came from. The inputs that usually carry the picture first; then, only when those end,
+    any other input that isn't known to carry something else (a switch or a node of another pack names its inputs
+    its own way). Returns (the sampler's id or None, what enlarged the picture on the way, nearest first)."""
+    seen, q, rest, ups = set(), [link], [], []
+    first = ("samples", "latent", "latent_image", "latents", "image", "images", "pixels", "upscaled_image")
+    while (q or rest) and len(seen) < MAX_NODES:
+        v = q.pop(0) if q else rest.pop(0)
         if not _is_link(v) or str(v[0]) in seen:
             continue
         seen.add(str(v[0]))
         n = _node(graph, v[0])
         if n is None:
             continue
-        if _is_sampler(n):
-            last = str(v[0])
-            break
-        # the picture's own path first (a decode's samples before its vae), then everything else
+        if _is_sampler(n, graph):
+            return (str(v[0]) if str(v[0]) not in known else None), ups
+        up = _upscaler(graph, n)
+        if up:
+            ups.append(up)
         ins = n["inputs"]
-        queue += [ins[k] for k in ("images", "image", "samples", "latent", "latent_image", "pixels") if _is_link(ins.get(k))]
-        queue += [x for x in ins.values() if _is_link(x)]
+        q += [ins[k] for k in first if _is_link(ins.get(k))]
+        rest += [x for k, x in ins.items() if _is_link(x) and k not in first and k.lower() not in NOT_PICTURE]
+    return None, ups
+
+
+def find_samplers(graph, start):
+    """(the samplers the image came from, first pass first; what enlarged the picture after the last of them).
+    `start`: the link the save node's image comes in by. Each later pass has "ups": what enlarged the picture between
+    the pass before it and its own sampling."""
+    last, post = _back(graph, start)
+    if last is None:
+        # not along the picture's usual inputs: any sampler behind the save node
+        seen, queue, post = set(), [start], []
+        while queue and len(seen) < MAX_NODES and last is None:
+            v = queue.pop(0)
+            if not _is_link(v) or str(v[0]) in seen:
+                continue
+            seen.add(str(v[0]))
+            n = _node(graph, v[0])
+            if n is None:
+                continue
+            if _is_sampler(n, graph):
+                last = str(v[0])
+                break
+            queue += [x for x in n["inputs"].values() if _is_link(x)]
     chain = []
     while last is not None and len(chain) < 8:
         s = _read_sampler(graph, last)
         chain.append(s)
-        # an earlier pass: back along the picture (latent or image), through nodes that only change it (an upscale,
-        # a decode + encode). The inputs that usually carry it first; then, only when those end, any other input
-        # that isn't known to carry something else (a switch or a node of another pack names its inputs its own way)
-        last, seen2, q, rest = None, set(), [s["latent"]], []
-        while (q or rest) and len(seen2) < MAX_NODES:
-            v = q.pop(0) if q else rest.pop(0)
-            if not _is_link(v) or str(v[0]) in seen2:
-                continue
-            seen2.add(str(v[0]))
-            n = _node(graph, v[0])
-            if n is None:
-                continue
-            if _is_sampler(n):
-                if str(v[0]) not in {c["id"] for c in chain}:
-                    last = str(v[0])
-                break
-            if not s.get("upscaler"):
-                up = _upscaler(graph, n)
-                if up:
-                    s["upscaler"] = up
-            ins = n["inputs"]
-            first = ("samples", "latent", "latent_image", "latents", "image", "images", "pixels", "upscaled_image")
-            q += [ins[k] for k in first if _is_link(ins.get(k))]
-            rest += [x for k, x in ins.items() if _is_link(x) and k not in first and k.lower() not in NOT_PICTURE]
+        last, ups = _back(graph, s["latent"], {c["id"] for c in chain})
+        s["ups"] = s["ups"] + ups
     chain.reverse()
-    return chain
+    if chain:
+        chain[0]["ups"] = []                                   # before the first pass there is nothing to enlarge
+    return chain, post
 
 
 def _lora_rows(n):
@@ -388,13 +454,16 @@ def _find_upstream(graph, link, test, keys=None):
 def trace(graph, save_id, image_input="images"):
     """Everything that can be read from the workflow that ran. Returns a dict; values that couldn't be read are None."""
     out = {"samplers": [], "model": None, "loras": [], "positive": None, "negative": None, "vae": None,
-           "clip_skip": None, "guidance": None, "base_size": None}
+           "clip_skip": None, "guidance": None, "base_size": None, "post": []}
     me = _node(graph, save_id)
     if me is None or not _is_link(me["inputs"].get(image_input)):
         return out
     start = me["inputs"][image_input]
-    chain = find_samplers(graph, start)
+    chain, out["post"] = find_samplers(graph, start)
     out["samplers"] = chain
+    for later in chain[1:]:                                    # a refiner's model
+        if later.get("model"):
+            later["model_info"] = find_model(graph, later["model"])[0]
     if chain:
         first = chain[0]
         if first.get("model"):
@@ -571,9 +640,48 @@ def build(traced, size=None, overrides=None, path_of=None):
     o = {k: v for k, v in (overrides or {}).items() if v is not None and v != ""}
     chain = traced.get("samplers") or []
     first = chain[0] if chain else {}
-    # a later pass, written as hi-res fix: the one that enlarged the picture when there are several, else the last
     later = chain[1:]
-    second = next((c for c in later if c.get("upscaler")), later[-1] if later else None)
+    base = traced.get("base_size")
+    final = tuple(int(x) for x in size) if size else None
+
+    def seg(ups):
+        """What a stretch of the workflow did to the size: (name, factor or None, target size or None)."""
+        if not ups:
+            return None
+        name = next((u["name"] for u in ups if u.get("model")), ups[0]["name"])     # an upscale model before a plain resize
+        target = next((u["target"] for u in ups if u.get("target")), None)
+        factor = None
+        if target is None and all(u.get("factor") for u in ups):
+            factor = 1.0
+            for u in ups:
+                factor *= u["factor"]
+        return name, factor, target
+
+    # what each later pass is: a detailer; a refiner (it carries on part-way through the steps, with another model);
+    # the hi-res pass (the first one the picture was enlarged for; else a plain second pass at the same size)
+    detailers = [c for c in later if c.get("detailer") is not None]
+    rest = [c for c in later if c.get("detailer") is None]
+    refiner = None
+    for c in list(rest):
+        if c.get("start_at_step") and not c.get("ups"):
+            rest.remove(c)                                      # one sampling split over two nodes: no pass of its own
+            mi = c.get("model_info") or {}
+            if refiner is None and mi.get("name") and mi.get("name") != (traced.get("model") or {}).get("name"):
+                refiner = c
+    for c in rest:                                              # a resize to the size it already had enlarges nothing
+        sg = seg(c.get("ups"))
+        if sg and base and sg[2] == tuple(base) and c is rest[0]:
+            c["ups"] = []
+    second = next((c for c in rest if c.get("ups")), rest[0] if rest else None)
+    # what enlarged the picture after the hi-res pass: later sampled passes and plain upscalers
+    after = [u for c in rest[rest.index(second) + 1:] for u in c.get("ups") or []] if second is not None else []
+    after = list(traced.get("post") or []) + after              # nearest the saved picture first
+    hires_seg = seg(second.get("ups")) if second is not None else None
+    if hires_seg is None and after:                             # enlarged without sampling again: written as hi-res fix too
+        hires_seg, after = seg(after), []
+    if hires_seg is None and second is not None and base and final and tuple(final) != tuple(base):
+        hires_seg = (None, None, None)                          # a second pass at another size: enlarged, by something unnamed
+    enlarged = hires_seg is not None
 
     def pick(key, okey=None):
         return o[okey or key] if (okey or key) in o else first.get(key)
@@ -622,9 +730,7 @@ def build(traced, size=None, overrides=None, path_of=None):
     if traced.get("guidance") is not None:
         add("Distilled CFG Scale", _fmt(traced["guidance"]))
     add("Seed", _fmt(seed) if seed is not None else None)
-    base = traced.get("base_size") if second is not None else None
-    final = tuple(int(x) for x in size) if size else None
-    show = base or final
+    show = (base if enlarged else None) or final
     if show:
         add("Size", f"{show[0]}x{show[1]}")
     if model_name:
@@ -633,29 +739,69 @@ def build(traced, size=None, overrides=None, path_of=None):
         add("Model", _stem(model_name))
     if traced.get("vae"):
         add("VAE", os.path.basename(str(traced["vae"]).replace("\\", "/")))
-    if second is not None:
-        # a second pass, written the way A1111 writes hi-res fix
-        if second.get("denoise") is not None:
+    if refiner is not None:
+        # the way A1111 writes its refiner: the model, and how far through the steps it took over
+        rm = refiner.get("model_info") or {}
+        rpath = path_of(rm.get("folder") or "checkpoints", rm["name"]) if path_of else None
+        rh = file_hash(rpath) if rpath else ""
+        add("Refiner", _stem(rm["name"]) + (f" [{rh}]" if rh else ""))
+        if refiner.get("steps"):
+            add("Refiner switch at", _fmt(round(refiner["start_at_step"] / refiner["steps"], 2)))
+    hsize = None
+    if second is not None or enlarged:
+        # a second pass (or an upscale), written the way A1111 writes hi-res fix
+        if second is not None and second.get("denoise") is not None:
             add("Denoising strength", _fmt(second["denoise"]))
-        if base and final and final != base:
-            add("Hires resize", f"{final[0]}x{final[1]}")
-            if base[0]:
-                add("Hires upscale", _fmt(round(final[0] / base[0], 2)))
-        if second.get("steps") is not None:
+        if enlarged and base:
+            name, factor, target = hires_seg
+            if not after:
+                hsize = final                                   # the only thing that enlarged it: the saved size says how far
+            elif target:
+                hsize = target
+            elif factor:
+                hsize = (int(round(base[0] * factor)), int(round(base[1] * factor)))
+            if hsize and tuple(hsize) != tuple(base):
+                add("Hires resize", f"{hsize[0]}x{hsize[1]}")
+                add("Hires upscale", _fmt(round(hsize[0] / base[0], 2)))
+        if second is not None and second.get("steps") is not None:
             add("Hires steps", _fmt(second["steps"]))
-        if second.get("upscaler"):
-            add("Hires upscaler", second["upscaler"])
-        # the second pass's own sampler, schedule and CFG, where they differ from the first pass's (as Forge writes them)
-        s2 = second.get("sampler")
-        if isinstance(s2, str) and s2 and s2 != first.get("sampler"):
-            add("Hires sampler", SAMPLERS.get(s2.lower(), s2))
-        c2 = second.get("scheduler")
-        if isinstance(c2, str) and c2 and c2 != first.get("scheduler"):
-            add("Hires schedule type", SCHEDULERS.get(c2.lower(), c2))
-        if second.get("cfg") is not None and second.get("cfg") != first.get("cfg"):
-            add("Hires CFG Scale", _fmt(second["cfg"]))
+        if enlarged:
+            add("Hires upscaler", hires_seg[0])
+        if second is not None:
+            # the second pass's own sampler, schedule and CFG, where they differ from the first pass's (as Forge writes them)
+            s2 = second.get("sampler")
+            if isinstance(s2, str) and s2 and s2 != first.get("sampler"):
+                add("Hires sampler", SAMPLERS.get(s2.lower(), s2))
+            c2 = second.get("scheduler")
+            if isinstance(c2, str) and c2 and c2 != first.get("scheduler"):
+                add("Hires schedule type", SCHEDULERS.get(c2.lower(), c2))
+            if second.get("cfg") is not None and second.get("cfg") != first.get("cfg"):
+                add("Hires CFG Scale", _fmt(second["cfg"]))
     elif denoise is not None and float(denoise) < 1:
         add("Denoising strength", _fmt(denoise))
+    if after:
+        # enlarged again afterwards: the way A1111's Extras tab writes an upscale
+        _, factor, _ = seg(after)
+        by = round(final[0] / hsize[0], 2) if final and hsize and hsize[0] else factor
+        if by:
+            add("Postprocess upscale by", _fmt(by if isinstance(by, float) else float(by)))
+        add("Postprocess upscaler", seg(after)[0])
+    for i, c in enumerate(detailers):
+        # detailers, in the names of A1111's ADetailer extension (the 2nd, 3rd ... one with that word after each name)
+        nth = "" if i == 0 else " " + ("2nd", "3rd")[i - 1] if i < 3 else f" {i + 1}th"
+        dt = c["detailer"]
+        add("ADetailer model" + nth, dt.get("model") or c.get("class"))
+        for label, v in (("confidence", dt.get("confidence")), ("dilate erode", dt.get("dilate")), ("mask blur", dt.get("blur")),
+                         ("denoising strength", c.get("denoise"))):
+            if v is not None:
+                add(f"ADetailer {label}" + nth, _fmt(v))
+        if c.get("steps") is not None and c.get("steps") != first.get("steps"):
+            add("ADetailer use separate steps" + nth, "True"); add("ADetailer steps" + nth, _fmt(c["steps"]))
+        if c.get("cfg") is not None and c.get("cfg") != first.get("cfg"):
+            add("ADetailer use separate CFG scale" + nth, "True"); add("ADetailer CFG scale" + nth, _fmt(c["cfg"]))
+        ds = c.get("sampler")
+        if isinstance(ds, str) and ds and ds != first.get("sampler"):
+            add("ADetailer use separate sampler" + nth, "True"); add("ADetailer sampler" + nth, SAMPLERS.get(ds.lower(), ds))
     if traced.get("clip_skip") and traced["clip_skip"] > 1:
         add("Clip skip", traced["clip_skip"])
     if path_of and loras:
