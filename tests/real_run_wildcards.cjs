@@ -437,12 +437,16 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
             const app = window.app, LG = window.LiteGraph;
             const n = LG.createNode("Region-Genie_RegionalLoRAs"); n.pos = [60, 900]; app.graph.add(n);
             await new Promise((r) => setTimeout(r, 1200));
+            const vis = () => [...document.querySelectorAll(".rg-rl-head .rg-wc")].some((e) => getComputedStyle(e).display !== "none");
+            const idle = vis();                                   // no wildcard in any field yet: the seed group is hidden (round 60)
             n.widgets.find((w) => w.name === "positive_prompt").value = "a {red|blue} hat";
+            await new Promise((r) => setTimeout(r, 1500));
             const p = (await app.graphToPrompt()).output[n.id]?.inputs || {};
             return { ctl: !!n.widgets.find((w) => w.name === "wildcard_seed")?.hidden && !n.inputs.some((i) => i.name === "wildcard_seed"),
-                     shown: [...document.querySelectorAll(".rg-rl-head .rg-wc")].some((e) => getComputedStyle(e).display !== "none"),
+                     shown: vis(), idle,
                      seed: p.wildcard_seed, per: (() => { try { return "wcPerField" in JSON.parse(p.loras_data); } catch (e) { return false; } })() };
         });
+        check(`${M}: Regional LoRAs: the seed control shows only while a field has a wildcard`, !rl.idle && rl.shown);
         check(`${M}: Regional LoRAs: seed control, hidden widget, per-field Setting sent`, rl.ctl && rl.shown && typeof rl.seed === "number" && rl.per);
         await page.screenshot({ path: require("path").join(__dirname, "out", `real9_wc_${vue ? "vue" : "legacy"}.png`) });
     }

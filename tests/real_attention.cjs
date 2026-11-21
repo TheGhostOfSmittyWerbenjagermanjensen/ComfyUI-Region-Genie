@@ -63,6 +63,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const nHl = await hlTa();
     await field("Regional LoRAs: positive_prompt", page.locator('textarea[data-hl="0"]'));
     if (nHl > 1) await field("Regional LoRAs: negative_prompt", page.locator('textarea[data-hl="1"]'));
+    // a row's words (the small text box of a LoRA row)
+    await page.evaluate(() => [...document.querySelectorAll(".rg-rl-head button")].find((b) => /Add LoRA/.test(b.textContent)).click()); await sleep(900);
+    await field("Regional LoRAs: a row's words", page.locator("textarea.rg-rl-prompt"));
+    check(`${M}: the row's words are saved with their weight`, await page.evaluate(() => { try { return JSON.parse(window.__hl.widgets.find((w) => w.name === "loras_data").value).rows[0].prompt === "(big:0.95) dog, park"; } catch (e) { return false; } }));
     check(`${M}: no script errors`, !errors.length);
     if (errors.length) console.log(errors.slice(0, 3).join("\n"));
     await browser.close();
