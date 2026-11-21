@@ -1,5 +1,5 @@
 // The README's pictures: docs/images/editor.png (the whole node), editor-numbered.png (its parts numbered), lora.png (a
-// region with a LoRA), popup-scene.png and popup-region.png (the pop-up editors), large-editor.png, rows.png (a Control row and an Edit row under Whole image), settings-tab.png, settings-window.png and save-image.png
+// region with a LoRA), popup-scene.png and popup-region.png (the pop-up editors), large-editor.png, rows.png (a Control row and an Edit row under Whole image), model-menu.png (a model file's menu with a search), settings-tab.png, settings-window.png and save-image.png
 // (Save Image after a run; it uses input/rg_demo.png when there is one). Needs a running ComfyUI with this pack (legacy mode, English, dark palette):
 //   COMFY_DIR=<the ComfyUI folder> node tests/shot_readme.cjs
 // Rules for the pictures (the owner's): a LoRA is shown with trigger-word chips, and no model name in red (not found).
@@ -8,10 +8,13 @@ const path = require("path");
 const { chromium } = require("playwright");
 // The LoRAs in the pictures: real files (a name that isn't found is shown in red) with trigger words (so the chips
 // show). With COMFY_DIR set, empty demo files and their info files are put into its models/loras/rg_demo first.
+// model-menu.png: files in two model folders that a search for "edit" finds
+const MENU_DEMO = ["loras/rg_demo/moss_image_edit.safetensors", "loras/rg_demo/klein_edit.safetensors", "loras/rg_demo/kontext_relight_edit.safetensors", "controlnet/rg_demo/edit_depth_guide.safetensors"];
 const DEMO = { "rg_demo/red_dragon.safetensors": ["red dragon", "ember scales"], "rg_demo/oil_painting.safetensors": ["oil painting", "thick brushstrokes"] };
 if (process.env.COMFY_DIR) {
   const fs = require("fs"), dir = path.join(process.env.COMFY_DIR, "models", "loras", "rg_demo");
   fs.mkdirSync(dir, { recursive: true });
+  for (const name of MENU_DEMO) { const f = path.join(process.env.COMFY_DIR, "models", name); fs.mkdirSync(path.dirname(f), { recursive: true }); if (!fs.existsSync(f)) fs.writeFileSync(f, ""); }
   for (const [name, words] of Object.entries(DEMO)) {
     const f = path.join(process.env.COMFY_DIR, "models", "loras", name);
     if (!fs.existsSync(f)) fs.writeFileSync(f, "");
@@ -105,6 +108,16 @@ if (process.env.COMFY_DIR) {
   const rows = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), last = [...document.querySelectorAll(".rg-row.ctrl")].pop().getBoundingClientRect(); return { x: list.x - 6, y: head.y - 6, width: list.width + 12, height: last.bottom - head.y + 46 }; });
   await page.mouse.move(4, 4); await page.waitForTimeout(4000);       // the pointer away: no tooltip in the picture; the header's message gone
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "rows.png"), clip: rows });
+  // model-menu.png: a model file field's menu (here the Edit row's), with a search typed that finds files in every folder
+  await page.evaluate(() => { const sel = [...document.querySelectorAll(".rg-foot select")].find((x) => [...x.options].some((o) => /MOSS-Image/.test(o.textContent))); sel.value = [...sel.options].find((o) => /MOSS-Image/.test(o.textContent)).value; sel.dispatchEvent(new Event("change", { bubbles: true })); });
+  await page.waitForTimeout(900);
+  await page.locator(".rg-list .rg-ff-name").first().click(); await page.waitForTimeout(700);
+  await page.keyboard.type("edit"); await page.waitForTimeout(900);
+  const menuClip = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), m = [...document.querySelectorAll(".litecontextmenu")].pop().getBoundingClientRect();
+    const bottom = Math.max(m.bottom, head.bottom) + 10; return { x: list.x - 6, y: Math.min(head.y, m.y) - 6, width: Math.max(list.right, m.right) - list.x + 12, height: bottom - Math.min(head.y, m.y) + 6 }; });
+  await page.mouse.move(4, 4); await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "model-menu.png"), clip: menuClip });
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   // save-image.png: Save Image (Region Genie) after a run, with the picture and its file size
   await page.evaluate(async () => {
     const app = window.app, LG = window.LiteGraph; app.graph.clear();

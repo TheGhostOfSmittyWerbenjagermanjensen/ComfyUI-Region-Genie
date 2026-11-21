@@ -1,5 +1,13 @@
 # Regional LoRAs
 
+**On this page**
+
+- [LoRAs per region (the Region Genie node's model output)](#loras-per-region-the-region-genie-nodes-model-output)
+- [Create Hook LoRA (Quantized)](#create-hook-lora-quantized)
+  - [Regional LoRA wiring](#regional-lora-wiring)
+- [Regional LoRAs (the node)](#regional-loras-the-node)
+- [Separation and until](#separation-and-until)
+
 ## LoRAs per region (the Region Genie node's model output)
 
 ```

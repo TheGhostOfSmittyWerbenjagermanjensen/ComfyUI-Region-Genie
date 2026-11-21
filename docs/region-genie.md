@@ -16,10 +16,29 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 **On this page**
 
 - [Finding your way](#finding-your-way)
+  - [Shortcuts](#shortcuts)
+  - [Right-click menu](#right-click-menu)
+  - [Node size and the large editor](#node-size-and-the-large-editor)
+  - [After a run](#after-a-run)
 - [Image size](#image-size)
+  - [What decides the size](#what-decides-the-size)
+  - [Inputs and outputs shown](#inputs-and-outputs-shown)
 - [Regions](#regions)
+  - [Opening a region](#opening-a-region)
+  - [Feather](#feather)
+  - [Colors and the color palette](#colors-and-the-color-palette)
+  - [LoRAs](#loras)
 - [Layers](#layers)
 - [Tools](#tools)
+  - [Adding regions and layers](#adding-regions-and-layers)
+  - [Select](#select)
+  - [Shapes](#shapes)
+  - [Brush and eraser](#brush-and-eraser)
+  - [Lasso](#lasso)
+  - [Fill and gradient fill](#fill-and-gradient-fill)
+  - [Magic wand](#magic-wand)
+  - [Select object (SAM 3.1)](#select-object-sam-31)
+  - [Arrange: flip, align, grow / shrink](#arrange-flip-align-grow--shrink)
 - [The canvas view](#the-canvas-view)
 - [Working from an image](#working-from-an-image)
 - [Text boxes and pop-up editors](#text-boxes-and-pop-up-editors)
@@ -29,6 +48,8 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 - [Settings and model files](#settings-and-model-files)
 - [Outputs](#outputs)
 - [Prompt formats by model](#prompt-formats-by-model)
+  - [MOSS-Image: layout or standard](#moss-image-layout-or-standard)
+  - [Workflows from earlier versions](#workflows-from-earlier-versions)
 
 ## Finding your way
 
@@ -361,6 +382,9 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
 - **Model files** (in Settings: control LoRAs, ControlNets, Anima LLLite patches, Depth Anything 3, edit LoRAs, the Select object model; on the node: the Edit rows; in the LLM settings: the LLM and its LoRAs) are fields showing the file's name.
   - A click opens **ComfyUI's classic menu**, in both legacy mode and Nodes 2.0: the control and edit files open on ComfyUI's model folders (📁 controlnet, 📁 loras, 📁 model_patches, 📁 geometry_estimation; a file from another folder than the setting's own is saved with its folder), Select object on `checkpoints`, the LLM on `text_encoders`.
   - With **rgthree-comfy**'s *Auto Nest Subdirectories in Menus* on, the menu shows subfolders as folders. Typing searches every folder and subfolder at once (the matches with their paths).
+
+    <img src="images/model-menu.png" alt="A model file's menu with a search typed: matching files from every model folder, with their paths" width="520">
+
   - The list is read when the menu opens, so the Settings tab stays fast with any number of files (checked with 10 000 LoRAs). A name in red isn't in ComfyUI's model folders (moved, renamed or deleted, or added since ComfyUI started: press R).
   - **Settings > Region Genie > Browse… for model files** (off by default) adds a **folder button (Browse…)** to each field: it opens a browser of the ComfyUI machine's folders and drives (it starts in the setting's own folder).
   - A file picked inside one of ComfyUI's model folders is saved by its usual name; a file anywhere else (e.g. Stability Matrix's shared `Models` folder) is saved by its full path and loaded from there. Files picked by full path keep working with the switch off.
