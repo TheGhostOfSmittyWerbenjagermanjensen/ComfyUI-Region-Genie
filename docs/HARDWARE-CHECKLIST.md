@@ -195,6 +195,20 @@ None of the programs that read this text could be run here; the files were only 
 - With MOSS-Image or Ideogram 4 the prompt in the text is the JSON of the `prompt` output: does A1111 / Civitai still read the settings line under it?
 - Your usual workflow's sampler nodes: if the status line says in yellow that a setting wasn't found, tell me which sampler / seed node it is, or tick that input in the cable button's list and connect it.
 - A two-pass workflow (hi-res fix): the text has the first pass's settings and `Hires steps` / `Denoising strength` for the second.
+- **Your tiled upscale workflow (round 45):** the upscaled image's text starts with the first pass's steps / sampler / seed and `Size` (the first pass's size), and has `Denoising strength`, `Hires resize`, `Hires upscale`, `Hires steps` and `Hires upscaler` for the upscale. If it still shows only the upscale's values, the first pass wasn't found: please send the workflow (or name the upscale node).
 - A model whose LoRA Manager files are kept in its central folder (not next to the model): no hash is found; say so if you use that mode.
 - The cable button of Save Image (Region Genie) is on the right of its input rows, just above `filename_prefix`, in both node modes, at your zoom levels; it stays there when the node is resized, and moves down a row for each input you tick.
 - Start a generation and, while it runs and finishes, type in a region's prompt in the list and in a number field (a LoRA's strength, a Control row's strength): the cursor stays in the field and nothing typed is lost when the run's results arrive; the list updates when you click elsewhere.
+
+## 23. Arrange: flip, align, grow / shrink (round 45)
+
+Tested in a stub page by the layers' pixels; worth a look on the real canvas at 4K:
+
+- Flip horizontally / vertically on a rectangle, an ellipse and a star that are turned: each becomes its mirror picture and stays in place. On a triangle: upside down points it down.
+- Flip a layer with a shape and a brush stroke on it: it mirrors in place (it used to jump sideways).
+- Grow and shrink each shape by 8 and by 50 px: it stays that shape with the same corners, stays selectable as a shape (handles, resize), and doesn't move.
+- Grow a brush stroke and a lasso outline: smooth round ends, no flattened sides; grow it several times: it doesn't creep.
+- Grow a rectangle with a brush stroke on it: the rectangle's corners stay pointed, nothing moves.
+- Align a turned ellipse to each edge: its pixels touch the edge.
+- A rectangle in the top half with a brush stroke beside it (same layer): grow by 50 px three times, shrink by 50 px three times, repeat: it ends where it started each time (it used to move towards the top edge).
+- A large image (over 2048 px on a side): growing a painted layer still looks right (it is worked out at 2048 px there).
