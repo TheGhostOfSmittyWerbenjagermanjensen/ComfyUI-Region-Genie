@@ -309,7 +309,12 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 - **Models and files:** the pages *Control*, *Edit Mode*, *LLM Prompt Enhancer*, *Keeping regions apart, per model* and *Select object*, then **Browse… for model files** and **Check model files**.
 - **Other nodes:** the pages *Regional LoRAs* and *Save Image*.
 
+![Settings > Region Genie: a short list, each topic one row with Edit…](images/settings-tab.png)
+
 A page row's **Edit…** opens the **Region Genie settings** window on that page. It covers ComfyUI's Settings while it is open:
+
+![The Region Genie settings window: every page on the left, the page's settings on the right](images/settings-window.png)
+
 
 - Every page is listed on the left; a number next to a page says how many of its settings differ from their defaults (the row in the tab says the same: "3 changed").
 - Changes are saved as you make them.

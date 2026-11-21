@@ -121,6 +121,8 @@ for (const sub of ["loras", "controlnet"]) {
     });
     await page.waitForSelector(".rg-fb", { state: "attached", timeout: 5000 });
     await sleep(600);
+    const fbTop = await page.evaluate(() => { const b = document.querySelector(".rg-fb"), r = b.getBoundingClientRect(); return [[r.left + 8, r.top + 8], [(r.left + r.right) / 2, (r.top + r.bottom) / 2]].every(([x, y]) => b.contains(document.elementFromPoint(x, y))); });
+    check("Browse… opens its file browser over the settings window", fbTop);
     const startPath = await page.locator(".rg-fb-path input").inputValue();
     await page.locator(".rg-fb-path input").fill(outDir); await page.locator(".rg-fb-path input").press("Enter"); await sleep(700);
     const listed = await page.locator(".rg-fb-item", { hasText: "moss_edit_outside.safetensors" }).count();
@@ -219,6 +221,14 @@ for (const sub of ["loras", "controlnet"]) {
     // the pack's own rows: the region colors (its color picker over the window)
     const colors = rowOf("Region colors");
     check("the region colors are drawn as in the old tab (swatches, +, Defaults)", await colors.locator(".rg-colors .sw").count() >= 6);
+    await colors.locator(".rg-colors .sw").first().click(); await sleep(400);
+    check(`a click on a region color opens the color picker over the window (${await onTopOf(".rg-cp")})`, await page.locator(".rg-cp").count() === 1 && await onTopOf(".rg-cp") === true);
+    // it takes the pointer there (ComfyUI's dialog switches the pointer off for the rest of the page): drag in the color square
+    const sv = await page.locator(".rg-cp .rg-cp-sv").boundingBox(), c0 = await colors.locator(".rg-colors .sw").first().evaluate((b) => b.style.background);
+    await page.mouse.move(sv.x + 20, sv.y + 20); await page.mouse.down(); await page.mouse.move(sv.x + sv.width * 0.5, sv.y + sv.height * 0.6, { steps: 3 }); await page.mouse.up(); await sleep(250);
+    check("…and can be used: dragging in its color square changes the swatch", await colors.locator(".rg-colors .sw").first().evaluate((b) => b.style.background) !== c0);
+    await page.keyboard.press("Escape"); await sleep(300);
+    check("Esc closes only the color picker; the window stays on its page", await page.locator(".rg-cp").count() === 0 && await page.locator('.rg-setwin-nav button.on[data-page="node"]').count() === 1);
     // a text
     await toPage("size");
     const txt = rowOf("Presets").locator('input[type="text"]');
