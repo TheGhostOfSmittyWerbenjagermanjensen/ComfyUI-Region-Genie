@@ -143,9 +143,12 @@ Region Genie ─────────── masks ──►                �
 
 **region_separation** / **separation_until** (inside-the-model mode; defaults 0.4 / 0.1): the Region Genie node's *separation* and *until*. What they do and good values: [Separation and until](#separation-and-until).
 
-- Why they exist: a LoRA limited to its region still reaches the rest of the picture through attention, because every image token looks at every other one. region_separation removes that fraction of the attention between the image of different LoRA regions; separation_until applies it only for the first part of the steps, so the seams blend at the end.
+- Why they exist: a LoRA limited to its region still reaches the rest of the picture through attention, because every image token looks at every other one.
+  - region_separation removes that fraction of the attention between the image of different LoRA regions.
+  - separation_until applies it only for the first part of the steps, so the seams blend at the end.
 - 1 / 1 gives independent pictures glued together.
-- **separate_all_regions** (off by default) keeps every mask separate this way, with or without LoRAs: the Region Genie node's "keep all regions separate" switch. It works in inside-the-model mode, with MOSS-Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5.
+- **separate_all_regions** (off by default) keeps every mask separate this way, with or without LoRAs: the Region Genie node's "keep all regions separate" switch.
+  - It works in inside-the-model mode, with MOSS-Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5.
 - **share_background** (off by default) keeps those regions separate from each other only, not from the rest of the image (the Region Genie node's *Share the background*).
 - While regions are kept separate, attention runs without fused kernels (SageAttention etc. ignore masks), which is slower.
 
