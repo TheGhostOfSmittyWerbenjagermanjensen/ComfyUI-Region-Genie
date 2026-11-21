@@ -39,6 +39,6 @@ The **Control** rows under *Whole image* make the model follow a map, with what 
 - The control **LoRAs** (MOSS, Flux.1 depth / canny) are used while a Control row needs them, only with their model, and aren't listed under *Whole image* (their Control row is where they're set). ControlNet files and LLLite patches are applied by the node (on `positive` / `negative`, or on `model` for Anima).
 - **Per region:** while control is on, each region row has a control button. Switch regions off and the control acts only inside the regions still on (the rest follows the prompt freely); with every region on, it acts on the whole image.
 - **Preview:** after a run, the eye button at the end of the Control row shows the map the model followed on the canvas.
-- The kind dropdown's tooltip names the file used for the node's model and what the kind does. **Settings > Region Genie > Model files > Check model files** lists every file set there (and in the LLM presets) that ComfyUI can't find. If something is missing (no file, no `vae`, no `control_image`), the run still goes ahead without control and `region_info` says why.
+- The kind dropdown's tooltip names the file used for the node's model and what the kind does. **Settings > Region Genie > Check model files** lists every file set there (and in the LLM presets) that ComfyUI can't find. If something is missing (no file, no `vae`, no `control_image`), the run still goes ahead without control and `region_info` says why.
 
 [← Back to the README](../README.md)

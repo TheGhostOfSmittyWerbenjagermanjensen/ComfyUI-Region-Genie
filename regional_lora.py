@@ -98,7 +98,7 @@ class ModelArch:
     """Token layout of a model the one-pass engine supports.
 
     Joint-attention models (MOSS-Image, Krea 2, Ideogram 4, Flux, Flux 3) run image and text tokens as one
-    sequence; cross-attention models (Anima, SDXL / SD1.5) keep the text apart and the image tokens read it in
+    sequence; cross-attention models (Anima, SDXL / SD1.5) keep the text separate and the image tokens read it in
     a separate cross-attention step.
 
     patch:      latent pixels per image token side (image tokens = ceil(H/patch) x ceil(W/patch), row-major)
@@ -112,7 +112,7 @@ class ModelArch:
     multires:   image tokens at several resolutions (UNet: latent size / 1, 2, 4, 8)
     text_from:  where the text length comes from: "c_crossattn", or "txt_states" (Flux 3 encodes its text once,
                 before sampling)
-    family:     the name used for the per-model settings (keep all regions apart automatically)"""
+    family:     the name used for the per-model settings (keep all regions separate automatically)"""
 
     def __init__(self, name, patch=1, order="img_txt", prefix=None, skip_lens=(), token_key=None, text_pad=0,
                  cross=False, multires=False, text_from="c_crossattn", family=None, layout=False):
@@ -140,8 +140,8 @@ class ModelArch:
 
 ONE_PASS_MODELS = "MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5"
 
-# models without a layout format of their own: their regions are placed by keeping the regions apart in attention
-AUTO_APART_FAMILIES = ("Krea 2", "Flux", "Flux 3", "Anima", "SDXL / SD1.5")
+# models without a layout format of their own: their regions are placed by keeping the regions separate in attention
+AUTO_SEPARATE_FAMILIES = ("Krea 2", "Flux", "Flux 3", "Anima", "SDXL / SD1.5")
 
 
 def model_arch(model):
@@ -627,7 +627,7 @@ class RegionSeparation:
     all) in self-attention, so a region's LoRA style can't leak into its neighbours through attention.
     strength 0..1 = how much of the cross-region attention is removed (1 = blocked); `until` = up to which
     fraction of the steps it applies. Text tokens stay shared, so the layout prompt still ties it together.
-    share_bg: the background (image tokens outside every region) stays shared: regions are kept apart from each
+    share_bg: the background (image tokens outside every region) stays shared: regions are kept separate from each
     other but not from the background, so lighting and setting stay one picture. Captions still reach only their
     own region."""
 
@@ -670,8 +670,8 @@ class RegionSeparation:
         return any(r.text_spans for r in self.regions)
 
     def bias(self, nq, nk, grid, device, dtype, text_len=None, early=True, arch=None):
-        """Additive attention bias. Image tokens of different regions are kept apart while `early`; a LoRA
-        region's caption tokens are kept apart from the image and captions of the other regions at every step
+        """Additive attention bias. Image tokens of different regions are kept separate while `early`; a LoRA
+        region's caption tokens are kept separate from the image and captions of the other regions at every step
         (shared text - scene caption, template, captions of regions without LoRAs - stays open to all).
         Cross-attention models: image tokens of a region don't read the other regions' captions."""
         txt = self._text_labels(text_len)
@@ -963,7 +963,7 @@ class _ActivateRegionalLoRAsWrapper:
                         where += (", + its caption tokens" if tl == region.text_len else
                                   ", caption tokens not used: the prompt differs from the one the regions were set up with")
                     parts.append(f"{lora.name}: {counts.get(lora.name, 0)} layer patches ({where})")
-                sep = (f"; regions kept apart in attention (strength {self.separation.strength:g})" if sep_on else "")
+                sep = (f"; regions kept separate in attention (strength {self.separation.strength:g})" if sep_on else "")
                 _log(f"{LOG} first step check: " + ("; ".join(parts) or "no regional LoRAs") + sep +
                      ("" if all(counts.get(l.name, 0) for l, _, _ in self.entries) else
                       "  <- a LoRA with 0 patches changed nothing (keys didn't match this model?)"))
@@ -1096,10 +1096,10 @@ def regional_lora_patch(model, clip, text, regions, scene, separation, until, no
                [(lora_name, strength), ...])]
     scene:   [(lora_name, strength)] acting everywhere: merged into the weights like Load LoRA (model only)
     Each regional LoRA acts on its region's image tokens and, with clip, on its caption's text tokens; the
-    regions are kept apart in attention for the first `until` of the steps (`separation` 0..1), and each LoRA
-    region's caption only talks to its own region. separate_all: every region in `regions` is kept apart (and its
-    caption talks only to it), with or without LoRAs. share_background: the image outside the kept-apart regions stays
-    shared with them (they are only kept apart from each other). Returns (patched model, info lines)."""
+    regions are kept separate in attention for the first `until` of the steps (`separation` 0..1), and each LoRA
+    region's caption only talks to its own region. separate_all: every region in `regions` is kept separate (and its
+    caption talks only to it), with or without LoRAs. share_background: the image outside the kept-separate regions stays
+    shared with them (they are only kept separate from each other). Returns (patched model, info lines)."""
     spans_by_key, text_len, lines = {}, None, []
     with_caps = [(k, c) for k, _, c, ls in regions if c is not None and (ls or separate_all)]
     if clip is not None and text and with_caps:
@@ -1141,13 +1141,13 @@ def regional_lora_patch(model, clip, text, regions, scene, separation, until, no
     shared = " (background shared)" if sep is not None and share_background else ""
     if not entries:
         if sep is None:
-            lines.insert(0, "all regions apart: on, but separation is 0 (or 'until' is 0 and no captions): nothing to do")
+            lines.insert(0, "all regions separate: on, but separation is 0 (or 'until' is 0 and no captions): nothing to do")
             return model, lines
-        lines.insert(0, f"all {len(token_regions)} regions kept apart{shared} {separation:g} for the first {until * 100:.0f}% of the steps"
+        lines.insert(0, f"all {len(token_regions)} regions kept separate{shared} {separation:g} for the first {until * 100:.0f}% of the steps"
                      + (" (captions to their own region at every step)" if spans_by_key else "") + "; no regional LoRAs")
         return regional_lora_model(model, [], f"region separation only ({len(token_regions)} regions)", sep), lines
     lines.insert(0, "LoRAs (model output, one pass): " + (("all regions" if separate_all else "regions")
-                                                          + f" kept apart{shared} {separation:g} for the first "
+                                                          + f" kept separate{shared} {separation:g} for the first "
                  f"{until * 100:.0f}% of steps" + (("; each region's caption only talks to its own region" if separate_all
                                                     else "; each LoRA region's caption only talks to its own region")
                                                    if spans_by_key else "") if sep else "no region separation"))
@@ -1411,33 +1411,37 @@ class RegionalLoRAs:
                                              "SDXL / SD1.5 (other models fall back to separate passes).\n"
                                              "separate passes (classic hooks): ComfyUI's hook method, one model pass per region with its "
                                              "LoRAs, blended by the masks. Works with any model, but strong styles can bleed across regions.")}),
-                "region_separation": ("FLOAT", {"default": 0.85, "min": 0.0, "max": 1.0, "step": 0.05,
-                                      "tooltip": ("inside the model only. How strongly regions are kept apart in attention. It applies to the image "
-                                                  "of different LoRA regions (every mask with separate_all_regions) for the first separation_until "
-                                                  "of the steps, and to each LoRA region's caption against the other regions at every step. Higher "
-                                                  "keeps each LoRA's style in its region.\n"
-                                                  "1: Fully separate (may look like a collage at the seams).\n"
-                                                  "0: Off.")}),
-                "separation_until": ("FLOAT", {"default": 0.25, "min": 0.0, "max": 1.0, "step": 0.05,
-                                     "tooltip": ("inside the model only. Keep the image of the regions apart for this fraction of the steps (1 = "
-                                                 "all steps). Early steps set the layout and style of each region; letting the later steps see "
-                                                 "across regions blends the seams (0.1-0.5 works well with region_separation 0.85-0.99).")}),
+                "region_separation": ("FLOAT", {"default": 0.4, "min": 0.0, "max": 1.0, "step": 0.05,
+                                      "tooltip": ("inside the model only.\n"
+                                                  "region_separation: How strongly the regions are kept from influencing each other "
+                                                  "while the image forms (0 to 1; higher = more separate). It applies to the regions "
+                                                  "with LoRAs, or to every mask with separate_all_regions.\n"
+                                                  "Smooth integration of objects, characters and styles: 0.4 with separation_until "
+                                                  "0.1 (the default).\n"
+                                                  "Strong style separation: 0.85-0.99 with separation_until 0.1-0.5.")}),
+                "separation_until": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.05,
+                                     "tooltip": ("inside the model only.\n"
+                                                 "separation_until: The share of the steps, counted from the start, in which the "
+                                                 "regions are kept separate (0 to 1); the remaining steps blend them together.\n"
+                                                 "Smooth integration of objects, characters and styles: 0.1 with region_separation "
+                                                 "0.4 (the default).\n"
+                                                 "Strong style separation: 0.1-0.5 with region_separation 0.85-0.99.")}),
                 "loras_data": ("STRING", {"default": '{"v":2,"rows":[]}', "multiline": False}),
                 # after loras_data, so workflows saved before it existed keep their widget values
                 "separate_all_regions": ("BOOLEAN", {"default": False,
-                                         "tooltip": ("On: Every mask is kept apart from the others (and from the background) for the first "
+                                         "tooltip": ("On: Every mask is kept separate from the others (and from the background) for the first "
                                                      "separation_until of the steps, at region_separation, with or without LoRAs, and each region's "
                                                      "caption speaks only to its own region.\n"
-                                                     "Off: Only masks with LoRAs are kept apart.\n"
+                                                     "Off: Only masks with LoRAs are kept separate.\n"
                                                      "MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 with lora_masking 'inside the model' "
                                                      "only; a little slower and more VRAM while active.")}),
                 # added last, so saved workflows keep their widget values
                 "share_background": ("BOOLEAN", {"default": False,
                                      "tooltip": ("inside the model only.\n"
-                                                 "On: The regions that are kept apart (masks with LoRAs, or every mask with separate_all_regions) "
-                                                 "stay apart from each other, but not from the rest of the image, so lighting, perspective and "
+                                                 "On: The regions that are kept separate (masks with LoRAs, or every mask with separate_all_regions) "
+                                                 "stay separate from each other, but not from the rest of the image, so lighting, perspective and "
                                                  "setting stay one picture. Each region's caption still speaks only to its own region.\n"
-                                                 "Off: They are kept apart from the rest of the image too.")}),
+                                                 "Off: They are kept separate from the rest of the image too.")}),
             },
             "optional": {
                 # hidden; set with the seed control in the rows editor (shown when Impact Pack is installed)
@@ -1475,7 +1479,7 @@ class RegionalLoRAs:
         return True
 
     def run(self, model, clip, masks, positive_prompt, negative_prompt, feather, loras_data, lora_masking=MASKING_MODES[0],
-            region_separation=0.85, separation_until=0.25, separate_all_regions=False, share_background=False,
+            region_separation=0.4, separation_until=0.1, separate_all_regions=False, share_background=False,
             wildcard_seed=0, unique_id=None):
         from .bbox_masks import box_blur
         from .wildcards import Filler

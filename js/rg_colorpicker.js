@@ -10,7 +10,7 @@
 // anchor clicked again, or the anchor leaving the page).
 
 const CSS = `
-.rg-cp { position:fixed; z-index:100000; box-sizing:border-box; width:232px; display:flex; flex-direction:column; gap:8px;
+.rg-cp { position:fixed; z-index:100000; pointer-events:auto; box-sizing:border-box; width:232px; display:flex; flex-direction:column; gap:8px;
   padding:8px; border-radius:8px; border:1px solid color-mix(in srgb, var(--border-default, var(--border-color, #555)) 50%, transparent);
   background:var(--comfy-menu-bg, var(--background, #1e1e1e)); color:var(--fg-color, #ddd); box-shadow:0 4px 12px rgba(0,0,0,.45);
   font:12px/1.2 var(--font-inter, Inter, Arial, sans-serif); user-select:none; touch-action:none; }

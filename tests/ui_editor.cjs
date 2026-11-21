@@ -81,28 +81,28 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("label drawn", lbl === 1);
 
     // shared background: right-click menu on the four-tiles button
-    const tiles = page.locator(".rg-loraopts > button.rg-apart");
+    const tiles = page.locator(".rg-loraopts > button.rg-separate");
     await tiles.click({ button: "right" });
     const items = await page.evaluate(() => window.__lastMenu.items.map((i) => i.content));
-    check("right-click menu: keep apart, automatic, off, share the background", items.length === 4 && /Keep all regions apart/.test(items[0]) && /^✓ Automatic/.test(items[1]) && /Off for this node/.test(items[2]) && /Share the background/.test(items[3]));
+    check("right-click menu: keep separate, automatic, off, share the background", items.length === 4 && /Keep all regions separate/.test(items[0]) && /^✓ Automatic/.test(items[1]) && /Off for this node/.test(items[2]) && /Share the background/.test(items[3]));
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[3]));
     const opts = await page.evaluate(() => window.__node.__rgState().loraOpts);
-    check("Share the background turns on (keep-apart unchanged)", opts.shareBg === true && !opts.allRegions);
+    check("Share the background turns on (keep-separate unchanged)", opts.shareBg === true && !opts.allRegions);
     check("icon shows the shaded backdrop", (await tiles.innerHTML()).includes('opacity=".32"'));
     await tiles.click({ button: "right" });
     check("menu marks it as on", (await page.evaluate(() => window.__lastMenu.items[3].content)).startsWith("✓"));
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[0]));
-    check("Keep all regions apart from the menu", (await page.evaluate(() => window.__node.__rgState().loraOpts)).allRegions === true);
+    check("Keep all regions separate from the menu", (await page.evaluate(() => window.__node.__rgState().loraOpts)).allRegions === true);
     await tiles.click();
-    check("plain click still toggles keep-apart", !(await page.evaluate(() => window.__node.__rgState().loraOpts)).allRegions);
-    // the button is a real switch, also when the last run turned 'keep all regions apart' on by itself
+    check("plain click still toggles keep-separate", !(await page.evaluate(() => window.__node.__rgState().loraOpts)).allRegions);
+    // the button is a real switch, also when the last run turned 'keep all regions separate' on by itself
     const lo = () => page.evaluate(() => window.__node.__rgState().loraOpts || {});
     const lit = () => tiles.evaluate((b) => b.classList.contains("on"));
     check("off on the node: autoOff is saved, the button is off", (await lo()).autoOff === true && !(await lit()));
     await tiles.click({ button: "right" });
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[1]));         // Automatic
     check("menu > Automatic: neither on nor off for this node", !(await lo()).autoOff && !(await lo()).allRegions && !(await lit()));
-    await page.evaluate(() => window.__node.onExecuted({ auto_apart: [true] })); await page.waitForTimeout(80);
+    await page.evaluate(() => window.__node.onExecuted({ auto_separate: [true] })); await page.waitForTimeout(80);
     check("a run turned it on by itself: the button is lit and says so", await lit() && /ON automatically in the last run/.test(await tiles.getAttribute("title")));
     await tiles.click(); await page.waitForTimeout(80);
     const sentOff = await page.evaluate(() => JSON.parse(window.__node.widgets.find((w) => w.name === "paint_data").serializeValue()).loraOpts);
@@ -112,7 +112,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("and on again: on for this node", await lit() && (await lo()).allRegions === true && !(await lo()).autoOff);
     await tiles.click({ button: "right" });
     await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[1]));         // back to Automatic
-    await page.evaluate(() => window.__node.onExecuted({ auto_apart: [false] })); await page.waitForTimeout(80);
+    await page.evaluate(() => window.__node.onExecuted({ auto_separate: [false] })); await page.waitForTimeout(80);
     check("back to automatic, and the next run without it: off", !(await lit()) && !(await lo()).autoOff && !(await lo()).allRegions);
 
     await page.locator(".rg-row.scene .rg-pseudo").click();

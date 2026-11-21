@@ -336,11 +336,11 @@
       },
       "region_separation": {
         "name": "separación_de_regiones",
-        "tooltip": "Solo dentro del modelo. Con qué fuerza se mantienen separadas las regiones en la atención. Se aplica a la imagen de las distintas regiones con LoRA (todas las máscaras con separar_todas_las_regiones) durante la primera fracción separación_hasta de los pasos, y a la descripción de cada región con LoRA frente a las demás regiones en todos los pasos. Un valor más alto mantiene el estilo de cada LoRA dentro de su región.\n1: Totalmente separadas (puede parecer un collage en las uniones).\n0: Desactivado."
+        "tooltip": "Solo dentro del modelo.\nseparación_de_regiones: Con qué fuerza se evita que las regiones influyan unas en otras mientras se forma la imagen (de 0 a 1; más alto = más separadas). Se aplica a las regiones con LoRA, o a todas las máscaras con separar_todas_las_regiones.\nIntegración suave de objetos, personajes y estilos: 0.4 con separación_hasta 0.1 (el valor predeterminado).\nSeparación fuerte de estilos: 0.85-0.99 con separación_hasta 0.1-0.5."
       },
       "separation_until": {
         "name": "separación_hasta",
-        "tooltip": "Solo dentro del modelo. Mantiene separada la imagen de las regiones durante esta fracción de los pasos (1 = todos los pasos). Los primeros pasos fijan el diseño y el estilo de cada región; dejar que los pasos posteriores vean más allá de cada región suaviza las uniones (0.1-0.5 funciona bien con separación_de_regiones 0.85-0.99)."
+        "tooltip": "Solo dentro del modelo.\nseparación_hasta: La parte de los pasos, contada desde el principio, en la que las regiones se mantienen separadas (de 0 a 1); los pasos restantes las funden entre sí.\nIntegración suave de objetos, personajes y estilos: 0.1 con separación_de_regiones 0.4 (el valor predeterminado).\nSeparación fuerte de estilos: 0.1-0.5 con separación_de_regiones 0.85-0.99."
       },
       "loras_data": {
         "name": "datos_de_loras"

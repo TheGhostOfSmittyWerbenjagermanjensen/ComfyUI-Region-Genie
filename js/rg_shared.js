@@ -31,9 +31,9 @@ export const ICONS = {
     edges: '<rect x="2.5" y="2.5" width="11" height="11" stroke-dasharray="2 1.6"/><rect x="5.5" y="5.5" width="5" height="5" fill="currentColor" stroke="none" opacity=".55"/>',
     regionAdd: '<rect x="1.5" y="3" width="9" height="9" rx="1.5"/><path d="M13 1.8v4.4M10.8 4h4.4"/>',
     grip: '<g fill="currentColor" stroke="none"><circle cx="5.5" cy="3.5" r="1.2"/><circle cx="10.5" cy="3.5" r="1.2"/><circle cx="5.5" cy="8" r="1.2"/><circle cx="10.5" cy="8" r="1.2"/><circle cx="5.5" cy="12.5" r="1.2"/><circle cx="10.5" cy="12.5" r="1.2"/></g>',
-    allApart: '<rect x="1.5" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="1.5" y="9.3" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="9.3" width="5.2" height="5.2" rx="1"/>',
-    // the four tiles on a shaded backdrop: kept apart from each other, the background shared
-    allApartShared: '<rect x="0.6" y="0.6" width="14.8" height="14.8" rx="2" fill="currentColor" stroke="none" opacity=".32"/><rect x="2.4" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="2.4" y="9.2" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="9.2" width="4.4" height="4.4" rx=".9"/>',
+    allSeparate: '<rect x="1.5" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="1.5" y="9.3" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="9.3" width="5.2" height="5.2" rx="1"/>',
+    // the four tiles on a shaded backdrop: kept separate from each other, the background shared
+    allSeparateShared: '<rect x="0.6" y="0.6" width="14.8" height="14.8" rx="2" fill="currentColor" stroke="none" opacity=".32"/><rect x="2.4" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="2.4" y="9.2" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="9.2" width="4.4" height="4.4" rx=".9"/>',
     // image input: traced over (backdrop) / read as the color map
     imgBackdrop: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M1.8 11l3.6-3.6 3 3 2-2 3.8 3.8"/><circle cx="10.6" cy="5.9" r="1.1"/>',
     imgColorMap: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M8 2.8v10.4M1.8 8h6.2"/><rect x="2.6" y="3.6" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/><rect x="8.8" y="8.8" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/>',
@@ -569,7 +569,7 @@ const fileSettingType = (roots, none, id, home, noneLabel) => (name, setter, val
     fileField({ roots, home, none, noneLabel, value: typeof value === "string" && value ? value : none, title: name,
                 onPick: (v) => { try { setter(v); } catch (e) { /* the dialog is gone */ } if (id) setSetting(id, v); } });
 
-// ---- Settings > Region Genie > Model files > Check model files (round 24): every model file set in these Settings
+// ---- Settings > Region Genie > Check model files (round 24): every model file set in these Settings
 // (Control, edit LoRAs, Select object) and in the LLM presets is looked up now; the ones not found are listed.
 export const LLM_FILES = { list: null };          // rg_llm.js fills it in: () => [{ what, value, roots, home }]
 function configuredModelFiles() {
@@ -1539,7 +1539,7 @@ export const FPOP_CSS = `
 //    (Settings > pysssss > Text Autocomplete: separator, underscores, Tab/Enter, suggestion count ...)
 //  - the Tag Autocomplete of ComfyUI-Lora-Manager (Settings > LoRA Manager > Autocomplete)
 // Every Region Genie node has its own on/off switch; new nodes start with the global default
-// (Settings > Region Genie > Tag autocomplete). Without either pack nothing happens.
+// (Settings > Region Genie > Tag autocomplete on in new Region Genie nodes). Without either pack nothing happens.
 export const AC_DEFAULT_SETTING = "RegionGenie.Autocomplete.DefaultOn";
 export const AC_PROPERTY = "rg_autocomplete";
 const engines = { pysssss: undefined, lm: undefined };       // undefined = not looked for yet, null = not installed
@@ -1797,6 +1797,7 @@ export const SET = {
     sizePresets: "RegionGenie.Size.Presets",
     cmWidth: "RegionGenie.Main.Width",
     cmHeight: "RegionGenie.Main.Height",
+    cmStep: "RegionGenie.Main.StepSize",
     cmImageMode: "RegionGenie.Main.ImageMode",
     cmMinPixels: "RegionGenie.Main.MinRegionPixels",
     cmImportMode: "RegionGenie.Main.ImportMode",
@@ -1808,8 +1809,8 @@ export const SET = {
     regionColors: "RegionGenie.Main.RegionColors",
     bigKey: "RegionGenie.Main.LargeEditorKey",
     shortcuts: "RegionGenie.Shortcuts",              // the user's keys for the editor's commands (rg_keys.js), a JSON text
-    cmAllRegions: "RegionGenie.Main.AllRegionsApart",
-    cmAutoApart: "RegionGenie.Main.AutoApart",
+    cmAllRegions: "RegionGenie.Main.AllRegionsSeparate",
+    cmAutoSeparate: "RegionGenie.Main.AutoSeparate",
     cmShareBg: "RegionGenie.Main.ShareBackground",
     toolLasso: "RegionGenie.Tools.Lasso",
     toolLassoErase: "RegionGenie.Tools.LassoErase",
@@ -1845,12 +1846,12 @@ export const SET = {
 };
 // models without a layout format of their own: [family name used by the Python side, settings ID suffix]
 // [the model family the run reports, Settings key, label]. MOSS-Image gets plain text in its standard mode and in Edit Mode
-export const AUTO_APART_MODELS = [["MOSS-Image", "MOSS", "MOSS-Image (standard mode, Edit Mode)"], ["Krea 2", "Krea2"], ["Flux", "Flux"],
+export const AUTO_SEPARATE_MODELS = [["MOSS-Image", "MOSS", "MOSS-Image (standard mode, Edit Mode)"], ["Krea 2", "Krea2"], ["Flux", "Flux"],
     ["Flux 3", "Flux3"], ["Anima", "Anima"], ["SDXL / SD1.5", "SDXL"]];
-// the 'keep all regions apart automatically' settings, as sent to Python in paint_data
-export function autoApartSettings() {
-    const out = { all: getSetting(SET.cmAutoApart, true) !== false };
-    for (const [fam, key] of AUTO_APART_MODELS) out[fam] = getSetting(SET.cmAutoApart + "." + key, "default") || "default";
+// the 'keep all regions separate automatically' settings, as sent to Python in paint_data
+export function autoSeparateSettings() {
+    const out = { all: getSetting(SET.cmAutoSeparate, true) !== false };
+    for (const [fam, key] of AUTO_SEPARATE_MODELS) out[fam] = getSetting(SET.cmAutoSeparate + "." + key, "default") || "default";
     return out;
 }
 // Edit Mode: [model name as the Python side reports it (ui.model_arch), settings ID suffix, reads a reference image]
@@ -1907,7 +1908,7 @@ const toolChanged = (tool, v) => {
     for (const f of toolListeners) { try { f(tool, v); } catch (e) { console.warn(e); } }
 };
 
-// LLM cache (Settings > Region Genie > LLM cache): told to the server at start-up and whenever one changes; also
+// LLM cache (Settings > Region Genie > LLM Prompt Enhancer > LLM cache): told to the server at start-up and whenever one changes; also
 // sent with every run in paint_data
 export function llmCacheSettings(over = {}) {
     const num = (id, d) => { const v = Number(over[id] ?? getSetting(id, d)); return Number.isFinite(v) ? Math.round(v) : d; };
@@ -1941,9 +1942,16 @@ const shortcutsSettingType = () => () => {
     };
     btn.addEventListener("click", async (e) => { e.preventDefault(); (await keys()).openShortcuts({ keep: (t) => btn.contains(t) }); });
     window.addEventListener("rg-shortcuts", sync);
-    box.append(btn, info); sync();
+    box.append(info, btn); sync();                   // the button at the row's end, like the page rows'
     return box;
 };
+// separation / until (the list header's two fields, and their Settings): the owner's wording (round 52). The defaults
+// 0.4 / 0.1 blend the regions into one picture; 0.85-0.99 / 0.1-0.5 (the defaults until then) keep styles strictly separate
+export const SEPARATION_DEFAULT = 0.4, UNTIL_DEFAULT = 0.1;
+export const SEPARATION_TIP = "separation: How strongly the regions are kept from influencing each other while the image forms (0 to 1; higher = more separate).\n"
+    + "Smooth integration of objects, characters and styles: 0.4 with until 0.1 (the default).\nStrong style separation: 0.85-0.99 with until 0.1-0.5.";
+export const UNTIL_TIP = "until: The share of the steps, counted from the start, in which the regions are kept separate (0 to 1); the remaining steps blend them together.\n"
+    + "Smooth integration of objects, characters and styles: 0.1 with separation 0.4 (the default).\nStrong style separation: 0.1-0.5 with separation 0.85-0.99.";
 const CAT = (section, key) => ["Region Genie", section, key];
 const SETTINGS = [
         // first: the model-file settings below take their form from it when they are registered
@@ -2141,6 +2149,8 @@ const SETTINGS = [
           category: CAT("Image size", "5 presets") },
         { id: SET.cmWidth, name: "Manual: width", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Image size", "6 width") },
         { id: SET.cmHeight, name: "Manual: height", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Image size", "7 height") },
+        { id: SET.cmStep, name: "Manual: step size", type: "number", defaultValue: 64, attrs: { min: 1, max: 4096, step: 8, stepBase: 0 },
+          tooltip: "How far the arrows of width and height go per click in manual mode (px).\n" + NEW_NODES, category: CAT("Image size", "8 step") },
         { id: SET.cmImageMode, name: "image_mode", type: "combo", defaultValue: "backdrop (trace over)", options: ["backdrop (trace over)", "use as color map"], tooltip: NEW_NODES, category: CAT("Region Genie node", "03 image") },
         {
             id: SET.cmMinPixels, name: "Color map: min region pixels", type: "number", defaultValue: 64, attrs: { min: 1, max: 1000000, step: 1 },
@@ -2173,31 +2183,31 @@ const SETTINGS = [
             category: CAT("Region Genie node", "055 colors"),
         },
         { id: SET.cmFeather, name: "Feather (px, linked regions)", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: "The mask feather that linked regions share (regions start linked). " + NEW_NODES, category: CAT("Region Genie node", "06 feather") },
-        { id: SET.cmSeparation, name: "LoRA region separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "07 separation") },
-        { id: SET.cmUntil, name: "LoRA separation until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "08 until") },
-        { id: SET.cmAllRegions, name: "Keep all regions apart (not only those with LoRAs)", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Region Genie node", "085 all regions") },
+        { id: SET.cmSeparation, name: "separation", type: "slider", defaultValue: 0.4, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: SEPARATION_TIP + "\n" + NEW_NODES, category: CAT("Region Genie node", "07 separation") },
+        { id: SET.cmUntil, name: "until", type: "slider", defaultValue: 0.1, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: UNTIL_TIP + "\n" + NEW_NODES, category: CAT("Region Genie node", "08 until") },
+        { id: SET.cmAllRegions, name: "Keep all regions separate (not only those with LoRAs)", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Region Genie node", "085 all regions") },
         {
-            id: SET.cmShareBg, name: "Keep regions apart: share the background", type: "boolean", defaultValue: false,
-            tooltip: "Regions that are kept apart stay apart from each other, but not from the image around them, so "
+            id: SET.cmShareBg, name: "Keep regions separate: share the background", type: "boolean", defaultValue: false,
+            tooltip: "Regions that are kept separate stay separate from each other, but not from the image around them, so "
                 + "lighting and setting stay one picture. " + NEW_NODES,
             category: CAT("Region Genie node", "0855 share background"),
         },
         {
-            id: SET.cmAutoApart, name: "Plain-text prompts: keep all regions apart automatically", type: "boolean", defaultValue: true,
+            id: SET.cmAutoSeparate, name: "Plain-text prompts: keep all regions separate automatically", type: "boolean", defaultValue: true,
             tooltip: "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get "
                 + "the regions as plain sentences. The Region Genie node places each region by tying its sentence to its "
-                + "region in attention (keeping all regions apart).\n"
-                + "On: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, "
+                + "region in attention (keeping all regions separate).\n"
+                + "On: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions separate, "
                 + "unless the node's Separate button is set to 'Off for this node'.\n"
-                + "Off: Only a node whose Separate button is on keeps them apart.\n"
+                + "Off: Only a node whose Separate button is on keeps them separate.\n"
                 + "The settings below change it for one model. Applies to every Region Genie node at its next run.",
-            category: CAT("Region Genie node", "086 auto apart"),
+            category: CAT("Region Genie node", "086 auto separate"),
         },
-        ...AUTO_APART_MODELS.map(([fam, key, label], i) => ({
-            id: SET.cmAutoApart + "." + key, name: `${label || fam}: keep all regions apart automatically`, type: "combo", defaultValue: "default",
+        ...AUTO_SEPARATE_MODELS.map(([fam, key, label], i) => ({
+            id: SET.cmAutoSeparate + "." + key, name: `${label || fam}: keep all regions separate automatically`, type: "combo", defaultValue: "default",
             options: [{ text: "As set for all models (above)", value: "default" }, { text: "On", value: "on" }, { text: "Off", value: "off" }],
             tooltip: `For ${fam} models only. 'As set for all models' follows the setting above.`,
-            category: CAT("Region Genie node", "087 auto apart " + i),
+            category: CAT("Region Genie node", "087 auto separate " + i),
         })),
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "Whether snap to grid is on when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
         { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "The grid size when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
@@ -2256,7 +2266,7 @@ const SETTINGS = [
         },
         { id: SET.hlFeather, name: "feather", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "1 feather") },
         { id: SET.hlMasking, name: "lora_masking", type: "combo", defaultValue: "inside the model (one pass)", options: ["inside the model (one pass)", "separate passes (classic hooks)"], tooltip: NEW_NODES, category: CAT("Regional LoRAs", "2 masking") },
-        { id: SET.hlSeparation, name: "region_separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "3 separation") },
+        { id: SET.hlSeparation, name: "region_separation", type: "slider", defaultValue: 0.4, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "3 separation") },
         { id: SET.hlAllRegions, name: "separate_all_regions", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "5 all regions") },
         { id: SET.hlShareBg, name: "share_background", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "6 share background") },
         // Save Image (Region Genie): how a new node starts
@@ -2287,8 +2297,93 @@ const SETTINGS = [
           tooltip: "The color space of the images coming in (the EXR is always scene-linear).\n"
               + "sRGB: sRGB-encoded Rec.709, the usual.\nHDR: HLG-encoded Rec.2020.\nlinear: Already scene-linear Rec.709.\n"
               + "linear ACEScg: Already scene-linear ACEScg.\n" + NEW_NODES, category: CAT("Save Image", "91 exr space") },
-        { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
+        { id: SET.hlUntil, name: "separation_until", type: "slider", defaultValue: 0.1, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Regional LoRAs", "4 until") },
 ];
+// ---------------------------------------------------------------- a short tab, and pages (round 50)
+// ComfyUI's Settings listed 123 rows for this pack, ten screens of them. Now the tab holds the few switches that are
+// flipped often, and one row per topic with a button that opens the Region Genie settings window on that topic's page
+// (js/rg_settings_window.js). A setting that moved to a page is still a ComfyUI setting with the same id, value and
+// onChange: only its type is "hidden" here, so ComfyUI doesn't list it (its own type is kept in rgType, and the window
+// draws it from that). ComfyUI's "Search Settings" matches a row's name and id, so a topic row's id carries the names
+// of the settings on its page: searching for "WebP quality" finds the Save Image row.
+// [key, the row's and page's name, the tab section, the row's tooltip]
+export const SETTINGS_PAGES = [
+    ["size", "Image size", "node", "How the size row of a new Region Genie node starts, and the list of presets."],
+    ["node", "Region Genie node", "node", "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards)."],
+    ["tools", "Canvas tools", "node", "Which version the lasso, magic wand and fill buttons start as, the wand tolerance, the fill gap size, the hints on the canvas."],
+    ["text", "Text size", "node", "The text size of the prompt boxes, on the node and in the pop-up editors."],
+    ["control", "Control", "files", "The control LoRA, ControlNet or LLLite file each model uses for a Control row, and the depth model."],
+    ["edit", "Edit Mode", "files", "The edit LoRA of each model, whether the source image is sent as a reference, and the edit mask's grow and feather."],
+    ["llm", "LLM Prompt Enhancer", "files", "What the LLM sees, the default preset of each prompt type, the presets themselves, and the LLM cache."],
+    ["separate", "Keeping regions separate, per model", "files", "Whether a run keeps all regions separate by itself, for each model without a layout format."],
+    ["sam", "Select object", "files", "The SAM 3.1 model file, whether it stays loaded, and the confidence of Find all."],
+    ["hl", "Regional LoRAs", "other", "What a new Regional LoRAs node starts with."],
+    ["save", "Save Image", "other", "The format a new Save Image (Region Genie) node starts with, and each format's settings."],
+];
+// the pages are named as the old sections were, so "Settings > Region Genie > Edit Mode" in a tooltip or the manual still leads there
+const TAB_SECTIONS = { node: "Basics", files: "Models and files", other: "Other nodes" };
+const PAGE_OF_SECTION = { "Tag autocomplete": "node", "Wildcards (Impact Pack)": "node", "Region Genie node": "node", "Image size": "size",
+    "Canvas tools": "tools", "Select object": "sam", "Text size": "text", "LLM Prompt Enhancer": "llm", "LLM cache": "llm", "Control": "control",
+    "Edit Mode": "edit", "Regional LoRAs": "hl", "Save Image": "save" };
+const PAGE_ROW_CSS = `.rg-page-row { display:flex; align-items:center; gap:8px; }
+.rg-page-row button { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer;
+  font:inherit; padding:3px 10px; }
+.rg-page-row span { opacity:.7; font-size:12px; }`;
+// how many settings of a page differ from their defaults (what a topic row shows next to its button)
+export function pageChanged(key) {
+    let n = 0;
+    for (const d of SETTINGS) {
+        if (d.rgPage !== key) continue;
+        const v = getSetting(d.id, d.defaultValue);
+        if (String(v) !== String(d.defaultValue)) n++;
+    }
+    return n;
+}
+const pageRowType = (key) => () => {
+    if (!document.getElementById("rg-page-row-style")) { const st = document.createElement("style"); st.id = "rg-page-row-style"; st.textContent = PAGE_ROW_CSS; document.head.appendChild(st); }
+    const box = document.createElement("div"); box.className = "rg-page-row"; box.dataset.page = key;
+    const info = document.createElement("span");
+    const btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Edit…";
+    btn.title = "Open this page of the Region Genie settings.";
+    let shown = false;                               // the row leaves the page with the Settings dialog: stop listening then
+    const sync = () => {
+        if (box.isConnected) shown = true; else if (shown) { window.removeEventListener("rg-settings", sync); return; }
+        const n = pageChanged(key); info.textContent = n ? `${n} changed` : "";
+    };
+    btn.addEventListener("click", async (e) => { e.preventDefault(); (await import("./rg_settings_window.js")).openSettingsWindow(btn, key); });
+    window.addEventListener("rg-settings", sync);
+    box.append(info, btn); setTimeout(sync, 0);
+    return box;
+};
+(() => {
+    // which rows stay in the tab (they are on their page too), and where
+    const stay = new Map([[SET.toolHints, ["node", "01"]], [SET.cmSnap, ["node", "02"]], [SET.acDefault, ["node", "03"]], [SET.llmNewRegions, ["node", "04"]],
+        [SET.cmAutoSeparate, ["node", "05"]], [SET.shortcuts, ["node", "06"]], [SET.filePickers, ["files", "80"]], [SET.checkFiles, ["files", "81"]]]);
+    const names = {};
+    SETTINGS.forEach((d, i) => { d.rgIndex = i; });                         // a page lists its settings in the order they are written above
+    for (const d of SETTINGS) {
+        const sec = d.category?.[1];
+        if (!sec) continue;                                                // the hidden ones (pop-up sizes, older keys)
+        d.rgSection = sec;
+        d.rgPage = d.id === SET.shortcuts ? null : d.id === SET.cmAutoSeparate || String(d.id).startsWith(SET.cmAutoSeparate + ".") ? "separate" : PAGE_OF_SECTION[sec] || null;
+        if (d.rgPage) (names[d.rgPage] ||= []).push(d.name);
+        const st = stay.get(d.id);
+        if (st) d.category = CAT(TAB_SECTIONS[st[0]], st[1]);
+        else { d.rgType = d.type; d.type = "hidden"; }
+    }
+    const rows = SETTINGS_PAGES.map(([key, name, sec, tooltip], i) => ({
+        // the id carries the page's setting names for ComfyUI's search (letters, digits, spaces and . , : _ - only)
+        id: `RegionGenie.Page.${key}: ${(names[key] || []).join(", ").replace(/[^A-Za-z0-9 .,:_\-]+/g, " ").replace(/\s+/g, " ")}`,
+        name, type: pageRowType(key), defaultValue: "", tooltip: tooltip + "\nEdit…: Opens the Region Genie settings on this page.",
+        category: CAT(TAB_SECTIONS[sec], `${sec === "node" ? 10 + i : 20 + i}`), rgRow: key,
+    }));
+    // the tab's order: the Region Genie node section (switches, Shortcuts, its pages), Models and files, Other nodes
+    const order = (d) => (d.type === "hidden" || !d.category ? 9000
+        : (d.category[1] === TAB_SECTIONS.node ? 1 : d.category[1] === TAB_SECTIONS.files ? 2 : 3) * 1000 + (parseInt(d.category[2], 10) || 0));
+    const all = [...SETTINGS, ...rows].map((d, i) => [d, i]).sort((x, y) => (order(x[0]) - order(y[0])) || (x[1] - y[1])).map((x) => x[0]);
+    SETTINGS.length = 0; SETTINGS.push(...all);
+})();
+export const settingDefs = () => SETTINGS;
 SETTINGS.forEach((x, i) => { x.sortOrder = 1000 - i; });         // listed in this order (higher sortOrder first)
 app.registerExtension({
     name: "RegionGenie.Settings",

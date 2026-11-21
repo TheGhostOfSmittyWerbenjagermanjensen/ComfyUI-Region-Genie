@@ -290,14 +290,14 @@
     "tooltip": "El difuminado de máscara que comparten las regiones vinculadas (las regiones empiezan vinculadas). Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
   "RegionGenie_Main_RegionSeparation": {
-    "name": "Separación de regiones LoRA",
-    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+    "name": "separation (separación)",
+    "tooltip": "separation: Con qué fuerza se evita que las regiones influyan unas en otras mientras se forma la imagen (de 0 a 1; más alto = más separadas).\nIntegración suave de objetos, personajes y estilos: 0.4 con until 0.1 (el valor predeterminado).\nSeparación fuerte de estilos: 0.85-0.99 con until 0.1-0.5.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
   "RegionGenie_Main_SeparationUntil": {
-    "name": "Separación LoRA hasta",
-    "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+    "name": "until (hasta)",
+    "tooltip": "until: La parte de los pasos, contada desde el principio, en la que las regiones se mantienen separadas (de 0 a 1); los pasos restantes las funden entre sí.\nIntegración suave de objetos, personajes y estilos: 0.1 con separation 0.4 (el valor predeterminado).\nSeparación fuerte de estilos: 0.1-0.5 con separation 0.85-0.99.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
-  "RegionGenie_Main_AllRegionsApart": {
+  "RegionGenie_Main_AllRegionsSeparate": {
     "name": "Mantener todas las regiones separadas (no solo las que tienen LoRAs)",
     "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
@@ -305,11 +305,11 @@
     "name": "Mantener las regiones separadas: compartir el fondo",
     "tooltip": "Las regiones que se mantienen separadas siguen separadas entre sí, pero no de la imagen que las rodea, de modo que la iluminación y el entorno forman una sola imagen. Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
-  "RegionGenie_Main_AutoApart": {
+  "RegionGenie_Main_AutoSeparate": {
     "name": "Prompts de texto plano: mantener todas las regiones separadas automáticamente",
     "tooltip": "Krea 2, Flux, Flux 3, Anima y SDXL / SD1.5 (y MOSS-Image en su modo estándar y en Modo edición) reciben las regiones como frases de texto plano. El nodo Region Genie coloca cada región vinculando su frase a su región en la atención (manteniendo todas las regiones separadas).\nActivado: Con uno de esos modelos en 'modelo', clip conectado y al menos un prompt de región, una ejecución mantiene todas las regiones separadas, salvo que el botón Separate del nodo esté en 'Off for this node'.\nDesactivado: Solo las mantiene separadas un nodo cuyo botón Separate esté activado.\nLos ajustes de abajo lo cambian para un modelo concreto. Se aplica a todos los nodos Region Genie en su próxima ejecución."
   },
-  "RegionGenie_Main_AutoApart_MOSS": {
+  "RegionGenie_Main_AutoSeparate_MOSS": {
     "name": "MOSS-Image (modo estándar, Modo edición): mantener todas las regiones separadas automáticamente",
     "tooltip": "Solo para modelos MOSS-Image. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
     "options": {
@@ -318,7 +318,7 @@
       "Off": "Desactivado"
     }
   },
-  "RegionGenie_Main_AutoApart_Krea2": {
+  "RegionGenie_Main_AutoSeparate_Krea2": {
     "name": "Krea 2: mantener todas las regiones separadas automáticamente",
     "tooltip": "Solo para modelos Krea 2. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
     "options": {
@@ -327,7 +327,7 @@
       "Off": "Desactivado"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux": {
+  "RegionGenie_Main_AutoSeparate_Flux": {
     "name": "Flux: mantener todas las regiones separadas automáticamente",
     "tooltip": "Solo para modelos Flux. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
     "options": {
@@ -336,7 +336,7 @@
       "Off": "Desactivado"
     }
   },
-  "RegionGenie_Main_AutoApart_Flux3": {
+  "RegionGenie_Main_AutoSeparate_Flux3": {
     "name": "Flux 3: mantener todas las regiones separadas automáticamente",
     "tooltip": "Solo para modelos Flux 3. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
     "options": {
@@ -345,7 +345,7 @@
       "Off": "Desactivado"
     }
   },
-  "RegionGenie_Main_AutoApart_Anima": {
+  "RegionGenie_Main_AutoSeparate_Anima": {
     "name": "Anima: mantener todas las regiones separadas automáticamente",
     "tooltip": "Solo para modelos Anima. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
     "options": {
@@ -354,7 +354,7 @@
       "Off": "Desactivado"
     }
   },
-  "RegionGenie_Main_AutoApart_SDXL": {
+  "RegionGenie_Main_AutoSeparate_SDXL": {
     "name": "SDXL / SD1.5: mantener todas las regiones separadas automáticamente",
     "tooltip": "Solo para modelos SDXL / SD1.5. 'Igual que para todos los modelos' sigue el ajuste de arriba.",
     "options": {
@@ -606,5 +606,53 @@
   "RegionGenie_RegionalLoRAs_SeparationUntil": {
     "name": "separación_hasta",
     "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Main_StepSize": {
+    "name": "Manual: tamaño de paso",
+    "tooltip": "Cuánto cambian las flechas de ancho y alto con cada clic en el modo manual (px).\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
+    "name": "Tamaño de imagen",
+    "tooltip": "Cómo empieza la fila de tamaño de un nodo Region Genie nuevo, y la lista de preajustes.\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+    "name": "Nodo Region Genie",
+    "tooltip": "Con qué empieza un nodo Region Genie nuevo (modo de imagen, difuminado, separación, cuadrícula, colores de región, autocompletado de etiquetas, comodines).\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
+    "name": "Herramientas del lienzo",
+    "tooltip": "Con qué versión empiezan los botones de lazo, varita mágica y relleno, la tolerancia de la varita, el tamaño de hueco del relleno, las pistas en el lienzo.\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render": {
+    "name": "Tamaño del texto",
+    "tooltip": "El tamaño del texto de los cuadros de prompt, en el nodo y en los editores emergentes.\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_control: MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
+    "name": "Control",
+    "tooltip": "El archivo de LoRA de control, ControlNet o LLLite que usa cada modelo para una fila Control, y el modelo de profundidad.\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_edit: MOSS-Image: edit LoRA, Krea 2: edit LoRA, Ideogram 4: edit LoRA, Flux_1: edit LoRA, Flux_2: edit LoRA, Flux 3: edit LoRA, Anima: edit LoRA, SDXL: edit LoRA, SD1_5: edit LoRA, MOSS-Image: send the source image as a reference, Krea 2: send the source image as a reference, Flux_1: send the source image as a reference, Flux_2: send the source image as a reference, Flux 3: send the source image as a reference, Reference image size long edge, px 0 output size , MOSS-Image edit layout, Edit mask: grow px negative shrinks , Edit mask: feather px ": {
+    "name": "Modo edición",
+    "tooltip": "El LoRA de edición de cada modelo, si la imagen de origen se envía como referencia, y la expansión y el difuminado de la máscara de edición.\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_llm: What the LLM Prompt Enhancer sees, New regions start with the LLM Prompt Enhancer on, Default preset: Character, Default preset: Object, Default preset: Text, Default preset: Scene, Preset to edit, Preset: name, Preset: LLM, Preset: LLM type, Preset: LLM LoRAs, Preset: system prompt, Preset: max_length, Preset: sampling, Preset: temperature, Preset: top_k, Preset: top_p, Preset: min_p, Preset: repetition_penalty, Preset: presence_penalty, Preset: seed, Preset: thinking, Preset: default template, Preset: mtp, Keep LLM results on disk between ComfyUI restarts, Forget LLM results after days 0 never , Most LLM results to keep": {
+    "name": "Mejorador de prompts LLM",
+    "tooltip": "Lo que ve el LLM, el preajuste predeterminado de cada tipo de prompt, los propios preajustes y la caché del LLM.\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_separate: Plain-text prompts: keep all regions separate automatically, MOSS-Image standard mode, Edit Mode : keep all regions separate automatically, Krea 2: keep all regions separate automatically, Flux: keep all regions separate automatically, Flux 3: keep all regions separate automatically, Anima: keep all regions separate automatically, SDXL SD1_5: keep all regions separate automatically": {
+    "name": "Mantener las regiones separadas, por modelo",
+    "tooltip": "Si una ejecución mantiene todas las regiones separadas por sí sola, para cada modelo sin formato de diseño.\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_sam: Model, After a selection, Find all: confidence": {
+    "name": "Seleccionar objeto",
+    "tooltip": "El archivo del modelo SAM 3.1, si permanece cargado y la confianza de Buscar todo.\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_hl: feather, lora_masking, region_separation, separate_all_regions, share_background, separation_until": {
+    "name": "LoRAs regionales",
+    "tooltip": "Con qué empieza un nodo Regional LoRAs nuevo.\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_Page_save: format, PNG compression, WebP lossless, WebP quality, JPEG quality, JPEG extension, JPEG workflow, AVIF quality, EXR bit depth, EXR color space": {
+    "name": "Guardar imagen",
+    "tooltip": "El formato con el que empieza un nodo Save Image (Region Genie) nuevo, y los ajustes de cada formato.\nEdit…: Abre los ajustes de Region Genie en esta página."
   }
 }

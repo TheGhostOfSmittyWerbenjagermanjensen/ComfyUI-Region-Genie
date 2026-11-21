@@ -12,7 +12,7 @@ LLM: the clip used for conditioning is not changed.
 Results are cached by (message, settings, LLM, seed): a prompt is only rewritten again when it or the settings
 change. The cache is kept in memory for the session, and in the workflow (the node sends its saved results to
 the server when a workflow is loaded). Keeping it on disk between restarts
-(<user dir>/region_genie/llm_cache.json) is off by default: Settings > Region Genie > LLM cache, which also sets
+(<user dir>/region_genie/llm_cache.json) is off by default: Settings > Region Genie > LLM Prompt Enhancer > LLM cache, which also sets
 how long entries are kept and how many. Turning disk caching off deletes the file.
 """
 import hashlib
@@ -155,7 +155,7 @@ def readd_triggers(original, enhanced, trigger_words):
 _cache = {}                     # key -> {"text", "thinking", "t": time stored}
 _cache_lock = threading.Lock()
 _cache_loaded = False
-# Settings > Region Genie > LLM cache (sent by the front end at start-up, when changed, and with every run)
+# Settings > Region Genie > LLM Prompt Enhancer > LLM cache (sent by the front end at start-up, when changed, and with every run)
 _cfg = {"disk": False, "days": 30, "max": 500}
 _cfg_known = False              # True once the front end has said what the settings are
 
@@ -194,7 +194,7 @@ def _delete_files():
             try:
                 os.remove(p)
                 logging.info(f"{LOG} removed {p}: keeping LLM results on disk is off "
-                             "(Settings > Region Genie > LLM cache)")
+                             "(Settings > Region Genie > LLM Prompt Enhancer > LLM cache)")
             except OSError as e:
                 logging.warning(f"{LOG} could not remove {p}: {e}")
 
@@ -548,7 +548,7 @@ def register_routes():
 
     @PromptServer.instance.routes.post("/region_genie/llm_cache_config")
     async def _llm_cache_config(request):
-        """Settings > Region Genie > LLM cache: {disk, days, max} (sent at start-up and when changed)."""
+        """Settings > Region Genie > LLM Prompt Enhancer > LLM cache: {disk, days, max} (sent at start-up and when changed)."""
         try:
             body = await request.json()
             return web.json_response({"ok": True, "config": configure(body)})

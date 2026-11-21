@@ -6,7 +6,6 @@
     "Image size": "이미지 크기",
     "LLM Prompt Enhancer": "LLM 프롬프트 향상기",
     "LLM cache": "LLM 캐시",
-    "Model files": "모델 파일",
     "Region Genie": "Region Genie",
     "Region Genie node": "Region Genie 노드",
     "Regional LoRAs": "영역별 LoRA",
@@ -14,7 +13,10 @@
     "Select object": "개체 선택",
     "Tag autocomplete": "태그 자동 완성",
     "Text size": "텍스트 크기",
-    "Wildcards (Impact Pack)": "와일드카드 (Impact Pack)"
+    "Wildcards (Impact Pack)": "와일드카드 (Impact Pack)",
+    "Models and files": "모델 및 파일",
+    "Other nodes": "기타 노드",
+    "Basics": "기본"
   },
   "regionGenie": {
     "choices": {

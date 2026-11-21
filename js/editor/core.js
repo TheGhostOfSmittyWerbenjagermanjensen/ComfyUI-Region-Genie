@@ -1,6 +1,6 @@
 // The node's widgets, last-run wildcard results, the expand button, and the editor's state variables.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
-import { svgIcon, autocompleteWidgets, getSetting, SET, autoApartSettings, editSettings, llmCacheSettings, controlFiles, addExpandButton, textHistory } from "../rg_shared.js";
+import { svgIcon, autocompleteWidgets, getSetting, SET, autoSeparateSettings, editSettings, llmCacheSettings, controlFiles, addExpandButton, textHistory } from "../rg_shared.js";
 import { ALL } from "./shared.js";
 import { locale } from "../rg_i18n.js";
 import { emptyState } from "./state.js";
@@ -57,7 +57,7 @@ export function* core(E) {
             try {
                 const d = JSON.parse(v || "{}");
                 if (!d || typeof d !== "object" || Array.isArray(d)) return v;
-                d.autoApart = autoApartSettings();
+                d.autoSeparate = autoSeparateSettings();
                 const hint = E.downstreamFormat();
                 if (hint) d.promptFormatHint = hint;
                 const pick = node.properties?.rg_model_pick;

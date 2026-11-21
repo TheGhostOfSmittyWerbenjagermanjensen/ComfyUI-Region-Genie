@@ -1,12 +1,14 @@
 {
   "settingsCategories": {
+    "Basics": "Basics",
     "Canvas tools": "Canvas tools",
     "Control": "Control",
     "Edit Mode": "Edit Mode",
     "Image size": "Image size",
     "LLM Prompt Enhancer": "LLM Prompt Enhancer",
     "LLM cache": "LLM cache",
-    "Model files": "Model files",
+    "Models and files": "Models and files",
+    "Other nodes": "Other nodes",
     "Region Genie": "Region Genie",
     "Region Genie node": "Region Genie node",
     "Regional LoRAs": "Regional LoRAs",

@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.40.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.44.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -66,7 +66,7 @@ flowchart LR
 ```
 
 1. Add the **Region Genie** node (search for "genie"). Connect your loader's `model`, `clip` and `vae` to it.
-2. Set the image size in the row at the top of the node.
+2. Set the image size in the row at the top of the node: by aspect ratio, from your presets list, or by hand (width and height, with a step size for their arrows).
 3. Press the add-region button under the canvas and drag a box. Type that region's prompt in the list. Repeat for each region.
 4. Describe the whole picture in `scene_prompt_positive`.
 5. Connect the node's `model`, `positive`, `negative` and `latent` outputs to your sampler, and run.
@@ -104,6 +104,29 @@ Draw regions with shapes, a brush, a lasso or a fill. Each region is one color w
 <img src="docs/images/lora.png" alt="A region opened in the list, with a LoRA of its own" width="460">
 
 → [Regional LoRAs](docs/regional-loras.md)
+
+### Separation and until
+
+Two numbers in the list header decide how much the regions are kept from influencing each other. They show once a region has a LoRA or **Separate** is on.
+
+**separation** (0 to 1): how strongly.
+
+- **Low:** the regions blend into one picture. Lighting and style stay consistent, but styles and details can mix between regions.
+- **High:** each region keeps its own look. Styles stay where they belong, but the seams between regions can show, like a collage.
+
+**until** (0 to 1): for how much of the sampling, counted from the first step.
+
+- **Low:** only the first steps are separate. They set where things go; the rest blends everything together.
+- **High:** the regions stay separate for longer. 1 means every step.
+
+Good starting points:
+
+| Goal | separation | until |
+|---|---|---|
+| Smooth integration of objects, characters and styles (the default) | 0.4 | 0.1 |
+| Strong style separation | 0.85–0.99 | 0.1–0.5 |
+
+→ [More in the manual](docs/regional-loras.md#separation-and-until)
 
 ### Control
 
@@ -165,7 +188,7 @@ All nodes are in the **Region Genie** category, and their names end in ✨.
 | Page | What it covers |
 |---|---|
 | [Region Genie (the node)](docs/region-genie.md) | Image size, regions, layers, tools, text boxes, outputs, prompt formats, Settings |
-| [Regional LoRAs](docs/regional-loras.md) | LoRAs per region, keeping regions apart, the Regional LoRAs node |
+| [Regional LoRAs](docs/regional-loras.md) | LoRAs per region, keeping regions separate, the Regional LoRAs node |
 | [Control (ControlNet)](docs/control.md) | Control rows, control maps, the files each model uses |
 | [Edit Mode](docs/edit-mode.md) | Image-to-image with regions, Edit rows and edit LoRAs |
 | [LLM Prompt Enhancer](docs/llm-prompt-enhancer.md) | Writing and improving prompts with a local LLM |

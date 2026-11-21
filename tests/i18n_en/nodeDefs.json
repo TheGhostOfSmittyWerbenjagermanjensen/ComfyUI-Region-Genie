@@ -104,7 +104,7 @@
     "outputs": {
       "0": {
         "name": "model",
-        "tooltip": "The connected model with the LoRAs: Whole image's merged in, each region's acting only inside its region (one pass; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with 'positive' as the prompt. Unchanged when no LoRA is set, the regions aren't kept apart and no Anima Control row is used."
+        "tooltip": "The connected model with the LoRAs: Whole image's merged in, each region's acting only inside its region (one pass; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with 'positive' as the prompt. Unchanged when no LoRA is set, the regions aren't kept separate and no Anima Control row is used."
       },
       "1": {
         "name": "positive",
@@ -120,7 +120,7 @@
       },
       "4": {
         "name": "prompt",
-        "tooltip": "The prompt as text, in the model's format.\nMOSS-Image: Layout JSON (plain text instead in standard mode, when there are no regions, and in Edit Mode).\nIdeogram 4: Caption JSON.\nOther models: Plain text (the scene, then each region's prompt).\nThe node's model dropdown picks the format; on auto: The connected model, else the clip, else the text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director.\nPlain text doesn't say where the regions are: The node's Separate button (keep all regions apart; needs model and clip) ties each region's sentence to its region."
+        "tooltip": "The prompt as text, in the model's format.\nMOSS-Image: Layout JSON (plain text instead in standard mode, when there are no regions, and in Edit Mode).\nIdeogram 4: Caption JSON.\nOther models: Plain text (the scene, then each region's prompt).\nThe node's model dropdown picks the format; on auto: The connected model, else the clip, else the text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director.\nPlain text doesn't say where the regions are: The node's Separate button (keep all regions separate; needs model and clip) ties each region's sentence to its region."
       },
       "5": {
         "name": "color_map",
@@ -336,22 +336,22 @@
       },
       "region_separation": {
         "name": "region_separation",
-        "tooltip": "inside the model only. How strongly regions are kept apart in attention. It applies to the image of different LoRA regions (every mask with separate_all_regions) for the first separation_until of the steps, and to each LoRA region's caption against the other regions at every step. Higher keeps each LoRA's style in its region.\n1: Fully separate (may look like a collage at the seams).\n0: Off."
+        "tooltip": "inside the model only.\nregion_separation: How strongly the regions are kept from influencing each other while the image forms (0 to 1; higher = more separate). It applies to the regions with LoRAs, or to every mask with separate_all_regions.\nSmooth integration of objects, characters and styles: 0.4 with separation_until 0.1 (the default).\nStrong style separation: 0.85-0.99 with separation_until 0.1-0.5."
       },
       "separation_until": {
         "name": "separation_until",
-        "tooltip": "inside the model only. Keep the image of the regions apart for this fraction of the steps (1 = all steps). Early steps set the layout and style of each region; letting the later steps see across regions blends the seams (0.1-0.5 works well with region_separation 0.85-0.99)."
+        "tooltip": "inside the model only.\nseparation_until: The share of the steps, counted from the start, in which the regions are kept separate (0 to 1); the remaining steps blend them together.\nSmooth integration of objects, characters and styles: 0.1 with region_separation 0.4 (the default).\nStrong style separation: 0.1-0.5 with region_separation 0.85-0.99."
       },
       "loras_data": {
         "name": "loras_data"
       },
       "separate_all_regions": {
         "name": "separate_all_regions",
-        "tooltip": "On: Every mask is kept apart from the others (and from the background) for the first separation_until of the steps, at region_separation, with or without LoRAs, and each region's caption speaks only to its own region.\nOff: Only masks with LoRAs are kept apart.\nMOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 with lora_masking 'inside the model' only; a little slower and more VRAM while active."
+        "tooltip": "On: Every mask is kept separate from the others (and from the background) for the first separation_until of the steps, at region_separation, with or without LoRAs, and each region's caption speaks only to its own region.\nOff: Only masks with LoRAs are kept separate.\nMOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 with lora_masking 'inside the model' only; a little slower and more VRAM while active."
       },
       "share_background": {
         "name": "share_background",
-        "tooltip": "inside the model only.\nOn: The regions that are kept apart (masks with LoRAs, or every mask with separate_all_regions) stay apart from each other, but not from the rest of the image, so lighting, perspective and setting stay one picture. Each region's caption still speaks only to its own region.\nOff: They are kept apart from the rest of the image too."
+        "tooltip": "inside the model only.\nOn: The regions that are kept separate (masks with LoRAs, or every mask with separate_all_regions) stay separate from each other, but not from the rest of the image, so lighting, perspective and setting stay one picture. Each region's caption still speaks only to its own region.\nOff: They are kept separate from the rest of the image too."
       },
       "wildcard_seed": {
         "name": "wildcard_seed",

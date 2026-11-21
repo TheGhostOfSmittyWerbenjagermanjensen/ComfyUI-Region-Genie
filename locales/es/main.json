@@ -6,7 +6,6 @@
     "Image size": "Tamaño de imagen",
     "LLM Prompt Enhancer": "Mejorador de prompts LLM",
     "LLM cache": "Caché LLM",
-    "Model files": "Archivos de modelo",
     "Region Genie": "Region Genie",
     "Region Genie node": "Nodo Region Genie",
     "Regional LoRAs": "LoRAs regionales",
@@ -14,7 +13,10 @@
     "Select object": "Seleccionar objeto",
     "Tag autocomplete": "Autocompletado de etiquetas",
     "Text size": "Tamaño del texto",
-    "Wildcards (Impact Pack)": "Comodines (Impact Pack)"
+    "Wildcards (Impact Pack)": "Comodines (Impact Pack)",
+    "Models and files": "Modelos y archivos",
+    "Other nodes": "Otros nodos",
+    "Basics": "Básico"
   },
   "regionGenie": {
     "choices": {

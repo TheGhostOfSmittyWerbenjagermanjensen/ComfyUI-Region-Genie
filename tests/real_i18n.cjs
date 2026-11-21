@@ -102,18 +102,27 @@ const plain = (t) => t.replace(/\{'([^']*)'\}/g, "$1");      // vue-i18n's liter
             await page.keyboard.press("Control+,"); await sleep(1500);
             await page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); });
             await sleep(3500);
-            const s = await page.evaluate(() => (document.querySelector('[role="dialog"]')?.innerText || ""));
+            // round 50: the tab's rows, then every page of the Region Genie settings window
+            let s = await page.evaluate(() => (document.querySelector('[role="dialog"]')?.innerText || ""));
+            const first = page.locator('[role="dialog"] .rg-page-row button').first(); await first.scrollIntoViewIfNeeded(); await first.click(); await sleep(900);
+            const navN = await page.locator(".rg-setwin-nav button").count();
+            for (let i = 0; i < navN; i++) { await page.locator(".rg-setwin-nav button").nth(i).click(); await sleep(350);
+                s += "\n" + await page.evaluate(() => { const w = document.querySelector(".rg-setwin"); return w.innerText + "\n" + [...w.querySelectorAll("option")].map((o) => o.textContent).join("\n"); }); }
+            check(T(`the settings window opens with ${navN} pages`), navN === 11);
             const squash = (t) => t.replace(/\s+/g, " ");
             const visible = Object.keys(en.settings);
             const miss = visible.filter((k) => !squash(s).includes(squash(plain(settings[k].name)).trim()));
             check(T(`the Settings dialog shows every translated Setting name (${visible.length}${miss.length ? `; missing: ${miss.slice(0, 4).join(" | ")}` : ""})`), !miss.length);
-            const cats = Object.entries(main.settingsCategories).filter(([k]) => k !== "Region Genie");
+            // the sections that are shown: the tab's three, and the headings of the pages made of several old sections
+            const SHOWN = ["Basics", "Models and files", "Other nodes", "Region Genie node", "Tag autocomplete", "Wildcards (Impact Pack)", "LLM Prompt Enhancer", "LLM cache"];
+            const cats = Object.entries(main.settingsCategories).filter(([k]) => SHOWN.includes(k));
             const cmiss = cats.filter(([, v]) => !s.includes(plain(v))).map(([k]) => k);
             check(T(`and every translated section name (${cats.length}${cmiss.length ? `; missing: ${cmiss.join(" | ")}` : ""})`), !cmiss.length);
             const opt = settings.RegionGenie_Size_Mode?.options || {};
             check(T(`and translated options (${Object.values(opt)[0]})`), Object.values(opt).some((v) => s.includes(plain(v))));
             await page.screenshot({ path: path.join(__dirname, "out", `i18n_${lang}_${vue ? "vue" : "legacy"}_settings.png`) });
-            await page.keyboard.press("Escape"); await sleep(500);
+            await page.keyboard.press("Escape"); await sleep(400);          // the window
+            await page.keyboard.press("Escape"); await sleep(500);          // ComfyUI's Settings
             const errs = errors.filter((e) => !/ResizeObserver/.test(e));
             check(T(`no script errors${errs.length ? ` (${errs.slice(0, 2).join(" | ")})` : ""}`), !errs.length);
         }

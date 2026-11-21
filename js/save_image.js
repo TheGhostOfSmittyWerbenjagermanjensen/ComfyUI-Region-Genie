@@ -273,7 +273,7 @@ app.registerExtension({
                 const x = onExec?.apply(this, arguments);
                 const s = message?.rg_saved?.[0];
                 if (s) {
-                    // the images' total; the JPEG .json files (the workflow) apart
+                    // the images' total; the JPEG .json files (the workflow) separately
                     const isJson = (f) => /\.json$/i.test(f.name), sum = (a) => a.reduce((t, f) => t + (f.bytes || 0), 0);
                     const imgs = (s.files || []).filter((f) => !isJson(f)), jsons = (s.files || []).filter(isJson);
                     let main = imgs.length > 1 ? `${imgs.length} × ${s.label} · ${fmtSize(sum(imgs))} total` : `${s.label} · ${fmtSize(sum(imgs))}`;

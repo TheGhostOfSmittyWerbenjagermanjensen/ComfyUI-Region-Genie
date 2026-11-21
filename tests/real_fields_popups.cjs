@@ -89,7 +89,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     let a = await tipAudit();
     check(`${M}: every control has a tooltip and isn't redrawn (${a.n} controls)` + (a.bad.length ? ": " + a.bad.slice(0, 5).join("; ") : ""), a.n > 30 && !a.bad.length);
     const linkTip = await page.evaluate(async () => {
-        const seg = [...document.querySelectorAll(".rg-size button")].find((b) => /typed in/.test(b.title)); seg.click();
+        const seg = [...document.querySelectorAll(".rg-size button")].find((b) => /^Manual: /.test(b.title)); seg.click();
         await new Promise((r) => setTimeout(r, 700));
         const l = [...document.querySelectorAll(".rg-size button")].find((b) => /ratio/.test(b.title) && b.offsetParent && /Keep the ratio|Ratio kept/.test(b.title));
         const first = l?.firstChild;
@@ -98,25 +98,48 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     check(`${M}: the chain button has a tooltip and keeps it (not redrawn every half second)`, /Keep the ratio/.test(linkTip.tip) && linkTip.same);
 
-    // ---------------- presets mode keeps the size; ＋ Current size adds it
-    const sz = await page.evaluate(async () => {
-        const row = document.querySelector(".rg-size"), W = () => ["width", "height"].map((n) => window.__rg.widgets.find((w) => w.name === n).value);
-        const man = row.querySelectorAll(".rg-size-part")[2].querySelectorAll("input");
-        man[0].value = "1000"; man[0].dispatchEvent(new Event("change")); man[1].value = "760"; man[1].dispatchEvent(new Event("change"));
-        await new Promise((r) => setTimeout(r, 100));
-        [...row.querySelectorAll("button")].find((b) => /presets list/.test(b.title)).click();
-        await new Promise((r) => setTimeout(r, 200));
-        const pre = row.querySelector("select.rg-size-pre");
-        return { wv: W(), extra: pre.querySelector("option[data-extra]")?.textContent || "", val: pre.value };
-    });
-    check(`${M}: presets mode keeps the manual size (1000 x 760, 'not in the list')`, JSON.stringify(sz.wv) === "[1000,760]" && /not in the list/.test(sz.extra) && sz.val === "1000x760");
-    await page.locator("select.rg-size-pre").first().selectOption("__edit__");
-    await sleep(200);
-    await page.locator(".rg-presets button", { hasText: "Current size" }).click();
-    await sleep(200);
-    const added = await page.evaluate(() => ({ set: window.app.extensionManager.setting.get("RegionGenie.Size.Presets"),
-        extra: !!document.querySelector("select.rg-size-pre option[data-extra]") }));
-    check(`${M}: ＋ Current size adds it to the list`, /1000x760/.test(added.set) && !added.extra);
+    // ---------------- round 51: presets mode keeps its own last preset; the other modes' sizes are offered as entries to add
+    const W2 = () => page.evaluate(() => ["width", "height"].map((n) => window.__rg.widgets.find((w) => w.name === n).value));
+    const modeBtn = (re) => page.evaluate((src) => { [...document.querySelector(".rg-size").querySelectorAll("button")].find((b) => new RegExp(src).test(b.title)).click(); }, re.source);
+    const pre = page.locator("select.rg-size-pre").first();
+    const optTexts = () => pre.evaluate((s) => [...s.options].map((o) => o.textContent));
+    await modeBtn(/presets list/); await sleep(200);
+    await pre.selectOption("1216x832"); await sleep(200);
+    const p0 = await W2();
+    await modeBtn(/^Manual: /); await sleep(200);
+    // round 53: the step size box is in the row and fits (the size readout on the right stays whole)
+    const stepFit = await page.evaluate(() => { const row = document.querySelector(".rg-size"), part = row.querySelectorAll(".rg-size-part")[2], st = part.querySelectorAll("input")[2], out = row.querySelector(".rg-size-out");
+        const r = row.getBoundingClientRect(), s = st.getBoundingClientRect(), o = out.getBoundingClientRect();
+        return { v: st.value, tip: st.title, in: s.width > 20 && s.right <= o.left + 1 && o.right <= r.right + 1 && out.scrollWidth <= out.clientWidth + 1, w: [Math.round(s.right - r.left), Math.round(o.right - r.left), Math.round(r.width)] }; });
+    check(`${M}: manual mode has the step size box (64), and the row still fits (${stepFit.w})`, stepFit.v === "64" && /^Step size: /.test(stepFit.tip) && stepFit.in);
+    if (process.env.RG_SHOT) await page.locator(".rg-size").first().screenshot({ path: process.env.RG_SHOT + (process.argv.includes("vue") ? "_vue" : "") + ".png" });
+    await page.evaluate(async () => { const man = document.querySelector(".rg-size").querySelectorAll(".rg-size-part")[2].querySelectorAll("input");
+        man[0].value = "1000"; man[0].dispatchEvent(new Event("change")); man[1].value = "760"; man[1].dispatchEvent(new Event("change")); await new Promise((r) => setTimeout(r, 100)); });
+    const m0 = await W2();
+    await modeBtn(/presets list/); await sleep(250);
+    const sz = { wv: await W2(), val: await pre.inputValue(), opts: await optTexts() };
+    check(`${M}: back in presets mode the preset picked there last time is the size again (${p0} -> manual ${m0} -> ${sz.wv})`, JSON.stringify(p0) === "[1216,832]" && JSON.stringify(m0) === "[1000,760]"
+        && JSON.stringify(sz.wv) === "[1216,832]" && sz.val === "1216x832" && !sz.opts.some((t) => /not in the list/.test(t)));
+    const adds = sz.opts.filter((t) => /^＋ Add/.test(t));
+    check(`${M}: its dropdown offers the manual size to add; the aspect ratio size (1024 x 1024) is in the list already, so it isn't offered (${adds.join(" | ")})`,
+        adds.length === 1 && /1000 × 760/.test(adds[0]) && /manual/.test(adds[0]) && /Edit list…/.test(sz.opts[sz.opts.length - 1]));
+    await pre.selectOption("__add__:1000x760"); await sleep(300);
+    const added = { set: await page.evaluate(() => window.app.extensionManager.setting.get("RegionGenie.Size.Presets")), wv: await W2(), val: await pre.inputValue(), opts: await optTexts() };
+    check(`${M}: picking it adds the size to the list (every node's) and makes it this node's size`, /1000x760/.test(added.set) && JSON.stringify(added.wv) === "[1000,760]" && added.val === "1000x760"
+        && !added.opts.some((t) => /^＋ Add/.test(t)) && added.opts.some((t) => /^1000 × 760/.test(t)));
+    await modeBtn(/aspect ratio/); await sleep(200);
+    await page.evaluate(async () => { const a = document.querySelector(".rg-size").querySelectorAll(".rg-size-part")[0].querySelector("select"); a.value = [...a.options].find((o) => /16:9/.test(o.value)).value; a.dispatchEvent(new Event("change")); await new Promise((r) => setTimeout(r, 100)); });
+    const r0 = await W2();
+    await modeBtn(/presets list/); await sleep(250);
+    const o2 = await optTexts();
+    check(`${M}: the aspect ratio mode's size is offered the same way, and presets mode still has its own size (${r0} offered; size ${await W2()})`, o2.some((t) => new RegExp(`^＋ Add ${r0[0]} × ${r0[1]}`).test(t) && /aspect ratio/.test(t))
+        && JSON.stringify(await W2()) === "[1000,760]");
+    await pre.selectOption("__edit__"); await sleep(250);
+    const eb = await page.locator(".rg-presets .rg-presets-adds button").allTextContents();
+    check(`${M}: 'Edit list…' has a button for it too, and no '＋ Current size' (${eb.join(" | ")})`, eb.length === 1 && eb[0].includes(`${r0[0]} × ${r0[1]}`) && await page.locator(".rg-presets button", { hasText: "Current size" }).count() === 0);
+    await page.locator(".rg-presets .rg-presets-adds button").first().click(); await sleep(250);
+    check(`${M}: …which adds it to the list without changing this node's size`, new RegExp(`${r0[0]}x${r0[1]}`).test(await page.evaluate(() => window.app.extensionManager.setting.get("RegionGenie.Size.Presets")))
+        && JSON.stringify(await W2()) === "[1000,760]" && await page.locator(".rg-presets .rg-presets-adds button").count() === 0);
     await page.evaluate(() => [...document.querySelectorAll(".rg-presets button")].find((b) => b.dataset.ic === "close" && /Close/.test(b.title))?.click());
     await page.evaluate(() => window.app.extensionManager.setting.set("RegionGenie.Size.Presets", "1024x1024; 1152x896; 896x1152; 1216x832; 832x1216; 1344x768; 768x1344; 1536x640; 640x1536"));
 
@@ -298,14 +321,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: Krea 2: background hidden again`, s3.bgHidden && s3.sceneBoxes === 2);
     const tip = await page.evaluate(() => document.querySelector("select.rg-model").title);
     check(`${M}: the model dropdown's tooltip says it sets the prompt format`, /format of the 'prompt' and 'positive'/.test(tip));
-    // round 13: MOSS-Image's standard mode is plain text too, so it has its own 'keep all regions apart automatically'
-    const mossApart = await page.evaluate(async () => {
-        const s = window.app.extensionManager.setting, id = "RegionGenie.Main.AutoApart.MOSS";
+    // round 13: MOSS-Image's standard mode is plain text too, so it has its own 'keep all regions separate automatically'
+    const mossSeparate = await page.evaluate(async () => {
+        const s = window.app.extensionManager.setting, id = "RegionGenie.Main.AutoSeparate.MOSS";
         const def = window.app.ui.settings.settingsParamLookup?.[id] || s.settingsById?.[id];
         await s.set(id, "off");
         const pd = JSON.parse(await window.__rg.widgets.find((w) => w.name === "paint_data").serializeValue());      // await: another pack may wrap it (ComfyUI-Custom-Scripts does)
         await s.set(id, "default");
-        return { name: def?.name || "", sent: pd.autoApart?.["MOSS-Image"], keys: Object.keys(pd.autoApart || {}).join(",") };
+        return { name: def?.name || "", sent: pd.autoSeparate?.["MOSS-Image"], keys: Object.keys(pd.autoSeparate || {}).join(",") };
     });
     // round 16: the node says MOSS-Image everywhere, and stores it so (round 17)
     await page.locator("select.rg-model").first().selectOption("MOSS-Image"); await sleep(600);
@@ -331,8 +354,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         .flatMap((d) => [d.name, d.tooltip || ""]).filter((t) => /MOSS[ -]Image/.test(t)));
     check(`${M}: Settings say MOSS-Image (the official name), never 'MOSS Image' (${mossNames.length} mentions)`,
         mossNames.length >= 6 && mossNames.every((t) => !/MOSS Image/.test(t)));
-    check(`${M}: Settings has 'MOSS-Image: keep all regions apart automatically', sent with the run (${mossApart.name}; ${mossApart.keys}; ${mossApart.sent})`,
-        /^MOSS-Image/.test(mossApart.name) && mossApart.sent === "off");
+    check(`${M}: Settings has 'MOSS-Image: keep all regions separate automatically', sent with the run (${mossSeparate.name}; ${mossSeparate.keys}; ${mossSeparate.sent})`,
+        /^MOSS-Image/.test(mossSeparate.name) && mossSeparate.sent === "off");
     // an old workflow with the format select set
     const mig = await page.evaluate(async () => {
         const app = window.app;

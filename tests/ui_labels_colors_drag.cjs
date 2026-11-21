@@ -54,11 +54,11 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("the double-click drew nothing and moved nothing", JSON.stringify((await st()).layers) === JSON.stringify(s0.layers));
 
     // ---- Settings > Region colors: the user's own list
-    const def = await page.evaluate(() => { const s = window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Main.RegionColors"); return s && { fn: typeof s.type === "function", d: s.defaultValue }; });
+    const def = await page.evaluate(() => { const s = window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Main.RegionColors"); return s && { fn: typeof (s.rgType || s.type) === "function", d: s.defaultValue }; });
     check("Settings: 'Region colors' starts with purple and golden yellow", def?.fn && def.d.startsWith("#8F73D1, #E3B341"));
     const ui = await page.evaluate(async () => {
         const s = window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Main.RegionColors");
-        let set = null; const el = s.type(s.name, (v) => { set = v; }, "#FF8800, #00AAFF, #000000, bad, #ff8800");
+        let set = null; const el = (s.rgType || s.type)(s.name, (v) => { set = v; }, "#FF8800, #00AAFF, #000000, bad, #ff8800");
         document.body.appendChild(el); el.id = "colorsUi";
         const sw = () => [...el.querySelectorAll(".sw")].map((b) => b.dataset.color);
         const a = sw();

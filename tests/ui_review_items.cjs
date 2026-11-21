@@ -207,7 +207,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         await new Promise((r) => setTimeout(r, 300));          // the count is filled in once the shortcut file is loaded
         return { name: s?.name, cat: s?.category?.slice(0, 2).join(" > "), btn: el?.querySelector("button")?.textContent, info: el?.querySelector("span")?.textContent,
             oldRows: ["RegionGenie.Main.LargeEditorKey", "RegionGenie.Popup.PrevKey", "RegionGenie.Popup.NextKey"].map((id) => all.find((x) => x.id === id)?.type).join() }; });
-    check(`Settings > Region Genie > Region Genie node has one 'Shortcuts' row with an Edit… button (${setRow.info}); the three key rows are gone`, setRow.name === "Shortcuts" && setRow.cat === "Region Genie > Region Genie node"
+    check(`Settings > Region Genie has one 'Shortcuts' row with an Edit… button (${setRow.info}); the three key rows are gone`, setRow.name === "Shortcuts" && setRow.cat === "Region Genie > Basics"
         && setRow.btn === "Edit…" && setRow.info === "All default" && setRow.oldRows === "hidden,hidden,hidden");
     await page.locator(".rg-keys-set button").click(); await page.waitForTimeout(150);
     sh = await sheet();

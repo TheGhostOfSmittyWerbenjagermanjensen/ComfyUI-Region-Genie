@@ -45,7 +45,9 @@ async function collect(page) {
         }
         const settings = {}, categories = new Set();
         for (const s of Object.values(window.app.ui.settings.settingsParamLookup)) {
-            if (!/^RegionGenie\./.test(s.id) || s.type === "hidden") continue;
+            // a setting on a page of the Region Genie settings window is "hidden" for ComfyUI's own list, but shown (and
+            // translated) in the window: rgPage marks those
+            if (!/^RegionGenie\./.test(s.id) || (s.type === "hidden" && !s.rgPage)) continue;
             const e = { name: s.name };
             if (s.tooltip) e.tooltip = s.tooltip;
             if (Array.isArray(s.options)) {
@@ -54,6 +56,7 @@ async function collect(page) {
             }
             settings[s.id] = e;
             (s.category || []).slice(0, 2).forEach((c) => categories.add(c));
+            if (s.rgPage && s.rgSection) categories.add(s.rgSection);      // a heading on its page of the settings window
         }
         return { nodes, settings, categories: [...categories] };
     });

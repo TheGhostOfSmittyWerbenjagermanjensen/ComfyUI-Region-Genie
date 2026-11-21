@@ -77,29 +77,29 @@ check("the downstream text encoder hint still applies", fam == "plain")
 # round 17: paint data saved (or API prompts made) when the model was stored as 'MOSS Image'
 p, f = run({"modelPick": "MOSS Image"})
 check("old pick 'MOSS Image': still MOSS layout JSON", f == "MOSS JSON" and json.loads(p)["items"][0]["caption"] == "a red cat")
-old = json.dumps({"modelPick": "MOSS Image", "autoApart": {"MOSS Image": "off"}, "regions": [{"prompt": "MOSS Image"}],
+old = json.dumps({"modelPick": "MOSS Image", "autoSeparate": {"MOSS Image": "off"}, "regions": [{"prompt": "MOSS Image"}],
                   "sceneLoras": [{"lora": "a", "edit": "MOSS Image"}, {"lora": "b", "control": "MOSS Image", "ckind": "moss"}]})
 new = json.loads(rg.migrate_names(old))
-check("migrate_names: pick, autoApart key and LoRA tags renamed, a prompt left as it is",
-      new["modelPick"] == "MOSS-Image" and new["autoApart"] == {"MOSS-Image": "off"} and new["regions"][0]["prompt"] == "MOSS Image"
+check("migrate_names: pick, autoSeparate key and LoRA tags renamed, a prompt left as it is",
+      new["modelPick"] == "MOSS-Image" and new["autoSeparate"] == {"MOSS-Image": "off"} and new["regions"][0]["prompt"] == "MOSS Image"
       and new["sceneLoras"][0]["edit"] == "MOSS-Image" and new["sceneLoras"][1]["control"] == "MOSS-Image")
 spaced = json.loads(rg.migrate_names(json.dumps(json.loads(old), indent=1)))
-check("migrate_names: also with spaces after ':'", spaced["modelPick"] == "MOSS-Image" and spaced["autoApart"] == {"MOSS-Image": "off"})
+check("migrate_names: also with spaces after ':'", spaced["modelPick"] == "MOSS-Image" and spaced["autoSeparate"] == {"MOSS-Image": "off"})
 check("migrate_names: leaves other data alone", rg.migrate_names('{"v": 2}') == '{"v": 2}' and rg.migrate_names(None) is None)
 
-# ---------------------------------------------------------------- keep all regions apart by itself, and switched off on the node
+# ---------------------------------------------------------------- keep all regions separate by itself, and switched off on the node
 import types  # noqa: E402
 from rgpack import regional_lora as hl  # noqa: E402
 _arch, _ok = hl.model_arch, hl.one_pass_ok
 hl.model_arch = lambda m: types.SimpleNamespace(name="Krea 2", family="Krea 2")
 hl.one_pass_ok = lambda m: False                       # stop right after the decision (no sampling code in this test)
-def auto_apart(opts):
+def auto_separate(opts):
     st, notes = {}, []
-    pd = json.dumps({"loraOpts": opts, "autoApart": {"all": True}})
+    pd = json.dumps({"loraOpts": opts, "autoSeparate": {"all": True}})
     rg.RegionGenie._regional_loras(object(), object(), pd, [{"out_index": 0, "prompt": "a cat", "loras": []}], None, "", None, notes, status=st, family="plain")
-    return bool(st.get("auto_apart"))
-check("a model without a layout format: keep all regions apart turns on by itself", auto_apart({}) is True)
-check("switched off on the node (autoOff): it stays off", auto_apart({"autoOff": True}) is False)
+    return bool(st.get("auto_separate"))
+check("a model without a layout format: keep all regions separate turns on by itself", auto_separate({}) is True)
+check("switched off on the node (autoOff): it stays off", auto_separate({"autoOff": True}) is False)
 hl.model_arch, hl.one_pass_ok = _arch, _ok
 
 # ---- round 40: one size_from input (an image or a latent); the guard for a node that shows only some outputs

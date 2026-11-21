@@ -1,14 +1,14 @@
-// The brush size slider on the canvas, the list header's options (keep apart, edit mask), sub-sections and the list height.
+// The brush size slider on the canvas, the list header's options (keep separate, edit mask), sub-sections and the list height.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { app } from "../../../scripts/app.js";
-import { svgIcon, setHTML, contextMenu, editMaskDefaults, getSetting, setSetting, SET, hintsListeners } from "../rg_shared.js";
+import { svgIcon, setHTML, contextMenu, editMaskDefaults, getSetting, setSetting, SET, hintsListeners, SEPARATION_TIP, UNTIL_TIP } from "../rg_shared.js";
 import { UNSPEC, LASSO_MODES } from "./shared.js";
 import { keyed, keyText } from "../rg_keys.js";
 import { normLoraOpts, normEditMask } from "./state.js";
 
 export function* canvasUi(E) {
     Object.assign(E, {
-        updateBrushSlider, setAllApartBtn, syncEditMaskBox, syncTips,
+        updateBrushSlider, setAllSeparateBtn, syncEditMaskBox, syncTips,
     });
     yield;
 
@@ -184,38 +184,36 @@ export function* canvasUi(E) {
     const statusLbl = E.el("span", "rg-hint rg-status"); E.statusLbl = statusLbl;
     const loraOptsBox = E.el("span", "rg-loraopts");
     const sepIn = E.el("input", "rg-num"); E.sepIn = sepIn; sepIn.type = "number"; sepIn.min = "0"; sepIn.max = "1"; sepIn.step = "0.05";
-    sepIn.title = "separation: How much attention between the image of different LoRA regions is removed "
-        + "(MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5; model output). Higher keeps each LoRA's style in its region; 1 = fully separate.";
+    sepIn.title = SEPARATION_TIP;
     const untilIn = E.el("input", "rg-num"); E.untilIn = untilIn; untilIn.type = "number"; untilIn.min = "0"; untilIn.max = "1"; untilIn.step = "0.05";
-    untilIn.title = "until: The separation is applied for this fraction of the steps; the rest blends the seams. "
-        + "0.1-0.5 with separation 0.85-0.99 works well.";
+    untilIn.title = UNTIL_TIP;
     const optChange = () => E.change(() => {
         E.state.loraOpts = normLoraOpts({ ...normLoraOpts(E.state.loraOpts), separation: sepIn.value, until: untilIn.value });
     });
-    // keep all regions apart (not only those with LoRAs)
-    const allApartBtn = E.btn("", "", () => {
+    // keep all regions separate (not only those with LoRAs)
+    const allSeparateBtn = E.btn("", "", () => {
         // a real switch of what the button shows: on (set here, or by itself in the last run) -> off for this node,
         // also where a run would turn it on by itself; off -> on
         E.change(() => {
-            const o = normLoraOpts(E.state.loraOpts), shown = !!o.allRegions || (E.autoApart && !o.autoOff);
+            const o = normLoraOpts(E.state.loraOpts), shown = !!o.allRegions || (E.autoSeparate && !o.autoOff);
             E.state.loraOpts = normLoraOpts({ ...o, allRegions: !shown, autoOff: shown });
         });
         E.refreshUI();
     });
-    allApartBtn.classList.add("mixed", "toggle", "variants", "rg-apart");
-    // right-click: the two choices as check items (keep all regions apart / share the background)
-    allApartBtn.addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
-    allApartBtn.addEventListener("contextmenu", (e) => {
+    allSeparateBtn.classList.add("mixed", "toggle", "variants", "rg-separate");
+    // right-click: the two choices as check items (keep all regions separate / share the background)
+    allSeparateBtn.addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
+    allSeparateBtn.addEventListener("contextmenu", (e) => {
         e.preventDefault(); e.stopPropagation();
         const o = normLoraOpts(E.state.loraOpts);
         const mark = (on) => (on ? "✓ " : " ");
         const items = [
-            { content: mark(o.allRegions) + "Keep all regions apart", v: "all" },
+            { content: mark(o.allRegions) + "Keep all regions separate", v: "all" },
             { content: mark(!o.allRegions && !o.autoOff) + "Automatic (as set in Settings)", v: "auto" },
             { content: mark(o.autoOff) + "Off for this node", v: "off" },
             { content: mark(o.shareBg) + "Share the background", v: "bg" },
         ];
-        contextMenu(e, items, "Keep regions apart", (v) => {
+        contextMenu(e, items, "Keep regions separate", (v) => {
             const set = { all: (c) => ({ allRegions: !c.allRegions, autoOff: false }), auto: () => ({ allRegions: false, autoOff: false }),
                           off: () => ({ allRegions: false, autoOff: true }), bg: (c) => ({ shareBg: !c.shareBg }) }[v?.v];
             if (set) {
@@ -225,32 +223,32 @@ export function* canvasUi(E) {
             E.focusSink();
         });
     });
-    let allApartShown = null;
-    E.autoApart = false;          // the last run turned it on by itself (a model without a layout format, region prompts)
-    function setAllApartBtn() {
+    let allSeparateShown = null;
+    E.autoSeparate = false;          // the last run turned it on by itself (a model without a layout format, region prompts)
+    function setAllSeparateBtn() {
         const opts = normLoraOpts(E.state.loraOpts);
-        const own = !!opts.allRegions, auto = E.autoApart && !opts.autoOff, on = own || auto, shared = !!opts.shareBg;
+        const own = !!opts.allRegions, auto = E.autoSeparate && !opts.autoOff, on = own || auto, shared = !!opts.shareBg;
         const key = `${own}|${auto}|${!!opts.autoOff}|${shared}`;
-        if (allApartShown === key) return;
-        allApartShown = key;
-        setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart") + "<span>Separate</span>");
-        allApartBtn.classList.toggle("on", on);
-        allApartBtn.title = (own ? "Separate (keep all regions apart): ON."
-            : auto ? "Separate (keep all regions apart): ON automatically in the last run."
-            : opts.autoOff ? "Separate (keep all regions apart): OFF for this node."
-            : "Separate (keep all regions apart): OFF.")
-            + "\nOn: Every region, with or without LoRAs, is kept apart from the others and from the background for "
+        if (allSeparateShown === key) return;
+        allSeparateShown = key;
+        setHTML(allSeparateBtn, svgIcon(shared ? "allSeparateShared" : "allSeparate") + "<span>Separate</span>");
+        allSeparateBtn.classList.toggle("on", on);
+        allSeparateBtn.title = (own ? "Separate (keep all regions separate): ON."
+            : auto ? "Separate (keep all regions separate): ON automatically in the last run."
+            : opts.autoOff ? "Separate (keep all regions separate): OFF for this node."
+            : "Separate (keep all regions separate): OFF.")
+            + "\nOn: Every region, with or without LoRAs, is kept separate from the others and from the background for "
             + "the first part of sampling ('until', at 'separation'), and each region's prompt reaches only its region. "
             + "This is what places region prompts with Krea 2, Flux, Anima and SDXL / SD1.5. Needs the model on 'model'; "
             + "sampling is a little slower and uses more VRAM.\n"
-            + "Off: Only regions with LoRAs are kept apart.\n"
+            + "Off: Only regions with LoRAs are kept separate.\n"
             + "Automatic (default): A run turns it on for a model without a layout format when a region has a prompt "
-            + "(Settings > Region Genie > Region Genie node > '… keep all regions apart automatically').\n"
-            + (shared ? "Share the background: ON. The regions are kept apart from each other only, so lighting, "
+            + "(Settings > Region Genie > '… keep all regions separate automatically', and per model under 'Keeping regions separate, per model').\n"
+            + (shared ? "Share the background: ON. The regions are kept separate from each other only, so lighting, "
                 + "perspective and setting stay one picture.\n"
-                : "Share the background: OFF. The regions are kept apart from the background too.\n")
+                : "Share the background: OFF. The regions are kept separate from the background too.\n")
             + "Click: Switch what the button shows, for this node.\n"
-            + "Right-click: Keep all regions apart, Automatic, Off for this node, Share the background.";
+            + "Right-click: Keep all regions separate, Automatic, Off for this node, Share the background.";
     }
     sepIn.addEventListener("change", optChange); untilIn.addEventListener("change", optChange);
     for (const i of [sepIn, untilIn]) i.addEventListener("keydown", (e) => e.stopPropagation());
@@ -301,7 +299,7 @@ export function* canvasUi(E) {
     E.editMaskBox = editMaskBox;                   // on the Edit Mode line of the list (rows.js); it was in this header until round 40
     treeHead.append(treeTitle, addRegionBtn, addLayerBtn, expandBtns.layers, expandBtns.loras, expandBtns.palette, expandBtns.all,
                     statusLbl, loraOptsBox);
-    loraOptsBox.append(allApartBtn);           // always at the right end; the number fields come and go
+    loraOptsBox.append(allSeparateBtn);           // always at the right end; the number fields come and go
     const regList = E.el("div", "rg-list"); E.regList = regList;
     tree.append(treeHead, regList);
     // the list's open / closed parts (UI only): a region (or the whole-image row, or Unspecified) is open,

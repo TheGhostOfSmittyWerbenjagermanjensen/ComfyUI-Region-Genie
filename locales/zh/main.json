@@ -6,7 +6,6 @@
     "Image size": "图像尺寸",
     "LLM Prompt Enhancer": "LLM 提示词增强器",
     "LLM cache": "LLM 缓存",
-    "Model files": "模型文件",
     "Region Genie": "Region Genie",
     "Region Genie node": "Region Genie 节点",
     "Regional LoRAs": "区域 LoRA",
@@ -14,7 +13,10 @@
     "Select object": "选择对象",
     "Tag autocomplete": "标签自动补全",
     "Text size": "文字大小",
-    "Wildcards (Impact Pack)": "通配符（Impact Pack）"
+    "Wildcards (Impact Pack)": "通配符（Impact Pack）",
+    "Models and files": "模型与文件",
+    "Other nodes": "其他节点",
+    "Basics": "基础"
   },
   "regionGenie": {
     "choices": {

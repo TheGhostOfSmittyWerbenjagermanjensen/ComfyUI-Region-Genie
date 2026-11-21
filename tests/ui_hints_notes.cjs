@@ -59,9 +59,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.evaluate(() => { window.__settings["RegionGenie.Tools.Hints"] = true; window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.Hints").onChange(true); });
     check("hints on again: both are back", await tips() !== null && await shown(".rg-start"));
 
-    // ---- Clear all: the last button of the toolbar, apart from Undo / Redo; undoable
+    // ---- Clear all: the last button of the toolbar, separate from Undo / Redo; undoable
     const bar = await page.evaluate(() => { const k = [...document.querySelector(".rg-bar").children]; const c = k.findIndex((e) => (e.title || "").startsWith("Clear all")), r = k.findIndex((e) => (e.title || "").startsWith("Redo")); return { last: c === k.length - 1, danger: k[c].classList.contains("danger"), gap: c - r }; });
-    check("Clear all is the toolbar's last button, set apart from Undo / Redo", bar.last && bar.danger && bar.gap > 3);
+    check("Clear all is the toolbar's last button, set separate from Undo / Redo", bar.last && bar.danger && bar.gap > 3);
     await page.mouse.move(x, y); await page.keyboard.press("r");
     [x, y] = await toClient(200, 200); await page.mouse.move(x, y); await page.mouse.down(); [x, y] = await toClient(500, 500); await page.mouse.move(x, y, { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(150);
     await page.locator('.rg-bar [title^="Clear all"]').click(); await page.waitForTimeout(100);
@@ -94,22 +94,43 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await tb.click(); await page.waitForTimeout(200); await page.mouse.move(880, 1080); await page.waitForTimeout(200);
     check("another click shows them again", !!(await tips()) && await tb.evaluate((b) => b.classList.contains("on")));
 
+    // ---- round 52: a new node starts at separation 0.4 / until 0.1 and says so in its data; a node saved without the
+    // two values (before this round) keeps 0.85 / 0.25
+    const lo = await page.evaluate(() => JSON.parse(JSON.stringify(window.__node.__rgState().loraOpts || null)));
+    check(`a new node's data holds separation 0.4 and until 0.1 (${JSON.stringify(lo)})`, !!lo && lo.separation === 0.4 && lo.until === 0.1);
+    await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...s.loraOpts, allRegions: true }; n.__rgRefresh(); }); await page.waitForTimeout(200);
+    const flds = () => page.evaluate(() => [...document.querySelectorAll(".rg-loraopts input")].map((i) => i.value));
+    const tipsSU = await page.evaluate(() => [...document.querySelectorAll(".rg-loraopts input")].map((i) => i.title));
+    check(`the header's fields show them (${await flds()})`, (await flds()).join() === "0.4,0.1");
+    check("their tooltips: what it does, then the smooth-integration values (the default), then the strong-separation values", /^separation: How strongly the regions are kept from influencing each other/.test(tipsSU[0])
+        && tipsSU[0].indexOf("Smooth integration of objects, characters and styles: 0.4 with until 0.1 (the default).") > 0 && tipsSU[0].indexOf("Strong style separation: 0.85-0.99 with until 0.1-0.5.") > tipsSU[0].indexOf("Smooth integration")
+        && /^until: The share of the steps, counted from the start/.test(tipsSU[1]) && tipsSU[1].indexOf("Smooth integration of objects, characters and styles: 0.1 with separation 0.4 (the default).") > 0
+        && tipsSU[1].indexOf("Strong style separation: 0.1-0.5 with separation 0.85-0.99.") > tipsSU[1].indexOf("Smooth integration") && !/LoRA/.test(tipsSU.join(" ")));
+    const saved52 = await page.evaluate(() => JSON.stringify(window.__node.__rgState().loraOpts));
+    // a workflow saved before: its data has no values; loading it (configure) gives it the earlier defaults
+    await page.evaluate(() => { const n = window.__node, w = n.widgets.find((x) => x.name === "paint_data"), d = JSON.parse(w.value || "{}"); delete d.loraOpts; w.value = JSON.stringify(d); n.onConfigure?.({ widgets_values: n.widgets.map((x) => x.value), properties: n.properties }); });
+    await page.waitForTimeout(250);
+    const legacy = await page.evaluate(() => JSON.parse(JSON.stringify(window.__node.__rgState().loraOpts || null)));
+    await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...s.loraOpts, allRegions: true }; n.__rgRefresh(); }); await page.waitForTimeout(200);
+    check(`a node whose saved data doesn't say (saved before this version): 0.85 and 0.25 as before (${JSON.stringify(legacy)}; fields ${await flds()})`, !!legacy && legacy.separation === 0.85 && legacy.until === 0.25 && (await flds()).join() === "0.85,0.25");
+    await page.evaluate((t) => { const n = window.__node, s = n.__rgState(); s.loraOpts = JSON.parse(t); delete s.loraOpts.allRegions; n.__rgRefresh(); }, saved52); await page.waitForTimeout(150);
+
     // ---- round 48: the list header. Icons for separation / until, 'Separate' on the button; a message that doesn't
     // fit beside them gets a line of its own for as long as it shows
     await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...(s.loraOpts || {}), allRegions: true }; n.__rgRefresh(); });
     await page.waitForTimeout(250);
     const hd = await page.evaluate(() => { const b = document.querySelector(".rg-loraopts"), k = [...b.children].filter((e) => e.getClientRects().length);
-        return { kinds: k.map((e) => e.tagName === "INPUT" ? "field" : e.classList.contains("rg-apart") ? "button" : e.querySelector("svg") && !e.textContent.trim() ? "icon" : "text:" + e.textContent.trim()),
+        return { kinds: k.map((e) => e.tagName === "INPUT" ? "field" : e.classList.contains("rg-separate") ? "button" : e.querySelector("svg") && !e.textContent.trim() ? "icon" : "text:" + e.textContent.trim()),
             tips: k.slice(0, 4).every((e) => e.title && e.title.length > 20), same: k[0].title === k[1].title && k[2].title === k[3].title, h: Math.round(document.querySelector(".rg-head").getBoundingClientRect().height) }; });
     check(`with 'Separate' on: an icon and a field for separation, an icon and a field for until, then the button; no words (${hd.kinds.join(" ")})`, hd.kinds.join(" ") === "icon field icon field button" && hd.tips && hd.same);
-    check("the button says 'Separate'", (await page.locator(".rg-apart").innerText()).trim() === "Separate" && await page.locator(".rg-apart svg").count() === 1);
+    check("the button says 'Separate'", (await page.locator(".rg-separate").innerText()).trim() === "Separate" && await page.locator(".rg-separate svg").count() === 1);
     await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = "560px"; }); await page.waitForTimeout(150);      // the editor's width in a 580 px node
     check("the header is one line at the new default width (560 px inside a 580 px node)", await page.evaluate(() => document.querySelector(".rg-head").getBoundingClientRect().height) < 26
         && await page.evaluate(() => document.querySelector(".rg-bar").getBoundingClientRect().height) < 26);
     await page.locator('.rg-bar .rg-btn.icon[title^="Arrange"]').click().catch(() => {});
     const headMsg = async (text) => { await page.evaluate((t) => window.__node.__rgHint(t), text); await page.waitForTimeout(80);
         return page.evaluate(() => { const s = document.querySelector(".rg-head .rg-status"), h = document.querySelector(".rg-head").getBoundingClientRect(), r = s.getBoundingClientRect();
-            return { wide: s.classList.contains("wide"), all: s.scrollWidth <= s.clientWidth + 1, headH: Math.round(h.height), below: r.top > document.querySelector(".rg-apart").getBoundingClientRect().bottom - 2, text: s.textContent }; }); };
+            return { wide: s.classList.contains("wide"), all: s.scrollWidth <= s.clientWidth + 1, headH: Math.round(h.height), below: r.top > document.querySelector(".rg-separate").getBoundingClientRect().bottom - 2, text: s.textContent }; }); };
     const m1 = await headMsg("The layer is too small to shrink by 50 px");
     check(`a message that doesn't fit beside the fields: a line of its own under the header, all of it readable (${JSON.stringify(m1)})`, m1.wide && m1.all && m1.below && m1.headH > 30);
     await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...(s.loraOpts || {}), allRegions: false, autoOff: true }; n.__rgRefresh(); });

@@ -34,10 +34,10 @@ function normLoras(a) {
 export function normLoraOpts(o) {
     o = o && typeof o === "object" ? o : {};
     const clamp = (v, d) => (Number.isFinite(+v) ? Math.min(1, Math.max(0, +v)) : d);
-    // autoOff: 'keep all regions apart' is off for this node, also where a run would turn it on by itself
+    // autoOff: 'keep all regions separate' is off for this node, also where a run would turn it on by itself
     return { separation: clamp(o.separation, 0.85), until: clamp(o.until, 0.25), ...(o.allRegions ? { allRegions: true } : {}),
              ...(o.autoOff && !o.allRegions ? { autoOff: true } : {}),
-             ...(o.shareBg ? { shareBg: true } : {}) };            // shareBg: kept-apart regions still share the background
+             ...(o.shareBg ? { shareBg: true } : {}) };            // shareBg: kept-separate regions still share the background
 }
 function normRegion(r) {
     return { id: r.id, color: String(r.color || "#FFFFFF").toUpperCase(), prompt: r.prompt || "",
