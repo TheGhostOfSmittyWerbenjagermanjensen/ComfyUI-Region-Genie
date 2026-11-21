@@ -32,7 +32,8 @@ Everything happens in one model pass:
   - The caption part needs `clip` and the prompt to be exactly the text `positive` encodes (the `positive` output, or the same text encoded yourself). Otherwise the LoRAs act on the image only and the console says so.
 - Each LoRA region's caption is kept separate in attention from the other regions' image and captions at every step, so one region's LoRA-changed caption and trigger words can't restyle the rest.
   - Shared text (scene prompt, regions without LoRAs) stays open to all.
-- **Keep all regions separate** (the **Separate** button with four tiles, at the right end of the list header; off by default):
+- **Keep all regions separate** (the **Separate** button with four tiles, at the right end of the list header; automatic by default):
+  - Automatic: it turns on by itself with the models without a layout format, and is off with the others.
   - On: every region, with or without LoRAs, is kept separate from the others and from the background for the first part of sampling ('until') at the separation strength, and each region's caption speaks only to its own region.
   - Off: only regions with LoRAs are.
   - It can help keep characters' details and styles from mixing.
@@ -118,14 +119,14 @@ Region Genie ─────────── masks ──►                �
   - It stays open until Esc, the close button, another pop-up or another workflow tab; clicks elsewhere don't close it.
   - **Settings > Region Genie > Text size** applies here too: the prompt fields count as *scene prompts*, the rows' words as *region prompts*.
 - Each **row** is one LoRA: on/off, `index` (the region number shown in the Region Genie node), LoRA file, strength, and words for that region.
-  - When `masks` comes from the Region Genie node, every row shows the colour and prompt of the region it points to.
+  - When `masks` comes from the Region Genie node, every row shows the color and prompt of the region it points to.
   - The LoRA button opens ComfyUI's list menu, so the list filter and "auto nest subdirectories" from ComfyUI-Easy-Use or rgthree apply.
-- **Index −1** LoRAs are merged into the model like Load LoRA (model only) in *inside the model* mode.
+- **Index −1** applies a LoRA everywhere. In *inside the model* mode it is merged into the model like Load LoRA (model only).
 - **Row words** are added to that region's caption in the layout JSON (index −1: to the scene caption).
   - With a plain-text prompt they are added as their own sentence.
   - The LoRA's **trigger words** are shown as chips under the row; click one to add it (✓ = already in the row or in the region's caption).
   - A phrase already in the caption isn't added twice.
-- **Rows with the same index** stack: both LoRAs act together inside that region. **Index −1** applies a LoRA everywhere.
+- **Rows with the same index** stack: both LoRAs act together inside that region.
 - **feather** softens the mask edges so each LoRA fades into its surroundings.
 
 **lora_masking**
@@ -140,7 +141,13 @@ Region Genie ─────────── masks ──►                �
   - The `model` output is the model unchanged; the LoRAs ride on `positive` / `negative`.
   - Works with any model, but every pass sees the whole image, so strong style LoRAs tend to bleed across regions.
 
-**region_separation** / **separation_until** (inside-the-model mode, defaults 0.4 / 0.1, as in the Region Genie node; see [Separation and until](#separation-and-until)): a LoRA limited to its region still reaches the rest of the picture through attention, because every image token looks at every other one. region_separation removes that fraction of the attention between the image of different LoRA regions; separation_until applies it only for the first part of the steps so the seams blend at the end. 0.4 with 0.1 (the default) blends objects, characters and styles smoothly; 0.85–0.99 with 0.1–0.5 separates styles strongly; 1 / 1 gives independent pictures glued together. **separate_all_regions** (off by default) keeps every mask separate this way, with or without LoRAs, as the Region Genie node's "keep all regions separate" switch (inside-the-model mode; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5). **share_background** (off by default) keeps those regions separate from each other only, not from the rest of the image (the Region Genie node's *Share the background*). While it is on, attention runs without fused kernels (SageAttention etc. ignore masks), which is slower.
+**region_separation** / **separation_until** (inside-the-model mode; defaults 0.4 / 0.1): the Region Genie node's *separation* and *until*. What they do and good values: [Separation and until](#separation-and-until).
+
+- Why they exist: a LoRA limited to its region still reaches the rest of the picture through attention, because every image token looks at every other one. region_separation removes that fraction of the attention between the image of different LoRA regions; separation_until applies it only for the first part of the steps, so the seams blend at the end.
+- 1 / 1 gives independent pictures glued together.
+- **separate_all_regions** (off by default) keeps every mask separate this way, with or without LoRAs: the Region Genie node's "keep all regions separate" switch. It works in inside-the-model mode, with MOSS-Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5.
+- **share_background** (off by default) keeps those regions separate from each other only, not from the rest of the image (the Region Genie node's *Share the background*).
+- While regions are kept separate, attention runs without fused kernels (SageAttention etc. ignore masks), which is slower.
 
 ## Separation and until
 

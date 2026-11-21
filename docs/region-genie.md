@@ -88,7 +88,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 - **A new node** is 580 px wide and as tall as a square canvas needs.
   - In legacy node mode that is about 1146 px, with the sockets a new node shows.
   - In Nodes 2.0 ComfyUI shares the height between the scene prompt boxes and the editor, so the canvas starts wider than tall there.
-  - Drag the node's corner to resize it, drag the line between the canvas and the list to move room between them, or use the large editor.
+  - Drag the node's corner to resize it, or use the large editor (the bar between the canvas and the list is described below).
 - **The large editor** (the button with two arrows, right of the labels button in the tool bar; or **Alt+Enter** while the pointer is over the editor): the same editor in a window that fills the ComfyUI page.
   - The tools stay in their row above the canvas, which takes the left; on the right are the size row, the scene prompts, the region list (with room for many regions) and the bottom bar.
   - It is the node's own editor moved there, so every tool, pop-up, shortcut and Ctrl+Z works as on the node, and nothing has to be saved or applied.
@@ -292,7 +292,7 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - **Spline mode:** pick "(spline)" in the Lasso button's ▾ list (Lasso erase: the Eraser button's list).
     - The outline becomes a smooth curve through the clicked points.
     - A freehand path is smoothed (hand jitter removed) before the curve goes through it.
-  - The choice stays for the rest of the session; right-click again to go back.
+  - The choice stays for the rest of the session, for every Region Genie node on the page. Pick the plain lasso in the same list to go back.
   - **Magnetic mode** (third choice): the outline follows the edges in the image under the canvas (the `image` input); dragging pulls the path onto the nearest strong edge, and each click adds a segment that runs along edges to the clicked point.
   - Without an image it draws a plain lasso. Which one each button starts as is set in **Settings > Region Genie > Canvas tools** (*Lasso: default*, *Lasso erase: default*).
 
@@ -354,7 +354,7 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 - **View:** the image sits in a checkered margin.
   - Shapes can hang off the edge, and only the part inside the image is output.
   - The mouse wheel zooms, middle-drag or Space+drag pans, Fit (Home) resets the view, and Alt+wheel or `[` `]` changes brush size.
-  - In Nodes 2.0, the wheel zooms the canvas while the pointer is over it.
+  - This is the same in Nodes 2.0: the wheel zooms the canvas, not the graph, while the pointer is over it.
 - **Labels** (the eye button, on by default): each region's output index and prompt are written **inside the region**, as much of the prompt as fits.
   - A small filled **person** before the prompt marks a *character* region, and in Edit Mode a filled **lock** marks a region kept as it is; both are in the text's own color.
   - In Edit Mode the label of a kept region lies on a dark plate (the region is only an outline over the picture it keeps, so the text would otherwise sit on the picture itself).
@@ -448,7 +448,7 @@ The details:
 
 ## Undo and redo
 
-- **Undo and redo:** Ctrl+Z and Ctrl+Shift+Z work on the editor, not on the ComfyUI graph, while you're using the editor.
+- **Undo and redo:** Ctrl+Z and Ctrl+Shift+Z / Ctrl+Y work on the editor, not on the ComfyUI graph, while you're using the editor.
 - **Text is part of Undo.** Every visit to a text box (click in, type, click out) is one step of the editor's Undo, in order with drawing and everything else.
   - This covers the scene prompts, a region's prompt and its text to render, on the node, in the large editor and in the pop-up editors.
   - So after typing a prompt, clicking out and drawing a shape, Undo takes back the shape and then the whole prompt edit.
@@ -519,7 +519,7 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
 - Some settings apply to every node at its next run instead:
   - **Plain-text prompts: keep all regions separate automatically** (on by default) and one per model, see *Which format `prompt` uses*.
     - The per-model ones (MOSS-Image in standard mode and Edit Mode, Krea 2, Flux, Flux 3, Anima, SDXL / SD1.5): as set for all models / on / off.
-  - The **Edit Mode** section (see [Edit Mode](edit-mode.md)).
+  - The **Edit Mode** page (see [Edit Mode](edit-mode.md)).
   - **Canvas tools** (which version the lasso, lasso erase, magic wand and fill buttons start as, the wand tolerance and the fill gap size).
   - **min region pixels** and **import_json when the canvas isn't empty**.
   - **LLM cache** (see [LLM Prompt Enhancer](llm-prompt-enhancer.md)).
@@ -567,7 +567,7 @@ BBoxes to Masks makes rectangles from the boxes; use this node's `masks` output 
 |---|---|---|
 | MOSS-Image (or unknown) | MOSS JSON (standard mode, or no regions: text) | the boxes in the layout prompt |
 | Ideogram 4 | Ideogram JSON | the boxes in the caption JSON |
-| Krea 2, Flux.1, Flux.2 / Klein, Flux 3, Anima, SDXL, SD1.5 | text | attention only: **Keep all regions separate** (the **Separate** button, see below) ties each region's sentence to its region. These models have no layout format, so it turns on by itself when the model and `clip` are connected and at least one region has a prompt; the switch then shows as on after the run. Click the lit switch to turn it off for that node, or turn it off for all of them or for one model in **Settings > Region Genie** (*keep all regions separate automatically*). |
+| Krea 2, Flux.1, Flux.2 / Klein, Flux 3, Anima, SDXL, SD1.5 | text | attention only: **Keep all regions separate** (the **Separate** button, see [Regional LoRAs](regional-loras.md#loras-per-region-the-region-genie-nodes-model-output)) ties each region's sentence to its region. These models have no layout format, so it turns on by itself when the model and `clip` are connected and at least one region has a prompt; the switch then shows as on after the run. Click the lit switch to turn it off for that node, or turn it off for all of them or for one model in **Settings > Region Genie** (*keep all regions separate automatically*). |
 
 Flux 3 encodes its text before sampling, so its text layers are outside the regional LoRAs' reach: there a LoRA acts on its region's image and on its caption inside the joint layers only. SDXL / SD1.5 regions act at every UNet resolution (each mask is scaled down to 1/2, 1/4 and 1/8).
 
@@ -577,7 +577,7 @@ MOSS-Image takes its layout JSON (each region's box) or a plain text prompt. The
 
 ### Workflows from earlier versions
 
-Workflows saved with the old **format** control (removed in this version) keep their choice: *MOSS JSON* becomes MOSS-Image picked in the model dropdown, *Ideogram JSON* becomes Ideogram 4, *text* becomes MOSS-Image's standard mode. API prompts can still set the hidden `prompt_format` value; a model picked on the node comes first. Workflows that picked the model as "MOSS Image" (with a space, before it was stored by its official name) load with MOSS-Image picked, and their edit / control LoRAs keep working.
+Workflows saved with the old **format** control (removed before version 0.23, in November 2026) keep their choice: *MOSS JSON* becomes MOSS-Image picked in the model dropdown, *Ideogram JSON* becomes Ideogram 4, *text* becomes MOSS-Image's standard mode. API prompts can still set the hidden `prompt_format` value; a model picked on the node comes first. Workflows that picked the model as "MOSS Image" (with a space, before it was stored by its official name) load with MOSS-Image picked, and their edit / control LoRAs keep working.
 
 Workflows saved before `prompt` existed load with their links moved to the outputs of the same name; links from `moss_layout_json`, `ideogram_json` and `text_prompt` all go to `prompt` (which then gives the format auto picks: pick the model in the bottom bar if a link needs a particular one).
 

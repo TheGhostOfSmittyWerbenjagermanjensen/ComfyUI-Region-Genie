@@ -39,9 +39,9 @@ Set **mode** (bottom left of the node) to **edit** to change an existing picture
   - While the model isn't known yet, the first row asks you to pick the model in the bottom bar.
 - **Edit LoRAs:** in **Settings > Region Genie > Edit Mode** (or on the Edit row), choose an edit LoRA for each model (e.g. the **Moss-Image-Edit** LoRA for MOSS-Image, a Klein edit LoRA for Flux.2).
   - A node in Edit Mode uses the one for its model (see [The model](control.md) under Control: the last run's, a guess from the graph, or the one you pick in the bottom bar).
-  - When the model can't be guessed it uses every one you set until the first run, and the others are skipped with a note in `region_info`.
+  - A run only ever uses the edit LoRA for the model that is connected. While the model can't be guessed yet, the node keeps every edit LoRA you set; the run then uses the matching one and skips the others, with a note in `region_info`.
   - Edit LoRAs aren't listed under *Whole image* (the Edit row is where they're set).
-- **MOSS-Image:** in edit the `prompt` is plain text (your instruction in `scene_prompt_positive`, then the region prompts), since the edit LoRA takes an instruction rather than layout JSON, and *keep all regions separate* places the regions.
+- **MOSS-Image:** in edit the `prompt` is plain text (your instruction in `scene_prompt_positive`, then the region prompts), since the edit LoRA takes an instruction rather than layout JSON. *Keep all regions separate* places the regions.
   - How the reference is given follows the edit LoRA. Set *MOSS-Image edit layout* in Settings to choose one yourself.
     - LoRAs trained with ai-toolkit (fused qkv weights) get its layout (the text encoder also sees the image).
     - Others (e.g. Moss-Image-Edit) get the Moss-Image-Edit layout.

@@ -30,7 +30,7 @@ Nothing needs installing: by default it uses the text encoder already connected 
     - On, they are also saved to `<ComfyUI user dir>/region_genie/llm_cache.json`, which only helps workflows queued through the API without being opened.
     - Turning it off deletes that file.
   - *Forget LLM results after* (days, default 30; 0 = never) and *Most LLM results to keep* (default 500, oldest dropped first) apply to the memory and the disk cache.
-- **LLM Settings** (the sparkle button at the bottom of the node):
+- **LLM Settings** (the sparkles button at the bottom of the node):
   - *What the LLM sees:* only the prompt, or the prompt plus the scene and the other regions as context (it still rewrites only the one prompt). The default is in Settings.
   - *Preset for each prompt type:* character, object, text and scene each use a preset. Choosing one here changes this node only; *Make default* applies it to every node that hasn't chosen its own.
   - *Edit preset:* presets live in your ComfyUI user data (`region_genie/llm_presets.json`) and are shared by all workflows.
