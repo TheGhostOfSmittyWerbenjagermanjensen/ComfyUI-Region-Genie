@@ -120,7 +120,7 @@
       },
       "4": {
         "name": "프롬프트",
-        "tooltip": "모델의 형식에 맞춘 텍스트 프롬프트입니다.\nMOSS-Image: 레이아웃 JSON(표준 모드, 영역이 없을 때, 편집 모드에서는 대신 일반 텍스트).\nIdeogram 4: 캡션 JSON.\n기타 모델: 일반 텍스트(장면, 이어서 각 영역의 프롬프트).\n형식은 노드의 모델 드롭다운으로 정합니다. 자동(auto)일 때는 연결된 모델, 없으면 clip, 그것도 없으면 이 출력이 연결된 텍스트 인코더를 따릅니다. 이 JSON은 MOSS-Image Prompt Builder KJ나 (Deno) Ideogram Director의 import_json으로도 쓸 수 있습니다.\n일반 텍스트에는 영역의 위치 정보가 없습니다. 노드의 모든 영역 분리 버튼(모델과 clip 필요)을 켜면 각 영역의 문장이 해당 영역에 묶입니다."
+        "tooltip": "모델의 형식에 맞춘 텍스트 프롬프트입니다.\nMOSS-Image: 레이아웃 JSON(표준 모드, 영역이 없을 때, 편집 모드에서는 대신 일반 텍스트).\nIdeogram 4: 캡션 JSON.\n기타 모델: 일반 텍스트(장면, 이어서 각 영역의 프롬프트).\n형식은 노드의 모델 드롭다운으로 정합니다. 자동(auto)일 때는 연결된 모델, 없으면 clip, 그것도 없으면 이 출력이 연결된 텍스트 인코더를 따릅니다. 이 JSON은 MOSS-Image Prompt Builder KJ나 (Deno) Ideogram Director의 import_json으로도 쓸 수 있습니다.\n일반 텍스트에는 영역의 위치 정보가 없습니다. 노드의 Separate 버튼(모든 영역 분리, 모델과 clip 필요)을 켜면 각 영역의 문장이 해당 영역에 묶입니다."
       },
       "5": {
         "name": "색상 맵",

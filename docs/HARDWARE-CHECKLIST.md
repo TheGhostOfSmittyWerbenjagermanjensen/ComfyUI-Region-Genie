@@ -11,7 +11,7 @@ For each model: connect `model`, `clip` and `vae`, draw two regions with prompts
 - [ ] MOSS-Image, layout mode (regions placed by the layout prompt)
 - [ ] MOSS-Image, standard mode (the layout / standard switch off, and with no regions drawn)
 - [ ] MOSS-Image: with an empty canvas the switch shows standard; drawing the first region brings layout back, and the run's `prompt` is layout JSON
-- [ ] Krea 2 (or MOSS-Image in standard mode): after a run the keep-all-regions-apart button is lit; one click turns it off, and the next run leaves it off
+- [ ] Krea 2 (or MOSS-Image in standard mode): after a run the Separate button (keep all regions apart) is lit; one click turns it off, and the next run leaves it off
 - [ ] Krea 2 (regions kept apart automatically)
 - [ ] Ideogram 4
 - [ ] Flux.1
@@ -213,3 +213,12 @@ Tested in a stub page by the layers' pixels; worth a look on the real canvas at 
 - Align a turned ellipse to each edge: its pixels touch the edge.
 - A rectangle in the top half with a brush stroke beside it (same layer): grow by 50 px three times, shrink by 50 px three times, repeat: it ends where it started each time (it used to move towards the top edge).
 - A large image (over 2048 px on a side): growing a painted layer still looks right (it is worked out at 2048 px there).
+
+## 24. Narrower node, header icons, hints (round 48)
+
+- A new Region Genie node (legacy mode) is 580 px wide with a square canvas; the toolbar, the size row, the list header and the bottom bar are each one row, also on a 4K display with browser zoom or a larger font.
+- With LoRAs or "Separate" on, the header shows an icon + field for separation and an icon + field for until; their tooltips name them.
+- A long message (for example shrink a tiny layer by 50 px) appears on a line of its own under the header for a few seconds, then the header is one line again.
+- The hints fade when the pointer comes onto the canvas, return when it leaves, and show for about three seconds after a tool switch (B, V …).
+- The ? button in the canvas's lower right corner hides and shows the hints, in the large editor too; it doesn't sit on anything else there.
+- Nodes 2.0: a new node is 580 px wide; its canvas is wider than tall (left as it is on purpose).

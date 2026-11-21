@@ -120,7 +120,7 @@
       },
       "4": {
         "name": "prompt",
-        "tooltip": "The prompt as text, in the model's format.\nMOSS-Image: Layout JSON (plain text instead in standard mode, when there are no regions, and in Edit Mode).\nIdeogram 4: Caption JSON.\nOther models: Plain text (the scene, then each region's prompt).\nThe node's model dropdown picks the format; on auto: The connected model, else the clip, else the text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director.\nPlain text doesn't say where the regions are: The node's keep-all-regions-apart button (needs model and clip) ties each region's sentence to its region."
+        "tooltip": "The prompt as text, in the model's format.\nMOSS-Image: Layout JSON (plain text instead in standard mode, when there are no regions, and in Edit Mode).\nIdeogram 4: Caption JSON.\nOther models: Plain text (the scene, then each region's prompt).\nThe node's model dropdown picks the format; on auto: The connected model, else the clip, else the text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ or (Deno) Ideogram Director.\nPlain text doesn't say where the regions are: The node's Separate button (keep all regions apart; needs model and clip) ties each region's sentence to its region."
       },
       "5": {
         "name": "color_map",

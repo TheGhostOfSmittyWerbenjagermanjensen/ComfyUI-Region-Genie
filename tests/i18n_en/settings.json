@@ -307,7 +307,7 @@
   },
   "RegionGenie_Main_AutoApart": {
     "name": "Plain-text prompts: keep all regions apart automatically",
-    "tooltip": "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get the regions as plain sentences. The Region Genie node places each region by tying its sentence to its region in attention (keeping all regions apart).\nOn: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, unless the node's button is set to 'Off for this node'.\nOff: Only a node whose button is on keeps them apart.\nThe settings below change it for one model. Applies to every Region Genie node at its next run."
+    "tooltip": "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get the regions as plain sentences. The Region Genie node places each region by tying its sentence to its region in attention (keeping all regions apart).\nOn: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, unless the node's Separate button is set to 'Off for this node'.\nOff: Only a node whose Separate button is on keeps them apart.\nThe settings below change it for one model. Applies to every Region Genie node at its next run."
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image (standard mode, Edit Mode): keep all regions apart automatically",

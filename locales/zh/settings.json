@@ -307,7 +307,7 @@
   },
   "RegionGenie_Main_AutoApart": {
     "name": "纯文本提示词：自动分离所有区域",
-    "tooltip": "Krea 2、Flux、Flux 3、Anima 和 SDXL / SD1.5（以及标准模式和编辑模式下的 MOSS-Image）以普通句子的形式得到各区域。Region Genie 节点通过在注意力中把每个区域的句子绑定到其区域来安放各区域（即分离所有区域）。\n开启：当“模型”上连接了这类模型、已连接 clip 且至少有一个区域提示词时，运行时会分离所有区域，除非节点的按钮设为“Off for this node”。\n关闭：只有按钮已开启的节点才分离区域。\n下面的设置可针对单个模型更改。在下次运行时适用于每个 Region Genie 节点。"
+    "tooltip": "Krea 2、Flux、Flux 3、Anima 和 SDXL / SD1.5（以及标准模式和编辑模式下的 MOSS-Image）以普通句子的形式得到各区域。Region Genie 节点通过在注意力中把每个区域的句子绑定到其区域来安放各区域（即分离所有区域）。\n开启：当“模型”上连接了这类模型、已连接 clip 且至少有一个区域提示词时，运行时会分离所有区域，除非节点的 Separate 按钮设为“Off for this node”。\n关闭：只有 Separate 按钮已开启的节点才分离区域。\n下面的设置可针对单个模型更改。在下次运行时适用于每个 Region Genie 节点。"
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image（标准模式、编辑模式）：自动分离所有区域",

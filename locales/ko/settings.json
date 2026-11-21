@@ -307,7 +307,7 @@
   },
   "RegionGenie_Main_AutoApart": {
     "name": "일반 텍스트 프롬프트: 모든 영역을 자동으로 분리",
-    "tooltip": "Krea 2, Flux, Flux 3, Anima, SDXL / SD1.5(그리고 표준 모드와 편집 모드의 MOSS-Image)는 영역을 일반 문장으로 받습니다. Region Genie 노드는 어텐션에서 각 영역의 문장을 해당 영역에 묶는 방식으로 영역을 배치합니다(모든 영역을 분리).\n켬: 이런 모델이 '모델'에 연결되고, clip이 연결되고, 영역 프롬프트가 하나 이상 있으면 실행 시 모든 영역을 분리합니다. 단, 노드의 버튼이 'Off for this node'로 설정된 경우는 제외합니다.\n끔: 버튼이 켜진 노드만 영역을 분리합니다.\n아래 설정으로 모델별로 바꿀 수 있습니다. 모든 Region Genie 노드에 다음 실행부터 적용됩니다."
+    "tooltip": "Krea 2, Flux, Flux 3, Anima, SDXL / SD1.5(그리고 표준 모드와 편집 모드의 MOSS-Image)는 영역을 일반 문장으로 받습니다. Region Genie 노드는 어텐션에서 각 영역의 문장을 해당 영역에 묶는 방식으로 영역을 배치합니다(모든 영역을 분리).\n켬: 이런 모델이 '모델'에 연결되고, clip이 연결되고, 영역 프롬프트가 하나 이상 있으면 실행 시 모든 영역을 분리합니다. 단, 노드의 Separate 버튼이 'Off for this node'로 설정된 경우는 제외합니다.\n끔: Separate 버튼이 켜진 노드만 영역을 분리합니다.\n아래 설정으로 모델별로 바꿀 수 있습니다. 모든 Region Genie 노드에 다음 실행부터 적용됩니다."
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image (표준 모드, 편집 모드): 모든 영역을 자동으로 분리",

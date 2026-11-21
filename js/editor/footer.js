@@ -60,9 +60,12 @@ export function* footer(E) {
         const v = Math.max(1, Math.min(1000000, Math.round(+minIn.value || 64)));
         minIn.value = String(v); setSetting(SET.cmMinPixels, v); E.setWidget(E.minW, v);
     });
-    const imgBox = E.el("span", "rg-bar"); imgBox.style.display = "none";
+    // on the canvas, in its top right corner (round 48; in the tool bar until then: at 580 px the bar had no room for
+    // them, and it took a second row whenever an image was connected)
+    const imgBox = E.el("span", "rg-imgmode"); imgBox.style.display = "none";
     imgBox.append(imgSeg.box, minIn);
-    E.bar1.insertBefore(imgBox, E.barGap);
+    for (const t of ["pointerdown", "mousedown", "dblclick", "wheel"]) imgBox.addEventListener(t, (e) => e.stopPropagation());
+    E.imgBox = imgBox;                          // canvasUi.js puts it on the canvas box (made after this part runs)
     const minPixelsNow = () => Math.max(1, Math.round(+getSetting(SET.cmMinPixels, 64)) || 64); E.minPixelsNow = minPixelsNow;
     const importModeNow = () => getSetting(SET.cmImportMode, "ask before replacing") === "always replace" ? "always replace" : "ask before replacing"; E.importModeNow = importModeNow;
     // ---- mode: generate / edit

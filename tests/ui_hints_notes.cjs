@@ -69,8 +69,58 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     [x, y] = await toClient(400, 400); await page.mouse.move(x, y); await page.keyboard.press("Control+z"); await page.waitForTimeout(150);
     check("Clear all empties the canvas and Ctrl+Z brings it back", cleared && (await st()).layers.length === 1);
 
-    // ---- words: 'apart' on the keep-apart button, 'strength' / 'steps' on a Control row; the model dropdown
-    check("the keep-all-regions-apart button says 'apart'", (await page.locator(".rg-apart").innerText()).trim() === "apart" && await page.locator(".rg-apart svg").count() === 1);
+    // ---- round 48: the hints fade while the pointer is on the canvas, show again when it leaves, and for a moment
+    // after a tool switch; a button in the canvas's corner hides / shows them
+    const tipsOpacity = () => page.evaluate(() => +getComputedStyle(document.querySelector(".rg-tips")).opacity);
+    await page.mouse.move(880, 1080); await page.waitForTimeout(3300);
+    check("pointer away from the canvas: the hints show", await tipsOpacity() === 1);
+    { const c = await page.locator(".rg-cv").boundingBox(); x = c.x + c.width / 2; y = c.y + c.height / 3; }
+    await page.mouse.move(x, y, { steps: 3 }); await page.waitForTimeout(350);
+    check("pointer on the canvas: the hints are faded", await tipsOpacity() === 0);
+    await page.keyboard.press("b"); await page.waitForTimeout(350);
+    check("another tool (B): its hints show for a moment, though the pointer is on the canvas", await tipsOpacity() === 1 && /Paint/.test(await tips()));
+    await page.waitForTimeout(3100);
+    check("…and fade again after about three seconds", await tipsOpacity() === 0);
+    await page.mouse.move(880, 1080); await page.waitForTimeout(350);
+    check("pointer off the canvas again: they are back", await tipsOpacity() === 1);
+    await page.keyboard.press("v"); await page.waitForTimeout(100);
+    const tb = page.locator(".rg-cv .rg-tips-btn");
+    const tbBox = await tb.boundingBox(), cvB = await page.locator(".rg-cv").boundingBox();
+    check("a small button in the canvas's lower right corner, lit while the hints are on, with a tooltip", await tb.count() === 1 && await tb.evaluate((b) => b.classList.contains("on") && /^Hints on the canvas: On/.test(b.title))
+        && cvB.x + cvB.width - (tbBox.x + tbBox.width) < 10 && cvB.y + cvB.height - (tbBox.y + tbBox.height) < 10);
+    check("…clear of the hints themselves", await page.evaluate(() => { const a = document.querySelector(".rg-tips").getBoundingClientRect(), b = document.querySelector(".rg-tips-btn").getBoundingClientRect(); return a.right <= b.left; }));
+    await tb.click(); await page.waitForTimeout(200);
+    check("a click hides the hints (the Setting 'Hints on the canvas' goes off) and the button goes dark", await tips() === null && await tb.evaluate((b) => !b.classList.contains("on") && /^Hints on the canvas: Off/.test(b.title)));
+    await tb.click(); await page.waitForTimeout(200); await page.mouse.move(880, 1080); await page.waitForTimeout(200);
+    check("another click shows them again", !!(await tips()) && await tb.evaluate((b) => b.classList.contains("on")));
+
+    // ---- round 48: the list header. Icons for separation / until, 'Separate' on the button; a message that doesn't
+    // fit beside them gets a line of its own for as long as it shows
+    await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...(s.loraOpts || {}), allRegions: true }; n.__rgRefresh(); });
+    await page.waitForTimeout(250);
+    const hd = await page.evaluate(() => { const b = document.querySelector(".rg-loraopts"), k = [...b.children].filter((e) => e.getClientRects().length);
+        return { kinds: k.map((e) => e.tagName === "INPUT" ? "field" : e.classList.contains("rg-apart") ? "button" : e.querySelector("svg") && !e.textContent.trim() ? "icon" : "text:" + e.textContent.trim()),
+            tips: k.slice(0, 4).every((e) => e.title && e.title.length > 20), same: k[0].title === k[1].title && k[2].title === k[3].title, h: Math.round(document.querySelector(".rg-head").getBoundingClientRect().height) }; });
+    check(`with 'Separate' on: an icon and a field for separation, an icon and a field for until, then the button; no words (${hd.kinds.join(" ")})`, hd.kinds.join(" ") === "icon field icon field button" && hd.tips && hd.same);
+    check("the button says 'Separate'", (await page.locator(".rg-apart").innerText()).trim() === "Separate" && await page.locator(".rg-apart svg").count() === 1);
+    await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = "560px"; }); await page.waitForTimeout(150);      // the editor's width in a 580 px node
+    check("the header is one line at the new default width (560 px inside a 580 px node)", await page.evaluate(() => document.querySelector(".rg-head").getBoundingClientRect().height) < 26
+        && await page.evaluate(() => document.querySelector(".rg-bar").getBoundingClientRect().height) < 26);
+    await page.locator('.rg-bar .rg-btn.icon[title^="Arrange"]').click().catch(() => {});
+    const headMsg = async (text) => { await page.evaluate((t) => window.__node.__rgHint(t), text); await page.waitForTimeout(80);
+        return page.evaluate(() => { const s = document.querySelector(".rg-head .rg-status"), h = document.querySelector(".rg-head").getBoundingClientRect(), r = s.getBoundingClientRect();
+            return { wide: s.classList.contains("wide"), all: s.scrollWidth <= s.clientWidth + 1, headH: Math.round(h.height), below: r.top > document.querySelector(".rg-apart").getBoundingClientRect().bottom - 2, text: s.textContent }; }); };
+    const m1 = await headMsg("The layer is too small to shrink by 50 px");
+    check(`a message that doesn't fit beside the fields: a line of its own under the header, all of it readable (${JSON.stringify(m1)})`, m1.wide && m1.all && m1.below && m1.headH > 30);
+    await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...(s.loraOpts || {}), allRegions: false, autoOff: true }; n.__rgRefresh(); });
+    await page.waitForTimeout(200);
+    const m2 = await headMsg("Select a layer first");
+    check(`a message that fits (the fields are hidden with 'Separate' off): on the header's own line (${JSON.stringify(m2)})`, !m2.wide && m2.all && m2.headH < 26);
+    await page.waitForTimeout(3700);
+    check("after 3.5 s the message is gone and the header is one line again", await page.evaluate(() => { const s = document.querySelector(".rg-head .rg-status"); return !s.textContent && !s.classList.contains("wide") && document.querySelector(".rg-head").getBoundingClientRect().height < 26; }));
+    await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = ""; const n = window.__node, s = n.__rgState(); delete s.loraOpts; n.__rgRefresh(); }); await page.waitForTimeout(150);
+
+    // ---- words: 'strength' / 'steps' on a Control row; the model dropdown
     await page.locator('.rg-row.scene [title^="Add a Control row"]').click(); await page.waitForTimeout(200); await page.keyboard.press("Escape"); await page.waitForTimeout(100);
     const words = await page.locator(".rg-row.ctrl .rg-word").allInnerTexts();
     check(`a Control row labels its numbers (${words.join(" / ")})`, words.join("|") === "strength|steps");

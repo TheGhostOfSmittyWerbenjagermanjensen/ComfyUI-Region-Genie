@@ -34,7 +34,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     });
     check(`${vue ? "Nodes 2.0" : "legacy"}: Region Genie node created with its editor`, ok.rg && ok.slot >= 0 && ok.regs === 6);
     await page.waitForTimeout(2500);
-    const bd = await page.evaluate(() => !!window.__rg.__rgView && document.querySelectorAll(".rg-bar .rg-seg").length > 0);
+    const bd = await page.evaluate(() => !!window.__rg.__rgView && document.querySelectorAll(".rg-cv .rg-imgmode .rg-seg").length > 0);
     check("image-mode buttons show with Load Image connected", bd);
     // the tool row in the real frontend
     const btn = page.locator('.rg-bar .rg-btn[data-group="wand"]').first();

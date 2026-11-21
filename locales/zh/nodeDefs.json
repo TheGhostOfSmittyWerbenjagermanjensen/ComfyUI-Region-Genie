@@ -120,7 +120,7 @@
       },
       "4": {
         "name": "提示词",
-        "tooltip": "文本形式的提示词，采用模型的格式。\nMOSS-Image：布局 JSON（在标准模式下、没有区域时以及编辑模式下改为纯文本）。\nIdeogram 4：描述 JSON。\n其他模型：纯文本（先是场景，然后是各区域的提示词）。\n格式由节点的模型下拉框选择；为 auto 时：依次按所连接的模型、clip、此输出所连接的文本编码器决定。该 JSON 也可用作 MOSS-Image Prompt Builder KJ 或 (Deno) Ideogram Director 的 import_json。\n纯文本不包含区域的位置：节点上的分离所有区域按钮（需要模型和 clip）会把每个区域的句子绑定到它的区域。"
+        "tooltip": "文本形式的提示词，采用模型的格式。\nMOSS-Image：布局 JSON（在标准模式下、没有区域时以及编辑模式下改为纯文本）。\nIdeogram 4：描述 JSON。\n其他模型：纯文本（先是场景，然后是各区域的提示词）。\n格式由节点的模型下拉框选择；为 auto 时：依次按所连接的模型、clip、此输出所连接的文本编码器决定。该 JSON 也可用作 MOSS-Image Prompt Builder KJ 或 (Deno) Ideogram Director 的 import_json。\n纯文本不包含区域的位置：节点上的 Separate 按钮（分离所有区域；需要模型和 clip）会把每个区域的句子绑定到它的区域。"
       },
       "5": {
         "name": "颜色图",

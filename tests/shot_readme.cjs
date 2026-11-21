@@ -1,5 +1,6 @@
-// The README's pictures of the node: docs/images/editor.png (the whole node) and docs/images/rows.png (a Control row
-// and an Edit row under Whole image). Needs a running ComfyUI with this pack (legacy mode, English, dark palette):
+// The README's pictures: docs/images/editor.png (the whole node), editor-numbered.png (its parts numbered), lora.png (a
+// region with a LoRA), large-editor.png, rows.png (a Control row and an Edit row under Whole image) and save-image.png
+// (Save Image after a run; it uses input/rg_demo.png when there is one). Needs a running ComfyUI with this pack (legacy mode, English, dark palette):
 //   node tests/shot_readme.cjs
 // Retake them when the node's look changes.
 const path = require("path");
@@ -37,11 +38,54 @@ const { chromium } = require("playwright");
   const clip = await page.evaluate(() => { const n = window.__rg, ds = window.app.canvas.ds, r = window.app.canvas.canvas.getBoundingClientRect(); return { x: r.x + (n.pos[0] + ds.offset[0]) * ds.scale - 8, y: r.y + (n.pos[1] - 34 + ds.offset[1]) * ds.scale, width: n.size[0] * ds.scale + 16, height: (n.size[1] + 42) * ds.scale }; });
   await page.mouse.move(4, 4); await page.waitForTimeout(700);        // the pointer away: no tooltip in the picture
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "editor.png"), clip });
+  // editor-numbered.png: the same picture with its six parts numbered (README quick start, the manual's first page)
+  await page.evaluate(() => {
+    const at = (sel, n, dy = 0) => { const e = typeof sel === "string" ? document.querySelector(sel) : sel; if (!e) return; const r = e.getBoundingClientRect(), b = document.createElement("div");
+      b.className = "rg-shot-num"; b.textContent = n;
+      b.style.cssText = `position:fixed;left:${r.left - 34}px;top:${r.top + Math.min(r.height / 2, 60) - 13 + dy}px;width:26px;height:26px;border-radius:50%;background:#f2c94c;color:#111;font:700 15px/26px sans-serif;text-align:center;z-index:99999;box-shadow:0 1px 4px #000a`;
+      document.body.appendChild(b); };
+    at(".rg-size", 1); at(document.querySelector("textarea.rg-scene-ta") || document.querySelector("textarea"), 2); at(".rg-bar", 3); at(".rg-cv", 4, 200); at(".rg-tree", 5); at(".rg-foot", 6);
+  });
+  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "editor-numbered.png"), clip: { ...clip, x: clip.x - 34, width: clip.width + 34 } });
+  await page.evaluate(() => document.querySelectorAll(".rg-shot-num").forEach((e) => e.remove()));
+  // lora.png: a region opened, with a LoRA of its own
+  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || [])[0];
+    s.regions[1].loras = [{ lora: lo || "characters/silver_knight.safetensors", strength: 0.8, on: true }]; n.__rgRefresh(); });
+  await page.waitForTimeout(300);
+  await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(400);
+  const loraClip = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), rows = [...document.querySelectorAll(".rg-list .rg-row")], last = rows[Math.min(rows.length - 1, 6)].getBoundingClientRect();
+    return { x: list.x - 6, y: head.y - 6, width: list.width + 12, height: last.bottom - head.y + 12 }; });
+  await page.mouse.move(4, 4); await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "lora.png"), clip: loraClip });
+  await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(200);
+  // large-editor.png: the same editor in a window that fills the page
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await page.locator('[title^="Large editor"]').first().click(); await page.waitForTimeout(900);
+  await page.mouse.move(4, 4); await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "large-editor.png") });
+  await page.keyboard.press("Alt+Enter"); await page.waitForTimeout(600);
+  if (await page.locator(".rg-big").count()) { await page.locator('[title^="Large editor"]').first().click(); await page.waitForTimeout(600); }
+  await page.setViewportSize({ width: 1500, height: 1650 }); await page.waitForTimeout(400);
   // rows.png: Edit Mode, with a Control row
   await page.locator('[title^="Edit: Change the image"]').click(); await page.waitForTimeout(300);
   await page.locator('[title^="Add a Control row"]').first().click(); await page.waitForTimeout(400); await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   const rows = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), last = [...document.querySelectorAll(".rg-row.ctrl")].pop().getBoundingClientRect(); return { x: list.x - 6, y: head.y - 6, width: list.width + 12, height: last.bottom - head.y + 46 }; });
   await page.mouse.move(4, 4); await page.waitForTimeout(700);        // the pointer away: no tooltip in the picture
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "rows.png"), clip: rows });
+  // save-image.png: Save Image (Region Genie) after a run, with the picture and its file size
+  await page.evaluate(async () => {
+    const app = window.app, LG = window.LiteGraph; app.graph.clear();
+    const li = LG.createNode("LoadImage"); li.pos = [60, 120]; app.graph.add(li);
+    const w = li.widgets.find((x) => x.name === "image"); if (w.options.values.includes("rg_demo.png")) w.value = "rg_demo.png";
+    const sv = LG.createNode("Region-Genie_SaveImage"); sv.pos = [420, 120]; app.graph.add(sv); li.connect(0, sv, sv.inputs.findIndex((i) => i.name === "images"));
+    const f = sv.widgets.find((x) => x.name === "format"); if (f) { f.value = "webp"; f.callback?.("webp"); }
+    app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true); window.__sv = sv;
+    await new Promise((r) => setTimeout(r, 800)); await app.queuePrompt(0, 1);
+  });
+  await page.waitForFunction(() => /MB|KB|kB/.test(document.querySelector(".rg-save-status, .rg-saved, [class*='rg-save']")?.textContent || ""), null, { timeout: 60000 }).catch(() => {});
+  await page.waitForTimeout(2500);
+  const svClip = await page.evaluate(() => { const n = window.__sv, ds = window.app.canvas.ds, r = window.app.canvas.canvas.getBoundingClientRect(); return { x: r.x + (n.pos[0] + ds.offset[0]) * ds.scale - 8, y: r.y + (n.pos[1] - 34 + ds.offset[1]) * ds.scale, width: n.size[0] * ds.scale + 16, height: (n.size[1] + 42) * ds.scale }; });
+  await page.mouse.move(4, 4); await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "save-image.png"), clip: svClip });
   await browser.close();
 })();
