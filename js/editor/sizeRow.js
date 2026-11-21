@@ -27,7 +27,7 @@ export function* sizeRow(E) {
                      mp: clampNum(getSetting(SET.sizeMegapixels, 1), 0.1, 16, 1), multiple: clampNum(getSetting(SET.sizeMultiple, 8), 8, 128, 8) },
             preset: { w: first.w, h: first.h, swap: false },
             manual: { w: Math.round(clampNum(getSetting(SET.cmWidth, 1024), 16, 16384, 1024)),
-                      h: Math.round(clampNum(getSetting(SET.cmHeight, 1024), 16, 16384, 1024)), link: false },
+                      h: Math.round(clampNum(getSetting(SET.cmHeight, 1024), 16, 16384, 1024)), link: false, step: 64 },
         };
     }
     function sizeCfg() {
@@ -69,9 +69,9 @@ export function* sizeRow(E) {
     E.sizeReady = false;                     // the editor below is set up (onDimsChanged can run)
     const sizeRow = el("div", "rg-size"); E.sizeEl = sizeRow;
     const sizeSeg = E.segmented([
-        ["aspect ratio", svgIcon("sizeRatio"), "Image size from an aspect ratio and megapixels, like ComfyUI's Resolution Selector"],
-        ["presets", svgIcon("sizeList"), "Image size from the presets list (shared by every Region Genie node; 'Edit list…' at its end). The preset picked here last time is used again"],
-        ["manual", svgIcon("sizeManual"), "Image size: width and height typed in"],
+        ["aspect ratio", svgIcon("sizeRatio"), "Aspect ratio: Image size from an aspect ratio and megapixels, like ComfyUI's Resolution Selector"],
+        ["presets", svgIcon("sizeList"), "Presets: Image size from the presets list (shared by every Region Genie node; 'Edit list…' at its end)"],
+        ["manual", svgIcon("sizeManual"), "Manual: Image size from manually selected width and height values"],
     ], (v) => {
         // each mode keeps its own choice: back in presets mode, the preset picked there last time is the size again
         // (round 51; rounds 12 to 50 carried the other mode's size over, as "not in the list"). The sizes of the
@@ -149,8 +149,26 @@ export function* sizeRow(E) {
     };
     wIn.addEventListener("change", () => manualSet("w"));
     hIn.addEventListener("change", () => manualSet("h"));
+    // step size (round 53): how far the arrows of width / height go per click. A number field's arrows go to the
+    // next value that is its min plus a multiple of its step, so stepFrom() moves min to where the value in the
+    // field is such a value: 1000 with step 64 then goes to 1064 and 936, not to 1040 (16 + 16 x 64)
+    const stepOf = () => Math.round(clampNum(sizeCfg().manual.step, 1, 4096, 64));
+    const stepFrom = (i, lo, step, fallback) => {
+        const v = Math.round(clampNum(i.value, lo, +i.max, fallback));
+        i.step = String(step); i.min = String(v - Math.floor((v - lo) / step) * step);
+    };
+    const stepIn = sizeNum(1, 4096, 8, "Step size: How far the arrows of width and height go per click (px). A width or height that is typed in can be any number.", "44px");
+    const stepSync = () => {
+        const m = sizeCfg().manual, st = stepOf();
+        stepFrom(wIn, 16, st, m.w); stepFrom(hIn, 16, st, m.h); stepFrom(stepIn, 1, 8, st);
+    };
+    stepIn.addEventListener("change", () => {
+        const c = sizeCfg(); c.manual = { ...c.manual, step: Math.round(clampNum(stepIn.value, 1, 4096, stepOf())) };
+        stepIn.value = String(c.manual.step); syncSizeRow();
+    });
+    for (const i of [wIn, hIn, stepIn]) i.addEventListener("input", () => stepFrom(i, i === stepIn ? 1 : 16, i === stepIn ? 8 : stepOf(), i === stepIn ? stepOf() : 1024));
     const manBox = el("span", "rg-size-part");
-    manBox.append(tiny("W", wIn.title), wIn, swapM, tiny("H", hIn.title), hIn, linkBtn);
+    manBox.append(tiny("W", wIn.title), wIn, swapM, tiny("H", hIn.title), hIn, linkBtn, tiny("±", stepIn.title), stepIn);
     const sizeOut = el("span", "rg-size-out");
     sizeRow.append(sizeSeg.box, ratioBox, preBox, manBox, sizeOut);
     for (const ev of ["pointerdown", "mousedown", "dblclick", "wheel"]) sizeRow.addEventListener(ev, (e) => e.stopPropagation());
@@ -195,6 +213,8 @@ export function* sizeRow(E) {
         }
         if (idle(wIn)) wIn.value = String(c.manual.w);
         if (idle(hIn)) hIn.value = String(c.manual.h);
+        if (idle(stepIn)) stepIn.value = String(stepOf());
+        stepSync();
         setHTML(linkBtn, svgIcon(c.manual.link ? "link" : "unlink"));
         linkBtn.classList.toggle("on", !!c.manual.link);
         linkBtn.title = c.manual.link ? "Ratio kept: Changing one side changes the other. Click to set them separately"

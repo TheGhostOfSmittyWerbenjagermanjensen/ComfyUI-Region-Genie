@@ -102,8 +102,6 @@ Good starting points:
 | Smooth integration of objects, characters and styles (the default) | 0.4 | 0.1 |
 | Strong style separation | 0.85–0.99 | 0.1–0.5 |
 
-A node saved before version 0.43 that never had these values changed keeps the earlier defaults (0.85 / 0.25).
-
 If one region still takes on the other's style:
 1. Check each LoRA on its own first: one row, index −1 (everywhere). If the "photo" LoRA alone doesn't make the whole picture photographic with your prompt, it can't win a region either. Style words in the scene caption (e.g. "painting") pull everything one way.
 2. Raise region_separation toward 1 and separation_until toward 0.5.

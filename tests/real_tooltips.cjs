@@ -71,7 +71,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
     for (const m of ["MOSS-Image", "Ideogram 4", "Krea 2", ""]) { await page.selectOption("select.rg-model", m).catch(() => {}); await sleep(400); await harvest("model " + (m || "auto")); }
     // size row modes
-    for (const re of [/presets list/, /typed in/, /aspect ratio/]) {
+    for (const re of [/presets list/, /^Manual: /, /aspect ratio/]) {
         await page.evaluate((src) => [...document.querySelectorAll(".rg-size button")].find((b) => new RegExp(src).test(b.title))?.click(), re.source); await sleep(300); await harvest("size row");
     }
     await page.evaluate(() => { const s = document.querySelector("select.rg-size-pre"); });

@@ -89,7 +89,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     let a = await tipAudit();
     check(`${M}: every control has a tooltip and isn't redrawn (${a.n} controls)` + (a.bad.length ? ": " + a.bad.slice(0, 5).join("; ") : ""), a.n > 30 && !a.bad.length);
     const linkTip = await page.evaluate(async () => {
-        const seg = [...document.querySelectorAll(".rg-size button")].find((b) => /typed in/.test(b.title)); seg.click();
+        const seg = [...document.querySelectorAll(".rg-size button")].find((b) => /^Manual: /.test(b.title)); seg.click();
         await new Promise((r) => setTimeout(r, 700));
         const l = [...document.querySelectorAll(".rg-size button")].find((b) => /ratio/.test(b.title) && b.offsetParent && /Keep the ratio|Ratio kept/.test(b.title));
         const first = l?.firstChild;
@@ -106,7 +106,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await modeBtn(/presets list/); await sleep(200);
     await pre.selectOption("1216x832"); await sleep(200);
     const p0 = await W2();
-    await modeBtn(/typed in/); await sleep(200);
+    await modeBtn(/^Manual: /); await sleep(200);
+    // round 53: the step size box is in the row and fits (the size readout on the right stays whole)
+    const stepFit = await page.evaluate(() => { const row = document.querySelector(".rg-size"), part = row.querySelectorAll(".rg-size-part")[2], st = part.querySelectorAll("input")[2], out = row.querySelector(".rg-size-out");
+        const r = row.getBoundingClientRect(), s = st.getBoundingClientRect(), o = out.getBoundingClientRect();
+        return { v: st.value, tip: st.title, in: s.width > 20 && s.right <= o.left + 1 && o.right <= r.right + 1 && out.scrollWidth <= out.clientWidth + 1, w: [Math.round(s.right - r.left), Math.round(o.right - r.left), Math.round(r.width)] }; });
+    check(`${M}: manual mode has the step size box (64), and the row still fits (${stepFit.w})`, stepFit.v === "64" && /^Step size: /.test(stepFit.tip) && stepFit.in);
+    if (process.env.RG_SHOT) await page.locator(".rg-size").first().screenshot({ path: process.env.RG_SHOT + (process.argv.includes("vue") ? "_vue" : "") + ".png" });
     await page.evaluate(async () => { const man = document.querySelector(".rg-size").querySelectorAll(".rg-size-part")[2].querySelectorAll("input");
         man[0].value = "1000"; man[0].dispatchEvent(new Event("change")); man[1].value = "760"; man[1].dispatchEvent(new Event("change")); await new Promise((r) => setTimeout(r, 100)); });
     const m0 = await W2();

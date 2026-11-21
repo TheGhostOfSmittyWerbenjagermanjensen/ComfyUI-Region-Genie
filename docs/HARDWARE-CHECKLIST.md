@@ -34,6 +34,8 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] The size row: presets pop-up, the chain button, the seed control
 - [ ] The message bar under the canvas: selecting text, right-click, Copy link
 
+- [ ] Manual size mode at the default node width, both node modes: the ± step box fits in the row; clicking the small arrows of W / H with the mouse changes the value by the step
+
 ## 3. Model files (Settings, Edit rows, LLM)
 
 - [ ] A model-file field opens ComfyUI's menu on the right folders; with rgthree-comfy's Auto Nest on, subfolders show as folders

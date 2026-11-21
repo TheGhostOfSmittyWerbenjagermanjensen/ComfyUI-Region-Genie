@@ -72,8 +72,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("size row: one row with the 3 modes", await row.count() === 1 && await row.locator(".rg-seg .rg-btn").count() === 3);
     // the stub node is set up like one loaded from a workflow saved before the size row: manual, with its size
     check("node without size settings: manual mode with its width / height", JSON.stringify(await wv()) === "[256,256]"
-        && await modeBtn("Image size: width and height").evaluate((b) => b.classList.contains("on")));
-    await modeBtn("Image size from an aspect ratio").click(); await page.waitForTimeout(60);
+        && await modeBtn("Manual: Image size").evaluate((b) => b.classList.contains("on")));
+    await modeBtn("Aspect ratio: Image size").click(); await page.waitForTimeout(60);
     check("aspect ratio mode from Settings defaults: 1:1, 1 MP = 1024 x 1024", JSON.stringify(await wv()) === "[1024,1024]");
     // the same results as ComfyUI's Resolution Selector (values from comfy_extras/nodes_resolution.py)
     const ratioCase = async (aspect, mp, mult) => {
@@ -93,7 +93,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await row.locator(".rg-size-part").first().locator(".rg-btn.icon").click(); await page.waitForTimeout(60);
     check("swap: 9:21 portrait = 960 x 2240", JSON.stringify(await wv()) === "[960,2240]");
     // presets
-    await modeBtn("Image size from the presets").click(); await page.waitForTimeout(60);
+    await modeBtn("Presets: Image size").click(); await page.waitForTimeout(60);
     const pre = row.locator("select.rg-size-pre");
     // round 51: presets mode has its own size (a new node: the first preset), not the one the other mode made
     check("presets mode shows its own preset (1024 x 1024), not the aspect ratio's size", JSON.stringify(await wv()) === "[1024,1024]" && await pre.inputValue() === "1024x1024"
@@ -119,17 +119,38 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("list follows the Setting (8 sizes, named one; two to add, Edit list…)", await pre.locator("option:not([disabled])").count() === 11
         && /square/.test(await pre.locator("option[value='1024x1024']").textContent()));
     // manual
-    await modeBtn("Image size: width and height").click(); await page.waitForTimeout(60);
+    await modeBtn("Manual: Image size").click(); await page.waitForTimeout(60);
     const man = row.locator(".rg-size-part").nth(2), [wIn, hIn] = [man.locator("input").nth(0), man.locator("input").nth(1)];
     await wIn.fill("1000"); await wIn.press("Enter"); await hIn.fill("600"); await hIn.press("Enter"); await page.waitForTimeout(60);
     check("manual 1000 x 600", JSON.stringify(await wv()) === "[1000,600]");
+    // round 53: the step size box (right of the keep-ratio button): the arrows of width / height go by it
+    const stepIn = man.locator("input").nth(2);
+    const order = await man.evaluate((m) => { const k = [...m.children]; return k.indexOf(m.querySelectorAll("input")[2]) > k.findIndex((x) => /^Keep the ratio/.test(x.title)); });
+    check(`a step size box right of the keep-ratio button, 64 to start (${await stepIn.inputValue()})`, order && await stepIn.inputValue() === "64" && /^Step size: /.test(await stepIn.getAttribute("title")));
+    await wIn.focus(); await wIn.press("ArrowUp"); await wIn.press("Enter"); await page.waitForTimeout(60);
+    check(`width's up arrow: 1000 + 64 (${await wv()})`, JSON.stringify(await wv()) === "[1064,600]");
+    await hIn.focus(); await hIn.press("ArrowDown"); await hIn.press("ArrowDown"); await hIn.press("Enter"); await page.waitForTimeout(60);
+    check(`height's down arrow twice: 600 - 128 (${await wv()})`, JSON.stringify(await wv()) === "[1064,472]");
+    await stepIn.focus(); await stepIn.press("ArrowUp"); await stepIn.press("Enter"); await page.waitForTimeout(60);
+    check(`the step box's own arrows go by 8 (${await stepIn.inputValue()})`, await stepIn.inputValue() === "72");
+    await stepIn.fill("10"); await stepIn.press("Enter"); await page.waitForTimeout(60);
+    await wIn.focus(); await wIn.press("ArrowUp"); await wIn.press("Enter"); await page.waitForTimeout(60);
+    await stepIn.focus(); await stepIn.press("ArrowUp"); await stepIn.press("Enter"); await page.waitForTimeout(60);
+    check(`a typed step (10): width + 10, and the step box then goes to 18 (${await wv()}, ${await stepIn.inputValue()})`, JSON.stringify(await wv()) === "[1074,472]" && await stepIn.inputValue() === "18");
+    check("the node keeps the step size", await page.evaluate(() => window.__node.properties.rg_size.manual.step) === 18);
+    await wIn.fill("1001"); await wIn.press("Enter"); await page.waitForTimeout(60);
+    check(`a typed width can be any number (${await wv()})`, JSON.stringify(await wv()) === "[1001,472]" && await wIn.evaluate((i) => i.validity.valid));
+    await stepIn.fill("64"); await stepIn.press("Enter"); await wIn.fill("1000"); await wIn.press("Enter"); await hIn.fill("600"); await hIn.press("Enter"); await page.waitForTimeout(60);
+    const tips3 = await row.locator(".rg-seg .rg-btn").evaluateAll((bs) => bs.map((b) => b.title));
+    check(`the three mode buttons' tooltips start with their names (${tips3.map((t) => t.split(":")[0])})`, tips3[0] === "Aspect ratio: Image size from an aspect ratio and megapixels, like ComfyUI's Resolution Selector"
+        && tips3[1] === "Presets: Image size from the presets list (shared by every Region Genie node; 'Edit list…' at its end)" && tips3[2] === "Manual: Image size from manually selected width and height values");
     await man.locator('.rg-btn.icon[title^="Keep the ratio"]').click();
     await wIn.fill("500"); await wIn.press("Enter"); await page.waitForTimeout(60);
     check("keep ratio: 500 x 300", JSON.stringify(await wv()) === "[500,300]");
     await man.locator('.rg-btn.icon[title^="Swap"]').click(); await page.waitForTimeout(60);
     check("swap: 300 x 500", JSON.stringify(await wv()) === "[300,500]");
     // back in presets mode: the preset picked there last time; the manual size is offered as an entry to add
-    await modeBtn("Image size from the presets").click(); await page.waitForTimeout(60);
+    await modeBtn("Presets: Image size").click(); await page.waitForTimeout(60);
     const backToPreset = JSON.stringify(await wv());
     check("presets mode has the preset picked last time (1216 x 832), not the manual size", backToPreset === "[1216,832]" && await pre.inputValue() === "1216x832");
     check(`…with both other sizes to add (${(await addOpts()).join(" | ")})`, (await addOpts()).length === 2 && (await addOpts()).some((t) => /300 × 500\s+\(the manual size\)/.test(t))
@@ -148,7 +169,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // a preset that was removed from the list stays this node's size, marked
     await page.evaluate(() => { window.__settings["RegionGenie.Size.Presets"] = "1024x1024; 1216x832"; }); await page.waitForTimeout(700);
     check("a preset removed from the list stays the size, shown as not in the list", JSON.stringify(await wv()) === "[300,500]" && /300 × 500\s+\(not in the list\)/.test(await pre.locator("option[data-extra]").textContent().catch(() => "")));
-    await modeBtn("Image size from an aspect ratio").click(); await page.waitForTimeout(60);
+    await modeBtn("Aspect ratio: Image size").click(); await page.waitForTimeout(60);
     check("the other modes keep their own settings", JSON.stringify(await wv()) === "[960,2240]");
     const props = await page.evaluate(() => window.__node.properties.rg_size);
     check("kept in the node's properties (saved with the workflow)", props.mode === "aspect ratio" && props.manual.w === 300 && props.preset.w === 300);

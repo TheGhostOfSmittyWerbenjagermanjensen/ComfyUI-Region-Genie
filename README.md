@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.43.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.44.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -66,7 +66,7 @@ flowchart LR
 ```
 
 1. Add the **Region Genie** node (search for "genie"). Connect your loader's `model`, `clip` and `vae` to it.
-2. Set the image size in the row at the top of the node.
+2. Set the image size in the row at the top of the node: by aspect ratio, from your presets list, or by hand (width and height, with a step size for their arrows).
 3. Press the add-region button under the canvas and drag a box. Type that region's prompt in the list. Repeat for each region.
 4. Describe the whole picture in `scene_prompt_positive`.
 5. Connect the node's `model`, `positive`, `negative` and `latent` outputs to your sampler, and run.
