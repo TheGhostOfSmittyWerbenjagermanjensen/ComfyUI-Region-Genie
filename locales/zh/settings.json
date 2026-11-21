@@ -611,7 +611,7 @@
     "name": "图像尺寸",
     "tooltip": "新建 Region Genie 节点的尺寸行如何开始，以及预设列表。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions apart not only those with LoRAs , Keep regions apart: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie 节点",
     "tooltip": "新建 Region Genie 节点的初始设置（图像模式、羽化、分离、网格、区域颜色、标签自动补全、通配符）。\nEdit…：在此页打开 Region Genie 设置。"
   },
@@ -635,7 +635,7 @@
     "name": "LLM 提示词增强器",
     "tooltip": "LLM 能看到什么、每种提示词类型的默认预设、预设本身，以及 LLM 缓存。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_apart: Plain-text prompts: keep all regions apart automatically, MOSS-Image standard mode, Edit Mode : keep all regions apart automatically, Krea 2: keep all regions apart automatically, Flux: keep all regions apart automatically, Flux 3: keep all regions apart automatically, Anima: keep all regions apart automatically, SDXL SD1_5: keep all regions apart automatically": {
+  "RegionGenie_Page_separate: Plain-text prompts: keep all regions separate automatically, MOSS-Image standard mode, Edit Mode : keep all regions separate automatically, Krea 2: keep all regions separate automatically, Flux: keep all regions separate automatically, Flux 3: keep all regions separate automatically, Anima: keep all regions separate automatically, SDXL SD1_5: keep all regions separate automatically": {
     "name": "按模型保持区域分离",
     "tooltip": "对于每个没有布局格式的模型，运行时是否自动保持所有区域分离。\nEdit…：在此页打开 Region Genie 设置。"
   },

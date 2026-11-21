@@ -46,7 +46,7 @@ for (const sub of ["loras", "controlnet"]) {
         await page.waitForSelector(`.rg-setwin .rg-setwin-nav button.on[data-page="${key}"]`, { timeout: 8000 }); await sleep(250); };
     const toPage = async (key) => { await page.locator(`.rg-setwin .rg-setwin-nav button[data-page="${key}"]`).click(); await sleep(350); };
     const closeWin = async () => { if (await page.locator(".rg-setwin").count()) { await page.locator(".rg-setwin .rg-setwin-x").click(); await sleep(250); } };
-    const PAGES = ["size", "node", "tools", "text", "control", "edit", "llm", "apart", "sam", "hl", "save"];
+    const PAGES = ["size", "node", "tools", "text", "control", "edit", "llm", "separate", "sam", "hl", "save"];
     // what every page shows, gathered by walking through them: { text, fields, browse, selects }
     const walk = async () => { const out = { text: "", fields: 0, browse: 0, selects: 0 };
         for (const k of PAGES) { await toPage(k); const r = await page.evaluate(() => { const w = document.querySelector(".rg-setwin-page"), f = [...w.querySelectorAll(".rg-ff")];

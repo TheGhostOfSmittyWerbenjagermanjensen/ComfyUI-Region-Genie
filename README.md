@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.41.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.42.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -165,7 +165,7 @@ All nodes are in the **Region Genie** category, and their names end in ✨.
 | Page | What it covers |
 |---|---|
 | [Region Genie (the node)](docs/region-genie.md) | Image size, regions, layers, tools, text boxes, outputs, prompt formats, Settings |
-| [Regional LoRAs](docs/regional-loras.md) | LoRAs per region, keeping regions apart, the Regional LoRAs node |
+| [Regional LoRAs](docs/regional-loras.md) | LoRAs per region, keeping regions separate, the Regional LoRAs node |
 | [Control (ControlNet)](docs/control.md) | Control rows, control maps, the files each model uses |
 | [Edit Mode](docs/edit-mode.md) | Image-to-image with regions, Edit rows and edit LoRAs |
 | [LLM Prompt Enhancer](docs/llm-prompt-enhancer.md) | Writing and improving prompts with a local LLM |

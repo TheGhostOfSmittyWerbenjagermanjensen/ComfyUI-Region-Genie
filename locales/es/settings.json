@@ -611,7 +611,7 @@
     "name": "Tamaño de imagen",
     "tooltip": "Cómo empieza la fila de tamaño de un nodo Region Genie nuevo, y la lista de preajustes.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions apart not only those with LoRAs , Keep regions apart: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Nodo Region Genie",
     "tooltip": "Con qué empieza un nodo Region Genie nuevo (modo de imagen, difuminado, separación, cuadrícula, colores de región, autocompletado de etiquetas, comodines).\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
@@ -635,7 +635,7 @@
     "name": "Mejorador de prompts LLM",
     "tooltip": "Lo que ve el LLM, el preajuste predeterminado de cada tipo de prompt, los propios preajustes y la caché del LLM.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
-  "RegionGenie_Page_apart: Plain-text prompts: keep all regions apart automatically, MOSS-Image standard mode, Edit Mode : keep all regions apart automatically, Krea 2: keep all regions apart automatically, Flux: keep all regions apart automatically, Flux 3: keep all regions apart automatically, Anima: keep all regions apart automatically, SDXL SD1_5: keep all regions apart automatically": {
+  "RegionGenie_Page_separate: Plain-text prompts: keep all regions separate automatically, MOSS-Image standard mode, Edit Mode : keep all regions separate automatically, Krea 2: keep all regions separate automatically, Flux: keep all regions separate automatically, Flux 3: keep all regions separate automatically, Anima: keep all regions separate automatically, SDXL SD1_5: keep all regions separate automatically": {
     "name": "Mantener las regiones separadas, por modelo",
     "tooltip": "Si una ejecución mantiene todas las regiones separadas por sí sola, para cada modelo sin formato de diseño.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },

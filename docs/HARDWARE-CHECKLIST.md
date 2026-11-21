@@ -11,8 +11,8 @@ For each model: connect `model`, `clip` and `vae`, draw two regions with prompts
 - [ ] MOSS-Image, layout mode (regions placed by the layout prompt)
 - [ ] MOSS-Image, standard mode (the layout / standard switch off, and with no regions drawn)
 - [ ] MOSS-Image: with an empty canvas the switch shows standard; drawing the first region brings layout back, and the run's `prompt` is layout JSON
-- [ ] Krea 2 (or MOSS-Image in standard mode): after a run the Separate button (keep all regions apart) is lit; one click turns it off, and the next run leaves it off
-- [ ] Krea 2 (regions kept apart automatically)
+- [ ] Krea 2 (or MOSS-Image in standard mode): after a run the Separate button (keep all regions separate) is lit; one click turns it off, and the next run leaves it off
+- [ ] Krea 2 (regions kept separate automatically)
 - [ ] Ideogram 4
 - [ ] Flux.1
 - [ ] Flux.2 / Klein
@@ -232,3 +232,9 @@ Tested in a stub page by the layers' pixels; worth a look on the real canvas at 
 - Typing in ComfyUI's Search Settings a setting name (e.g. "WebP quality") shows the page's row.
 - At 4K with a large ComfyUI font: the window fits the dialog, the left list isn't cut off, long rows don't run under their controls.
 - Another language (Settings > Language): the window's pages, names and tooltips are in that language.
+
+## 26. Presets mode and the word "separate" (round 51)
+
+- Pick a preset, switch to manual and type another size, switch back to presets: the preset is the size again, and the dropdown offers "＋ Add" for the manual size.
+- A workflow saved before this round that was in presets mode with a size "not in the list" still opens with that size.
+- Your saved settings for keeping regions separate (the main switch and the per-model choices) are unchanged after the update.

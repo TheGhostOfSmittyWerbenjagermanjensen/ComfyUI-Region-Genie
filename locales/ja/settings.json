@@ -611,7 +611,7 @@
     "name": "画像サイズ",
     "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions apart not only those with LoRAs , Keep regions apart: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie ノード",
     "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
   },
@@ -635,7 +635,7 @@
     "name": "LLMプロンプトエンハンサー",
     "tooltip": "LLM に見せる内容、プロンプトの種類ごとの既定プリセット、プリセットそのもの、LLM キャッシュ。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_apart: Plain-text prompts: keep all regions apart automatically, MOSS-Image standard mode, Edit Mode : keep all regions apart automatically, Krea 2: keep all regions apart automatically, Flux: keep all regions apart automatically, Flux 3: keep all regions apart automatically, Anima: keep all regions apart automatically, SDXL SD1_5: keep all regions apart automatically": {
+  "RegionGenie_Page_separate: Plain-text prompts: keep all regions separate automatically, MOSS-Image standard mode, Edit Mode : keep all regions separate automatically, Krea 2: keep all regions separate automatically, Flux: keep all regions separate automatically, Flux 3: keep all regions separate automatically, Anima: keep all regions separate automatically, SDXL SD1_5: keep all regions separate automatically": {
     "name": "領域の分離（モデル別）",
     "tooltip": "レイアウト形式を持たない各モデルで、実行時にすべての領域を自動的に分離するかどうか。\nEdit…: このページで Region Genie の設定を開きます。"
   },

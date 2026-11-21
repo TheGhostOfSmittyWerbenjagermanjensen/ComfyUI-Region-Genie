@@ -95,13 +95,16 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // presets
     await modeBtn("Image size from the presets").click(); await page.waitForTimeout(60);
     const pre = row.locator("select.rg-size-pre");
-    check("presets mode keeps the size (960 x 2240, shown as not in the list)", JSON.stringify(await wv()) === "[960,2240]"
-        && /960 × 2240\s+\(not in the list\)/.test(await pre.locator("option[data-extra]").textContent())
-        && /isn't in the list/.test(await pre.getAttribute("title")));
-    check("presets: the 9 starting sizes + Edit list…", await pre.locator("option:not([disabled]):not([data-extra])").count() === 10
-        && (await pre.locator("option").last().textContent()) === "Edit list…");
+    // round 51: presets mode has its own size (a new node: the first preset), not the one the other mode made
+    check("presets mode shows its own preset (1024 x 1024), not the aspect ratio's size", JSON.stringify(await wv()) === "[1024,1024]" && await pre.inputValue() === "1024x1024"
+        && await pre.locator("option[data-extra]").count() === 0);
+    const addOpts = async () => (await pre.locator("option").allTextContents()).filter((t) => /^＋ Add/.test(t));
+    check(`…and offers the sizes of the other two modes as entries to add (${(await addOpts()).join(" | ")})`, (await addOpts()).length === 2 && /^＋ Add 960 × 2240\s+\(the aspect ratio size\)/.test((await addOpts())[0])
+        && /^＋ Add 256 × 256\s+\(the manual size\)/.test((await addOpts())[1]));
+    check("presets: the 9 starting sizes, the two entries to add, Edit list…", await pre.locator("option:not([disabled])").count() === 12
+        && (await pre.locator("option").last().textContent()) === "Edit list…" && /＋ Add …:/.test(await pre.getAttribute("title")));
     await pre.selectOption("1216x832"); await page.waitForTimeout(60);
-    check("preset 1216 x 832 (the 'not in the list' entry goes)", JSON.stringify(await wv()) === "[1216,832]" && await pre.locator("option[data-extra]").count() === 0);
+    check("preset 1216 x 832", JSON.stringify(await wv()) === "[1216,832]" && await pre.locator("option[data-extra]").count() === 0);
     check("presets show their ratio", /1216 × 832\s+\(3:2\)/.test(await pre.locator("option[value='1216x832']").textContent()));
     await pre.selectOption("__edit__"); await page.waitForTimeout(100);
     const pop = page.locator(".rg-presets");
@@ -113,7 +116,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("editing saves to the shared Setting", /^1024x1024 square; 896x1152;/.test(await setTxt() || ""));
     await page.mouse.click(5, 5); await page.waitForTimeout(80);
     check("a click outside closes it", !await pop.isVisible());
-    check("list follows the Setting (8 sizes, named one)", await pre.locator("option:not([disabled])").count() === 9
+    check("list follows the Setting (8 sizes, named one; two to add, Edit list…)", await pre.locator("option:not([disabled])").count() === 11
         && /square/.test(await pre.locator("option[value='1024x1024']").textContent()));
     // manual
     await modeBtn("Image size: width and height").click(); await page.waitForTimeout(60);
@@ -125,16 +128,26 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("keep ratio: 500 x 300", JSON.stringify(await wv()) === "[500,300]");
     await man.locator('.rg-btn.icon[title^="Swap"]').click(); await page.waitForTimeout(60);
     check("swap: 300 x 500", JSON.stringify(await wv()) === "[300,500]");
-    // presets mode takes the size the other mode made; '＋ Current size' in the editor adds it to the list
+    // back in presets mode: the preset picked there last time; the manual size is offered as an entry to add
     await modeBtn("Image size from the presets").click(); await page.waitForTimeout(60);
     const backToPreset = JSON.stringify(await wv());
-    check("presets mode keeps the manual size (300 x 500)", backToPreset === "[300,500]");
+    check("presets mode has the preset picked last time (1216 x 832), not the manual size", backToPreset === "[1216,832]" && await pre.inputValue() === "1216x832");
+    check(`…with both other sizes to add (${(await addOpts()).join(" | ")})`, (await addOpts()).length === 2 && (await addOpts()).some((t) => /300 × 500\s+\(the manual size\)/.test(t))
+        && (await addOpts()).some((t) => /960 × 2240\s+\(the aspect ratio size\)/.test(t)));
+    await pre.selectOption("__add__:300x500"); await page.waitForTimeout(100);
+    check("picking '＋ Add 300 × 500' adds it to the list and makes it the size", /300x500/.test(await setTxt() || "") && JSON.stringify(await wv()) === "[300,500]" && await pre.inputValue() === "300x500"
+        && (await addOpts()).length === 1);
     await pre.selectOption("__edit__"); await page.waitForTimeout(100);
-    await page.locator(".rg-presets button", { hasText: "Current size" }).click(); await page.waitForTimeout(60);
-    check("＋ Current size adds 300 x 500 to the list", /300x500/.test(await setTxt() || "") && await pre.locator("option[data-extra]").count() === 0
-        && await pre.inputValue() === "300x500");
+    const ab = page.locator(".rg-presets .rg-presets-adds button");
+    check(`'Edit list…' has a button for the size still missing (${(await ab.allTextContents()).join(" | ")})`, await ab.count() === 1 && /960 × 2240/.test(await ab.first().textContent())
+        && /aspect ratio/.test(await ab.first().getAttribute("title")) && await page.locator(".rg-presets button", { hasText: "Current size" }).count() === 0);
+    await ab.first().click(); await page.waitForTimeout(80);
+    check("…it adds that size to the list; this node's size stays", /960x2240/.test(await setTxt() || "") && JSON.stringify(await wv()) === "[300,500]" && await ab.count() === 0);
     await page.locator('.rg-presets button[data-ic="close"]').last().click().catch(() => {});
     await page.mouse.click(5, 5); await page.waitForTimeout(60);
+    // a preset that was removed from the list stays this node's size, marked
+    await page.evaluate(() => { window.__settings["RegionGenie.Size.Presets"] = "1024x1024; 1216x832"; }); await page.waitForTimeout(700);
+    check("a preset removed from the list stays the size, shown as not in the list", JSON.stringify(await wv()) === "[300,500]" && /300 × 500\s+\(not in the list\)/.test(await pre.locator("option[data-extra]").textContent().catch(() => "")));
     await modeBtn("Image size from an aspect ratio").click(); await page.waitForTimeout(60);
     check("the other modes keep their own settings", JSON.stringify(await wv()) === "[960,2240]");
     const props = await page.evaluate(() => window.__node.properties.rg_size);

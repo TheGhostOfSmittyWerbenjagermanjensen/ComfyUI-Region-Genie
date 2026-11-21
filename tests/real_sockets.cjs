@@ -129,7 +129,7 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
     s = await socks();
     check(`${M}: the Control row removed: control_image goes again`, !s.inputs.includes("control_image"));
 
-    // ---------------- the rows at the default width (580 px): nothing wraps, also in Edit Mode with keep-apart on and an image connected
+    // ---------------- the rows at the default width (580 px): nothing wraps, also in Edit Mode with keep-separate on and an image connected
     const rows = () => page.evaluate(() => { const out = {};
         for (const [name, sel] of [["tool bar", ".rg-bar"], ["list header", ".rg-head"], ["bottom bar", ".rg-foot"], ["size row", ".rg-size"]]) {
             const c = document.querySelector(sel), cr = c.getBoundingClientRect();
@@ -142,13 +142,13 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
     await page.evaluate(async () => { const rg = window.__rg; window.__li.connect(0, rg, rg.inputs.findIndex((i) => i.name === "image")); await new Promise((r) => setTimeout(r, 1500)); });
     let rw = await rows();
     check(`${M}: Generate, an image connected: tool bar, list header, bottom bar and size row each on one line (${JSON.stringify(rw)})`, Object.keys(rw).length === 1);
-    await page.locator(".rg-apart").click(); await sleep(300);
+    await page.locator(".rg-separate").click(); await sleep(300);
     await page.locator('.rg-foot [title^="Edit: Change the image"]').click(); await sleep(4200);      // (a message shows in the header for 3.5 s after the switch)
     rw = await rows();
-    check(`${M}: Edit Mode with keep-apart on: still one line each; the model dropdown keeps its width (${JSON.stringify(rw)})`, Object.keys(rw).length === 1 && rw.model >= 100);
+    check(`${M}: Edit Mode with keep-separate on: still one line each; the model dropdown keeps its width (${JSON.stringify(rw)})`, Object.keys(rw).length === 1 && rw.model >= 100);
     check(`${M}: …the Edit area line is under Whole image`, await page.locator(".rg-list .rg-row.editarea").count() === 1 && await page.locator(".rg-head .rg-editmask").count() === 0);
     await page.locator(".rg-foot .rg-seg .rg-btn").first().click(); await sleep(500);
-    await page.locator(".rg-apart").click(); await sleep(200);
+    await page.locator(".rg-separate").click(); await sleep(200);
     await page.evaluate(async () => { const rg = window.__rg; rg.disconnectInput(rg.inputs.findIndex((i) => i.name === "image")); await new Promise((r) => setTimeout(r, 500)); });
 
     // ---------------- the wildcard seed group: only while a prompt has a wildcard

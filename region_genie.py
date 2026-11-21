@@ -60,7 +60,7 @@ def _rgb_to_hex(rgb):
 # color palettes (MOSS "palette" / Ideogram "color_palette"); the JS editor has the same rules
 # --------------------------------------------------------------------------- #
 PALETTE_MAX = 5
-_PAL_MIN_DIST2 = 40 * 40          # squared RGB distance that keeps two region colors apart on the canvas
+_PAL_MIN_DIST2 = 40 * 40          # squared RGB distance that keeps two region colors separate on the canvas
 
 
 def norm_palette(p):
@@ -652,7 +652,7 @@ PLAIN_ENCODERS = ("Krea2", "Flux", "Flux2", "Flux3", "Anima", "SDXL", "SD1ClipMo
 
 
 # the paint data of workflows saved (or API prompts made) before MOSS-Image was stored by its official name said
-# "MOSS Image": as the model pick, the edit / control tag of a LoRA, and a key of autoApart
+# "MOSS Image": as the model pick, the edit / control tag of a LoRA, and a key of autoSeparate
 _OLD_MOSS = re.compile(r'("(?:modelPick|edit|control)"\s*:\s*)"MOSS Image"|"MOSS Image"(\s*:)')
 
 
@@ -831,7 +831,7 @@ def empty_latent(width, height, model=None, vae=None):
 
 def lora_edit_format(lora_name):
     """The MOSS-Image edit LoRA layout of a LoRA file, read from its safetensors header: ai-toolkit files fuse
-    q/k/v, Moss-Image-Edit (chinoll) files keep them apart. None when the file can't be read."""
+    q/k/v, Moss-Image-Edit (chinoll) files keep them separate. None when the file can't be read."""
     try:
         from .model_paths import full_path
         path = full_path("loras", lora_name)
@@ -850,10 +850,10 @@ def lora_edit_format(lora_name):
     return "ai-toolkit" if any("qkv" in k for k in keys) else "Moss-Image-Edit"
 
 
-def auto_apart_on(data, family):
-    """Whether 'keep all regions apart' turns on by itself for `family` (regional_lora.AUTO_APART_FAMILIES): the
+def auto_separate_on(data, family):
+    """Whether 'keep all regions separate' turns on by itself for `family` (regional_lora.AUTO_SEPARATE_FAMILIES): the
     per-model setting sent by the front end ("on" / "off" / "default"), else the setting for all of them, else on."""
-    m = data.get("autoApart") if isinstance(data.get("autoApart"), dict) else None
+    m = data.get("autoSeparate") if isinstance(data.get("autoSeparate"), dict) else None
     if m is not None:
         v = m.get(family, "default")
         if v in (True, "on"):
@@ -1091,7 +1091,7 @@ class RegionGenie:
     OUTPUT_TOOLTIPS = (
         ("The connected model with the LoRAs: Whole image's merged in, each region's acting only inside its region "
          "(one pass; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with "
-         "'positive' as the prompt. Unchanged when no LoRA is set, the regions aren't kept apart and no Anima "
+         "'positive' as the prompt. Unchanged when no LoRA is set, the regions aren't kept separate and no Anima "
          "Control row is used."),
         ("'prompt' encoded with the connected clip, with the Edit Mode reference image and the Control rows on it. "
          "Empty when no clip is connected."),
@@ -1110,7 +1110,7 @@ class RegionGenie:
          "The node's model dropdown picks the format; on auto: The connected model, else the clip, else the "
          "text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ "
          "or (Deno) Ideogram Director.\n"
-         "Plain text doesn't say where the regions are: The node's Separate button (keep all regions apart; needs model and clip) ties "
+         "Plain text doesn't say where the regions are: The node's Separate button (keep all regions separate; needs model and clip) ties "
          "each region's sentence to its region."),
         "Flat color region map (black = unspecified), e.g. for MOSS-Image Color/Depth Control. A region with a color "
         "palette is shown in its first palette color.",
@@ -1446,7 +1446,7 @@ class RegionGenie:
                                                       for c in spans for a, b in [c or (0, 0)]],
                                                      notes, status, family=family, edit=edit, tok_kw=tok_kw,
                                                      base=len(vision_prefix))
-        ui["auto_apart"] = [bool(status.get("auto_apart"))]
+        ui["auto_separate"] = [bool(status.get("auto_separate"))]
         # for Save Image (Region Genie): the prompt as it left this node (the 'prompt' output), the negative prompt
         # after wildcards, and the LoRAs that were applied. In memory only (gen_params.RUNS); nothing is written.
         from . import gen_params
@@ -1575,7 +1575,7 @@ class RegionGenie:
                         edit=False, tok_kw=None, base=0):
         """The whole-image LoRAs merged into the model (like Load LoRA), and the regions' LoRAs as a model patch:
         one pass, each LoRA limited to its region's image tokens (+ its caption's text tokens when clip is
-        connected), regions kept apart in attention for the first steps."""
+        connected), regions kept separate in attention for the first steps."""
         from . import regional_lora as hl
         try:
             data = json.loads(paint_data) if isinstance(paint_data, str) and paint_data.strip() else {}
@@ -1623,33 +1623,33 @@ class RegionGenie:
         if skipped:
             notes.append(f"NOTE: {skipped} region(s) with LoRAs have no pixels; their LoRAs are not used")
         opts = data.get("loraOpts") if isinstance(data.get("loraOpts"), dict) else {}
-        all_apart = bool(opts.get("allRegions"))
+        all_separate = bool(opts.get("allRegions"))
         # models without a layout format (Krea 2, Flux, Anima, SDXL ...) get the regions as plain sentences: they are
-        # placed by tying each region's sentence to its region in attention, so 'keep all regions apart' turns on by
+        # placed by tying each region's sentence to its region in attention, so 'keep all regions separate' turns on by
         # itself when a region has a prompt (Settings > Region Genie: one setting for all those models, and one per
         # model; the front end sends them in paint_data)
-        plain_layout = arch is not None and (arch.family in hl.AUTO_APART_FAMILIES or family == "plain")
+        plain_layout = arch is not None and (arch.family in hl.AUTO_SEPARATE_FAMILIES or family == "plain")
         # autoOff: switched off on the node (its button), also where it would turn on by itself
-        if (not all_apart and plain_layout and not opts.get("autoOff")
-                and auto_apart_on(data, arch.family)
+        if (not all_separate and plain_layout and not opts.get("autoOff")
+                and auto_separate_on(data, arch.family)
                 and any(str(row.get("prompt") or "").strip() for row in table if row.get("out_index") is not None)):
             if clip is None:
                 notes.append(f"NOTE: {arch.name}: connect clip so each region's prompt can be tied to its region "
-                             "('keep all regions apart' needs it to place the regions)")
+                             "('keep all regions separate' needs it to place the regions)")
             else:
-                all_apart = True
+                all_separate = True
                 if status is not None:
-                    status["auto_apart"] = True
-                notes.append(f"keep all regions apart: on automatically for {arch.name} (a region has a prompt). "
+                    status["auto_separate"] = True
+                notes.append(f"keep all regions separate: on automatically for {arch.name} (a region has a prompt). "
                              "Off: The node's Separate button > Off for this node, or Settings > Region Genie > "
                              "Region Genie node")
-        if all_apart and model is not None and not hl.one_pass_ok(model):
-            notes.append(f"NOTE: 'keep all regions apart' needs a {hl.ONE_PASS_MODELS} model; it was not used")
-            all_apart = False
-        if all_apart and model is None:
-            notes.append("NOTE: 'keep all regions apart' is on, but no model is connected to the 'model' input")
-            all_apart = False
-        if not scene and not regional and not all_apart:
+        if all_separate and model is not None and not hl.one_pass_ok(model):
+            notes.append(f"NOTE: 'keep all regions separate' needs a {hl.ONE_PASS_MODELS} model; it was not used")
+            all_separate = False
+        if all_separate and model is None:
+            notes.append("NOTE: 'keep all regions separate' is on, but no model is connected to the 'model' input")
+            all_separate = False
+        if not scene and not regional and not all_separate:
             return model, []
         if model is None:
             notes.append("NOTE: LoRAs are set, but no model is connected to the 'model' input; they are not used")
@@ -1668,14 +1668,14 @@ class RegionGenie:
         separation, until = clamp(opts.get("separation"), 0.85), clamp(opts.get("until"), 0.25)
 
         # spans: each region's caption in prompt_text, as character ranges (trigger words act with their LoRA)
-        if all_apart:          # every region with pixels, LoRAs or not
+        if all_separate:          # every region with pixels, LoRAs or not
             lora_of = {id(row): ls for row, ls in regional}
             chosen = [(row, lora_of.get(id(row), [])) for row in table if row.get("out_index") is not None]
         else:
             chosen = regional
         regions = [(row["out_index"], masks[row["out_index"]], spans[row["out_index"]], ls) for row, ls in chosen]
         return hl.regional_lora_patch(model, clip, prompt_text, regions, scene, separation, until, notes,
-                                      separate_all=all_apart, tok_kw=tok_kw, base=base,
+                                      separate_all=all_separate, tok_kw=tok_kw, base=base,
                                       share_background=bool(opts.get("shareBg")))
 
     @staticmethod

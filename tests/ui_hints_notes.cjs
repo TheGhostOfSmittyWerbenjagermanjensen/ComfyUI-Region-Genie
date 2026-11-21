@@ -59,9 +59,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.evaluate(() => { window.__settings["RegionGenie.Tools.Hints"] = true; window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.Hints").onChange(true); });
     check("hints on again: both are back", await tips() !== null && await shown(".rg-start"));
 
-    // ---- Clear all: the last button of the toolbar, apart from Undo / Redo; undoable
+    // ---- Clear all: the last button of the toolbar, separate from Undo / Redo; undoable
     const bar = await page.evaluate(() => { const k = [...document.querySelector(".rg-bar").children]; const c = k.findIndex((e) => (e.title || "").startsWith("Clear all")), r = k.findIndex((e) => (e.title || "").startsWith("Redo")); return { last: c === k.length - 1, danger: k[c].classList.contains("danger"), gap: c - r }; });
-    check("Clear all is the toolbar's last button, set apart from Undo / Redo", bar.last && bar.danger && bar.gap > 3);
+    check("Clear all is the toolbar's last button, set separate from Undo / Redo", bar.last && bar.danger && bar.gap > 3);
     await page.mouse.move(x, y); await page.keyboard.press("r");
     [x, y] = await toClient(200, 200); await page.mouse.move(x, y); await page.mouse.down(); [x, y] = await toClient(500, 500); await page.mouse.move(x, y, { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(150);
     await page.locator('.rg-bar [title^="Clear all"]').click(); await page.waitForTimeout(100);
@@ -99,17 +99,17 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...(s.loraOpts || {}), allRegions: true }; n.__rgRefresh(); });
     await page.waitForTimeout(250);
     const hd = await page.evaluate(() => { const b = document.querySelector(".rg-loraopts"), k = [...b.children].filter((e) => e.getClientRects().length);
-        return { kinds: k.map((e) => e.tagName === "INPUT" ? "field" : e.classList.contains("rg-apart") ? "button" : e.querySelector("svg") && !e.textContent.trim() ? "icon" : "text:" + e.textContent.trim()),
+        return { kinds: k.map((e) => e.tagName === "INPUT" ? "field" : e.classList.contains("rg-separate") ? "button" : e.querySelector("svg") && !e.textContent.trim() ? "icon" : "text:" + e.textContent.trim()),
             tips: k.slice(0, 4).every((e) => e.title && e.title.length > 20), same: k[0].title === k[1].title && k[2].title === k[3].title, h: Math.round(document.querySelector(".rg-head").getBoundingClientRect().height) }; });
     check(`with 'Separate' on: an icon and a field for separation, an icon and a field for until, then the button; no words (${hd.kinds.join(" ")})`, hd.kinds.join(" ") === "icon field icon field button" && hd.tips && hd.same);
-    check("the button says 'Separate'", (await page.locator(".rg-apart").innerText()).trim() === "Separate" && await page.locator(".rg-apart svg").count() === 1);
+    check("the button says 'Separate'", (await page.locator(".rg-separate").innerText()).trim() === "Separate" && await page.locator(".rg-separate svg").count() === 1);
     await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = "560px"; }); await page.waitForTimeout(150);      // the editor's width in a 580 px node
     check("the header is one line at the new default width (560 px inside a 580 px node)", await page.evaluate(() => document.querySelector(".rg-head").getBoundingClientRect().height) < 26
         && await page.evaluate(() => document.querySelector(".rg-bar").getBoundingClientRect().height) < 26);
     await page.locator('.rg-bar .rg-btn.icon[title^="Arrange"]').click().catch(() => {});
     const headMsg = async (text) => { await page.evaluate((t) => window.__node.__rgHint(t), text); await page.waitForTimeout(80);
         return page.evaluate(() => { const s = document.querySelector(".rg-head .rg-status"), h = document.querySelector(".rg-head").getBoundingClientRect(), r = s.getBoundingClientRect();
-            return { wide: s.classList.contains("wide"), all: s.scrollWidth <= s.clientWidth + 1, headH: Math.round(h.height), below: r.top > document.querySelector(".rg-apart").getBoundingClientRect().bottom - 2, text: s.textContent }; }); };
+            return { wide: s.classList.contains("wide"), all: s.scrollWidth <= s.clientWidth + 1, headH: Math.round(h.height), below: r.top > document.querySelector(".rg-separate").getBoundingClientRect().bottom - 2, text: s.textContent }; }); };
     const m1 = await headMsg("The layer is too small to shrink by 50 px");
     check(`a message that doesn't fit beside the fields: a line of its own under the header, all of it readable (${JSON.stringify(m1)})`, m1.wide && m1.all && m1.below && m1.headH > 30);
     await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...(s.loraOpts || {}), allRegions: false, autoOff: true }; n.__rgRefresh(); });

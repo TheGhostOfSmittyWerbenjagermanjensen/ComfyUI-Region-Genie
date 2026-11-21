@@ -31,9 +31,9 @@ export const ICONS = {
     edges: '<rect x="2.5" y="2.5" width="11" height="11" stroke-dasharray="2 1.6"/><rect x="5.5" y="5.5" width="5" height="5" fill="currentColor" stroke="none" opacity=".55"/>',
     regionAdd: '<rect x="1.5" y="3" width="9" height="9" rx="1.5"/><path d="M13 1.8v4.4M10.8 4h4.4"/>',
     grip: '<g fill="currentColor" stroke="none"><circle cx="5.5" cy="3.5" r="1.2"/><circle cx="10.5" cy="3.5" r="1.2"/><circle cx="5.5" cy="8" r="1.2"/><circle cx="10.5" cy="8" r="1.2"/><circle cx="5.5" cy="12.5" r="1.2"/><circle cx="10.5" cy="12.5" r="1.2"/></g>',
-    allApart: '<rect x="1.5" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="1.5" y="9.3" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="9.3" width="5.2" height="5.2" rx="1"/>',
-    // the four tiles on a shaded backdrop: kept apart from each other, the background shared
-    allApartShared: '<rect x="0.6" y="0.6" width="14.8" height="14.8" rx="2" fill="currentColor" stroke="none" opacity=".32"/><rect x="2.4" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="2.4" y="9.2" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="9.2" width="4.4" height="4.4" rx=".9"/>',
+    allSeparate: '<rect x="1.5" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="1.5" width="5.2" height="5.2" rx="1"/><rect x="1.5" y="9.3" width="5.2" height="5.2" rx="1"/><rect x="9.3" y="9.3" width="5.2" height="5.2" rx="1"/>',
+    // the four tiles on a shaded backdrop: kept separate from each other, the background shared
+    allSeparateShared: '<rect x="0.6" y="0.6" width="14.8" height="14.8" rx="2" fill="currentColor" stroke="none" opacity=".32"/><rect x="2.4" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="2.4" width="4.4" height="4.4" rx=".9"/><rect x="2.4" y="9.2" width="4.4" height="4.4" rx=".9"/><rect x="9.2" y="9.2" width="4.4" height="4.4" rx=".9"/>',
     // image input: traced over (backdrop) / read as the color map
     imgBackdrop: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M1.8 11l3.6-3.6 3 3 2-2 3.8 3.8"/><circle cx="10.6" cy="5.9" r="1.1"/>',
     imgColorMap: '<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><path d="M8 2.8v10.4M1.8 8h6.2"/><rect x="2.6" y="3.6" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/><rect x="8.8" y="8.8" width="4.6" height="3.6" fill="currentColor" stroke="none" opacity=".55"/>',
@@ -1809,7 +1809,7 @@ export const SET = {
     bigKey: "RegionGenie.Main.LargeEditorKey",
     shortcuts: "RegionGenie.Shortcuts",              // the user's keys for the editor's commands (rg_keys.js), a JSON text
     cmAllRegions: "RegionGenie.Main.AllRegionsApart",
-    cmAutoApart: "RegionGenie.Main.AutoApart",
+    cmAutoSeparate: "RegionGenie.Main.AutoApart",
     cmShareBg: "RegionGenie.Main.ShareBackground",
     toolLasso: "RegionGenie.Tools.Lasso",
     toolLassoErase: "RegionGenie.Tools.LassoErase",
@@ -1845,12 +1845,12 @@ export const SET = {
 };
 // models without a layout format of their own: [family name used by the Python side, settings ID suffix]
 // [the model family the run reports, Settings key, label]. MOSS-Image gets plain text in its standard mode and in Edit Mode
-export const AUTO_APART_MODELS = [["MOSS-Image", "MOSS", "MOSS-Image (standard mode, Edit Mode)"], ["Krea 2", "Krea2"], ["Flux", "Flux"],
+export const AUTO_SEPARATE_MODELS = [["MOSS-Image", "MOSS", "MOSS-Image (standard mode, Edit Mode)"], ["Krea 2", "Krea2"], ["Flux", "Flux"],
     ["Flux 3", "Flux3"], ["Anima", "Anima"], ["SDXL / SD1.5", "SDXL"]];
-// the 'keep all regions apart automatically' settings, as sent to Python in paint_data
-export function autoApartSettings() {
-    const out = { all: getSetting(SET.cmAutoApart, true) !== false };
-    for (const [fam, key] of AUTO_APART_MODELS) out[fam] = getSetting(SET.cmAutoApart + "." + key, "default") || "default";
+// the 'keep all regions separate automatically' settings, as sent to Python in paint_data
+export function autoSeparateSettings() {
+    const out = { all: getSetting(SET.cmAutoSeparate, true) !== false };
+    for (const [fam, key] of AUTO_SEPARATE_MODELS) out[fam] = getSetting(SET.cmAutoSeparate + "." + key, "default") || "default";
     return out;
 }
 // Edit Mode: [model name as the Python side reports it (ui.model_arch), settings ID suffix, reads a reference image]
@@ -2175,29 +2175,29 @@ const SETTINGS = [
         { id: SET.cmFeather, name: "Feather (px, linked regions)", type: "number", defaultValue: 0, attrs: { min: 0, max: 512, step: 1 }, tooltip: "The mask feather that linked regions share (regions start linked). " + NEW_NODES, category: CAT("Region Genie node", "06 feather") },
         { id: SET.cmSeparation, name: "LoRA region separation", type: "slider", defaultValue: 0.85, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "07 separation") },
         { id: SET.cmUntil, name: "LoRA separation until", type: "slider", defaultValue: 0.25, attrs: { min: 0, max: 1, step: 0.05 }, tooltip: NEW_NODES, category: CAT("Region Genie node", "08 until") },
-        { id: SET.cmAllRegions, name: "Keep all regions apart (not only those with LoRAs)", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Region Genie node", "085 all regions") },
+        { id: SET.cmAllRegions, name: "Keep all regions separate (not only those with LoRAs)", type: "boolean", defaultValue: false, tooltip: NEW_NODES, category: CAT("Region Genie node", "085 all regions") },
         {
-            id: SET.cmShareBg, name: "Keep regions apart: share the background", type: "boolean", defaultValue: false,
-            tooltip: "Regions that are kept apart stay apart from each other, but not from the image around them, so "
+            id: SET.cmShareBg, name: "Keep regions separate: share the background", type: "boolean", defaultValue: false,
+            tooltip: "Regions that are kept separate stay separate from each other, but not from the image around them, so "
                 + "lighting and setting stay one picture. " + NEW_NODES,
             category: CAT("Region Genie node", "0855 share background"),
         },
         {
-            id: SET.cmAutoApart, name: "Plain-text prompts: keep all regions apart automatically", type: "boolean", defaultValue: true,
+            id: SET.cmAutoSeparate, name: "Plain-text prompts: keep all regions separate automatically", type: "boolean", defaultValue: true,
             tooltip: "Krea 2, Flux, Flux 3, Anima and SDXL / SD1.5 (and MOSS-Image in its standard mode and in Edit Mode) get "
                 + "the regions as plain sentences. The Region Genie node places each region by tying its sentence to its "
-                + "region in attention (keeping all regions apart).\n"
-                + "On: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions apart, "
+                + "region in attention (keeping all regions separate).\n"
+                + "On: With such a model on 'model', clip connected and at least one region prompt, a run keeps all regions separate, "
                 + "unless the node's Separate button is set to 'Off for this node'.\n"
-                + "Off: Only a node whose Separate button is on keeps them apart.\n"
+                + "Off: Only a node whose Separate button is on keeps them separate.\n"
                 + "The settings below change it for one model. Applies to every Region Genie node at its next run.",
-            category: CAT("Region Genie node", "086 auto apart"),
+            category: CAT("Region Genie node", "086 auto separate"),
         },
-        ...AUTO_APART_MODELS.map(([fam, key, label], i) => ({
-            id: SET.cmAutoApart + "." + key, name: `${label || fam}: keep all regions apart automatically`, type: "combo", defaultValue: "default",
+        ...AUTO_SEPARATE_MODELS.map(([fam, key, label], i) => ({
+            id: SET.cmAutoSeparate + "." + key, name: `${label || fam}: keep all regions separate automatically`, type: "combo", defaultValue: "default",
             options: [{ text: "As set for all models (above)", value: "default" }, { text: "On", value: "on" }, { text: "Off", value: "off" }],
             tooltip: `For ${fam} models only. 'As set for all models' follows the setting above.`,
-            category: CAT("Region Genie node", "087 auto apart " + i),
+            category: CAT("Region Genie node", "087 auto separate " + i),
         })),
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "Whether snap to grid is on when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
         { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "The grid size when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
@@ -2305,7 +2305,7 @@ export const SETTINGS_PAGES = [
     ["control", "Control", "files", "The control LoRA, ControlNet or LLLite file each model uses for a Control row, and the depth model."],
     ["edit", "Edit Mode", "files", "The edit LoRA of each model, whether the source image is sent as a reference, and the edit mask's grow and feather."],
     ["llm", "LLM Prompt Enhancer", "files", "What the LLM sees, the default preset of each prompt type, the presets themselves, and the LLM cache."],
-    ["apart", "Keeping regions apart, per model", "files", "Whether a run keeps all regions apart by itself, for each model without a layout format."],
+    ["separate", "Keeping regions separate, per model", "files", "Whether a run keeps all regions separate by itself, for each model without a layout format."],
     ["sam", "Select object", "files", "The SAM 3.1 model file, whether it stays loaded, and the confidence of Find all."],
     ["hl", "Regional LoRAs", "other", "What a new Regional LoRAs node starts with."],
     ["save", "Save Image", "other", "The format a new Save Image (Region Genie) node starts with, and each format's settings."],
@@ -2348,14 +2348,14 @@ const pageRowType = (key) => () => {
 (() => {
     // which rows stay in the tab (they are on their page too), and where
     const stay = new Map([[SET.toolHints, ["node", "01"]], [SET.cmSnap, ["node", "02"]], [SET.acDefault, ["node", "03"]], [SET.llmNewRegions, ["node", "04"]],
-        [SET.cmAutoApart, ["node", "05"]], [SET.shortcuts, ["node", "06"]], [SET.filePickers, ["files", "80"]], [SET.checkFiles, ["files", "81"]]]);
+        [SET.cmAutoSeparate, ["node", "05"]], [SET.shortcuts, ["node", "06"]], [SET.filePickers, ["files", "80"]], [SET.checkFiles, ["files", "81"]]]);
     const names = {};
     SETTINGS.forEach((d, i) => { d.rgIndex = i; });                         // a page lists its settings in the order they are written above
     for (const d of SETTINGS) {
         const sec = d.category?.[1];
         if (!sec) continue;                                                // the hidden ones (pop-up sizes, older keys)
         d.rgSection = sec;
-        d.rgPage = d.id === SET.shortcuts ? null : d.id === SET.cmAutoApart || String(d.id).startsWith(SET.cmAutoApart + ".") ? "apart" : PAGE_OF_SECTION[sec] || null;
+        d.rgPage = d.id === SET.shortcuts ? null : d.id === SET.cmAutoSeparate || String(d.id).startsWith(SET.cmAutoSeparate + ".") ? "separate" : PAGE_OF_SECTION[sec] || null;
         if (d.rgPage) (names[d.rgPage] ||= []).push(d.name);
         const st = stay.get(d.id);
         if (st) d.category = CAT(TAB_SECTIONS[st[0]], st[1]);

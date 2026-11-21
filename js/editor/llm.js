@@ -208,9 +208,9 @@ export function* llm(E) {
         E.sepIn.value = String(normLoraOpts(E.state.loraOpts).separation);
         E.untilIn.value = String(normLoraOpts(E.state.loraOpts).until);
         const anyLora = (E.state.sceneLoras || []).length || E.state.regions.some((r) => (r.loras || []).length);
-        const showSep = anyLora || normLoraOpts(E.state.loraOpts).allRegions || (E.autoApart && !normLoraOpts(E.state.loraOpts).autoOff);
+        const showSep = anyLora || normLoraOpts(E.state.loraOpts).allRegions || (E.autoSeparate && !normLoraOpts(E.state.loraOpts).autoOff);
         for (const e of [E.sepLbl, E.sepIn, E.untilLbl, E.untilIn]) e.style.display = showSep ? "" : "none";
-        E.setAllApartBtn();
+        E.setAllSeparateBtn();
         E.syncEditMaskBox();
         E.updateExpandButtons();
 

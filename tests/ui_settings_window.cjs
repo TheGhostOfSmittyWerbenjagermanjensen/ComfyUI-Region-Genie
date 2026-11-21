@@ -20,8 +20,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`the tab lists ${info.shown.length} rows in three sections (${info.sections.join(" | ")}), of ${info.all} settings`, info.shown.length >= 15 && info.shown.length <= 22
         && info.sections.join("|") === "Basics|Models and files|Other nodes" && info.order);
     check("the switches that stay as rows", ["Hints on the canvas", "Snap to grid on", "Tag autocomplete on in new Region Genie nodes", "New regions start with the LLM Prompt Enhancer on",
-        "Plain-text prompts: keep all regions apart automatically", "Shortcuts", "Browse… for model files", "Check model files"].every((n) => info.shown.includes(n)));
-    check(`eleven topic rows (${info.rows.join(" ")})`, info.rows.join() === "size,node,tools,text,control,edit,llm,apart,sam,hl,save");
+        "Plain-text prompts: keep all regions separate automatically", "Shortcuts", "Browse… for model files", "Check model files"].every((n) => info.shown.includes(n)));
+    check(`eleven topic rows (${info.rows.join(" ")})`, info.rows.join() === "size,node,tools,text,control,edit,llm,separate,sam,hl,save");
     check(`every setting that left the tab has a page (${info.moved} moved; without a page: ${info.unplaced.join(" | ")})`, info.moved > 95 && !info.unplaced.length);
     check("a topic row's id carries the names of its page's settings, for ComfyUI's search", info.ids.find((i) => /Page\.save/.test(i)).includes("WebP quality") && info.ids.find((i) => /Page\.control/.test(i)).includes("canny ControlNet")
         && info.ids.every((i) => /^[A-Za-z0-9 .,:_\-]+$/.test(i)));
@@ -37,7 +37,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         return { in: d.contains(w), covers: Math.abs(a.left - b.left) < 2 && Math.abs(a.top - b.top) < 2 && Math.abs(a.width - b.width) < 2 && Math.abs(a.height - b.height) < 2,
             nav: [...w.querySelectorAll(".rg-setwin-nav button")].map((x) => x.firstChild.textContent), rows: w.querySelectorAll(".rg-setwin-row").length }; });
     check(`Edit… opens the window inside the dialog, covering it, on its page (${geo.rows} rows; pages: ${geo.nav.join(" | ")})`, geo.in && geo.covers && geo.rows === 7 && geo.nav.length === 11
-        && geo.nav.join("|") === "Image size|Region Genie node|Canvas tools|Text size|Control|Edit Mode|LLM Prompt Enhancer|Keeping regions apart, per model|Select object|Regional LoRAs|Save Image");
+        && geo.nav.join("|") === "Image size|Region Genie node|Canvas tools|Text size|Control|Edit Mode|LLM Prompt Enhancer|Keeping regions separate, per model|Select object|Regional LoRAs|Save Image");
     check("every row has a name with a tooltip and a control", await page.evaluate(() => [...document.querySelectorAll(".rg-setwin-row")].every((r) => r.querySelector("label").textContent && r.querySelector("label").title.length > 10 && r.querySelector(".rg-setwin-ctl").childElementCount > 0)));
     await rowOf("Hints on the canvas").locator(".rg-setwin-sw").click(); await page.waitForTimeout(80);
     await rowOf("Lasso: default").locator("select").selectOption("magnetic"); await page.waitForTimeout(80);

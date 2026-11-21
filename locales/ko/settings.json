@@ -611,7 +611,7 @@
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions apart not only those with LoRAs , Keep regions apart: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , LoRA region separation, LoRA separation until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie 노드",
     "tooltip": "새 Region Genie 노드의 초기 설정(이미지 모드, 페더, 분리, 그리드, 영역 색상, 태그 자동 완성, 와일드카드).\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
@@ -635,7 +635,7 @@
     "name": "LLM 프롬프트 향상기",
     "tooltip": "LLM이 보는 내용, 프롬프트 유형별 기본 프리셋, 프리셋 자체, LLM 캐시.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_apart: Plain-text prompts: keep all regions apart automatically, MOSS-Image standard mode, Edit Mode : keep all regions apart automatically, Krea 2: keep all regions apart automatically, Flux: keep all regions apart automatically, Flux 3: keep all regions apart automatically, Anima: keep all regions apart automatically, SDXL SD1_5: keep all regions apart automatically": {
+  "RegionGenie_Page_separate: Plain-text prompts: keep all regions separate automatically, MOSS-Image standard mode, Edit Mode : keep all regions separate automatically, Krea 2: keep all regions separate automatically, Flux: keep all regions separate automatically, Flux 3: keep all regions separate automatically, Anima: keep all regions separate automatically, SDXL SD1_5: keep all regions separate automatically": {
     "name": "모델별 영역 분리",
     "tooltip": "레이아웃 형식이 없는 각 모델에서 실행 시 모든 영역을 자동으로 분리할지 여부.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },

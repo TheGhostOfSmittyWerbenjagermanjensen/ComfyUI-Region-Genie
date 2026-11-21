@@ -148,8 +148,8 @@ export function* lifecycle(E) {
             E.node.properties.rg_model_src = E.guessArch().sig;
             E.onModelChanged(true);
         }
-        if (Array.isArray(message?.auto_apart) && !!message.auto_apart[0] !== E.autoApart) {
-            E.autoApart = !!message.auto_apart[0];
+        if (Array.isArray(message?.auto_separate) && !!message.auto_separate[0] !== E.autoSeparate) {
+            E.autoSeparate = !!message.auto_separate[0];
             E.renderRegions();
         }
         let imp = null;
@@ -350,9 +350,9 @@ export function* lifecycle(E) {
             const f = Math.max(0, Math.round(+getSetting(SET.cmFeather, 0)) || 0);
             const sp = +getSetting(SET.cmSeparation, 0.85), un = +getSetting(SET.cmUntil, 0.25);
             if (f) E.state.feather = f;
-            const allApart = !!getSetting(SET.cmAllRegions, false), shareBg = !!getSetting(SET.cmShareBg, false);
-            if (sp !== 0.85 || un !== 0.25 || allApart || shareBg) {
-                E.state.loraOpts = normLoraOpts({ separation: sp, until: un, allRegions: allApart, shareBg });
+            const allSeparate = !!getSetting(SET.cmAllRegions, false), shareBg = !!getSetting(SET.cmShareBg, false);
+            if (sp !== 0.85 || un !== 0.25 || allSeparate || shareBg) {
+                E.state.loraOpts = normLoraOpts({ separation: sp, until: un, allRegions: allSeparate, shareBg });
             }
             E.save(); E.syncSettings(); E.onDimsChanged(); E.refreshUI();
         }, 0);

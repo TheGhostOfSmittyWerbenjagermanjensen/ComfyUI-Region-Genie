@@ -70,13 +70,13 @@ export function* sizeRow(E) {
     const sizeRow = el("div", "rg-size"); E.sizeEl = sizeRow;
     const sizeSeg = E.segmented([
         ["aspect ratio", svgIcon("sizeRatio"), "Image size from an aspect ratio and megapixels, like ComfyUI's Resolution Selector"],
-        ["presets", svgIcon("sizeList"), "Image size from the presets list (shared by every Region Genie node; 'Edit list…' at its end)"],
+        ["presets", svgIcon("sizeList"), "Image size from the presets list (shared by every Region Genie node; 'Edit list…' at its end). The preset picked here last time is used again"],
         ["manual", svgIcon("sizeManual"), "Image size: width and height typed in"],
     ], (v) => {
+        // each mode keeps its own choice: back in presets mode, the preset picked there last time is the size again
+        // (round 51; rounds 12 to 50 carried the other mode's size over, as "not in the list"). The sizes of the
+        // other two modes are offered in the presets dropdown instead, as entries that add them to the list
         const c = sizeCfg();
-        // into presets mode: keep the size the other mode made (shown as "not in the list" until a preset is
-        // picked), so '＋ Current size' in 'Edit list…' can add it
-        if (v === "presets" && c.mode !== "presets") { const [w, h] = sizeOfCfg(c); c.preset = { ...c.preset, w, h, swap: false }; }
         c.mode = v; applySize();
     });
     const sizeNum = (min, max, step, title, width) => {
@@ -107,12 +107,31 @@ export function* sizeRow(E) {
     const preSel = el("select", "rg-sel rg-size-pre");
     const PRESET_TIP = "Image size presets (Settings > Region Genie > Image size; 'Edit list…' to change them)";
     preSel.title = PRESET_TIP;
-    const EDIT_LIST = "__edit__";
+    const EDIT_LIST = "__edit__", ADD = "__add__:";
     let presetsText = null;
+    // the sizes the other two modes are set to on this node, for the "add to the list" entries: [[w, h, "aspect ratio"], …]
+    // (one that is in the list already is left out; the same size in both modes is offered once)
+    function otherSizes(list) {
+        const c = sizeCfg(), out = [];
+        for (const mode of ["aspect ratio", "manual"]) {
+            const [w, h] = sizeOfCfg({ ...c, mode });
+            if (list.some((p) => p.w === w && p.h === h)) continue;
+            const same = out.find((o) => o[0] === w && o[1] === h);
+            if (same) same[2] += " and manual"; else out.push([w, h, mode]);
+        }
+        return out;
+    }
+    const addPreset = (w, h) => {
+        const list = parseSizePresets(getSetting(SET.sizePresets, SIZE_PRESETS_DEFAULT));
+        if (!list.some((p) => p.w === w && p.h === h)) { list.push({ w, h, name: "" }); setSetting(SET.sizePresets, formatSizePresets(list)); }
+        presetsText = null;
+    };
     preSel.addEventListener("change", () => {
         if (preSel.value === EDIT_LIST) { syncSizeRow(true); openPresetEditor(); return; }
-        const [w, h] = preSel.value.split("x").map(Number);
-        const c = sizeCfg(); c.preset = { ...c.preset, w, h };
+        const add = preSel.value.startsWith(ADD);
+        const [w, h] = (add ? preSel.value.slice(ADD.length) : preSel.value).split("x").map(Number);
+        if (add) addPreset(w, h);                              // into the list (every node's), and picked here
+        const c = sizeCfg(); c.preset = { ...c.preset, w, h, ...(add ? { swap: false } : {}) };
         applySize();
     });
     const preBox = el("span", "rg-size-part");
@@ -136,15 +155,19 @@ export function* sizeRow(E) {
     sizeRow.append(sizeSeg.box, ratioBox, preBox, manBox, sizeOut);
     for (const ev of ["pointerdown", "mousedown", "dblclick", "wheel"]) sizeRow.addEventListener(ev, (e) => e.stopPropagation());
     function presetOptions() {
-        const text = String(getSetting(SET.sizePresets, SIZE_PRESETS_DEFAULT) ?? "");
+        const list = parseSizePresets(String(getSetting(SET.sizePresets, SIZE_PRESETS_DEFAULT) ?? ""));
+        const others = otherSizes(list);
+        const text = formatSizePresets(list) + "|" + others.map((o) => o.join("x")).join("|");
         if (text === presetsText) return;
         presetsText = text;
         preSel.replaceChildren();
-        for (const p of parseSizePresets(text)) {
+        for (const p of list) {
             preSel.appendChild(opt(`${p.w}x${p.h}`, `${p.w} × ${p.h}  (${p.name || ratioLabel(p.w, p.h)})`));
         }
-        const sep = opt("", "──────────"); sep.disabled = true;
-        preSel.append(sep, opt(EDIT_LIST, "Edit list…"));
+        const line = () => { const o = opt("", "──────────"); o.disabled = true; return o; };
+        if (others.length) preSel.appendChild(line());
+        for (const [w, h, mode] of others) preSel.appendChild(opt(`${ADD}${w}x${h}`, `＋ Add ${w} × ${h}  (the ${mode} size)`));
+        preSel.append(line(), opt(EDIT_LIST, "Edit list…"));
     }
     function syncSizeRow(force) {
         const c = sizeCfg();
@@ -167,7 +190,8 @@ export function* sizeRow(E) {
                 preSel.insertBefore(o, preSel.firstChild);
             } else if (listed) extra?.remove();
             preSel.value = key;
-            preSel.title = PRESET_TIP + (listed ? "" : `. ${c.preset.w} x ${c.preset.h} isn't in the list: 'Edit list…' > ＋ Current size adds it`);
+            preSel.title = PRESET_TIP + ".\n＋ Add …: Puts the size the aspect ratio or manual mode is set to into the list, and picks it."
+                + (listed ? "" : `\n${c.preset.w} x ${c.preset.h} isn't in the list any more: Pick another, or add it again in 'Edit list…'.`);
         }
         if (idle(wIn)) wIn.value = String(c.manual.w);
         if (idle(hIn)) hIn.value = String(c.manual.h);
@@ -222,19 +246,23 @@ export function* sizeRow(E) {
                 row.append(w, tiny("×", ""), h, name, up, dn, del);
                 body.appendChild(row);
             });
-            if (!list.length) { const t = tiny("The list is empty: add the current size below.", ""); body.appendChild(t); }
+            if (!list.length) { const t = tiny("The list is empty: add a size below.", ""); body.appendChild(t); }
+            renderAdds();
         };
         const head = el("div", "rg-presets-head");
         const title = el("span"); title.textContent = "Image size presets (every Region Genie node)";
         head.append(title, btn("@close", "Close", () => closePresetEditor()));
         const foot = el("div", "rg-presets-foot");
-        const addCur = btn("＋ Current size", "Add the node's current image size to the list (a size made in aspect ratio or "
-            + "manual mode stays when you switch to presets mode, shown as 'not in the list', so it can be added here)", () => {
-            const [cw, ch] = sizeOfCfg(sizeCfg());
-            if (!list.some((p) => p.w === cw && p.h === ch)) { list.push({ w: cw, h: ch, name: "" }); save(); render(); }
-        });
+        // one button per size the other modes (and a preset that left the list) are set to on this node
+        const adds = el("span", "rg-presets-adds");
+        const renderAdds = () => {
+            adds.replaceChildren();
+            const c = sizeCfg(), cand = otherSizes(list);
+            if (!list.some((p) => p.w === c.preset.w && p.h === c.preset.h) && !cand.some((o) => o[0] === c.preset.w && o[1] === c.preset.h)) cand.push([c.preset.w, c.preset.h, "preset picked on this node"]);
+            for (const [w, h, mode] of cand) adds.appendChild(btn(`＋ ${w} × ${h}`, `Add ${w} x ${h} to the list: The ${mode} size`, () => { list.push({ w, h, name: "" }); save(); render(); }));
+        };
         const reset = btn("Defaults", "Put the starting list back", () => { list = parseSizePresets(SIZE_PRESETS_DEFAULT); save(); render(); });
-        foot.append(addCur, reset);
+        foot.append(adds, reset);
         pop.append(head, body, foot);
         for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "keydown"]) pop.addEventListener(ev, (e) => e.stopPropagation());
         render();
