@@ -383,12 +383,15 @@ export function* regions(E) {
         E.requestDraw();
     }
     E.hintTimer = 0; let keepHintUntil = 0;
-    // a short message in the list header: on the header's one line, cut with "…" when it doesn't fit (its tooltip has
-    // all of it), so the header doesn't jump to two lines for 3.5 s (round 40). Select object's standing instructions
-    // (stickyHint in selectTools.js) are long and stay as long as the tool waits: they get a line of their own.
+    // a short message in the list header, for 3.5 s: on the header's one line when it fits there. Select object's
+    // standing instructions (stickyHint in selectTools.js) are long and stay as long as the tool waits: they always
+    // get a line of their own.
     function hint(text) {
         E.statusLbl.textContent = text || ""; E.statusLbl.title = text || ""; E.statusLbl.classList.remove("wide");
+        // no room for all of it on the header's line (the fields of 'Separate' take it): a line of its own under the
+        // header for as long as it shows (the owner's choice in round 48; until then it was cut with "…")
+        if (text && E.statusLbl.scrollWidth > E.statusLbl.clientWidth + 1) E.statusLbl.classList.add("wide");
         clearTimeout(E.hintTimer);
-        if (text) E.hintTimer = setTimeout(() => { E.statusLbl.textContent = ""; E.statusLbl.title = ""; }, 3500);
+        if (text) E.hintTimer = setTimeout(() => { E.statusLbl.textContent = ""; E.statusLbl.title = ""; E.statusLbl.classList.remove("wide"); }, 3500);
     }
 }

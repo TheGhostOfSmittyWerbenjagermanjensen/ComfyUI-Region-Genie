@@ -447,7 +447,8 @@ export function* list(E) {
             });
             sw.addEventListener("contextmenu", (e) => {
                 e.preventDefault(); e.stopPropagation();
-                E.change(() => { r.palette = normPalette(r.palette); r.palette.splice(i, 1); if (!r.palette.length) delete r.palette; });
+                // the last color removed: the palette is off again (its button no longer shows it as on)
+                E.change(() => { r.palette = normPalette(r.palette); r.palette.splice(i, 1); if (!r.palette.length) { delete r.palette; delete r.paletteOn; } });
                 E.focusSink();
             });
             row.appendChild(sw);

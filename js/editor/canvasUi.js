@@ -1,7 +1,7 @@
 // The brush size slider on the canvas, the list header's options (keep apart, edit mask), sub-sections and the list height.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { app } from "../../../scripts/app.js";
-import { svgIcon, setHTML, contextMenu, editMaskDefaults, getSetting, SET, hintsListeners } from "../rg_shared.js";
+import { svgIcon, setHTML, contextMenu, editMaskDefaults, getSetting, setSetting, SET, hintsListeners } from "../rg_shared.js";
 import { UNSPEC, LASSO_MODES } from "./shared.js";
 import { keyed, keyText } from "../rg_keys.js";
 import { normLoraOpts, normEditMask } from "./state.js";
@@ -51,12 +51,18 @@ export function* canvasUi(E) {
                        ["Shift+click", "Add it and start the next"], [first("draw.back"), "Remove the last point"], [first("draw.cancel"), "Discard"]],
         erase: () => [["Drag", "Erase from the selected layer"], ["Shift+click", "A straight line from the last stroke"], [size(), "Eraser size"]],
     };
-    let tipsShown = null;
+    let tipsShown = null, tipsTool = null;
     function syncTips() {
         const on = getSetting(SET.toolHints, true) !== false;
         const empty = on && !E.state.layers.length && !E.state.regions.length && E.modeW?.value !== "use as color map";
         const list = on ? (TIPS[E.tool]?.() || []).filter((t) => t[0]) : [];
         const key = `${empty}|${list.map((t) => t.join(":")).join("|")}`;
+        if (tipsBtn.classList.contains("on") !== on || !tipsBtn.title) {
+            tipsBtn.classList.toggle("on", on);
+            tipsBtn.title = on ? "Hints on the canvas: On. They fade while the pointer is on the canvas. Click to hide them."
+                : "Hints on the canvas: Off. Click to show the active tool's keys and gestures along the canvas's lower edge.";
+        }
+        if (E.tool !== tipsTool) { if (tipsTool !== null) flashTips(); tipsTool = E.tool; }     // another tool: its gestures, for a moment
         if (key === tipsShown) return;
         tipsShown = key;
         startCard.style.display = empty ? "" : "none";
@@ -66,6 +72,19 @@ export function* canvasUi(E) {
         }));
     }
     hintsListeners.add(syncTips);
+    // The gestures also fade while the pointer is on the canvas (round 48), and show again when it leaves. A change
+    // Switching tools shows the new tool's gestures for a few seconds wherever the pointer is.
+    let flashTimer = 0;
+    const flashTips = () => { E.cvBox.classList.add("flash"); clearTimeout(flashTimer); flashTimer = setTimeout(() => E.cvBox.classList.remove("flash"), 3000); };
+    E.cvBox.addEventListener("pointerenter", () => E.cvBox.classList.add("over"));
+    E.cvBox.addEventListener("pointerleave", () => E.cvBox.classList.remove("over"));
+    // hide / show them: the Setting 'Hints on the canvas', one click away (in the canvas's lower right corner)
+    const tipsBtn = E.el("button", "rg-btn icon toggle rg-tips-btn"); tipsBtn.type = "button"; E.tipsBtn = tipsBtn;
+    setHTML(tipsBtn, svgIcon("circleHelp"));
+    tipsBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+    tipsBtn.addEventListener("click", (e) => { e.preventDefault(); Promise.resolve(setSetting(SET.toolHints, getSetting(SET.toolHints, true) === false)).then(() => { for (const f of hintsListeners) f(); }); E.focusSink?.(); });
+    E.cvBox.appendChild(tipsBtn);
+    if (E.imgBox) E.cvBox.appendChild(E.imgBox);          // the image-mode buttons (footer.js): the canvas's top right corner
     E.cv.addEventListener("pointerdown", () => E.cvBox.classList.add("held"));
     E.tipsRelease = () => E.cvBox.classList.remove("held");
     for (const ev of ["pointerup", "pointercancel"]) window.addEventListener(ev, E.tipsRelease, true);      // capture: the canvas keeps its own events from bubbling
@@ -165,10 +184,10 @@ export function* canvasUi(E) {
     const statusLbl = E.el("span", "rg-hint rg-status"); E.statusLbl = statusLbl;
     const loraOptsBox = E.el("span", "rg-loraopts");
     const sepIn = E.el("input", "rg-num"); E.sepIn = sepIn; sepIn.type = "number"; sepIn.min = "0"; sepIn.max = "1"; sepIn.step = "0.05";
-    sepIn.title = "LoRA region separation: How much attention between the image of different LoRA regions is removed "
+    sepIn.title = "separation: How much attention between the image of different LoRA regions is removed "
         + "(MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5; model output). Higher keeps each LoRA's style in its region; 1 = fully separate.";
     const untilIn = E.el("input", "rg-num"); E.untilIn = untilIn; untilIn.type = "number"; untilIn.min = "0"; untilIn.max = "1"; untilIn.step = "0.05";
-    untilIn.title = "Apply the separation for this fraction of the steps; the rest blends the seams. "
+    untilIn.title = "until: The separation is applied for this fraction of the steps; the rest blends the seams. "
         + "0.1-0.5 with separation 0.85-0.99 works well.";
     const optChange = () => E.change(() => {
         E.state.loraOpts = normLoraOpts({ ...normLoraOpts(E.state.loraOpts), separation: sepIn.value, until: untilIn.value });
@@ -214,12 +233,12 @@ export function* canvasUi(E) {
         const key = `${own}|${auto}|${!!opts.autoOff}|${shared}`;
         if (allApartShown === key) return;
         allApartShown = key;
-        setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart") + "<span>apart</span>");
+        setHTML(allApartBtn, svgIcon(shared ? "allApartShared" : "allApart") + "<span>Separate</span>");
         allApartBtn.classList.toggle("on", on);
-        allApartBtn.title = (own ? "Keep all regions apart: ON."
-            : auto ? "Keep all regions apart: ON automatically in the last run."
-            : opts.autoOff ? "Keep all regions apart: OFF for this node."
-            : "Keep all regions apart: OFF.")
+        allApartBtn.title = (own ? "Separate (keep all regions apart): ON."
+            : auto ? "Separate (keep all regions apart): ON automatically in the last run."
+            : opts.autoOff ? "Separate (keep all regions apart): OFF for this node."
+            : "Separate (keep all regions apart): OFF.")
             + "\nOn: Every region, with or without LoRAs, is kept apart from the others and from the background for "
             + "the first part of sampling ('until', at 'separation'), and each region's prompt reaches only its region. "
             + "This is what places region prompts with Krea 2, Flux, Anima and SDXL / SD1.5. Needs the model on 'model'; "
@@ -235,8 +254,9 @@ export function* canvasUi(E) {
     }
     sepIn.addEventListener("change", optChange); untilIn.addEventListener("change", optChange);
     for (const i of [sepIn, untilIn]) i.addEventListener("keydown", (e) => e.stopPropagation());
-    const sepLbl = E.el("span", "rg-hint"); E.sepLbl = sepLbl; sepLbl.textContent = "separation"; sepLbl.title = sepIn.title;
-    const untilLbl = E.el("span", "rg-hint"); E.untilLbl = untilLbl; untilLbl.textContent = "until"; untilLbl.title = untilIn.title;
+    // icons instead of the words "separation" and "until" (round 48: the header fits a 580 px node); the tooltips name them
+    const sepLbl = E.el("span", "rg-fico"); E.sepLbl = sepLbl; setHTML(sepLbl, svgIcon("separatorVertical")); sepLbl.title = sepIn.title;
+    const untilLbl = E.el("span", "rg-fico"); E.untilLbl = untilLbl; setHTML(untilLbl, svgIcon("hourglass")); untilLbl.title = untilIn.title;
     loraOptsBox.append(sepLbl, sepIn, untilLbl, untilIn);
     // Edit Mode: the edit mask's own grow / feather (px), shown at the start of this group in Edit Mode only.
     // An empty field follows Settings > Region Genie > Edit Mode (its value shows greyed in the field).

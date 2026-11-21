@@ -88,6 +88,23 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`bottom row: the palette on the left (its on / off button, no second palette icon), every other control on the right, all on one line (${bottom.join(" | ")}; ${JSON.stringify(row)})`,
         bottom.slice(-4).join("|") === "tag|wildcard|llm|＋LoRA" && row.first && row.palIcons === 0 && row.rows === 1 && row.left && row.feather && row.oneLine && row.rightEnd && row.leftEnd);
     check("no tag switch or wildcard button is left in the title bar", await page.locator(".rg-pop-head .rg-ac-btn, .rg-pop-head .rg-wc-pick").count() === 0);
+    // the palette's last color removed (right-click): the palette is off again, its button no longer lit
+    await page.evaluate(() => { const n = window.__node, r = n.__rgState().regions[0]; r.palette = ["#FF0000", "#00FF00"]; r.paletteOn = true; n.__rgRefresh(); });
+    await page.waitForTimeout(150);
+    const palOn = () => page.evaluate(() => ({ btn: document.querySelector(".rg-pop .pop-ctl > .toggle").classList.contains("on"), sw: document.querySelectorAll(".rg-pop .pop-ctl .rg-sw.pal").length,
+        on: !!window.__node.__rgState().regions[0].paletteOn, list: [...document.querySelectorAll(".rg-row.region .rg-btn.toggle.on svg")].length }));
+    const p0 = await palOn();
+    await page.locator(".rg-pop .pop-ctl .rg-sw.pal").first().click({ button: "right" }); await page.waitForTimeout(120);
+    const p1 = await palOn();
+    await page.locator(".rg-pop .pop-ctl .rg-sw.pal").first().click({ button: "right" }); await page.waitForTimeout(120);
+    const p2 = await palOn();
+    check(`pop-up palette: with two colors the button is lit; one removed, still lit; the last removed, it goes off (${JSON.stringify([p0, p1, p2])})`,
+        p0.btn && p0.sw === 2 && p1.btn && p1.sw === 1 && p1.on && !p2.btn && p2.sw === 0 && !p2.on);
+    await page.locator('.rg-bar [title^="Undo"]').click(); await page.waitForTimeout(120);
+    const p3 = await palOn();
+    check("…Undo brings the color back and the palette is on again", p3.btn && p3.sw === 1 && p3.on);
+    await page.evaluate(() => { const n = window.__node, r = n.__rgState().regions[0]; delete r.palette; delete r.paletteOn; n.__rgRefresh(); });
+    await page.waitForTimeout(100);
     check("the line at the bottom says what Esc does now", /Esc: close \(the text stays\)/.test(await page.locator(".rg-pop-foot").innerText()) && !/Enter/.test(await page.locator(".rg-pop-foot").innerText()));
 
     // ---- no browser tooltip next to the pack's: a button in the title bar (which has a tooltip of its own)

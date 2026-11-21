@@ -1110,7 +1110,7 @@ class RegionGenie:
          "The node's model dropdown picks the format; on auto: The connected model, else the clip, else the "
          "text encoder this output goes to. The JSON also works as import_json for MOSS-Image Prompt Builder KJ "
          "or (Deno) Ideogram Director.\n"
-         "Plain text doesn't say where the regions are: The node's keep-all-regions-apart button (needs model and clip) ties "
+         "Plain text doesn't say where the regions are: The node's Separate button (keep all regions apart; needs model and clip) ties "
          "each region's sentence to its region."),
         "Flat color region map (black = unspecified), e.g. for MOSS-Image Color/Depth Control. A region with a color "
         "palette is shown in its first palette color.",
@@ -1641,7 +1641,7 @@ class RegionGenie:
                 if status is not None:
                     status["auto_apart"] = True
                 notes.append(f"keep all regions apart: on automatically for {arch.name} (a region has a prompt). "
-                             "Off: The node's keep-apart button > Off for this node, or Settings > Region Genie > "
+                             "Off: The node's Separate button > Off for this node, or Settings > Region Genie > "
                              "Region Genie node")
         if all_apart and model is not None and not hl.one_pass_ok(model):
             notes.append(f"NOTE: 'keep all regions apart' needs a {hl.ONE_PASS_MODELS} model; it was not used")

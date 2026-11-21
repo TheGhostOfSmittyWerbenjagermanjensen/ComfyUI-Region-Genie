@@ -37,7 +37,7 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
 
 - **Which model?** The dropdown in the bottom bar follows the connected model by itself. It decides how the regions
   reach the model: as a layout (MOSS-Image, Ideogram 4) or as plain sentences (Krea 2, Flux, Anima, SDXL / SD1.5).
-- **apart** (right of the list's header) keeps the regions from blending into each other on plain-text models. It
+- **Separate** (right of the list's header) keeps the regions from blending into each other on plain-text models. It
   turns on by itself when it is needed; click it to turn it off for this node.
 - **Edit** (bottom bar) changes an existing image on the `image` input instead of making a new one.
 - **More room:** the button with two arrows in the tool bar (or Alt+Enter) opens the same editor in a large window

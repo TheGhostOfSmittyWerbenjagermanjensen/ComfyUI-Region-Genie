@@ -55,12 +55,12 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("run data follows a Settings change", d.minPixels === 300 && d.importMode === "always replace");
 
     // ---- image mode in the top bar: only with an image connected
-    const imgBox = page.locator(".rg-bar .rg-seg").filter({ has: page.locator('button[title^="Image as a backdrop"]') });
+    const imgBox = page.locator(".rg-cv .rg-imgmode .rg-seg").filter({ has: page.locator('button[title^="Image as a backdrop"]') });
     check("image mode hidden without an image", await imgBox.isHidden());
     await page.evaluate(() => { window.__node.inputs = [{ name: "image", link: 7 }]; });
     await page.waitForTimeout(1300);                                   // the node's poll
     check("image mode shown with an image connected", await imgBox.isVisible());
-    const minIn = page.locator('.rg-bar input[title^="Min region pixels"]');
+    const minIn = page.locator('.rg-cv .rg-imgmode input[title^="Min region pixels"]');
     check("min px hidden while backdrop", await minIn.isHidden());
     await page.locator('button[title^="Image as a color map"]').click();
     await page.waitForTimeout(100);

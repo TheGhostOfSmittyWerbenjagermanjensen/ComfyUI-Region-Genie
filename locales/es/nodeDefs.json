@@ -120,7 +120,7 @@
       },
       "4": {
         "name": "prompt",
-        "tooltip": "El prompt como texto, en el formato del modelo.\nMOSS-Image: JSON de diseño (texto plano en su lugar en modo estándar, cuando no hay regiones y en Modo edición).\nIdeogram 4: JSON de descripción.\nOtros modelos: Texto plano (la escena y, después, el prompt de cada región).\nEl desplegable de modelo del nodo elige el formato; en auto: El modelo conectado; si no lo hay, el clip; si tampoco, el codificador de texto al que va esta salida. El JSON también sirve como import_json para MOSS-Image Prompt Builder KJ o (Deno) Ideogram Director.\nEl texto plano no indica dónde están las regiones: El botón del nodo para mantener todas las regiones separadas (necesita modelo y clip) vincula la frase de cada región a su región."
+        "tooltip": "El prompt como texto, en el formato del modelo.\nMOSS-Image: JSON de diseño (texto plano en su lugar en modo estándar, cuando no hay regiones y en Modo edición).\nIdeogram 4: JSON de descripción.\nOtros modelos: Texto plano (la escena y, después, el prompt de cada región).\nEl desplegable de modelo del nodo elige el formato; en auto: El modelo conectado; si no lo hay, el clip; si tampoco, el codificador de texto al que va esta salida. El JSON también sirve como import_json para MOSS-Image Prompt Builder KJ o (Deno) Ideogram Director.\nEl texto plano no indica dónde están las regiones: El botón Separate del nodo (mantener todas las regiones separadas; necesita modelo y clip) vincula la frase de cada región a su región."
       },
       "5": {
         "name": "mapa_de_color",

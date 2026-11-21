@@ -42,7 +42,12 @@ const STYLE = `
   background:rgba(20,20,20,.72); color:#e8e8e8; font:11px/1.35 sans-serif; transition:opacity .15s; }
 .rg-tips b { font-weight:600; color:#fff; }
 .rg-tips span { white-space:nowrap; }
-.rg-cv.held .rg-tips { opacity:0; }
+.rg-cv.held .rg-tips, .rg-cv.over:not(.flash) .rg-tips { opacity:0; }
+.rg-imgmode { position:absolute; right:6px; top:6px; z-index:4; display:flex; align-items:center; gap:3px; padding:3px 4px;
+  border-radius:5px; background:rgba(20,20,20,.72); }
+.rg-tips-btn { position:absolute; right:6px; bottom:6px; z-index:4; opacity:.45; }
+.rg-tips-btn:hover { opacity:1; }
+.rg-tips-btn:not(.on) { background:rgba(30,30,30,.8); }
 .rg-start { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; width:min(360px, calc(100% - 60px)); box-sizing:border-box;
   display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-radius:6px; pointer-events:none; user-select:none;
   background:rgba(28,28,28,.86); border:1px solid rgba(255,255,255,.14); color:#e8e8e8; font:12px/1.4 sans-serif; }
@@ -347,7 +352,7 @@ textarea.rg-scene-ta.rg-llm-on, textarea.rg-big-ta.rg-llm-on { outline:1.5px sol
 .rg-row .rg-ff-browse { width:22px; height:20px; border-radius:4px; }
 .rg-row .rg-ff-browse svg { width:14px; height:14px; }
 .rg-row.ctrl .rg-num { width:44px; }
-.rg-row.ctrl .rg-sel { min-width:150px; max-width:190px; }
+.rg-row.ctrl .rg-sel { flex:0 1 190px; min-width:90px; max-width:190px; }      /* gives way first: the row fits a 580 px node (round 48) */
 .rg-settings .rg-sel.rg-model { max-width:150px; }
 .rg-settings .rg-sel.rg-model.picked { border-color:#c9a14a; }
 .rg-subbody.ctrl .rg-ctrl-help { white-space:normal; line-height:14px; opacity:.8; }

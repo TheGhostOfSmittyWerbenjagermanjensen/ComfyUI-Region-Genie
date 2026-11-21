@@ -307,7 +307,7 @@
   },
   "RegionGenie_Main_AutoApart": {
     "name": "Prompts de texto plano: mantener todas las regiones separadas automáticamente",
-    "tooltip": "Krea 2, Flux, Flux 3, Anima y SDXL / SD1.5 (y MOSS-Image en su modo estándar y en Modo edición) reciben las regiones como frases de texto plano. El nodo Region Genie coloca cada región vinculando su frase a su región en la atención (manteniendo todas las regiones separadas).\nActivado: Con uno de esos modelos en 'modelo', clip conectado y al menos un prompt de región, una ejecución mantiene todas las regiones separadas, salvo que el botón del nodo esté en 'Off for this node'.\nDesactivado: Solo las mantiene separadas un nodo cuyo botón esté activado.\nLos ajustes de abajo lo cambian para un modelo concreto. Se aplica a todos los nodos Region Genie en su próxima ejecución."
+    "tooltip": "Krea 2, Flux, Flux 3, Anima y SDXL / SD1.5 (y MOSS-Image en su modo estándar y en Modo edición) reciben las regiones como frases de texto plano. El nodo Region Genie coloca cada región vinculando su frase a su región en la atención (manteniendo todas las regiones separadas).\nActivado: Con uno de esos modelos en 'modelo', clip conectado y al menos un prompt de región, una ejecución mantiene todas las regiones separadas, salvo que el botón Separate del nodo esté en 'Off for this node'.\nDesactivado: Solo las mantiene separadas un nodo cuyo botón Separate esté activado.\nLos ajustes de abajo lo cambian para un modelo concreto. Se aplica a todos los nodos Region Genie en su próxima ejecución."
   },
   "RegionGenie_Main_AutoApart_MOSS": {
     "name": "MOSS-Image (modo estándar, Modo edición): mantener todas las regiones separadas automáticamente",
