@@ -85,8 +85,8 @@ export function* sizeRow(E) {
         i.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") i.blur(); });
         // a value changed in the field and not taken over yet (between a click on one of the field's arrows, "input",
         // and its release, "change"): syncSizeRow() must not write the old value back meanwhile. It used to go by
-        // the focus alone, and a click on the arrows doesn't always put the focus into the field (Firefox,
-        // Safari), so the editor's half-second check could undo a click. If no "change" follows (no focus: no blur
+        // the focus alone, and a click on the arrows may not put the focus into the field (it did in the
+        // Chromium and Firefox tried on Linux; the owner saw clicks undone in Firefox on Windows), so the editor's half-second check could undo a click. If no "change" follows (no focus: no blur
         // either), the value is taken over after a moment
         i.addEventListener("input", () => {
             i.__rgPending = true; clearTimeout(i.__rgPendT);

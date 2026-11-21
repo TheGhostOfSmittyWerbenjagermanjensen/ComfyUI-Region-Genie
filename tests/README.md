@@ -54,6 +54,14 @@ Round 9 (`real_run_wildcards.cjs`): clone ComfyUI-Impact-Pack into `custom_nodes
 
 **The README's pictures** (`docs/images/editor.png`, `rows.png`): `node tests/shot_readme.cjs` with ComfyUI running. Retake them when the node's look changes.
 
+## Firefox
+
+Chromium is the default browser of every suite. Firefox is for bugs reported in Firefox: don't run the suites in both.
+
+- `bash tests/setup_firefox.sh` (once per session; about 90 MB, under a minute): Firefox ESR, geckodriver and selenium-webdriver into `/opt/rg-firefox` (`RG_FIREFOX_DIR`). The pre-installed Playwright only drives Chromium, so these tests use selenium-webdriver.
+- `node tests/firefox_size_row.cjs [vue]`: real mouse clicks on the arrows of the size row's number fields (needs the real ComfyUI running). `RG_HOLD` / `RG_GAP` (ms) set how long a click is held and the pause after it.
+- For a new Firefox bug, copy that file: it shows how to open ComfyUI, add a node and click with a real mouse.
+
 ## Finding controls: titles and icons
 
 - Tests and the screenshot scripts find most controls by their tooltip: `[title^="Undo"]`. The pack's own tooltip (`js/rg_tooltip.js`) puts the title of the element under the pointer aside (the attribute is left empty) so the browser shows nothing; in a browser driven by a test tool (`navigator.webdriver`) it leaves the title in place, so these selectors always work. `ui_review_items.cjs` and `ui_popup_text.cjs` switch the real behavior on (`window.__rgTakeTitles = true` in an init script) to test it, and `real_layering.cjs` switches it on for its `nativeTips()` checks only.
