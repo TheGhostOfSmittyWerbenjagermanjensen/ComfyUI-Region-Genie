@@ -213,6 +213,14 @@ for (const sub of ["loras", "controlnet"]) {
     const typed = await get("RegionGenie.Tools.WandTolerance");
     await num.fill("99999"); await num.press("Tab"); await sleep(250);
     check(`a number: typing works inside the window and is saved; out of range goes to the limit (${typed}, ${await get("RegionGenie.Tools.WandTolerance")})`, typed === 48 && await get("RegionGenie.Tools.WandTolerance") <= 255);
+    // Manual: step size: its arrows go to the multiples of 8, and no lower than 1
+    await toPage("size");
+    const stp = rowOf("Manual: step size").locator('input[type="number"]');
+    const seq = [];
+    await stp.fill("10"); for (const k of ["ArrowDown", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp"]) { await stp.press(k); seq.push(await stp.inputValue()); }
+    await stp.press("Tab"); await sleep(250);
+    check(`Manual: step size: 10 down → 8 → 1 → 1, up → 8 → 16, saved (${seq}; ${await get("RegionGenie.Main.StepSize")})`, seq.join() === "8,1,1,8,16" && await get("RegionGenie.Main.StepSize") === 16);
+    await stp.fill("64"); await stp.press("Tab"); await sleep(250);
     // a slider with its number
     await toPage("node");
     const sl = rowOf("separation");

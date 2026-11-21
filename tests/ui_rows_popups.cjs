@@ -143,8 +143,13 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await stepIn.fill("10"); await stepIn.press("Enter"); await page.waitForTimeout(60);
     await wIn.focus(); await wIn.press("ArrowUp"); await wIn.press("Enter"); await page.waitForTimeout(60);
     await stepIn.focus(); await stepIn.press("ArrowUp"); await stepIn.press("Enter"); await page.waitForTimeout(60);
-    check(`a typed step (10): width + 10, and the step box then goes to 18 (${await wv()}, ${await stepIn.inputValue()})`, JSON.stringify(await wv()) === "[1074,472]" && await stepIn.inputValue() === "18");
-    check("the node keeps the step size", await page.evaluate(() => window.__node.properties.rg_size.manual.step) === 18);
+    check(`a typed step (10): width + 10, and the step box's up arrow then goes to the next multiple of 8 (${await wv()}, ${await stepIn.inputValue()})`, JSON.stringify(await wv()) === "[1074,472]" && await stepIn.inputValue() === "16");
+    check("the node keeps the step size", await page.evaluate(() => window.__node.properties.rg_size.manual.step) === 16);
+    const stepKeys = async (...keys) => { await stepIn.focus(); for (const k of keys) await stepIn.press(k); const v = await stepIn.inputValue(); await stepIn.press("Enter"); await page.waitForTimeout(40); return v; };
+    await stepIn.fill("10"); await stepIn.press("Enter");
+    const dn10 = await stepKeys("ArrowDown"), dn8 = await stepKeys("ArrowDown"), dn1 = await stepKeys("ArrowDown"), up1 = await stepKeys("ArrowUp");
+    check(`the step box's arrows: 10 down → 8, 8 down → 1, 1 down stays 1, 1 up → 8 (${[dn10, dn8, dn1, up1]})`, [dn10, dn8, dn1, up1].join() === "8,1,1,8"
+        && await page.evaluate(() => window.__node.properties.rg_size.manual.step) === 8);
     await wIn.fill("1001"); await wIn.press("Enter"); await page.waitForTimeout(60);
     check(`a typed width can be any number (${await wv()})`, JSON.stringify(await wv()) === "[1001,472]" && await wIn.evaluate((i) => i.validity.valid));
     await stepIn.fill("64"); await stepIn.press("Enter"); await wIn.fill("1000"); await wIn.press("Enter"); await hIn.fill("600"); await hIn.press("Enter"); await page.waitForTimeout(60);

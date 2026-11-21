@@ -160,13 +160,17 @@ export function* sizeRow(E) {
     const stepIn = sizeNum(1, 4096, 8, "Step size: How far the arrows of width and height go per click (px). A width or height that is typed in can be any number.", "44px");
     const stepSync = () => {
         const m = sizeCfg().manual, st = stepOf();
-        stepFrom(wIn, 16, st, m.w); stepFrom(hIn, 16, st, m.h); stepFrom(stepIn, 1, 8, st);
+        stepFrom(wIn, 16, st, m.w); stepFrom(hIn, 16, st, m.h);
     };
     stepIn.addEventListener("change", () => {
         const c = sizeCfg(); c.manual = { ...c.manual, step: Math.round(clampNum(stepIn.value, 1, 4096, stepOf())) };
         stepIn.value = String(c.manual.step); syncSizeRow();
     });
-    for (const i of [wIn, hIn, stepIn]) i.addEventListener("input", () => stepFrom(i, i === stepIn ? 1 : 16, i === stepIn ? 8 : stepOf(), i === stepIn ? stepOf() : 1024));
+    for (const i of [wIn, hIn]) i.addEventListener("input", () => stepFrom(i, 16, stepOf(), 1024));
+    // the step box's own arrows go to the multiples of 8 (10 → 16 or 8), and no lower than 1 (8 → 1 → 8): counted
+    // from 0, with the 0 the arrows would reach turned into 1. A typed step can be any number
+    stepIn.min = "0";
+    stepIn.addEventListener("input", () => { if (stepIn.value !== "" && +stepIn.value < 1) stepIn.value = "1"; });
     const manBox = el("span", "rg-size-part");
     manBox.append(tiny("W", wIn.title), wIn, swapM, tiny("H", hIn.title), hIn, linkBtn, tiny("±", stepIn.title), stepIn);
     const sizeOut = el("span", "rg-size-out");

@@ -2149,7 +2149,7 @@ const SETTINGS = [
           category: CAT("Image size", "5 presets") },
         { id: SET.cmWidth, name: "Manual: width", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Image size", "6 width") },
         { id: SET.cmHeight, name: "Manual: height", type: "number", defaultValue: 1024, attrs: { min: 16, max: 16384, step: 1 }, tooltip: NEW_NODES, category: CAT("Image size", "7 height") },
-        { id: SET.cmStep, name: "Manual: step size", type: "number", defaultValue: 64, attrs: { min: 1, max: 4096, step: 8 },
+        { id: SET.cmStep, name: "Manual: step size", type: "number", defaultValue: 64, attrs: { min: 1, max: 4096, step: 8, stepBase: 0 },
           tooltip: "How far the arrows of width and height go per click in manual mode (px).\n" + NEW_NODES, category: CAT("Image size", "8 step") },
         { id: SET.cmImageMode, name: "image_mode", type: "combo", defaultValue: "backdrop (trace over)", options: ["backdrop (trace over)", "use as color map"], tooltip: NEW_NODES, category: CAT("Region Genie node", "03 image") },
         {

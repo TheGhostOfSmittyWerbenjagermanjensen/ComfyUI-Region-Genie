@@ -111,6 +111,8 @@ function row(d, redraw) {
         const a = d.attrs || {};
         const n = mk("input"); n.type = "number"; n.title = tipOf(d);
         for (const key of ["min", "max", "step"]) if (a[key] != null) n[key] = String(a[key]);
+        // stepBase: the arrows go to stepBase + multiples of step, and no lower than min (Manual: step size: 1, 8, 16 …)
+        if (a.stepBase != null) { n.min = String(a.stepBase); n.addEventListener("input", () => { if (n.value !== "" && +n.value < +a.min) n.value = String(a.min); }); }
         n.value = String(cur());
         const clamp = (v) => { let x = +v; if (!Number.isFinite(x)) x = +d.defaultValue; if (a.min != null) x = Math.max(+a.min, x); if (a.max != null) x = Math.min(+a.max, x); return x; };
         let range = null;
