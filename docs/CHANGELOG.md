@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 47 (Nov 21): the palette button goes off with the last color
+- Asked: in the pop-up text boxes, after setting a palette color and removing it by right-click (no swatch left), the palette button stays lit: it should turn off once the last swatch is removed. Also asked, to look into and suggest first (nothing built yet): a narrower default node (mainly the row under the canvas, also symbols instead of "separation" / "until"), with the default height reduced so the canvas stays square; and ways for the hint text at the bottom of the canvas to take less room.
+- Built: removing the last color (list.js `paletteRow`, the swatch's right-click) also clears `paletteOn`, in the pop-up and in the list (one row serves both). Undo brings the color and the on state back.
+- Tests: `ui_popup_text.cjs` +2 (two colors: lit; one removed: lit; the last removed: off; Undo). All stub suites: 745 checks.
+- Measured for the width question (real ComfyUI, both node modes): the Regions header needs 555 px with "apart" on (separation 51 + field 53 + until 20 + field 53 + apart 55), the toolbar about 545, the size row 507, the bottom bar 437; the editor is 20 px (legacy) / 24 px (Nodes 2.0) narrower than the node. Found on the way: in Nodes 2.0 a new node's canvas isn't square (676 x 455 at the default 700 x 1429): the two scene prompt boxes take the spare height there.
+
 ## Round 46 (Nov 21): the settings text for every kind of upscale, refiners and detailers
 - Asked: whether the tiled-upscale fix had also been verified for other, more standard or more exotic, ways of upscaling. It hadn't beyond four set-ups; twelve more were then run through the merged code and five came out wrong or misleading. The owner: "Please fix all five; use A1111's Refiner fields, include detailer info if present."
 - **The five, and what they are now.**
