@@ -35,6 +35,8 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
 
 ## Good to know
 
+- **No regions?** Leave the canvas empty: the node then works as a plain text-to-image prompt node (scene prompts,
+  size, whole-image LoRAs), so one workflow serves both.
 - **Which model?** The dropdown in the bottom bar follows the connected model by itself. It decides how the regions
   reach the model: as a layout (MOSS-Image, Ideogram 4) or as plain sentences (Krea 2, Flux, Anima, SDXL / SD1.5;
   SDXL-based models such as Illustrious-XL and NoobAI-XL count as SDXL).

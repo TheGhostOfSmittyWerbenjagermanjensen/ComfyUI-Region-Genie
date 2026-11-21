@@ -2,6 +2,11 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 58 (Nov 21): "no regions needed" said out loud
+- Asked: is it clear that the node also serves plain text-to-image prompts without regions, so one workflow does both? It wasn't: the manual only mentioned it for MOSS-Image's prompt format.
+- Checked by running the node with an empty canvas for each model: `prompt` is the scene prompt as text (Ideogram 4: its caption JSON with no elements). Now a test in `test_prompt_format.py`.
+- Written: README ("What you can do with it", and a paragraph after the quick start), docs/region-genie.md ("Finding your way"), the main help page. Hardware checklist: one run without regions per model.
+
 ## Round 57 (Nov 21): SDXL-based models named
 - Asked: where SDXL support is mentioned, say that it includes SDXL-based models such as Illustrious-XL and NoobAI-XL, if that is true.
 - Checked: yes. A run recognises SDXL by the model's structure, so any checkpoint built on SDXL is SDXL to the node, whatever it is called; the editor's guess from file names already knew "illustrious", "noob" and "pony". Written where the supported models are stated (README table and starter workflow, the prompt formats table, Regional LoRAs, Control, the main help page), not at every later mention of "SDXL / SD1.5". Added to the hardware checklist: try one such checkpoint.

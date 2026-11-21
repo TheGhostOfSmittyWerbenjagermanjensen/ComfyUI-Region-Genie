@@ -53,6 +53,10 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 
 ## Finding your way
 
+- **Without regions** the node is a plain text-to-image prompt node, so the same workflow serves pictures with and without regions.
+  - `scene_prompt_positive` and `scene_prompt_negative` are the prompts; `positive`, `negative`, `latent` and `model` go to the sampler as always.
+  - The size row sets the image size, and **＋LoRA** on *Whole image* adds LoRAs for the whole picture.
+  - `prompt` is then your scene prompt as plain text (Ideogram 4: its caption JSON with no elements). Hiding every region (the eye buttons) does the same without deleting anything.
 - **An empty canvas** shows three first steps: pick a shape and drag a box (your first region), type its prompt in the list under the canvas, connect and run.
 - **The line along the canvas's bottom edge** shows the keys and gestures of the tool in use (for the Rectangle: drag, Shift for equal sides, Alt from the centre).
   - It fades while the pointer is on the canvas (so it never covers what you work on), comes back when the pointer leaves, and shows for a few seconds when you switch tools.

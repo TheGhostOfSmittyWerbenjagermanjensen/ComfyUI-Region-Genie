@@ -40,6 +40,7 @@
 ## ✨ What you can do with it
 
 - **Place prompts by region.** A knight here, a dragon there: each region gets its own prompt.
+- **Or use no regions at all.** With an empty canvas the node is a plain text-to-image prompt node, so one workflow serves both.
 - **Write in a large editor.** Every prompt opens in a pop-up editor with undo, LoRAs, wildcards and the LLM button at hand.
 - **Give a region its own LoRA.** A character or style LoRA acts only inside the region you choose.
 - **Draw any shape.** Boxes, ellipses, stars, brush strokes, lasso outlines and fills.
@@ -88,6 +89,8 @@ flowchart LR
 3. Press the add-region button under the canvas and drag a box. Type that region's prompt in the list, or press ⤢ on the prompt for a [large pop-up editor](#pop-up-text-editors). Repeat for each region.
 4. Describe the whole picture in `scene_prompt_positive`.
 5. Connect the node's `model`, `positive`, `negative` and `latent` outputs to your sampler, and run.
+
+**No regions needed.** Leave the canvas empty and the node works as a normal text-to-image setup: `scene_prompt_positive` and `scene_prompt_negative` are your prompts, the size row sets the image size, and **＋LoRA** on *Whole image* adds LoRAs. Add regions only for the pictures that need them; the workflow stays the same.
 
 **Prefer a ready-made workflow?** Drag [`examples/region-genie-starter-sdxl.json`](examples/) onto ComfyUI and pick your own SDXL checkpoint (SDXL itself, or an SDXL-based model such as Illustrious-XL or NoobAI-XL).
 
