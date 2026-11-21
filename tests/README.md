@@ -58,8 +58,8 @@ Round 9 (`real_run_wildcards.cjs`): clone ComfyUI-Impact-Pack into `custom_nodes
 
 Chromium is the default browser of every suite. Firefox is for bugs reported in Firefox: don't run the suites in both.
 
-- `bash tests/setup_firefox.sh` (once per session; about 90 MB, under a minute): Firefox ESR, geckodriver and selenium-webdriver into `/opt/rg-firefox` (`RG_FIREFOX_DIR`). The pre-installed Playwright only drives Chromium, so these tests use selenium-webdriver.
-- `node tests/firefox_size_row.cjs [vue]`: real mouse clicks on the arrows of the size row's number fields (needs the real ComfyUI running). `RG_HOLD` / `RG_GAP` (ms) set how long a click is held and the pause after it.
+- `bash tests/setup_firefox.sh` (once per session; about 90 MB, under a minute): Firefox (`FIREFOX_VERSION`, default 160.0.1: take the version the bug was reported in), geckodriver and selenium-webdriver into `/opt/rg-firefox` (`RG_FIREFOX_DIR`). The pre-installed Playwright only drives Chromium, so these tests use selenium-webdriver.
+- `node tests/firefox_size_row.cjs [vue]`: real mouse clicks on the arrows of the size row's number fields (needs the real ComfyUI running). `RG_HOLD` / `RG_GAP` (ms) set how long a click is held and the pause after it. `RG_NOFOCUS=1` runs it as Firefox on Windows behaves (an arrow click doesn't focus the field; on Linux it does): the bug of round 53 only shows this way.
 - For a new Firefox bug, copy that file: it shows how to open ComfyUI, add a node and click with a real mouse.
 
 ## Finding controls: titles and icons
