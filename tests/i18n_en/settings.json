@@ -22,7 +22,7 @@
     "name": "Shortcuts",
     "tooltip": "The keys of the Region Genie editor (the tools, undo, copy and paste, the view, the large editor) and the keys that step between text fields in a pop-up editor.\nEdit…: Opens the list. Click a key in it, then press the new key or combination; each shortcut can be put back to its default.\nThe same list opens when you press the question mark key while the pointer is over a Region Genie node, or with the keyboard button in its bottom bar. Applies to every node."
   },
-  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height": {
+  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "Image size",
     "tooltip": "How the size row of a new Region Genie node starts, and the list of presets.\nEdit…: Opens the Region Genie settings on this page."
   },
@@ -312,6 +312,10 @@
   "RegionGenie_Main_Height": {
     "name": "Manual: height",
     "tooltip": "Applies to nodes added from now on; nodes already in a workflow keep their own value."
+  },
+  "RegionGenie_Main_StepSize": {
+    "name": "Manual: step size",
+    "tooltip": "How far the arrows of width and height go per click in manual mode (px).\nApplies to nodes added from now on; nodes already in a workflow keep their own value."
   },
   "RegionGenie_Main_ImageMode": {
     "name": "image_mode",

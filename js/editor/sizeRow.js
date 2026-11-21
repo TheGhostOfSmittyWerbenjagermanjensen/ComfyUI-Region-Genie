@@ -27,7 +27,7 @@ export function* sizeRow(E) {
                      mp: clampNum(getSetting(SET.sizeMegapixels, 1), 0.1, 16, 1), multiple: clampNum(getSetting(SET.sizeMultiple, 8), 8, 128, 8) },
             preset: { w: first.w, h: first.h, swap: false },
             manual: { w: Math.round(clampNum(getSetting(SET.cmWidth, 1024), 16, 16384, 1024)),
-                      h: Math.round(clampNum(getSetting(SET.cmHeight, 1024), 16, 16384, 1024)), link: false, step: 64 },
+                      h: Math.round(clampNum(getSetting(SET.cmHeight, 1024), 16, 16384, 1024)), link: false, step: Math.round(clampNum(getSetting(SET.cmStep, 64), 1, 4096, 64)) },
         };
     }
     function sizeCfg() {

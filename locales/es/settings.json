@@ -607,7 +607,11 @@
     "name": "separación_hasta",
     "tooltip": "Se aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
-  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height": {
+  "RegionGenie_Main_StepSize": {
+    "name": "Manual: tamaño de paso",
+    "tooltip": "Cuánto cambian las flechas de ancho y alto con cada clic en el modo manual (px).\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+  },
+  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "Tamaño de imagen",
     "tooltip": "Cómo empieza la fila de tamaño de un nodo Region Genie nuevo, y la lista de preajustes.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },

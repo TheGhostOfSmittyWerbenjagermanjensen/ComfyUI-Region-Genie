@@ -607,7 +607,11 @@
     "name": "분리 종료",
     "tooltip": "지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
   },
-  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height": {
+  "RegionGenie_Main_StepSize": {
+    "name": "수동: 스텝 크기",
+    "tooltip": "수동 모드에서 너비와 높이의 화살표를 한 번 클릭할 때 값이 변하는 양 (px).\n지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
+  },
+  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },

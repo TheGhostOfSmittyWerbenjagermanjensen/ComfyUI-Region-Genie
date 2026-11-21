@@ -607,7 +607,11 @@
     "name": "分離期間",
     "tooltip": "今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
   },
-  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height": {
+  "RegionGenie_Main_StepSize": {
+    "name": "手動: ステップ幅",
+    "tooltip": "手動モードで、幅と高さの矢印を 1 回クリックしたときに値が変わる量（px）。\n今後追加するノードに適用されます。すでにワークフロー内にあるノードは、それぞれの値を保持します。"
+  },
+  "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "画像サイズ",
     "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
   },

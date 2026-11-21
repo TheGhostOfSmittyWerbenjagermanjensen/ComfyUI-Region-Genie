@@ -126,6 +126,13 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // round 53: the step size box (right of the keep-ratio button): the arrows of width / height go by it
     const stepIn = man.locator("input").nth(2);
     const order = await man.evaluate((m) => { const k = [...m.children]; return k.indexOf(m.querySelectorAll("input")[2]) > k.findIndex((x) => /^Keep the ratio/.test(x.title)); });
+    // a node without a step of its own (a new one) takes the Setting's
+    await page.evaluate(() => { window.__settings["RegionGenie.Main.StepSize"] = 32; delete window.__node.properties.rg_size.manual.step; });
+    await modeBtn("Manual: Image size").click(); await page.waitForTimeout(80);
+    const d32 = +(await stepIn.inputValue());
+    await page.evaluate(() => { delete window.__settings["RegionGenie.Main.StepSize"]; delete window.__node.properties.rg_size.manual.step; });
+    await modeBtn("Manual: Image size").click(); await page.waitForTimeout(80);
+    check(`a new node takes its step from the Setting "Manual: step size" (${d32})`, d32 === 32);
     check(`a step size box right of the keep-ratio button, 64 to start (${await stepIn.inputValue()})`, order && await stepIn.inputValue() === "64" && /^Step size: /.test(await stepIn.getAttribute("title")));
     await wIn.focus(); await wIn.press("ArrowUp"); await wIn.press("Enter"); await page.waitForTimeout(60);
     check(`width's up arrow: 1000 + 64 (${await wv()})`, JSON.stringify(await wv()) === "[1064,600]");
