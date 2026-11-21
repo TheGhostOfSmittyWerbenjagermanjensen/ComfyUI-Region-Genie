@@ -15,6 +15,22 @@
 - [Install](#-install)
 - [Quick start](#-quick-start)
 - [Feature tour](#-feature-tour)
+  - [Regions on a canvas](#regions-on-a-canvas)
+  - [Pop-up text editors](#pop-up-text-editors)
+  - [Regions from a picture](#regions-from-a-picture)
+  - [Layers and Arrange](#layers-and-arrange)
+  - [Colors and palettes](#colors-and-palettes)
+  - [Image size](#image-size)
+  - [Regional LoRAs](#regional-loras)
+  - [Separation and until](#separation-and-until)
+  - [Control](#control)
+  - [Edit Mode](#edit-mode)
+  - [LLM Prompt Enhancer](#llm-prompt-enhancer)
+  - [Wildcards](#wildcards)
+  - [Room to work](#room-to-work)
+  - [Shortcuts and Settings](#shortcuts-and-settings)
+  - [Export and import](#export-and-import)
+  - [Save Image](#save-image)
 - [The nodes](#-the-nodes)
 - [Manual](#-manual)
 - [Languages](#-languages)
@@ -24,8 +40,11 @@
 ## ✨ What you can do with it
 
 - **Place prompts by region.** A knight here, a dragon there: each region gets its own prompt.
+- **Or use no regions at all.** With an empty canvas the node is a plain text-to-image prompt node, so one workflow serves both.
+- **Write in a large editor.** Every prompt opens in a pop-up editor with undo, LoRAs, wildcards and the LLM button at hand.
 - **Give a region its own LoRA.** A character or style LoRA acts only inside the region you choose.
-- **Draw any shape.** Boxes, ellipses, stars, brush strokes, lasso outlines, fills, or objects picked out of a photo.
+- **Draw any shape.** Boxes, ellipses, stars, brush strokes, lasso outlines and fills.
+- **Start from a picture.** Click an object in a photo to make it a region, or turn a color sketch into regions.
 - **Guide the layout.** ControlNet-style control (depth, canny, color map) from the same node.
 - **Edit existing pictures.** Paint over a photo and change only the regions you mark.
 - **Let an LLM write for you.** A local LLM can expand short region prompts when the workflow runs.
@@ -38,7 +57,7 @@
 | MOSS-Image | Its own layout format: each region's box and prompt |
 | Ideogram 4 | Its own caption format: each region's box and prompt |
 | Krea 2, Flux.1, Flux.2 / Klein, Flux 3 | By attention: the **Separate** button ties each prompt to its region (it turns on by itself) |
-| Anima, SDXL, SD1.5 | By attention, as above |
+| Anima, SDXL (and SDXL-based models such as Illustrious-XL and NoobAI-XL), SD1.5 | By attention, as above |
 
 The node picks the right format from the connected model. See [Prompt formats by model](docs/region-genie.md#prompt-formats-by-model) for the details.
 
@@ -67,11 +86,13 @@ flowchart LR
 
 1. Add the **Region Genie** node (search for "genie"). Connect your loader's `model`, `clip` and `vae` to it.
 2. Set the image size in the row at the top of the node: by aspect ratio, from your presets list, or by hand (width and height, with a step size for their arrows).
-3. Press the add-region button under the canvas and drag a box. Type that region's prompt in the list. Repeat for each region.
+3. Press the add-region button under the canvas and drag a box. Type that region's prompt in the list, or press ⤢ on the prompt for a [large pop-up editor](#pop-up-text-editors). Repeat for each region.
 4. Describe the whole picture in `scene_prompt_positive`.
 5. Connect the node's `model`, `positive`, `negative` and `latent` outputs to your sampler, and run.
 
-**Prefer a ready-made workflow?** Drag [`examples/region-genie-starter-sdxl.json`](examples/) onto ComfyUI and pick your own SDXL checkpoint.
+**No regions needed.** Leave the canvas empty and the node works as a normal text-to-image setup: `scene_prompt_positive` and `scene_prompt_negative` are your prompts, the size row sets the image size, and **＋LoRA** on *Whole image* adds LoRAs. Add regions only for the pictures that need them; the workflow stays the same.
+
+**Prefer a ready-made workflow?** Drag [`examples/region-genie-starter-sdxl.json`](examples/) onto ComfyUI and pick your own SDXL checkpoint (SDXL itself, or an SDXL-based model such as Illustrious-XL or NoobAI-XL).
 
 <img src="docs/images/editor-numbered.png" alt="The Region Genie node with its parts numbered" width="460">
 
@@ -93,9 +114,73 @@ The node helps as you go:
 
 ### Regions on a canvas
 
-Draw regions with shapes, a brush, a lasso or a fill. Each region is one color with one prompt. Layers let you build a region from several pieces, cut holes, and move or resize things later. On a connected photo, the magic wand and **Select object** (SAM 3.1) pick out areas for you.
+Draw regions with shapes, a brush, a lasso or a fill. Each region is one color with one prompt.
 
 → [Region Genie (the node)](docs/region-genie.md)
+
+### Pop-up text editors
+
+The easiest way to write prompts. Every text field opens in a large editor that floats over the page, so you can type long prompts without scrolling a small box.
+
+**To open one:** press the arrows button (⤢) in the corner of any text field, or double-click a region's label on the canvas.
+
+<img src="docs/images/popup-scene.png" alt="The pop-up editor of scene_prompt_positive, with a whole-image LoRA" width="560">
+
+<img src="docs/images/popup-region.png" alt="The pop-up editor of a region: type buttons, prompt, color palette, feather and a LoRA" width="500">
+
+| Where | Control | What it does |
+|---|---|---|
+| Title bar | ◀ ▶ | Go to the previous / next text field without closing (also Page Up / Page Down) |
+| | Undo / Redo | Take back or repeat your typing in this field (also Ctrl+Z, Ctrl+Y) |
+| | A− / A+ | Smaller / larger text |
+| | Close | Closes the pop-up (also Esc). Your text always stays |
+| Region only | Object / Character / Text | What kind of region this is |
+| | Color palette | Colors the region should use: on / off, the colors, **+** to add one |
+| | Feather | How soft the region's edge is |
+| Bottom row | Tag autocomplete | Tag suggestions while you type, on / off |
+| | Wildcards | Insert a wildcard (with ComfyUI Impact Pack) |
+| | LLM Prompt Enhancer | Let a local LLM rewrite this prompt when the workflow runs |
+| | ＋LoRA | Add a LoRA: for this region, or for the whole image on `scene_prompt_positive` |
+
+Drag the title bar to move a pop-up, and the corner grip to resize it. It stays open while you draw.
+
+→ [Text boxes and pop-up editors](docs/region-genie.md#text-boxes-and-pop-up-editors)
+
+### Regions from a picture
+
+Connect a picture to `image` and let the node find the regions:
+
+- **Select object** (Q): click an object, or type what to find (`person`, `red car, dog`), and it becomes a region.
+  - It uses SAM 3.1 and needs one model file ([download](https://huggingface.co/Comfy-Org/sam3.1/resolve/main/checkpoints/sam3.1_multiplex_fp16.safetensors), about 1.7 GB) in `ComfyUI/models/checkpoints`.
+- **Magic wand** (W): click an area of similar color to add it.
+- **Color map:** a sketch in flat colors becomes regions by itself, one per color.
+- **Backdrop:** or just show the picture under the canvas and trace over it.
+
+→ [Select object](docs/region-genie.md#select-object-sam-31) · [Magic wand](docs/region-genie.md#magic-wand) · [Working from an image](docs/region-genie.md#working-from-an-image)
+
+### Layers and Arrange
+
+A region can be made of several **layers**. Move, resize and turn each one later, cut holes with a hole layer, reorder them by dragging, and copy or paste them (also into another node).
+
+**Arrange** works on the selected layer: flip it, align it to an edge or the centre of the image, and grow or shrink it by a number of pixels.
+
+→ [Layers](docs/region-genie.md#layers) · [Arrange](docs/region-genie.md#arrange-flip-align-grow--shrink)
+
+### Colors and palettes
+
+Click a region's color to change it with the built-in color picker. A region can also carry a **color palette** of up to five colors that tells the model which colors to use there (MOSS-Image and Ideogram 4 read it).
+
+→ [Colors and the color palette](docs/region-genie.md#colors-and-the-color-palette)
+
+### Image size
+
+The row at the top of the node replaces a separate size node. Pick the size in one of three ways:
+
+- **Aspect ratio:** a ratio and megapixels, like ComfyUI's Resolution Selector.
+- **Presets:** your own list of sizes, shared by every Region Genie node.
+- **Manual:** width and height, with a step size for their arrows.
+
+→ [Image size](docs/region-genie.md#image-size)
 
 ### Regional LoRAs
 
@@ -138,13 +223,21 @@ Good starting points:
 
 ### Edit Mode
 
-Switch the bottom bar to **Edit**, connect a picture, and paint over the parts to change. Each region can be set to change or to stay exactly as it is.
+Switch the bottom bar to **Edit**, connect a picture, and paint over the parts to change.
+
+- Each region can be set to **change** or to **stay** exactly as it is.
+- Change only the regions (like inpainting), or let the whole image change.
+- An edit LoRA for your model is added for you once you pick it in Settings.
 
 → [Edit Mode](docs/edit-mode.md)
 
 ### LLM Prompt Enhancer
 
 The sparkles button on a region lets a local LLM rewrite that prompt when the workflow runs. Your own text stays, and you can go back to it at any time.
+
+- It uses the text encoder you already have connected, or an LLM file of your choice.
+- **Presets** hold the system prompt and the LLM's settings, one each for characters, objects, text and the scene.
+- The LLM can see just the one prompt, or the scene and the other regions as context.
 
 → [LLM Prompt Enhancer](docs/llm-prompt-enhancer.md)
 
@@ -156,15 +249,31 @@ With ComfyUI Impact Pack installed, every prompt field takes its wildcards: `__n
 
 ### Room to work
 
-The **large editor** opens the same editor in a window that fills the page. Every prompt box has a pop-up editor for longer text.
+The **large editor** opens the same editor in a window that fills the page.
 
 <img src="docs/images/large-editor.png" alt="The large editor: the canvas on the left, prompts and the region list on the right" width="640">
 
 → [Node size and the large editor](docs/region-genie.md#node-size-and-the-large-editor)
 
+### Shortcuts and Settings
+
+**Press ?** over the node for every key and mouse gesture. Click a key in that sheet to change it to your own.
+
+**Settings > Region Genie** holds the defaults for new nodes and the model files. Each topic has an **Edit…** button that opens its page in one settings window, with a search.
+
+<img src="docs/images/settings-window.png" alt="The Region Genie settings window: topics on the left, their settings on the right" width="640">
+
+→ [Shortcuts](docs/region-genie.md#shortcuts) · [Settings and model files](docs/region-genie.md#settings-and-model-files)
+
+### Export and import
+
+**Export** saves a layout (regions, prompts, LoRAs, palettes, size) as a `.json` file, and **Import** loads it into any Region Genie node. Import also reads MOSS-Image and Ideogram layouts and boxes from other nodes.
+
+→ [Export and import](docs/region-genie.md#export-and-import)
+
 ### Save Image
 
-Saves as PNG, WebP, JPEG or AVIF with the quality you pick, and shows the file sizes. It also writes the settings (prompt, seed, steps, sampler, model) as text that A1111, Forge and Civitai can read.
+Saves as PNG, WebP, JPEG or AVIF with the quality you pick, and shows the file sizes. It also writes the settings (prompt, seed, steps, sampler, model) as text that A1111, Forge and Civitai can read. Two-pass workflows are covered too: hi-res fix, upscalers, a refiner and detailers each land in the fields those tools expect.
 
 <img src="docs/images/save-image.png" alt="The Save Image node showing the saved picture and its file size" width="360">
 

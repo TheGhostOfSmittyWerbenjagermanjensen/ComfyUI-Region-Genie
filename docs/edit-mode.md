@@ -2,17 +2,58 @@
 
 Set **mode** (bottom left of the node) to **edit** to change an existing picture: connect it to `image`, connect `vae`, and use the `latent` output for the sampler. The regions you paint say *where* to change what.
 
-- **The canvas** takes the image's shape at the pixel count of `width` × `height` (in steps of 16): a 900×600 photo at 1024×1024 gives 1248×832. `size_from` still overrides it. The image is the backdrop to paint over (the image mode buttons and min px are hidden: the source is never read as a color map).
-- **The Edit area line** (the first line under *Whole image* in Edit Mode; it is always there). Its dropdown (the `edit_area` input): *regions only* (default) puts a mask of the regions on the `latent` output, so the sampler changes only those areas and keeps the rest (like inpainting); *whole image* lets everything change while the regions still steer where each prompt goes.
-- **Keep or change, per region:** in edit, each region row (and its pop-up editor) has a pencil / lock button after the sparkles. Pencil (default): the region may change. Lock: the region stays exactly as it is in the source, and it is hatched on the canvas (its label shows a lock before the prompt). With *regions only*, the mask covers the change regions; with *whole image*, everything except the kept regions. Kept regions still go into the prompt and every other output, so they can describe what's there.
-- **Edit mask grow / feather** (on the same Edit area line: the dashed-square icon and the feather icon): the mask grows this many pixels past the change regions so edits blend into their surroundings (negative shrinks it; kept regions are never grown into), then its edge is softened by the feather. These are separate from each region's own feather, which is for `masks` and LoRAs. An empty field follows **Settings > Region Genie > Edit Mode** (*Edit mask: grow*, default 8 px; *Edit mask: feather*, default 16 px), whose value shows greyed in the field. Toward a kept region the soft edge lies outside it, so kept pixels are never touched.
-- **Reference image:** edit models read the source as a reference image: MOSS-Image (with an edit LoRA), Flux.1 Kontext, Flux.2 / Klein, Flux 3, and Krea 2 with an edit pack. For those, the node adds it to `positive` and `negative` (as ComfyUI's ReferenceLatent / TextEncodeMOSSImageEdit nodes do), scaled to 1024 px on the long edge by default. Flux.1 dev can't be told apart from Kontext: turn its reference off in Settings if you use plain dev. Ideogram 4, Anima and SDXL / SD1.5 read no reference: there it is plain image-to-image from the latent, so set the sampler's denoise below 1 (e.g. 0.5–0.8).
-- **The Edit rows** (under *Whole image*, only in Edit Mode). The first is the edit LoRA set in Settings for the node's model, with its strength: its file field opens ComfyUI's menu on the model folders (and the folder button, Browse…, with *Browse… for model files* on); a pick there is the same as setting it in Settings. It follows the model at once (the bottom bar's model select). Its **✕** leaves it out for this node (Settings is unchanged). **＋Edit** (next to ＋Control, in Edit Mode) brings it back, and otherwise adds an Edit row of this node's own: a LoRA used only in Edit Mode, with any model (e.g. a relighting or style add-on for Flux.1 Kontext / Flux.2 / Flux 3). While the model isn't known yet, the first row asks you to pick the model in the bottom bar.
-- **Edit LoRAs:** in **Settings > Region Genie > Edit Mode** (or on the Edit row), choose an edit LoRA for each model (e.g. the **Moss-Image-Edit** LoRA for MOSS-Image, a Klein edit LoRA for Flux.2). A node in Edit Mode uses the one for its model (see [The model](control.md) under Control: the last run's, a guess from the graph, or the one you pick in the bottom bar); when the model can't be guessed it uses every one you set until the first run, and the others are skipped with a note in `region_info`. Edit LoRAs aren't listed under *Whole image* (the Edit row is where they're set).
-- **MOSS-Image:** in edit the `prompt` is plain text (your instruction in `scene_prompt_positive`, then the region prompts), since the edit LoRA takes an instruction rather than layout JSON, and *keep all regions separate* places the regions. How the reference is given follows the edit LoRA: LoRAs trained with ai-toolkit (fused qkv weights) get its layout (the text encoder also sees the image), others (e.g. Moss-Image-Edit) the Moss-Image-Edit layout; set *MOSS-Image edit layout* in Settings to choose one yourself.
-  - **Sampler settings for MOSS-Image editing** (from the edit LoRAs' authors, Nov 2026; not measured here): 30 steps, euler / simple, shift 5, an empty negative prompt, and a CFG that depends on the LoRA: **5** for *Moss-Image-Edit* (chinoll's; at 4, removals also take nearby objects), **3** for *MOSS-Image-Edit-HQ* (raise to 3.5–4 when an edit is too weak; its author uses 50 steps for final quality).
+**In short:**
+
+1. Set the bottom bar to **Edit**. Connect your picture to `image` and connect `vae`.
+2. Paint a region over each part to change, and type what it should become.
+3. Use the node's `latent` output for the sampler, and run.
+4. For an edit model (MOSS-Image, Flux.1 Kontext, Flux.2 / Klein, Flux 3, Krea 2), pick its edit LoRA once in **Settings > Region Genie > Edit Mode**. For other models, set the sampler's denoise below 1.
+
+**The details:**
+
+- **The canvas** takes the image's shape at the pixel count of `width` × `height` (in steps of 16): a 900×600 photo at 1024×1024 gives 1248×832.
+  - `size_from` still overrides it.
+  - The image is the backdrop to paint over. The image mode buttons and min px are hidden: the source is never read as a color map.
+- **The Edit area line** is the first line under *Whole image* in Edit Mode; it is always there. Its dropdown (the `edit_area` input) has:
+  - *regions only* (default): puts a mask of the regions on the `latent` output, so the sampler changes only those areas and keeps the rest (like inpainting).
+  - *whole image*: lets everything change while the regions still steer where each prompt goes.
+- **Keep or change, per region:** in edit, each region row (and its pop-up editor) has a pencil / lock button after the sparkles.
+  - Pencil (default): the region may change.
+  - Lock: the region stays exactly as it is in the source. It is hatched on the canvas, and its label shows a lock before the prompt.
+  - With *regions only*, the mask covers the change regions; with *whole image*, everything except the kept regions.
+  - Kept regions still go into the prompt and every other output, so they can describe what's there.
+- **Edit mask grow / feather** (on the same Edit area line: the dashed-square icon and the feather icon):
+  - The mask grows this many pixels past the change regions, so edits blend into their surroundings. Negative shrinks it. Kept regions are never grown into.
+  - Then its edge is softened by the feather. Toward a kept region the soft edge lies outside it, so kept pixels are never touched.
+  - These are separate from each region's own feather, which is for `masks` and LoRAs.
+  - An empty field follows **Settings > Region Genie > Edit Mode** (*Edit mask: grow*, default 8 px; *Edit mask: feather*, default 16 px), whose value shows greyed in the field.
+- **Reference image:** edit models read the source as a reference image: MOSS-Image (with an edit LoRA), Flux.1 Kontext, Flux.2 / Klein, Flux 3, and Krea 2 with an edit pack.
+  - For those, the node adds it to `positive` and `negative` (as ComfyUI's ReferenceLatent / TextEncodeMOSSImageEdit nodes do), scaled to 1024 px on the long edge by default.
+  - Flux.1 dev can't be told apart from Kontext: turn its reference off in Settings if you use plain dev.
+  - Ideogram 4, Anima and SDXL / SD1.5 read no reference: there it is plain image-to-image from the latent, so set the sampler's denoise below 1 (e.g. 0.5–0.8).
+- **The Edit rows** (under *Whole image*, only in Edit Mode). The first is the edit LoRA set in Settings for the node's model, with its strength.
+  - Its file field opens ComfyUI's menu on the model folders (and the folder button, Browse…, with *Browse… for model files* on). A pick there is the same as setting it in Settings.
+  - It follows the model at once (the bottom bar's model select).
+  - Its **✕** leaves it out for this node (Settings is unchanged).
+  - **＋Edit** (next to ＋Control, in Edit Mode) brings it back, and otherwise adds an Edit row of this node's own: a LoRA used only in Edit Mode, with any model (e.g. a relighting or style add-on for Flux.1 Kontext / Flux.2 / Flux 3).
+  - While the model isn't known yet, the first row asks you to pick the model in the bottom bar.
+- **Edit LoRAs:** in **Settings > Region Genie > Edit Mode** (or on the Edit row), choose an edit LoRA for each model (e.g. the **Moss-Image-Edit** LoRA for MOSS-Image, a Klein edit LoRA for Flux.2).
+  - A node in Edit Mode uses the one for its model (see [The model](control.md) under Control: the last run's, a guess from the graph, or the one you pick in the bottom bar).
+  - A run only ever uses the edit LoRA for the model that is connected. While the model can't be guessed yet, the node keeps every edit LoRA you set; the run then uses the matching one and skips the others, with a note in `region_info`.
+  - Edit LoRAs aren't listed under *Whole image* (the Edit row is where they're set).
+- **MOSS-Image:** in edit the `prompt` is plain text (your instruction in `scene_prompt_positive`, then the region prompts), since the edit LoRA takes an instruction rather than layout JSON. *Keep all regions separate* places the regions.
+  - How the reference is given follows the edit LoRA. Set *MOSS-Image edit layout* in Settings to choose one yourself.
+    - LoRAs trained with ai-toolkit (fused qkv weights) get its layout (the text encoder also sees the image).
+    - Others (e.g. Moss-Image-Edit) get the Moss-Image-Edit layout.
+  - **Sampler settings for MOSS-Image editing** (from the edit LoRAs' authors, Nov 2026; not measured here): 30 steps, euler / simple, shift 5, an empty negative prompt, and a CFG that depends on the LoRA:
+    - **5** for *Moss-Image-Edit* (chinoll's; at 4, removals also take nearby objects).
+    - **3** for *MOSS-Image-Edit-HQ* (raise to 3.5–4 when an edit is too weak; its author uses 50 steps for final quality).
   - Keep the Edit row's strength at **1**: lower values redraw the scene instead of editing it. Use the MOSS-Image **SFT** model, not Base.
-  - *Reference image size* (Settings): for Moss-Image-Edit, enter **0**. That is not a size of zero: 0 is this setting's code for "no limit", so the reference is exactly as large as the output (about 1 megapixel at the usual image sizes). The LoRA was trained with source and output at one size, and a smaller reference zooms the scene out. The default, 1024, shrinks the reference whenever the output's long edge is over 1024 (e.g. 1248×832 becomes 1024×683); for MOSS-Image-Edit-HQ v5, about **512** when the background or scene should change.
+  - *Reference image size* (Settings): for Moss-Image-Edit, enter **0**.
+    - That is not a size of zero: 0 is this setting's code for "no limit", so the reference is exactly as large as the output (about 1 megapixel at the usual image sizes).
+    - The LoRA was trained with source and output at one size, and a smaller reference zooms the scene out.
+    - The default, 1024, shrinks the reference whenever the output's long edge is over 1024 (e.g. 1248×832 becomes 1024×683).
+    - For MOSS-Image-Edit-HQ v5: about **512** when the background or scene should change.
   - Write one plain instruction per run and say what must stay ("Replace the background with a snowy mountain landscape, keeping the woman exactly the same."). Pose changes and replacing one subject with another are weak spots of every version.
 - **Other settings:** *send the source image as a reference* (per model, on by default) and *reference image size* (long edge in px, 0 = the output size).
 - `region_info` lists what edit did: the canvas size, the reference, the mask (which regions change and which are kept, grow and feather), and which edit LoRA was used or skipped.

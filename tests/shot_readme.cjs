@@ -1,10 +1,26 @@
 // The README's pictures: docs/images/editor.png (the whole node), editor-numbered.png (its parts numbered), lora.png (a
-// region with a LoRA), large-editor.png, rows.png (a Control row and an Edit row under Whole image) and save-image.png
+// region with a LoRA), popup-scene.png and popup-region.png (the pop-up editors), large-editor.png, rows.png (a Control row and an Edit row under Whole image), model-menu.png (a model file's menu with a search), settings-tab.png, settings-window.png and save-image.png
 // (Save Image after a run; it uses input/rg_demo.png when there is one). Needs a running ComfyUI with this pack (legacy mode, English, dark palette):
-//   node tests/shot_readme.cjs
+//   COMFY_DIR=<the ComfyUI folder> node tests/shot_readme.cjs
+// Rules for the pictures (the owner's): a LoRA is shown with trigger-word chips, and no model name in red (not found).
 // Retake them when the node's look changes.
 const path = require("path");
 const { chromium } = require("playwright");
+// The LoRAs in the pictures: real files (a name that isn't found is shown in red) with trigger words (so the chips
+// show). With COMFY_DIR set, empty demo files and their info files are put into its models/loras/rg_demo first.
+// model-menu.png: files in two model folders that a search for "edit" finds
+const MENU_DEMO = ["loras/rg_demo/moss_image_edit.safetensors", "loras/rg_demo/klein_edit.safetensors", "loras/rg_demo/kontext_relight_edit.safetensors", "controlnet/rg_demo/edit_depth_guide.safetensors"];
+const DEMO = { "rg_demo/red_dragon.safetensors": ["red dragon", "ember scales"], "rg_demo/oil_painting.safetensors": ["oil painting", "thick brushstrokes"] };
+if (process.env.COMFY_DIR) {
+  const fs = require("fs"), dir = path.join(process.env.COMFY_DIR, "models", "loras", "rg_demo");
+  fs.mkdirSync(dir, { recursive: true });
+  for (const name of MENU_DEMO) { const f = path.join(process.env.COMFY_DIR, "models", name); fs.mkdirSync(path.dirname(f), { recursive: true }); if (!fs.existsSync(f)) fs.writeFileSync(f, ""); }
+  for (const [name, words] of Object.entries(DEMO)) {
+    const f = path.join(process.env.COMFY_DIR, "models", "loras", name);
+    if (!fs.existsSync(f)) fs.writeFileSync(f, "");
+    fs.writeFileSync(f.replace(/\.safetensors$/, ".civitai.info"), JSON.stringify({ trainedWords: words }));
+  }
+}
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 1500, height: 1650 } });
@@ -53,8 +69,10 @@ const { chromium } = require("playwright");
   // lora.png: a region opened, with a LoRA of its own
   // a LoRA that is really there (no red "not found" name in the picture): the first one ComfyUI lists
   await page.evaluate(async () => { try { const r = await (await fetch("/object_info/LoraLoaderModelOnly")).json(); window.__loras = r.LoraLoaderModelOnly.input.required.lora_name[0]; } catch (e) { window.__loras = []; } });
-  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || []).find((x) => /dragon|char|style/i.test(x)) || (window.__loras || [])[0];
-    s.regions[1].loras = [{ lora: lo || "characters/silver_knight.safetensors", strength: 0.8, on: true }]; n.__rgRefresh(); });
+  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || []).find((x) => /rg_demo.red_dragon/.test(x)) || (window.__loras || [])[0];
+    if (!lo) throw new Error("no LoRA file in ComfyUI: run with COMFY_DIR set");
+    s.loraOpts = { ...(s.loraOpts || {}), separation: 0.4, until: 0.1 };          // the defaults, whatever this ComfyUI has in its Settings
+    s.regions[1].loras = [{ lora: lo, strength: 0.8, on: true }]; n.__rgRefresh(); });
   await page.waitForTimeout(300);
   await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(400);
   const loraClip = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), rows = [...document.querySelectorAll(".rg-list .rg-row")], lr = [...document.querySelectorAll(".rg-list .rg-row.lora, .rg-list .rg-lora")].pop(), last = (lr || rows[Math.min(rows.length - 1, 6)]).getBoundingClientRect();
@@ -62,6 +80,20 @@ const { chromium } = require("playwright");
   await page.mouse.move(4, 4); await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "lora.png"), clip: loraClip });
   await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(200);
+  // popup-scene.png, popup-region.png: the pop-up editors of scene_prompt_positive and of a region's prompt
+  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || []).find((x) => /rg_demo.oil_painting/.test(x)) || (window.__loras || [])[0];
+    s.sceneLoras = [{ lora: lo, strength: 0.6, on: true }];
+    s.regions[1].palette = ["#b3261e", "#f2a23a", "#3b2a1a"]; s.regions[1].paletteOn = true; n.__rgRefresh(); });
+  await page.waitForTimeout(300);
+  const popShot = async (name) => {
+    await page.waitForTimeout(500); await page.mouse.move(4, 4); await page.waitForTimeout(600);
+    const c = await page.evaluate(() => { const r = document.querySelector(".rg-pop").getBoundingClientRect(); return { x: r.x - 2, y: r.y - 2, width: r.width + 4, height: r.height + 4 }; });
+    await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", name), clip: c });
+  };
+  await page.locator(".rg-expand").first().click(); await popShot("popup-scene.png");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+  await page.locator(".rg-row.region").nth(1).locator(".rg-expand").first().click(); await popShot("popup-region.png");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   // large-editor.png: the same editor in a window that fills the page
   await page.setViewportSize({ width: 1760, height: 960 });
   await page.locator('[title^="Large editor"]').first().click(); await page.waitForTimeout(900);
@@ -76,6 +108,16 @@ const { chromium } = require("playwright");
   const rows = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), last = [...document.querySelectorAll(".rg-row.ctrl")].pop().getBoundingClientRect(); return { x: list.x - 6, y: head.y - 6, width: list.width + 12, height: last.bottom - head.y + 46 }; });
   await page.mouse.move(4, 4); await page.waitForTimeout(4000);       // the pointer away: no tooltip in the picture; the header's message gone
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "rows.png"), clip: rows });
+  // model-menu.png: a model file field's menu (here the Edit row's), with a search typed that finds files in every folder
+  await page.evaluate(() => { const sel = [...document.querySelectorAll(".rg-foot select")].find((x) => [...x.options].some((o) => /MOSS-Image/.test(o.textContent))); sel.value = [...sel.options].find((o) => /MOSS-Image/.test(o.textContent)).value; sel.dispatchEvent(new Event("change", { bubbles: true })); });
+  await page.waitForTimeout(900);
+  await page.locator(".rg-list .rg-ff-name").first().click(); await page.waitForTimeout(700);
+  await page.keyboard.type("edit"); await page.waitForTimeout(900);
+  const menuClip = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), m = [...document.querySelectorAll(".litecontextmenu")].pop().getBoundingClientRect();
+    const bottom = Math.max(m.bottom, head.bottom) + 10; return { x: list.x - 6, y: Math.min(head.y, m.y) - 6, width: Math.max(list.right, m.right) - list.x + 12, height: bottom - Math.min(head.y, m.y) + 6 }; });
+  await page.mouse.move(4, 4); await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "model-menu.png"), clip: menuClip });
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   // save-image.png: Save Image (Region Genie) after a run, with the picture and its file size
   await page.evaluate(async () => {
     const app = window.app, LG = window.LiteGraph; app.graph.clear();
@@ -91,5 +133,14 @@ const { chromium } = require("playwright");
   const svClip = await page.evaluate(() => { const n = window.__sv, ds = window.app.canvas.ds, r = window.app.canvas.canvas.getBoundingClientRect(); return { x: r.x + (n.pos[0] + ds.offset[0]) * ds.scale - 8, y: r.y + (n.pos[1] - 34 + ds.offset[1]) * ds.scale, width: n.size[0] * ds.scale + 16, height: (n.size[1] + 42) * ds.scale }; });
   await page.mouse.move(4, 4); await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "save-image.png"), clip: svClip });
+  // settings-tab.png, settings-window.png: Settings > Region Genie, and the Region Genie settings window on a page
+  await page.setViewportSize({ width: 1280, height: 860 }); await page.waitForTimeout(400);
+  await page.keyboard.press("Control+,"); await page.waitForTimeout(1500);
+  await page.evaluate(() => { const el = [...document.querySelectorAll('[role="dialog"] *')].find((e) => e.childElementCount === 0 && e.textContent.trim() === "Region Genie"); el?.scrollIntoView(); el?.click(); });
+  await page.waitForTimeout(1800); await page.mouse.move(5, 5);
+  const dlg = await page.evaluate(() => { const r = document.querySelector('[role="dialog"]').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
+  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "settings-tab.png"), clip: dlg });
+  await page.locator('[role="dialog"] .rg-page-row[data-page="tools"] button').click(); await page.waitForTimeout(900); await page.mouse.move(5, 5); await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "settings-window.png"), clip: dlg });
   await browser.close();
 })();

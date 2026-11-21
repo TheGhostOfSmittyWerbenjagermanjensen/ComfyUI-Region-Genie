@@ -35,14 +35,19 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
 
 ## Good to know
 
+- **No regions?** Leave the canvas empty: the node then works as a plain text-to-image prompt node (scene prompts,
+  size, whole-image LoRAs), so one workflow serves both.
 - **Which model?** The dropdown in the bottom bar follows the connected model by itself. It decides how the regions
-  reach the model: as a layout (MOSS-Image, Ideogram 4) or as plain sentences (Krea 2, Flux, Anima, SDXL / SD1.5).
+  reach the model: as a layout (MOSS-Image, Ideogram 4) or as plain sentences (Krea 2, Flux, Anima, SDXL / SD1.5;
+  SDXL-based models such as Illustrious-XL and NoobAI-XL count as SDXL).
 - **Separate** (right of the list's header) keeps the regions from blending into each other on plain-text models. It
   turns on by itself when it is needed; click it to turn it off for this node.
 - **Edit** (bottom bar) changes an existing image on the `image` input instead of making a new one.
 - **More room:** the button with two arrows in the tool bar (or Alt+Enter) opens the same editor in a large window
   over ComfyUI, with the region list beside the canvas. ✕ or Esc puts it back in the node.
-- **Nothing is lost by trying:** Ctrl+Z undoes every change in the editor, Clear all and typed text included (each visit to a text box is one step; with the cursor in a box, Ctrl+Z goes back through that box's text). The history is kept in memory only, never saved.
+- **Nothing is lost by trying:** Ctrl+Z undoes every change in the editor, Clear all and typed text included.
+  - Each visit to a text box is one step. With the cursor in a box, Ctrl+Z goes back through that box's text.
+  - The history is kept in memory only, never saved.
 - **Shortcuts** work while the pointer is over the node: V select, R / O / T shapes, B brush, L lasso, F fill,
   W magic wand, Q Select object, E eraser, G snap, Home fit, Space+drag pan, wheel zoom. **Press ?** (or the
   keyboard button in the bottom bar) for the whole list; click a key there to give it another key.

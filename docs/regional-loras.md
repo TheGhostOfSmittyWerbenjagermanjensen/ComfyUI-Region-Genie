@@ -1,5 +1,13 @@
 # Regional LoRAs
 
+**On this page**
+
+- [LoRAs per region (the Region Genie node's model output)](#loras-per-region-the-region-genie-nodes-model-output)
+- [Create Hook LoRA (Quantized)](#create-hook-lora-quantized)
+  - [Regional LoRA wiring](#regional-lora-wiring)
+- [Regional LoRAs (the node)](#regional-loras-the-node)
+- [Separation and until](#separation-and-until)
+
 ## LoRAs per region (the Region Genie node's model output)
 
 ```
@@ -12,16 +20,41 @@ Load CLIP (Qwen3.5 9B) ─────── clip ───►              ─�
 (An Empty Latent node of your own works too, at the same size as the canvas.)
 
 - `model` = your model with the regions' LoRAs. It carries only the LoRAs, not the prompts.
-- `positive` = `prompt` encoded with the connected clip (see [Which format `prompt` uses](region-genie.md)). This is what puts `scene_prompt_positive`, each region's prompt and the boxes into the picture, so it must be the sampler's positive. (Encoding that output yourself with CLIP Text Encode gives the same result.) A separate generic positive prompt replaces the layout: the model then draws whatever it likes, with only the LoRA styles split by region.
+- `positive` = `prompt` encoded with the connected clip (see [Which format `prompt` uses](region-genie.md)).
+  - This is what puts `scene_prompt_positive`, each region's prompt and the boxes into the picture, so it must be the sampler's positive.
+  - Encoding that output yourself with CLIP Text Encode gives the same result.
+  - A separate generic positive prompt replaces the layout: the model then draws whatever it likes, with only the LoRA styles split by region.
 - `negative` = `scene_prompt_negative` encoded with the same clip.
 
 Everything happens in one model pass:
 
-- each regional LoRA changes only its region's image (its masks, exactly as painted) and its own region's caption in the prompt, so trigger words are read with their LoRA, as in training. The caption part needs `clip` and the prompt to be exactly the text `positive` encodes (the `positive` output, or the same text encoded yourself); otherwise the LoRAs act on the image only and the console says so,
-- each LoRA region's caption is kept separate in attention from the other regions' image and captions at every step, so one region's LoRA-changed caption and trigger words can't restyle the rest (shared text: scene prompt, regions without LoRAs, stays open to all),
-- **Keep all regions separate** (the **Separate** button with four tiles, at the right end of the list header; off by default): on, every region, with or without LoRAs, is kept separate from the others and from the background for the first part of sampling ('until') at the separation strength, and each region's caption speaks only to its own region; off, only regions with LoRAs are. It can help keep characters' details and styles from mixing, and with the models without a layout format (Krea 2, Flux, Anima, SDXL / SD1.5) it is what places each region's prompt (so it turns on by itself there, see [Which format `prompt` uses](region-genie.md)). **Clicking** the switch always changes what it shows: lit (on for this node, or turned on by itself in the last run) becomes off for this node, also where a run would turn it on by itself; off becomes on. **Right-click** the button (the small triangle in its corner) for *Keep all regions separate* (on for this node), *Automatic (as set in Settings)* (the default: on by itself where the model needs it), *Off for this node*, and **Share the background**: the kept-separate regions (all regions, or those with LoRAs) are then kept separate from each other only, not from the image around them, so lighting, perspective and setting stay one picture; each caption still speaks only to its own region. The icon shows the tiles on a shaded backdrop while it is on. Needs a MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model on `model`; while active, attention can't use fused kernels, so sampling is a little slower and uses more VRAM. Without regional LoRAs and with the switch off, separation does nothing.
-- **separation / until** (the two number fields in the list header, each after its icon: arrows pointing away from a line, and an hourglass; shown once a LoRA is set or the switch is on): see [Separation and until](#separation-and-until) below. The separation also applies to the captions, at every step,
-- whole-image LoRAs are merged into the model weights before sampling, exactly like a chain of Load LoRA (model only) nodes: same speed and same result.
+- Each regional LoRA changes only its region's image (its masks, exactly as painted) and its own region's caption in the prompt, so trigger words are read with their LoRA, as in training.
+  - The caption part needs `clip` and the prompt to be exactly the text `positive` encodes (the `positive` output, or the same text encoded yourself). Otherwise the LoRAs act on the image only and the console says so.
+- Each LoRA region's caption is kept separate in attention from the other regions' image and captions at every step, so one region's LoRA-changed caption and trigger words can't restyle the rest.
+  - Shared text (scene prompt, regions without LoRAs) stays open to all.
+- **Keep all regions separate** (the **Separate** button with four tiles, at the right end of the list header; automatic by default):
+  - Automatic: it turns on by itself with the models without a layout format, and is off with the others.
+  - On: every region, with or without LoRAs, is kept separate from the others and from the background for the first part of sampling ('until') at the separation strength, and each region's caption speaks only to its own region.
+  - Off: only regions with LoRAs are.
+  - It can help keep characters' details and styles from mixing.
+  - With the models without a layout format (Krea 2, Flux, Anima, SDXL / SD1.5) it is what places each region's prompt, so it turns on by itself there (see [Which format `prompt` uses](region-genie.md)).
+  - **Clicking** the switch always changes what it shows:
+    - Lit (on for this node, or turned on by itself in the last run) becomes off for this node, also where a run would turn it on by itself.
+    - Off becomes on.
+  - **Right-click** the button (the small triangle in its corner) for:
+    - *Keep all regions separate* (on for this node).
+    - *Automatic (as set in Settings)* (the default: on by itself where the model needs it).
+    - *Off for this node*.
+    - **Share the background**: the kept-separate regions (all regions, or those with LoRAs) are then kept separate from each other only, not from the image around them, so lighting, perspective and setting stay one picture.
+      - Each caption still speaks only to its own region.
+      - The icon shows the tiles on a shaded backdrop while it is on.
+  - Needs a MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5 model on `model`. SDXL includes SDXL-based models such as Illustrious-XL and NoobAI-XL.
+  - While active, attention can't use fused kernels, so sampling is a little slower and uses more VRAM.
+  - Without regional LoRAs and with the switch off, separation does nothing.
+- **separation / until**: the two number fields in the list header, each after its icon (arrows pointing away from a line, and an hourglass). See [Separation and until](#separation-and-until) below.
+  - Shown once a LoRA is set or the switch is on.
+  - The separation also applies to the captions, at every step.
+- Whole-image LoRAs are merged into the model weights before sampling, exactly like a chain of Load LoRA (model only) nodes: same speed and same result.
 
 Put each LoRA's trigger words in its region's prompt (click its chips), not in `scene_prompt_positive`. LoRA weights for the text encoder (the "clip" part of a LoRA file) are not used. Regional LoRAs on `model` work with **MOSS-Image, Krea 2, Ideogram 4, Flux.1, Flux.2 / Klein, Flux 3, Anima, SDXL and SD1.5** (int8 / fp8 / quantized models included); for other models use the Regional LoRAs node (separate passes).
 
@@ -49,7 +82,9 @@ CLIP Text Encode (region prompt, + negative) ─► Cond Pair Set Props ◄─�
 - Don't use `Set CLIP Hooks` or the core `Create Hook LoRA` with this node. The core node is the one that triggers the quantized error. This node has no CLIP strength, which most current DiT LoRAs don't use anyway.
 - For several regional LoRAs, make one node and one `Cond Pair Set Props` per region. To stack two LoRAs on one region, chain them through `prev_hooks`.
 - After a run the node also shows the LoRA's trigger words (from the same files as the chips in the Region Genie node).
-- Supported: LoRA and LoCon (linear and conv layers, including Tucker "mid" weights), LoKr, LoHa, and DoRA on any of these (linear layers), plus fused-qkv slices. The math comes from ComfyUI's own bypass implementations. Skipped, with a note: OFT/BOFT/GLoRA, DoRA on conv layers, and bias/norm "diff" patches.
+- Supported: LoRA and LoCon (linear and conv layers, including Tucker "mid" weights), LoKr, LoHa, and DoRA on any of these (linear layers), plus fused-qkv slices.
+  - The math comes from ComfyUI's own bypass implementations.
+  - Skipped, with a note: OFT/BOFT/GLoRA, DoRA on conv layers, and bias/norm "diff" patches.
 - LoHa can't be applied piece by piece, so each patched layer rebuilds its full weight change every step. It's slower, and it needs some temporary VRAM; the console prints an estimate.
 - DoRA reads each layer's weights once on first use, which takes a few seconds. After that, input-channel DoRA costs about one extra layer computation per patched layer.
 - Console: one line when the node runs (what was applied and skipped), and one `active in this run` line on every run, even when the node is cached. The same summary also appears on the node.
@@ -66,20 +101,56 @@ Region Genie ─────────── masks ──►                �
      └─ prompt ─────────── positive_prompt ►
 ```
 
-- **positive_prompt** (called `prompt` before; saved workflows keep their text and link): the positive prompt. Connect `prompt` of the Region Genie node (or MOSS-Image Layout Prompt), or type a prompt. **negative_prompt** is encoded as `negative`. With Impact Pack, typed prompts and the rows' words take wildcards (see [Wildcards](wildcards.md); the seed is at the top right of the rows editor).
-- **Pop-up editor:** the **⤢** button in the bottom-right corner of `positive_prompt`, `negative_prompt` and each row's words opens a larger editor right at the field. It floats over the page (so it can be bigger than this small node and isn't shrunk by the canvas zoom): drag its title bar to move it, the ◢ grip to resize it (remembered), A− / A+ for the text size (the pop-up keeps its size), ⤓ to use the filled text, **◀ / ▶** to step through `positive_prompt`, `negative_prompt` and each row's words (wrapping around; same place and size; also **Page Up / Page Down**, or the keys you set in **Settings > Region Genie > Shortcuts**). Below the text, on the right, are the tag autocomplete switch and the {⁎} button that inserts a wildcard. In the node's own text boxes, too, Ctrl+Z and Ctrl+Shift+Z / Ctrl+Y go back and forth through the box's text while the cursor is in it, also after clicking out and coming back (kept in memory only, never saved). **Enter** starts a new line. The pop-up always keeps its text: **Esc** and the close button only close it, and the **Undo / Redo** buttons in the header (after ◀ / ▶; also Ctrl+Z and Ctrl+Shift+Z / Ctrl+Y) take a change back, step by step, also after the pop-up was closed and opened again. It stays open until Esc, the close button, another pop-up or another workflow tab; clicks elsewhere don't close it. **Settings > Region Genie > Text size** applies here too: the prompt fields count as *scene prompts*, the rows' words as *region prompts*.
-- Each **row** is one LoRA: on/off, `index` (the region number shown in the Region Genie node), LoRA file, strength, and words for that region. When `masks` comes from the Region Genie node, every row shows the colour and prompt of the region it points to. The LoRA button opens ComfyUI's list menu, so the list filter and "auto nest subdirectories" from ComfyUI-Easy-Use or rgthree apply.
-- **Index −1** LoRAs are merged into the model like Load LoRA (model only) in *inside the model* mode.
-- **Row words** are added to that region's caption in the layout JSON (index −1: to the scene caption). With a plain-text prompt they are added as their own sentence. The LoRA's **trigger words** are shown as chips under the row; click one to add it (✓ = already in the row or in the region's caption). A phrase already in the caption isn't added twice.
-- **Rows with the same index** stack: both LoRAs act together inside that region. **Index −1** applies a LoRA everywhere.
+- **positive_prompt**: the positive prompt. Connect `prompt` of the Region Genie node (or MOSS-Image Layout Prompt), or type a prompt.
+  - It was called `prompt` before; saved workflows keep their text and link.
+- **negative_prompt** is encoded as `negative`.
+- With Impact Pack, typed prompts and the rows' words take wildcards (see [Wildcards](wildcards.md); the seed is at the top right of the rows editor).
+- **Pop-up editor:** the **⤢** button in the bottom-right corner of `positive_prompt`, `negative_prompt` and each row's words opens a larger editor right at the field.
+  - It floats over the page, so it can be bigger than this small node and isn't shrunk by the canvas zoom.
+  - Drag its title bar to move it, the ◢ grip to resize it (remembered).
+  - A− / A+ set the text size (the pop-up keeps its size).
+  - ⤓ uses the filled text.
+  - **◀ / ▶** step through `positive_prompt`, `negative_prompt` and each row's words (wrapping around; same place and size). Also **Page Up / Page Down**, or the keys you set in **Settings > Region Genie > Shortcuts**.
+  - Below the text, on the right, are the tag autocomplete switch and the {⁎} button that inserts a wildcard.
+  - In the node's own text boxes, too, Ctrl+Z and Ctrl+Shift+Z / Ctrl+Y go back and forth through the box's text while the cursor is in it, also after clicking out and coming back (kept in memory only, never saved).
+  - **Enter** starts a new line.
+  - The pop-up always keeps its text: **Esc** and the close button only close it.
+  - The **Undo / Redo** buttons in the header (after ◀ / ▶; also Ctrl+Z and Ctrl+Shift+Z / Ctrl+Y) take a change back, step by step, also after the pop-up was closed and opened again.
+  - It stays open until Esc, the close button, another pop-up or another workflow tab; clicks elsewhere don't close it.
+  - **Settings > Region Genie > Text size** applies here too: the prompt fields count as *scene prompts*, the rows' words as *region prompts*.
+- Each **row** is one LoRA: on/off, `index` (the region number shown in the Region Genie node), LoRA file, strength, and words for that region.
+  - When `masks` comes from the Region Genie node, every row shows the color and prompt of the region it points to.
+  - The LoRA button opens ComfyUI's list menu, so the list filter and "auto nest subdirectories" from ComfyUI-Easy-Use or rgthree apply.
+- **Index −1** applies a LoRA everywhere. In *inside the model* mode it is merged into the model like Load LoRA (model only).
+- **Row words** are added to that region's caption in the layout JSON (index −1: to the scene caption).
+  - With a plain-text prompt they are added as their own sentence.
+  - The LoRA's **trigger words** are shown as chips under the row; click one to add it (✓ = already in the row or in the region's caption).
+  - A phrase already in the caption isn't added twice.
+- **Rows with the same index** stack: both LoRAs act together inside that region.
 - **feather** softens the mask edges so each LoRA fades into its surroundings.
 
 **lora_masking**
 
-- *inside the model (one pass)*, the default: for MOSS-Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5 this is the same engine as the Region Genie node's `model` output. Each LoRA acts only on its region's image tokens and its region's caption (so trigger words are read with their LoRA), in a single pass for all LoRAs. The regions' captions are kept separate from the other regions in attention. Overlapping regions get both LoRAs. Other models fall back to separate passes automatically.
-- *separate passes (classic hooks)*: ComfyUI's hook method, one model pass per region with that region's words added to the prompt; the sampler blends the passes by mask each step and the plain prompt fills the rest (ComfyUI's *default* conditioning, 1 minus the sum of the masks). The `model` output is the model unchanged; the LoRAs ride on `positive` / `negative`. Works with any model, but every pass sees the whole image, so strong style LoRAs tend to bleed across regions.
+- *inside the model (one pass)*, the default: for MOSS-Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5 this is the same engine as the Region Genie node's `model` output.
+  - Each LoRA acts only on its region's image tokens and its region's caption (so trigger words are read with their LoRA), in a single pass for all LoRAs.
+  - The regions' captions are kept separate from the other regions in attention.
+  - Overlapping regions get both LoRAs.
+  - Other models fall back to separate passes automatically.
+- *separate passes (classic hooks)*: ComfyUI's hook method, one model pass per region with that region's words added to the prompt.
+  - The sampler blends the passes by mask each step, and the plain prompt fills the rest (ComfyUI's *default* conditioning, 1 minus the sum of the masks).
+  - The `model` output is the model unchanged; the LoRAs ride on `positive` / `negative`.
+  - Works with any model, but every pass sees the whole image, so strong style LoRAs tend to bleed across regions.
 
-**region_separation** / **separation_until** (inside-the-model mode, defaults 0.4 / 0.1, as in the Region Genie node; see [Separation and until](#separation-and-until)): a LoRA limited to its region still reaches the rest of the picture through attention, because every image token looks at every other one. region_separation removes that fraction of the attention between the image of different LoRA regions; separation_until applies it only for the first part of the steps so the seams blend at the end. 0.4 with 0.1 (the default) blends objects, characters and styles smoothly; 0.85–0.99 with 0.1–0.5 separates styles strongly; 1 / 1 gives independent pictures glued together. **separate_all_regions** (off by default) keeps every mask separate this way, with or without LoRAs, as the Region Genie node's "keep all regions separate" switch (inside-the-model mode; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5). **share_background** (off by default) keeps those regions separate from each other only, not from the rest of the image (the Region Genie node's *Share the background*). While it is on, attention runs without fused kernels (SageAttention etc. ignore masks), which is slower.
+**region_separation** / **separation_until** (inside-the-model mode; defaults 0.4 / 0.1): the Region Genie node's *separation* and *until*. What they do and good values: [Separation and until](#separation-and-until).
+
+- Why they exist: a LoRA limited to its region still reaches the rest of the picture through attention, because every image token looks at every other one.
+  - region_separation removes that fraction of the attention between the image of different LoRA regions.
+  - separation_until applies it only for the first part of the steps, so the seams blend at the end.
+- 1 / 1 gives independent pictures glued together.
+- **separate_all_regions** (off by default) keeps every mask separate this way, with or without LoRAs: the Region Genie node's "keep all regions separate" switch.
+  - It works in inside-the-model mode, with MOSS-Image, Krea 2, Ideogram 4, Flux, Anima and SDXL / SD1.5.
+- **share_background** (off by default) keeps those regions separate from each other only, not from the rest of the image (the Region Genie node's *Share the background*).
+- While regions are kept separate, attention runs without fused kernels (SageAttention etc. ignore masks), which is slower.
 
 ## Separation and until
 
@@ -103,7 +174,9 @@ Good starting points:
 | Strong style separation | 0.85–0.99 | 0.1–0.5 |
 
 If one region still takes on the other's style:
-1. Check each LoRA on its own first: one row, index −1 (everywhere). If the "photo" LoRA alone doesn't make the whole picture photographic with your prompt, it can't win a region either. Style words in the scene caption (e.g. "painting") pull everything one way.
+1. Check each LoRA on its own first: one row, index −1 (everywhere).
+   - If the "photo" LoRA alone doesn't make the whole picture photographic with your prompt, it can't win a region either.
+   - Style words in the scene caption (e.g. "painting") pull everything one way.
 2. Raise region_separation toward 1 and separation_until toward 0.5.
 3. Last resort that always separates: render the picture twice with the same seed and layout (once per LoRA, index −1), combine the latents with the region mask (Latent Composite Masked), then a short low-denoise pass (0.3–0.45) to blend the seam.
 

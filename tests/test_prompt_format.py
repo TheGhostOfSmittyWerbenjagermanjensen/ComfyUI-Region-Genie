@@ -144,5 +144,14 @@ check("…and no LoRA when no model is connected (none was applied)", note.get("
 run(scene_prompt_negative="x")
 check("a run without an id (an API call that doesn't give one) notes nothing", list(gen_params.RUNS) == ["77"])
 
+# round 58: no regions = a plain text-to-image node (the manual says so): the prompt is the scene prompt for every
+# plain-text model, Ideogram 4 gets its JSON with no elements
+for m in ("MOSS-Image", "Krea 2", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5"):
+    p, f = run({"modelPick": m}, pd={"v": 2, "regions": [], "layers": []})
+    check(f"{m}, no regions: the prompt is the scene prompt as text", f == "text" and p.strip() == "a sunny park")
+p, f = run({"modelPick": "Ideogram 4"}, pd={"v": 2, "regions": [], "layers": []})
+check("Ideogram 4, no regions: its JSON with the scene and no elements", json.loads(p)["compositional_deconstruction"]["elements"] == []
+      and json.loads(p)["high_level_description"] == "a sunny park")
+
 print("\nall passed" if not fails else f"\n{len(fails)} failed")
 sys.exit(1 if fails else 0)
