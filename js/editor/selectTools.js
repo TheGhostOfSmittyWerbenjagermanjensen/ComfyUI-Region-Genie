@@ -520,26 +520,41 @@ export function* selectTools(E) {
         if (!E.contentBox(L)) return;
         const tooSmall = () => E.hint(`The layer is too small to shrink by ${-px} px`);
         if (L.shape && !L.ops.length) { if (!growShape(L, px)) tooSmall(); return; }
-        // anything painted (brush, lasso, fill, selections, a shape with paint or erasing on it) becomes pixels
-        const { W, H, w, h, r, m, canvas } = layerMask(L), s = Math.min(W, H);
-        let out = growMask01(m, w, h, px * r);
+        // anything painted (brush, lasso, fill, selections, a shape with paint or erasing on it) becomes pixels.
+        // The raster covers the layer's own box plus the room it grows into, also outside the image: what is grown
+        // past the image's edge is kept, so shrinking takes it back from every side (cut off at the edge, the layer
+        // crept towards that edge with every grow + shrink)
+        const [W, H] = E.dims(), s = Math.min(W, H), pb = pixelBox(L);
+        if (!pb) return;
+        const pad = Math.max(px, 0) + 2;
+        let r = Math.min(1, RASTER_MAX / Math.max(W, H));
+        r = Math.min(r, Math.sqrt(RASTER_MAX * RASTER_MAX / Math.max(1, (pb[2] - pb[0] + 2 * pad) * (pb[3] - pb[1] + 2 * pad))));
+        // on the image's own pixel grid (at r = 1), so doing it again and again doesn't shift anything by part of a pixel
+        const gx = Math.floor((pb[0] - pad) * r), gy = Math.floor((pb[1] - pad) * r);
+        const w = Math.ceil((pb[2] + pad) * r) - gx, h = Math.ceil((pb[3] + pad) * r) - gy;
+        const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h;
+        const x = canvas.getContext("2d", { willReadFrequently: true });
+        const saved = E.view;
+        E.view = { z: r, x: -gx, y: -gy };
+        try { E.drawLayerOn(x, L, null, null, "#ffffff"); } finally { E.view = saved; }
+        const alpha = () => { const d = x.getImageData(0, 0, w, h).data, m = new Uint8Array(w * h); for (let i = 0; i < m.length; i++) m[i] = d[i * 4 + 3] >= 128 ? 1 : 0; return m; };
+        let out = growMask01(alpha(), w, h, px * r);
         if (px > 0 && !L.ops.some((o) => o.e)) {
             // growing rounds every corner. With nothing erased, the corners of the shape and of lasso outlines are put
             // back: their outlines drawn px wide outside, with pointed joins
-            const x = canvas.getContext("2d");
             x.setTransform(1, 0, 0, 1, 0, 0);
             x.strokeStyle = "#ffffff"; x.lineWidth = 2 * px * r; x.lineJoin = "miter"; x.miterLimit = 4;
             const trace = (pts) => {
                 if (pts.length < 3) return;
                 x.beginPath();
-                pts.forEach(([lx, ly], i) => { const [ix, iy] = E.layerToImg(L, lx, ly); if (i) x.lineTo(ix * r, iy * r); else x.moveTo(ix * r, iy * r); });
+                pts.forEach(([lx, ly], i) => { const [ix, iy] = E.layerToImg(L, lx, ly); if (i) x.lineTo(ix * r - gx, iy * r - gy); else x.moveTo(ix * r - gx, iy * r - gy); });
                 x.closePath(); x.stroke();
             };
             if (L.shape) trace(shapeVerts(L.shape, L.sides, L.bw, L.bh, L.radius).map(([u, v]) => [u * L.bw, v * L.bh]));
             for (const o of L.ops) if (o.t === "poly" && Array.isArray(o.p)) trace(o.p);
-            const d = x.getImageData(0, 0, w, h).data;
+            const m2 = alpha();
             out = out.slice();
-            for (let i = 0; i < out.length; i++) if (d[i * 4 + 3] >= 128) out[i] = 1;
+            for (let i = 0; i < out.length; i++) if (m2[i]) out[i] = 1;
         }
         if (!out.some((v) => v)) { tooSmall(); return; }
         // a gradient stays where it is on the image (the layer's frame becomes the whole image below)
@@ -548,7 +563,7 @@ export function* selectTools(E) {
             E.boxCache.delete(L);
             if (grad) L.grad = grad;
             Object.assign(L, { shape: null, sides: 5, bw: W / s, bh: H / s, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0,
-                ops: [{ t: "bitmap", e: false, w, h, runs: encodeRuns(out), x0: 0, y0: 0, x1: W / s, y1: H / s }] });
+                ops: [{ t: "bitmap", e: false, w, h, runs: encodeRuns(out), x0: gx / r / s, y0: gy / r / s, x1: (gx + w) / r / s, y1: (gy + h) / r / s }] });
             delete L.radius;
         });
     }

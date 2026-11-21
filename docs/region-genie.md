@@ -60,6 +60,7 @@ Paint regions of any shape on the node's canvas, one flat color per region with 
     - **Edge**: grow or shrink the layer by a number of pixels on every side.
       - A shape with nothing painted on it stays that shape and can still be resized and turned afterwards: its sides move by that many pixels and its corners stay corners (a rectangle stays a rectangle, a star a star). A rounded rectangle's corners get a radius that much larger or smaller; a heart grows by its box.
       - Anything painted (brush strokes, lasso outlines, fills, selections, and a shape that was painted or erased on) becomes pixels: every point of its edge moves by that many pixels, measured straight, so round ends stay round. Corners of a shape and of lasso outlines stay pointed when growing, unless something was erased from the layer (then they are rounded, so nothing erased comes back).
+      - What is grown past the image's edge is kept (it just isn't seen or used), so shrinking again takes it back from every side and the layer ends up where it started.
       - A layer too small to shrink that far is left as it is, with a message.
   - **Clear all** (the bin at the right end of the tool bar, red when you point at it) removes every layer and region. Ctrl+Z brings them back.
   - The defaults of the tools with versions (lasso, lasso erase, magic wand, fill) and the wand tolerance and fill gap size are in **Settings > Region Genie > Canvas tools**.

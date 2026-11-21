@@ -210,4 +210,5 @@ Tested in a stub page by the layers' pixels; worth a look on the real canvas at 
 - Grow a brush stroke and a lasso outline: smooth round ends, no flattened sides; grow it several times: it doesn't creep.
 - Grow a rectangle with a brush stroke on it: the rectangle's corners stay pointed, nothing moves.
 - Align a turned ellipse to each edge: its pixels touch the edge.
+- A rectangle in the top half with a brush stroke beside it (same layer): grow by 50 px three times, shrink by 50 px three times, repeat: it ends where it started each time (it used to move towards the top edge).
 - A large image (over 2048 px on a side): growing a painted layer still looks right (it is worked out at 2048 px there).

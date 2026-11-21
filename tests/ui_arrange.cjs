@@ -180,6 +180,26 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await setPx(12); await act(GROW);
     check("three times 4 px = once 12 px (a pixel layer grows the same way again and again, without creeping)", await page.evaluate(() => window.__T.off(window.__three, window.__T.mask(), 1.5)) === 0);
     await setPx(G);
+    // grown past the image's edges and shrunk again (the owner's steps): the part outside the image is kept, so
+    // shrinking takes it back from every side and the layer ends where it started (it used to creep towards the edge)
+    for (const [where, oy] of [["top", -0.3], ["bottom", 0.3]]) {
+        await put({ shape: "rect", bw: 0.4, bh: 0.2, ox: 0.1, oy, ops: [{ t: "stroke", e: false, d: 0.06, p: [[-0.5, 0.1], [-0.15, 0.1]] }] });
+        await page.evaluate(() => { window.__before = window.__T.mask(); });
+        await setPx(50);
+        for (let round = 0; round < 2; round++) { for (let i = 0; i < 3; i++) await act(GROW); for (let i = 0; i < 3; i++) await act(SHRINK); }
+        const r = await page.evaluate(() => { const T = window.__T, a = T.bbox(window.__before), b = T.bbox(T.mask()); const m = T.mask(); let bad = 0; for (let i = 0; i < m.length; i++) if (window.__before[i] && !m[i]) bad++; return { a, b, bad }; });
+        check(`a rectangle with a stroke in the ${where} half, grown 3 x 50 px (past the image's edges) and shrunk 3 x 50 px, twice: back where it was (box ${[r.a.x0, r.a.y0, r.a.x1, r.a.y1]} -> ${[r.b.x0, r.b.y0, r.b.x1, r.b.y1]})`,
+            ["x0", "x1", "y0", "y1"].every((k) => Math.abs(r.a[k] - r.b[k]) <= 2) && r.bad === 0);
+        L = await layer();
+        check("…its frame is still the image's (only its pixels reach outside)", L.ox === 0 && L.oy === 0 && L.rot === 0 && Math.abs(L.bw - W / S) < 1e-9);
+    }
+    // a layer grown over the image's edge keeps what is outside: moved back in, the part is there
+    await put({ ops: [{ t: "stroke", e: false, d: 0.1, p: [[0.05, 0.5], [0.3, 0.5]] }] });
+    await setPx(30); await act(GROW);
+    await page.evaluate(() => { window.__T.layer().ox += 0.3; window.__node.__rgSelectLayer(9); });
+    const moved = await page.evaluate(() => window.__T.bbox(window.__T.mask()));
+    check(`grown over the left edge, then moved right: the grown part comes into view (left end at ${moved.x0} px, round)`, Math.abs(moved.x0 - (0.05 * S - 0.05 * S - 30 + 0.3 * S)) <= 1.5);
+    await setPx(G);
     // a circle of pixels grows into a circle (no flattened sides)
     await put({ shape: "ellipse", bw: 0.3, bh: 0.3, ops: [{ t: "stroke", e: false, d: 0.01, p: [[0.15, 0.15]] }] });
     await setPx(20); await act(GROW);
