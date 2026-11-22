@@ -74,10 +74,13 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // ---- tool variants
     const wand = page.locator('.rg-bar .rg-btn.icon[title^="Magic wand"]');
     check("magic wand button", await wand.count() === 1);
+    // the tools' lists are the pack's own menu (round 65): read the open one as { items: [{ content }], opts.callback(item) }
+    await page.evaluate(() => { window.__toolMenu = () => { const rows = [...document.querySelectorAll(".rg-menu .rg-menu-item")];
+        return { items: rows.map((row) => ({ content: (row.getAttribute("aria-checked") === "true" ? "✓ " : "   ") + row.querySelector(".rg-menu-label").textContent, row })), opts: { callback: (it) => it.row.click() } }; }; });
     await wand.click({ button: "right" });
-    let items = await page.evaluate(() => window.__lastMenu.items.map((i) => i.content));
+    let items = await page.evaluate(() => window.__toolMenu().items.map((i) => i.content));
     check("wand right-click: 2 versions and Select object", items.length === 3 && items[0].startsWith("✓") && /Select object/.test(items[2]));
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[1]));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items[1]));
     check("wand: global version picked", /^Magic wand \(all similar colors\)/.test(await wand.getAttribute("title")));
     const tolIn = page.locator('.rg-toolopts input[title^="Magic wand tolerance"]');
     check("tolerance field shown with the wand (folded strip, hovered)", await inStrip(tolIn));
@@ -86,11 +89,11 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("Settings tolerance change shows in the field", await tolIn.inputValue() === "50");
     const lasso = page.locator('.rg-bar .rg-btn.icon[title^="Lasso"]').first();
     await lasso.click({ button: "right" });
-    items = await page.evaluate(() => window.__lastMenu.items.map((i) => i.content));
+    items = await page.evaluate(() => window.__toolMenu().items.map((i) => i.content));
     check("lasso right-click: plain / spline / magnetic", items.length === 3 && /magnetic/.test(items[2]));
     const fill = page.locator('.rg-bar .rg-btn.icon[title^="Fill"]');
     await fill.click({ button: "right" });
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[1]));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items[1]));
     const gapIn = page.locator('.rg-toolopts input[title^="Fill, closing small gaps"]');
     check("fill gaps: version picked, gap field shown", /^Fill \(closing small gaps\)/.test(await fill.getAttribute("title")) && await inStrip(gapIn));
     check("tolerance hidden with another tool", await tolIn.isHidden());
@@ -119,16 +122,16 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("gap fill: doesn't leak through the 2 px channel", f && f(192, 128) === 0);
     await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = s.layers.filter((l) => !l.name.startsWith("Fill")); });
     await fill.click({ button: "right" });
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[0]));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items[0]));
     await clickImg(64, 128);
     f = await filled();
     check("normal fill leaks through the channel", f && f(192, 128) === 1);
     // ---- gradient fill (round 26): the Fill button's linear and radial versions
     await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = s.layers.filter((l) => !l.name.startsWith("Fill")); window.__node.__rgRefresh(); });
     await fill.click({ button: "right" });
-    items = await page.evaluate(() => window.__lastMenu.items.map((i) => i.content));
+    items = await page.evaluate(() => window.__toolMenu().items.map((i) => i.content));
     check("fill right-click: fill, closing gaps, linear gradient, radial gradient", items.length === 4 && /linear gradient/.test(items[2]) && /radial gradient/.test(items[3]));
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[2]));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items[2]));
     check("linear gradient picked: the button says so", /^Fill \(linear gradient\)/.test(await fill.getAttribute("title")));
     await clickImg(64, 128);
     check("a click without a drag fills nothing and says what to do", !(await st()).layers.some((l) => l.grad) && /Drag a line/.test(await page.evaluate(() => [...document.querySelectorAll(".rg-wrap *")].filter((e) => e.childElementCount === 0).map((e) => e.textContent).join(" | "))));
@@ -149,12 +152,12 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("reloading the workflow keeps the gradient", (await st()).layers.find((l) => l.grad)?.grad.k === "linear");
     await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = s.layers.filter((l) => !l.grad); window.__node.__rgRefresh(); });
     await fill.click({ button: "right" });
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[3]));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items[3]));
     await dragImg([[64, 128], [64, 160]]);
     gl = (await st()).layers.find((l) => l.grad);
     check("radial gradient: from the point outward", gl?.grad.k === "radial" && Math.abs(gl.grad.b[1] - 160 / 256) < 0.01 && (await gpx(64, 128)) > (await gpx(64, 152)) + 60);
     await fill.click({ button: "right" });
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[0]));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items[0]));
     await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = []; });
 
     // ---- magic wand on an image: left half red, right half blue
@@ -167,7 +170,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         window.__node.__rgSetBackdrop(img);
     });
     await wand.click({ button: "right" });
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[0]));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items[0]));
     await clickImg(40, 128);
     let s = await st();
     let W = s.layers.find((l) => l.name.startsWith("Wand"));
@@ -177,7 +180,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.keyboard.press("Escape");
     await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = []; });
     await wand.click({ button: "right" });
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[1]));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items[1]));
     await clickImg(40, 128);
     W = (await st()).layers.find((l) => l.name.startsWith("Wand"));
     m = W && maskOf(W);
@@ -186,7 +189,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
 
     // ---- magnetic lasso follows the red / blue edge at x = 128
     await lasso.click({ button: "right" });
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items[2]));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items[2]));
     check("lasso: magnetic version picked", /^Lasso \(magnetic\)/.test(await lasso.getAttribute("title")));
     await page.keyboard.press("Escape");
     await dragImg([[124, 40], [124, 120], [124, 200], [60, 200], [60, 40], [122, 40]]);
@@ -222,7 +225,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // ---- rounded rectangle, from the centre with Alt
     await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = []; });
     await page.locator('.rg-bar .rg-btn[data-group="shape"]').click({ button: "right" });
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items.find((i) => /Rounded rectangle/.test(i.content))));
+    await page.evaluate(() => window.__toolMenu().opts.callback(window.__toolMenu().items.find((i) => /Rounded rectangle/.test(i.content))));
     const radIn = page.locator('.rg-toolopts input[title^="Corner radius"]');
     check("rounded rectangle: radius field shown", await inStrip(radIn));
     await radIn.fill("30"); await radIn.press("Tab");

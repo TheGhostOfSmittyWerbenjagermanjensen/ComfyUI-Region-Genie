@@ -515,8 +515,11 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("Shift+L: the eraser button shows lasso erase", /^Lasso erase/.test(await grp("erase").getAttribute("title")) && await grp("erase").evaluate((b) => b.classList.contains("on")));
     await key("e");
     check("E: back to the eraser on the same button", /^Eraser/.test(await grp("erase").getAttribute("title")));
+    // the tools' lists are the pack's own menu (round 65): read the open one as { items: [{ content }], opts.callback(item) }
+    await page.evaluate(() => { window.__toolMenu = () => { const rows = [...document.querySelectorAll(".rg-menu .rg-menu-item")];
+        return { items: rows.map((row) => ({ content: (row.getAttribute("aria-checked") === "true" ? "✓ " : "   ") + row.querySelector(".rg-menu-label").textContent, row })), opts: { callback: (it) => it.row.click() } }; }; });
     await grp("erase").click({ button: "right" });
-    check("eraser list: the eraser and the three lasso erase versions", await page.evaluate(() => window.__lastMenu.items.map((i) => i.content).join("|")).then((t) => /Eraser.*Lasso erase.*spline.*magnetic/.test(t)));
+    check("eraser list: the eraser and the three lasso erase versions", await page.evaluate(() => window.__toolMenu().items.map((i) => i.content).join("|")).then((t) => /Eraser.*Lasso erase.*spline.*magnetic/.test(t)));
     await key("w");
     check("W: the wand button shows the wand, tolerance in the strip", /^Magic wand/.test(await grp("wand").getAttribute("title")) && await inStrip(page.locator('.rg-toolopts input[title^="Magic wand tolerance"]')));
     await key("b");
