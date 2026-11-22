@@ -64,6 +64,7 @@ const KS_LINKS = [["rg", "model", "ks", "model"], ["rg", "positive", "ks", "posi
 const CUSTOM = [["noise", "RandomNoise", { noise_seed: 0 }], ["sel", "KSamplerSelect", { sampler_name: "euler" }], ["sca", "SamplerCustomAdvanced", {}]];
 const CUSTOM_LINKS = [["noise", "NOISE", "sca", "noise"], ["sel", "SAMPLER", "sca", "sampler"], ["rg", "latent", "sca", "latent_image"], ["sca", "output", "dec", "samples"], ["vae", "VAE", "dec", "vae"],
     ["rg", "width", "sch", "width"], ["rg", "height", "sch", "height"], ["sch", "SIGMAS", "sca", "sigmas"]];
+// skip-layer guidance is on in both MOSS-Image workflows (the owner's choice: it is not specific to a layout)
 const mossNodes = (slg) => [unet(F.moss), clip(F.mossClip, "moss_image"), vae(F.mossVae),
     ...(slg ? [["slg", "SkipLayerGuidanceDiTSimple", { double_layers: "", single_layers: "22", start_percent: 0, end_percent: 0.5 }]] : []), KS(25, 2.5, "er_sde", "simple")];
 const MOSS_NEG = "nsfw, worst quality, bad anatomy, watermark, jpeg artifact";
@@ -71,10 +72,11 @@ const MOSS_NEG = "nsfw, worst quality, bad anatomy, watermark, jpeg artifact";
 const SPECS = [
     { file: "01-moss-image-layout", title: "MOSS-Image: layout (regions)", regions: true, neg: MOSS_NEG, nodes: mossNodes(true),
       links: [["unet", "MODEL", "slg", "model"], ["slg", "MODEL", "rg", "model"], ...LOAD3.slice(1), ...KS_LINKS],
-      note: "Each region's box and prompt go to MOSS-Image in its own layout format (the layout / standard switch in the node's bottom bar shows which is in use).\n\nSkip-layer guidance (layer 22, first half of the steps) is on, as in ComfyUI's own MOSS-Image layout template." },
-    { file: "02-moss-image-text-to-image", title: "MOSS-Image: plain text-to-image (no regions)", regions: false, neg: MOSS_NEG, nodes: mossNodes(false), links: [...LOAD3, ...KS_LINKS],
+      note: "Each region's box and prompt go to MOSS-Image in its own layout format (the layout / standard switch in the node's bottom bar shows which is in use).\n\nSkip-layer guidance (layer 22, first half of the steps) is on." },
+    { file: "02-moss-image-text-to-image", title: "MOSS-Image: plain text-to-image (no regions)", regions: false, neg: MOSS_NEG, nodes: mossNodes(true),
+      links: [["unet", "MODEL", "slg", "model"], ["slg", "MODEL", "rg", "model"], ...LOAD3.slice(1), ...KS_LINKS],
       scene: "Cinematic photograph of a quiet harbor at sunrise: a white lighthouse on a rocky point, a small red fishing boat on calm water, seagulls in a pale sky, soft mist, warm low light, 35mm film grain",
-      note: "No regions: the canvas is empty, so the node works as a plain prompt node. scene_prompt_positive and scene_prompt_negative are the prompts, the size row sets the image size.\n\nDraw a region at any time to switch to a layout." },
+      note: "No regions: the canvas is empty, so the node works as a plain prompt node. scene_prompt_positive and scene_prompt_negative are the prompts, the size row sets the image size.\n\nDraw a region at any time to switch to a layout.\n\nSkip-layer guidance (layer 22, first half of the steps) is on." },
     { file: "03-krea-2", title: "Krea 2 (Turbo)", regions: true, nodes: [unet(F.krea), clip(F.kreaClip, "krea2"), vae(F.qwenVae), KS(8, 1, "euler", "simple")], links: [...LOAD3, ...KS_LINKS],
       note: "Krea 2 has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself).\n\nTurbo runs at cfg 1, so the negative prompt has no effect." },
     { file: "04-ideogram-4", title: "Ideogram 4", regions: true,
@@ -200,7 +202,8 @@ async function build(page, spec) {
         link("dec", "IMAGE", "save", "images");
         await new Promise((r) => setTimeout(r, 600));
         // 3. places: loaders | Region Genie | sampler nodes | decode and save; the note under the loaders
-        const col = (keys, x, y0) => { let y = y0; for (const k of keys) { const n = by[k]; if (!n) continue; n.pos = [x, y]; y += n.size[1] + 70; } return y; };
+        // (120 px between nodes: room for Nodes 2.0, whose nodes are taller, with a footer under the loaders)
+        const col = (keys, x, y0) => { let y = y0; for (const k of keys) { const n = by[k]; if (!n) continue; n.pos = [x, y]; y += n.size[1] + 120; } return y; };
         const loaders = spec.nodes.filter((n) => /Loader/.test(n[1])).map((n) => n[0]);
         const pre = spec.nodes.filter((n) => n[0] === "slg").map((n) => n[0]);
         const mid = spec.nodes.map((n) => n[0]).filter((k) => !loaders.includes(k) && !pre.includes(k));
@@ -226,7 +229,8 @@ async function build(page, spec) {
         const ns = app.graph._nodes;
         for (let i = 0; i < ns.length; i++) for (let j = i + 1; j < ns.length; j++) { const A = ns[i], B = ns[j];
             if (A.pos[0] < B.pos[0] + B.size[0] && B.pos[0] < A.pos[0] + A.size[0] && A.pos[1] - 30 < B.pos[1] + B.size[1] && B.pos[1] - 30 < A.pos[1] + A.size[1]) errors.push(`${A.type} and ${B.type} overlap`); }
-        const data = app.graph.serialize();
+        // as ComfyUI's own Save writes a workflow (graph.serialize() alone keeps an unused socket entry for every widget)
+        const data = (await app.graphToPrompt()).workflow;
         data.extra = { ...(data.extra || {}), ds: { scale: 0.55, offset: [110, 60] } };
         return { errors, info, data };
     }, { spec, note: noteText(spec) });

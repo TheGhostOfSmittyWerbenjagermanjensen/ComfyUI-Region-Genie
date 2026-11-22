@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 67 (Nov 22): the example workflows saved as ComfyUI saves; Save Image's height in Nodes 2.0
+- Reported: in the example workflows (legacy mode, Firefox, dropped onto the graph) every widget showed its input socket, and nine sockets hung under the Save Image node (its hidden fields'). Asked: skip-layer guidance in both MOSS-Image workflows.
+- Found: the files were written with `graph.serialize()`, which keeps a socket entry for every widget; ComfyUI's own Save (`graphToPrompt().workflow`) leaves out the unused ones. The sockets themselves did not show here (Chromium, Firefox 160, frontend 1.53 to 1.59.13, dropped file and Templates), so the cause on the owner's machine is not confirmed.
+- Built: the files rebuilt through `graphToPrompt().workflow` (no unused widget socket in any file; a test for it); skip-layer guidance in both MOSS-Image files; more room between the loaders. Found on the way: a Save Image (Region Genie) node was 570 px tall in Nodes 2.0 for five fields, and grew at each load (its size counted the hidden fields): it now fits the shown fields (`fitVue`, js/save_image.js). Version 0.50.1.
+- Tests: every file loaded in legacy mode and Nodes 2.0 from a dropped file: no overlap, no node taller than it needs, no broken link; pictures looked over. `real_save_image.cjs` in both modes.
+
 ## Round 66 (Nov 22): an example workflow for every supported model
 - Asked: workflows for each supported model type in place of the one SDXL sample: MOSS-Image layout first, MOSS-Image plain text-to-image second, then the rest; linked from a table, not shown as pictures. And: what is the Quick start diagram, whose controls on GitHub overlap its last box.
 - Decided by me: eleven files (Flux.2 as dev and Klein 4B distilled; Flux 3 as Klein base; Krea 2 as Turbo); loaders, file names and sampler settings from ComfyUI's own templates; the same three-region harbor scene in all but the plain MOSS-Image one; the folder renamed to `example_workflows`, which ComfyUI lists under Templates; a note with the files and links in each workflow.

@@ -95,6 +95,10 @@ app.registerExtension({
             const r = onCreated?.apply(this, arguments);
             const node = this;
             const W = (n) => node.widgets?.find((w) => w.name === n);
+            // Nodes 2.0: the node's size is the least height its box gets, and a new node's counts every field, also
+            // the hidden ones (it was 570 px tall for five fields). Down to what the shown fields need: the box then
+            // takes the height of its content.
+            const fitVue = () => { const h = node.computeSize?.()[1]; if (h && node.size[1] > h) node.setSize([node.size[0], h]); };
             const sizeOf = new Map();                // the widgets' own computeSize, put back when shown again
 
             // only the chosen format's fields (webp_quality not while lossless; invert_mask only with a mask linked)
@@ -123,6 +127,7 @@ app.registerExtension({
                     // legacy: grow or shrink by what the fields add or take, so a node made taller by hand stays taller
                     const after = legacy ? node.computeSize?.()[1] : 0;
                     if (legacy && after && before) node.setSize([node.size[0], Math.max(after, node.size[1] + after - before)]);
+                    else if (!legacy) fitVue();
                     node.setDirtyCanvas?.(true, true);
                 }
             }
@@ -173,6 +178,7 @@ app.registerExtension({
                 if (!changed) return;
                 const after = legacy ? node.computeSize?.()[1] : 0;
                 if (legacy && after && before) node.setSize([node.size[0], Math.max(after, node.size[1] + after - before)]);
+                else if (!legacy) fitVue();
                 node.setDirtyCanvas?.(true, true);
                 if (!quiet) node.graph?.change?.();
             }

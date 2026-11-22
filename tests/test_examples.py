@@ -28,6 +28,10 @@ for f in files:
         ok = ok and a in nodes and b in nodes and sa < len(nodes[a].get("outputs", [])) and sb < len(nodes[b].get("inputs", []))
         ok = ok and nodes[b]["inputs"][sb].get("link") == l[0] and l[0] in (nodes[a]["outputs"][sa].get("links") or [])
     check(f"{f}: every link joins two sockets that exist", ok and len(d["links"]) >= 9)
+    # saved as ComfyUI's Save writes it: a widget has a socket entry only when something is connected to it
+    check(f"{f}: no unused widget sockets in the file", not any(i.get("widget") and i.get("link") is None for n in d["nodes"] for i in n.get("inputs", [])))
+    if "moss" in f:
+        check(f"{f}: skip-layer guidance between the loader and the node", "SkipLayerGuidanceDiTSimple" in types)
     rg = [n for n in d["nodes"] if n["type"] == "Region-Genie_Main"]
     check(f"{f}: one Region Genie node, a sampler, VAE Decode, Save Image (Region Genie), a note",
           len(rg) == 1 and ("KSampler" in types or "SamplerCustomAdvanced" in types) and "VAEDecode" in types and "Region-Genie_SaveImage" in types and "MarkdownNote" in types)

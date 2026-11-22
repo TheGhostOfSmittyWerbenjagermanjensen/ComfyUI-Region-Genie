@@ -1,5 +1,5 @@
 {
-  "id": "35a31f98-5884-45e2-abe1-41ee0ff4ac69",
+  "id": "82726c77-fcd8-49df-9d5f-907508c8e4d2",
   "revision": 0,
   "last_node_id": 6,
   "last_link_id": 10,
@@ -16,76 +16,42 @@
         1186
       ],
       "flags": {},
-      "order": 0,
+      "order": 2,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "model",
           "name": "model",
           "shape": 7,
           "type": "MODEL",
           "link": 1
         },
         {
-          "localized_name": "clip",
           "name": "clip",
           "shape": 7,
           "type": "CLIP",
           "link": 2
         },
         {
-          "localized_name": "vae",
           "name": "vae",
           "shape": 7,
           "type": "VAE",
           "link": 3
         },
         {
-          "localized_name": "image",
           "name": "image",
           "shape": 7,
           "type": "IMAGE",
           "link": null
         },
         {
-          "localized_name": "size_from",
           "name": "size_from",
           "shape": 7,
           "type": "IMAGE,LATENT",
-          "link": null
-        },
-        {
-          "localized_name": "scene_prompt_positive",
-          "name": "scene_prompt_positive",
-          "type": "STRING",
-          "widget": {
-            "name": "scene_prompt_positive"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "scene_prompt_negative",
-          "name": "scene_prompt_negative",
-          "type": "STRING",
-          "widget": {
-            "name": "scene_prompt_negative"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "scene_prompt_background",
-          "name": "scene_prompt_background",
-          "shape": 7,
-          "type": "STRING",
-          "widget": {
-            "name": "scene_prompt_background"
-          },
           "link": null
         }
       ],
       "outputs": [
         {
-          "localized_name": "model",
           "name": "model",
           "type": "MODEL",
           "links": [
@@ -93,7 +59,6 @@
           ]
         },
         {
-          "localized_name": "positive",
           "name": "positive",
           "type": "CONDITIONING",
           "links": [
@@ -101,7 +66,6 @@
           ]
         },
         {
-          "localized_name": "negative",
           "name": "negative",
           "type": "CONDITIONING",
           "links": [
@@ -109,7 +73,6 @@
           ]
         },
         {
-          "localized_name": "latent",
           "name": "latent",
           "type": "LATENT",
           "links": [
@@ -205,22 +168,11 @@
         98
       ],
       "flags": {},
-      "order": 1,
+      "order": 0,
       "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "ckpt_name",
-          "name": "ckpt_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "ckpt_name"
-          },
-          "link": null
-        }
-      ],
+      "inputs": [],
       "outputs": [
         {
-          "localized_name": "MODEL",
           "name": "MODEL",
           "type": "MODEL",
           "links": [
@@ -228,7 +180,6 @@
           ]
         },
         {
-          "localized_name": "CLIP",
           "name": "CLIP",
           "type": "CLIP",
           "links": [
@@ -236,7 +187,6 @@
           ]
         },
         {
-          "localized_name": "VAE",
           "name": "VAE",
           "type": "VAE",
           "links": [
@@ -274,91 +224,32 @@
         262
       ],
       "flags": {},
-      "order": 2,
+      "order": 3,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "model",
           "name": "model",
           "type": "MODEL",
           "link": 4
         },
         {
-          "localized_name": "positive",
           "name": "positive",
           "type": "CONDITIONING",
           "link": 5
         },
         {
-          "localized_name": "negative",
           "name": "negative",
           "type": "CONDITIONING",
           "link": 6
         },
         {
-          "localized_name": "latent_image",
           "name": "latent_image",
           "type": "LATENT",
           "link": 7
-        },
-        {
-          "localized_name": "seed",
-          "name": "seed",
-          "type": "INT",
-          "widget": {
-            "name": "seed"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "steps",
-          "name": "steps",
-          "type": "INT",
-          "widget": {
-            "name": "steps"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "cfg",
-          "name": "cfg",
-          "type": "FLOAT",
-          "widget": {
-            "name": "cfg"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "sampler_name",
-          "name": "sampler_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "sampler_name"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "scheduler",
-          "name": "scheduler",
-          "type": "COMBO",
-          "widget": {
-            "name": "scheduler"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "denoise",
-          "name": "denoise",
-          "type": "FLOAT",
-          "widget": {
-            "name": "denoise"
-          },
-          "link": null
         }
       ],
       "outputs": [
         {
-          "localized_name": "LATENT",
           "name": "LATENT",
           "type": "LATENT",
           "links": [
@@ -400,17 +291,15 @@
         46
       ],
       "flags": {},
-      "order": 3,
+      "order": 4,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "samples",
           "name": "samples",
           "type": "LATENT",
           "link": 8
         },
         {
-          "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
           "link": 9
@@ -418,7 +307,6 @@
       ],
       "outputs": [
         {
-          "localized_name": "IMAGE",
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
@@ -435,161 +323,30 @@
       "type": "Region-Genie_SaveImage",
       "pos": [
         1500,
-        196
+        246
       ],
       "size": [
         300.2428802490234,
         206
       ],
       "flags": {},
-      "order": 4,
+      "order": 5,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
           "link": 10
         },
         {
-          "localized_name": "mask",
           "name": "mask",
           "shape": 7,
           "type": "MASK",
-          "link": null
-        },
-        {
-          "localized_name": "filename_prefix",
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "format",
-          "name": "format",
-          "type": "COMBO",
-          "widget": {
-            "name": "format"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "png_compression",
-          "name": "png_compression",
-          "type": "INT",
-          "widget": {
-            "name": "png_compression"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "png_bit_depth",
-          "name": "png_bit_depth",
-          "type": "COMBO",
-          "widget": {
-            "name": "png_bit_depth"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "webp_lossless",
-          "name": "webp_lossless",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "webp_lossless"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "webp_quality",
-          "name": "webp_quality",
-          "type": "INT",
-          "widget": {
-            "name": "webp_quality"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "jpeg_quality",
-          "name": "jpeg_quality",
-          "type": "INT",
-          "widget": {
-            "name": "jpeg_quality"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "jpeg_extension",
-          "name": "jpeg_extension",
-          "type": "COMBO",
-          "widget": {
-            "name": "jpeg_extension"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "jpeg_workflow",
-          "name": "jpeg_workflow",
-          "type": "COMBO",
-          "widget": {
-            "name": "jpeg_workflow"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "avif_quality",
-          "name": "avif_quality",
-          "type": "INT",
-          "widget": {
-            "name": "avif_quality"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "exr_bit_depth",
-          "name": "exr_bit_depth",
-          "type": "COMBO",
-          "widget": {
-            "name": "exr_bit_depth"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "exr_color_space",
-          "name": "exr_color_space",
-          "type": "COMBO",
-          "widget": {
-            "name": "exr_color_space"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "invert_mask",
-          "name": "invert_mask",
-          "shape": 7,
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "invert_mask"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "a1111_metadata",
-          "name": "a1111_metadata",
-          "shape": 7,
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "a1111_metadata"
-          },
           "link": null
         }
       ],
       "outputs": [
         {
-          "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
           "links": null
@@ -652,14 +409,14 @@
       "type": "MarkdownNote",
       "pos": [
         40,
-        258
+        308
       ],
       "size": [
         360,
         420
       ],
       "flags": {},
-      "order": 5,
+      "order": 1,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -765,7 +522,8 @@
         110,
         60
       ]
-    }
+    },
+    "frontendVersion": "1.59.1"
   },
   "version": 0.4
 }

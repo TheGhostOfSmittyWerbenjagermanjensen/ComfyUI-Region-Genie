@@ -122,7 +122,7 @@ One workflow for each supported model, in the pack's `example_workflows` folder.
 | Workflow | What it shows | Sampler settings |
 |---|---|---|
 | [MOSS-Image: layout](../example_workflows/01-moss-image-layout.json) | 3 regions, in MOSS-Image's layout format | 25 steps, cfg 2.5, er_sde, skip-layer guidance |
-| [MOSS-Image: plain text-to-image](../example_workflows/02-moss-image-text-to-image.json) | No regions: the scene prompts only | 25 steps, cfg 2.5, er_sde |
+| [MOSS-Image: plain text-to-image](../example_workflows/02-moss-image-text-to-image.json) | No regions: the scene prompts only | 25 steps, cfg 2.5, er_sde, skip-layer guidance |
 | [Krea 2 (Turbo)](../example_workflows/03-krea-2.json) | 3 regions | 8 steps, cfg 1, euler |
 | [Ideogram 4](../example_workflows/04-ideogram-4.json) | 3 regions, in Ideogram 4's caption format | 20 steps, Ideogram 4's scheduler and two-model guider |
 | [Flux.1 dev](../example_workflows/05-flux-1-dev.json) | 3 regions | 20 steps, cfg 1, euler |
