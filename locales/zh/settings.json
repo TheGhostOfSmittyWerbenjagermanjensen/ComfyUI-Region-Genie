@@ -611,11 +611,47 @@
     "name": "手动：步长",
     "tooltip": "手动模式下，每次点击宽度和高度的箭头时数值变化的幅度（像素）。\n适用于此后添加的节点；工作流中已有的节点保留各自的值。"
   },
+  "RegionGenie_Control_Flux1_pose": {
+    "name": "Flux.1：姿态 ControlNet（OpenPose 或 union）",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 Flux.1 时，由设为姿态的 Control 行（姿态工具绘制的人形）使用。未设置时，使用为“控制图像”设置的文件。\n将 diffusion_pytorch_model.safetensors 放入 ComfyUI/models/controlnet（InstantX 的 union ControlNet 可读取姿态；请重命名，例如 instantx-flux-union.safetensors）：https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_SDXL_pose": {
+    "name": "SDXL：姿态 ControlNet（OpenPose 或 union）",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 SDXL 时，由设为姿态的 Control 行（姿态工具绘制的人形）使用。未设置时，使用为“控制图像”设置的文件。\n将 diffusion_pytorch_model.safetensors 放入 ComfyUI/models/controlnet（Xinsir 的 OpenPose ControlNet，也适用于 Illustrious-XL、NoobAI-XL 等基于 SDXL 的模型；请重命名，例如 controlnet-openpose-sdxl.safetensors）：https://huggingface.co/xinsir/controlnet-openpose-sdxl-1.0/resolve/main/diffusion_pytorch_model.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_SD15_pose": {
+    "name": "SD1.5：姿态 ControlNet（OpenPose 或 union）",
+    "tooltip": "ControlNet 是一个独立的网络，读取控制图并在每一步引导模型，使用 Control 行的强度和开始 / 结束（也支持 Control-LoRA 和 union 文件）。\n模型为 SD1.5 时，由设为姿态的 Control 行（姿态工具绘制的人形）使用。未设置时，使用为“控制图像”设置的文件。\n将 control_v11p_sd15_openpose_fp16.safetensors 放入 ComfyUI/models/controlnet：https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Control_Anima_pose": {
+    "name": "Anima：姿态 LLLite 补丁",
+    "tooltip": "Anima LLLite 补丁是加在模型上的小型控制网络，使用 Control 行的强度和开始 / 结束。\n模型为 Anima 时，由设为姿态的 Control 行（姿态工具绘制的人形）使用。未设置时，使用为“控制图像”设置的文件。\n将 anima-lllite-pose-1.safetensors 放入 ComfyUI/models/model_patches（或 models/controlnet）：https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
+  },
+  "RegionGenie_Pose_Model": {
+    "name": "从图像读取姿态：SDPose 模型",
+    "tooltip": "姿态工具的“从图像”所用的姿态检测器（ComfyUI 的 SDPose）。一个文件适用于所有图像模型：它只从图片中读取姿态。将 sdpose_wholebody_fp16.safetensors 从 huggingface.co/Comfy-Org/SDPose 下载到 ComfyUI/models/checkpoints。该文件不存在时，使用名称中带有“sdpose”的其他检查点。开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的检查点。"
+  },
+  "RegionGenie_Pose_OnChanged": {
+    "name": "姿态导入：你修改过的人形",
+    "tooltip": "姿态工具的导入按钮：针对“姿态关键点”输入中、放置后被你在画布上修改过的人形。\n保留，并再添加一个：保留你的人形，并再次把输入的人形放在旁边。\n替换：把你的人形恢复为输入的姿态。\n在下次导入时应用于所有 Region Genie 节点。",
+    "options": {
+      "Keep it, add another": "保留，并再添加一个",
+      "Replace it": "替换"
+    }
+  },
+  "RegionGenie_Pose_OnInputChanged": {
+    "name": "姿态导入：输入更改的人形",
+    "tooltip": "姿态工具的导入按钮：当“姿态关键点”输入上的节点为某人给出了与之前放置的不同的姿态时。\n保留，并添加新的：保留之前放置的人形，并把新姿态作为另一个人形放置。\n替换：之前放置的人形采用新姿态（即使你修改过它）。\n在下次导入时应用于所有 Region Genie 节点。",
+    "options": {
+      "Keep it, add the new one": "保留，并添加新的",
+      "Replace it": "替换"
+    }
+  },
   "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "图像尺寸",
     "tooltip": "新建 Region Genie 节点的尺寸行如何开始，以及预设列表。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie 节点",
     "tooltip": "新建 Region Genie 节点的初始设置（图像模式、羽化、分离、网格、区域颜色、标签自动补全、通配符）。\nEdit…：在此页打开 Region Genie 设置。"
   },
@@ -627,7 +663,7 @@
     "name": "文字大小",
     "tooltip": "提示词框的文字大小，包括节点上和弹出编辑器中。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_control: MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
+  "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "控制",
     "tooltip": "每个模型的 Control 行使用的控制 LoRA、ControlNet 或 LLLite 文件，以及深度模型。\nEdit…：在此页打开 Region Genie 设置。"
   },

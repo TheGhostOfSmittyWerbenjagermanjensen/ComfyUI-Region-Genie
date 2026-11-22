@@ -32,6 +32,7 @@ export const COMMANDS = [
     { id: "tool.fill", group: "Tools", what: "Fill", keys: ["F"] },
     { id: "tool.wand", group: "Tools", what: "Magic wand", keys: ["W"] },
     { id: "tool.object", group: "Tools", what: "Select object", keys: ["Q"] },
+    { id: "tool.pose", group: "Tools", what: "Pose: Stick figures for pose control", keys: ["P"] },
     { id: "brush.smaller", group: "Tools", what: "Brush size: Smaller", keys: ["["] },
     { id: "brush.larger", group: "Tools", what: "Brush size: Larger", keys: ["]"] },
     { id: "draw.accept", group: "While drawing", ctx: "draw", shiftFree: true, keys: ["Enter"],

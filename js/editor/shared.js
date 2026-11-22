@@ -34,9 +34,9 @@ export const SHAPE_NAMES = Object.fromEntries([...SHAPES, ["polygon", "Polygon"]
 export const TYPES = ["object", "character", "text"];
 export const UNSPEC = 0, ALL = "all";
 export const HISTORY = 100;
-export const DEFAULT_W = 580;                 // default node width (CSS px): one row for the toolbar (it needs ~545) and for the list header (round 48; 700 before)
+export const DEFAULT_W = 620;                 // default node width (CSS px): one row for the toolbar (it needs ~585 with the Pose tool) and for the list header (round 61; 580 from round 48, 700 before)
 export const CLIPBOARD = { layer: null };  // Ctrl+C / Ctrl+X: a copy of a layer, shared by all Region Genie nodes
-export const DEFAULT_H = 1429;                // default height: a square canvas at DEFAULT_W in legacy mode (fine-tuned on creation)
+export const DEFAULT_H = 1469;                // default height: a square canvas at DEFAULT_W in legacy mode (fine-tuned on creation)
 export const RASTER_MAX = 2048;          // longest side of fill / merge rasters
 
 export const LAYOUT_FORMAT = "region_genie_layout";

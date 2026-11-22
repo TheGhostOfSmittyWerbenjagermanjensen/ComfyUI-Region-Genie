@@ -26,7 +26,7 @@
     "name": "Image size",
     "tooltip": "How the size row of a new Region Genie node starts, and the list of presets.\nEdit…: Opens the Region Genie settings on this page."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie node",
     "tooltip": "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards).\nEdit…: Opens the Region Genie settings on this page."
   },
@@ -38,7 +38,7 @@
     "name": "Text size",
     "tooltip": "The text size of the prompt boxes, on the node and in the pop-up editors.\nEdit…: Opens the Region Genie settings on this page."
   },
-  "RegionGenie_Page_control: MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
+  "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "Control",
     "tooltip": "The control LoRA, ControlNet or LLLite file each model uses for a Control row, and the depth model.\nEdit…: Opens the Region Genie settings on this page."
   },
@@ -230,6 +230,10 @@
     "name": "Model",
     "tooltip": "The SAM 3.1 checkpoint the Select object tool uses (ComfyUI's native SAM 3 support). Download sam3.1_multiplex_fp16.safetensors from huggingface.co/Comfy-Org/sam3.1 into ComfyUI/models/checkpoints. When this file isn't there, another SAM 3 checkpoint in that folder is used. With 'Browse… for model files' on (Model files), a folder button picks a checkpoint anywhere on the ComfyUI machine."
   },
+  "RegionGenie_Pose_Model": {
+    "name": "Pose from the image: SDPose model",
+    "tooltip": "The pose detector the Pose tool's 'From the image' uses (ComfyUI's SDPose). One file serves every image model, since it only reads the pose from the picture. Download sdpose_wholebody_fp16.safetensors from huggingface.co/Comfy-Org/SDPose into ComfyUI/models/checkpoints. When this file isn't there, another checkpoint with 'sdpose' in its name is used. With 'Browse… for model files' on (Model files), a folder button picks a checkpoint anywhere on the ComfyUI machine."
+  },
   "RegionGenie_Select_KeepLoaded": {
     "name": "After a selection",
     "tooltip": "Keep the model loaded: The model stays in memory for the session (about 1.7 GB). ComfyUI still moves it out of VRAM into system RAM when a workflow needs the room, and back on the next click.\nUnload the model: The model is freed when you accept or cancel a selection (and after 3 idle minutes), so each new selection loads it from disk again.",
@@ -337,6 +341,22 @@
       "always replace": "always replace"
     }
   },
+  "RegionGenie_Pose_OnChanged": {
+    "name": "Pose import: a figure you changed",
+    "tooltip": "The Pose tool's import button, for a figure of the pose_keypoint input that you changed on the canvas after it was placed.\nKeep it, add another: Your figure stays, and the input's figure is placed next to it again.\nReplace it: Your figure is put back to the input's pose.\nApplies to every Region Genie node at the next import.",
+    "options": {
+      "Keep it, add another": "Keep it, add another",
+      "Replace it": "Replace it"
+    }
+  },
+  "RegionGenie_Pose_OnInputChanged": {
+    "name": "Pose import: a figure the input changed",
+    "tooltip": "The Pose tool's import button, when the node on the pose_keypoint input now gives another pose for a person than the one placed before.\nKeep it, add the new one: The figure placed before stays, and the new pose is placed as another figure.\nReplace it: The figure placed before takes the new pose (also when you had changed it).\nApplies to every Region Genie node at the next import.",
+    "options": {
+      "Keep it, add the new one": "Keep it, add the new one",
+      "Replace it": "Replace it"
+    }
+  },
   "RegionGenie_Main_RegionColors": {
     "name": "Region colors",
     "tooltip": "The colors new regions get, in this order (a color already on the canvas is skipped; when all are in use, the node picks one that looks different from them).\nClick a color: Change it.\nRight-click a color: Remove it.\n＋: Add one.\nDefaults: The built-in colors.\nRegions already drawn keep their colors. Black can't be used: It means 'no region' in color_map."
@@ -439,6 +459,10 @@
     "name": "Flux.1: canny ControlNet",
     "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is Flux.1 and no Flux.1 canny LoRA is set (the LoRA comes first).\nGet flux-canny-controlnet-v3.safetensors into ComfyUI/models/controlnet: https://huggingface.co/XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
   },
+  "RegionGenie_Control_Flux1_pose": {
+    "name": "Flux.1: pose ControlNet (OpenPose or union)",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by a Control row set to pose (the figures of the Pose tool) when the model is Flux.1. When none is set, the file for your control_image is used.\nGet diffusion_pytorch_model.safetensors into ComfyUI/models/controlnet (InstantX's union ControlNet reads poses; rename it, e.g. instantx-flux-union.safetensors): https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
   "RegionGenie_Control_Flux1_other": {
     "name": "Flux.1: ControlNet for your control_image (pose, lineart, union …)",
     "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is Flux.1.\nGet diffusion_pytorch_model.safetensors into ComfyUI/models/controlnet (InstantX's union ControlNet (pose, depth, canny, tile …); rename it, e.g. instantx-flux-union.safetensors): https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
@@ -450,6 +474,10 @@
   "RegionGenie_Control_SDXL_canny": {
     "name": "SDXL: canny ControlNet",
     "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is SDXL.\nGet control-lora-canny-rank128.safetensors into ComfyUI/models/controlnet: https://huggingface.co/stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_SDXL_pose": {
+    "name": "SDXL: pose ControlNet (OpenPose or union)",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by a Control row set to pose (the figures of the Pose tool) when the model is SDXL. When none is set, the file for your control_image is used.\nGet diffusion_pytorch_model.safetensors into ComfyUI/models/controlnet (Xinsir's OpenPose ControlNet, also for SDXL-based models such as Illustrious-XL and NoobAI-XL; rename it, e.g. controlnet-openpose-sdxl.safetensors): https://huggingface.co/xinsir/controlnet-openpose-sdxl-1.0/resolve/main/diffusion_pytorch_model.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
   },
   "RegionGenie_Control_SDXL_other": {
     "name": "SDXL: ControlNet for your control_image (pose, lineart, union …)",
@@ -463,6 +491,10 @@
     "name": "SD1.5: canny ControlNet",
     "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is SD1.5.\nGet control_v11p_sd15_canny_fp16.safetensors into ComfyUI/models/controlnet: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_canny_fp16.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
   },
+  "RegionGenie_Control_SD15_pose": {
+    "name": "SD1.5: pose ControlNet (OpenPose or union)",
+    "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by a Control row set to pose (the figures of the Pose tool) when the model is SD1.5. When none is set, the file for your control_image is used.\nGet control_v11p_sd15_openpose_fp16.safetensors into ComfyUI/models/controlnet: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
   "RegionGenie_Control_SD15_other": {
     "name": "SD1.5: ControlNet for your control_image (pose, lineart, union …)",
     "tooltip": "A ControlNet, a separate network that reads the map and steers the model at each step, with the Control row's strength and start / end (also Control-LoRA and union files).\nUsed by the Control row when the model is SD1.5.\nGet control_v11p_sd15_openpose_fp16.safetensors into ComfyUI/models/controlnet (The pose one; lineart, scribble, softedge … are in the same repository): https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
@@ -474,6 +506,10 @@
   "RegionGenie_Control_Anima_canny": {
     "name": "Anima: canny LLLite patch",
     "tooltip": "An Anima LLLite patch, a small control network on the model, with the Control row's strength and start / end.\nUsed by the Control row when the model is Anima.\nGet anima-lllite-lineart-1.safetensors into ComfyUI/models/model_patches (or models/controlnet) (There is no canny LLLite; the lineart one reads edge lines like canny's (untested with canny maps)): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-lineart-1.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
+  },
+  "RegionGenie_Control_Anima_pose": {
+    "name": "Anima: pose LLLite patch",
+    "tooltip": "An Anima LLLite patch, a small control network on the model, with the Control row's strength and start / end.\nUsed by a Control row set to pose (the figures of the Pose tool) when the model is Anima. When none is set, the file for your control_image is used.\nGet anima-lllite-pose-1.safetensors into ComfyUI/models/model_patches (or models/controlnet): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors\nOr keep the file anywhere: With 'Browse… for model files' on (Model files), a folder button picks it where it is. The same for every Region Genie node."
   },
   "RegionGenie_Control_Anima_other": {
     "name": "Anima: LLLite patch for your control_image",

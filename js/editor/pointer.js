@@ -88,6 +88,7 @@ export function* pointer(E) {
             } else { E.clickPoly.pts.push([E.snapV(ix), E.snapV(iy)]); E.requestDraw(); }
             return;
         }
+        if (E.tool === "pose") { E.labelClick = null; E.poseDown(e, dx, dy, ix, iy, before); return; }       // pose.js
         // Alt+click with a painting tool: eyedropper, the region under the pointer becomes the active one
         if (e.altKey && E.tool !== "select" && E.tool !== "shape") {
             const L = E.hitLayer(dx, dy);
@@ -172,6 +173,7 @@ export function* pointer(E) {
         if (!E.drag) { E.requestDraw(); return; }
         e.preventDefault(); e.stopPropagation();
         const [W, H] = E.dims(), s = Math.min(W, H);
+        if (E.drag.mode.startsWith("pose")) { E.poseMove(e, dx, dy, ix, iy); return; }
         if (E.drag.mode === "pan") { E.view.x = E.drag.vx + dx - E.drag.sx; E.view.y = E.drag.vy + dy - E.drag.sy; }
         else if (E.drag.mode === "move") {
             const L = E.drag.L;
@@ -236,6 +238,7 @@ export function* pointer(E) {
         const t = d.mode === "shape" ? shapeDragLayer() : null;
         E.drag = null;
         if (d.mode === "pan") { E.requestDraw(); return; }
+        if (d.mode.startsWith("pose")) { E.poseUp(d); return; }
         if (d.mode === "pickbox") { E.pickPointer(d); E.requestDraw(); return; }
         if (d.mode === "grad") { E.gradFill(d); E.requestDraw(); return; }
         if (d.mode === "lasso" && d.moved < 5 * E.dprNow()) {     // a click: start a point-by-point lasso

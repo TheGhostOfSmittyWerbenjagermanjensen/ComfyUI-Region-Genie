@@ -39,6 +39,9 @@ export function* canvasUi(E) {
             ? [["Drag", "Move"], ["Square handles", "Resize (Shift: Keep proportions, Alt: From the centre)"], ["Round handle", "Rotate (Shift: 15° steps)"],
                [arrows(), "Nudge (Shift: ×10)"], [first("edit.duplicate"), "Duplicate"], [ccp(), "Copy, cut, paste"]]
             : [["Click", "Select a layer"], ["Double-click a label", "Edit that region"], ...VIEW_TIPS(), [first("view.fit"), "Fit"]]),
+        pose: () => (E.selPose()
+            ? [["Drag a joint", "Bend"], ["Drag a bone", "Move"], ["Handles", "Resize, turn"], [first("edit.delete"), "Delete"]]
+            : [["Drag a box", "Draw a figure into it"], ["Click a figure", "Select it"], ...VIEW_TIPS()]),
         shape: () => [["Drag", "Draw the shape"], ["Shift", "Equal sides"], ["Alt", "From the centre"], ["▾ on the button", "Other shapes"]],
         brush: () => [["Drag", "Paint"], ["Shift+click", "A straight line from the last stroke"], [size(), "Brush size"], PICK_TIP],
         lasso: () => [...LASSO_TIPS(), PICK_TIP],

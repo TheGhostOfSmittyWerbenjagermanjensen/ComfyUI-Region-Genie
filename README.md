@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.45.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.48.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -24,6 +24,7 @@
   - [Regional LoRAs](#regional-loras)
   - [Separation and until](#separation-and-until)
   - [Control](#control)
+  - [Poses](#poses)
   - [Edit Mode](#edit-mode)
   - [LLM Prompt Enhancer](#llm-prompt-enhancer)
   - [Wildcards](#wildcards)
@@ -46,6 +47,7 @@
 - **Draw any shape.** Boxes, ellipses, stars, brush strokes, lasso outlines and fills.
 - **Start from a picture.** Click an object in a photo to make it a region, or turn a color sketch into regions.
 - **Guide the layout.** ControlNet-style control (depth, canny, color map) from the same node.
+- **Pose your characters.** Draw stick figures on the canvas and the model follows their poses.
 - **Edit existing pictures.** Paint over a photo and change only the regions you mark.
 - **Let an LLM write for you.** A local LLM can expand short region prompts when the workflow runs.
 - **Save smaller files.** A Save Image node with WebP, JPEG, AVIF and PNG settings, and settings text other tools can read.
@@ -98,7 +100,7 @@ flowchart LR
 
 1. **Sockets and image size**
 2. **Scene prompts:** the whole picture, and what to avoid
-3. **Tools:** select, shapes, brush, lasso, fill, magic wand, eraser, arrange
+3. **Tools:** select, shapes, brush, lasso, fill, magic wand, eraser, pose, arrange
 4. **Canvas:** where you draw the regions
 5. **Region list:** one row per region, with its prompt
 6. **Bottom bar:** Generate / Edit, the model, LLM settings, shortcuts, Export / Import
@@ -222,6 +224,18 @@ Good starting points:
 
 → [Control (ControlNet)](docs/control.md)
 
+### Poses
+
+The **Pose** tool draws stick figures on the same canvas. Drag a box to place one, pick from 13 starting poses (standing, sitting, running …), and drag its joints into shape. A Control row set to **pose** makes the model follow them.
+
+A figure can also be read from a person in a photo, taken from another pose node as an editable figure, and passed on as keypoints.
+
+Works with models that have a pose ControlNet: SDXL (and SDXL-based models), SD1.5, Flux.1 and Anima.
+
+<img src="docs/images/pose.png" alt="Two pose figures on the canvas, one in each region" width="460">
+
+→ [Pose figures](docs/region-genie.md#pose-figures) · [Control](docs/control.md)
+
 ### Edit Mode
 
 Switch the bottom bar to **Edit**, connect a picture, and paint over the parts to change.
@@ -259,6 +273,8 @@ The **large editor** opens the same editor in a window that fills the page.
 ### Shortcuts and Settings
 
 **Press ?** over the node for every key and mouse gesture. Click a key in that sheet to change it to your own.
+
+Click a number field and turn the mouse wheel anywhere over the node to raise or lower it.
 
 **Settings > Region Genie** holds the defaults for new nodes and the model files. Each topic has an **Edit…** button that opens its page in one settings window, with a search.
 

@@ -257,6 +257,7 @@ export function* llm(E) {
 
         if (E.isEdit()) E.regList.appendChild(E.editRows());
         E.controls().forEach((c, k) => E.regList.appendChild(E.controlRow(c, k)));
+        E.regList.appendChild(E.poseRows(null, E.ico));           // the pose figures of no region (pose.js)
 
         E.state.regions.forEach((r, i) => {
             const lays = E.listedOf(r.id);
@@ -333,6 +334,7 @@ export function* llm(E) {
             const del = E.ico("@close", "Delete region and its layers", () => E.change(() => {
                 E.state.regions.splice(i, 1);
                 E.state.layers = E.state.layers.filter((l) => l.region !== r.id);
+                if (E.state.poses) { E.state.poses = E.state.poses.filter((p) => p.region !== r.id); if (!E.state.poses.length) delete E.state.poses; }
                 if (E.curRegion === r.id) E.curRegion = E.state.regions[0]?.id ?? null;
                 if (!E.selLayer()) E.selId = null;
             }));

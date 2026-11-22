@@ -1058,6 +1058,10 @@ class RegionGenie:
                                            "tooltip": ("A layout to load into the editor when the workflow runs. It can be a file saved with Export "
                                                        "(e.g. through a Load Text node), MOSS-Image layout JSON, Ideogram caption JSON / elements, or "
                                                        "bboxes. Each new import_json is used once; edits made afterwards are kept.")}),
+                "pose_keypoint": ("POSE_KEYPOINT", {"forceInput": True,
+                                                    "tooltip": ("Optional. Pose keypoints from another node (a pose detector or a pose editor, in "
+                                                                "OpenPose format). Their figures are added to the ones drawn on the canvas for "
+                                                                "a Control row set to pose, and to the pose_keypoint output.")}),
                 # before width / height, which stay the last inputs (as asked)
                 "control_image": ("IMAGE", {"tooltip": "Optional. A control map (depth, canny, pose, lineart ... from any preprocessor) "
                                                        "for the Control rows; every row except 'color map' uses it. Without it, "
@@ -1085,9 +1089,9 @@ class RegionGenie:
         }
 
     RETURN_TYPES = ("MODEL", "CONDITIONING", "CONDITIONING", "LATENT", "STRING", "IMAGE", "MASK", "BOUNDING_BOX", "ARRAY",
-                    "STRING", "STRING", "INT", "INT")
+                    "STRING", "STRING", "INT", "INT", "POSE_KEYPOINT")
     RETURN_NAMES = ("model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes", "elements",
-                    "character_boxes", "region_info", "width", "height")
+                    "character_boxes", "region_info", "width", "height", "pose_keypoint")
     OUTPUT_TOOLTIPS = (
         ("The connected model with the LoRAs: Whole image's merged in, each region's acting only inside its region "
          "(one pass; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima or SDXL / SD1.5). Connect it to the sampler, with "
@@ -1123,6 +1127,8 @@ class RegionGenie:
          "Lines starting with NOTE say what was left out and why."),
         "Output width.",
         "Output height.",
+        ("The pose figures as keypoints (OpenPose format, body joints): Those drawn on the canvas with the Pose tool, and "
+         "those of the pose_keypoint input. For pose nodes such as SDPose Draw Keypoints."),
     )
     FUNCTION = "run"
     CATEGORY = "Region Genie"
@@ -1137,7 +1143,7 @@ class RegionGenie:
             size_from_image=None, size_from_latent=None, import_json=None, import_mode=IMPORT_MODES[0],
             model=None, clip=None, scene_prompt_background="", prompt_format="auto", vae=None, mode=MODES[0],
             edit_area=EDIT_AREAS[0], width_in=None, height_in=None, wildcard_seed=0, control_image=None,
-            size_from=None, outputs_shown="", unique_id=None):
+            size_from=None, outputs_shown="", unique_id=None, pose_keypoint=None):
         from .bbox_masks import _resolve_size        # shared with BBoxes to Masks
         # A node that shows only some of its outputs numbers them 0, 1, 2 ... in the workflow; the editor's script
         # replaces those by the real output numbers when it queues the workflow, and empties this value. If it is
@@ -1508,9 +1514,29 @@ class RegionGenie:
         # round 23: several Control rows, applied one after the other (ControlNets chain, LLLite patches stack);
         # the ones that use the model's one extra input (MOSS-Image's control LoRA, a Flux.1 depth / canny LoRA): the first
         from . import control as ctl
+        from . import pose_map as pm
+        # the pose figures: the canvas's (the Pose tool; those of regions that are output) and the pose_keypoint input's
+        pose_figs = pm.figures(pdata, {r.get("id") for r in regions if isinstance(r, dict)})
+        if pose_keypoint is not None and isinstance(pdata, dict) and pdata.get("poseInputTaken"):
+            # the editor's import button put the input's figures on the canvas: those count, the input doesn't
+            notes.append("pose_keypoint: not used at this run (its figures were taken onto the canvas with the Pose tool's import button)")
+        elif pose_keypoint is not None:
+            try:
+                extra = pm.from_keypoints(pose_keypoint, width, height)
+                pose_figs += extra
+                notes.append(f"pose_keypoint: {len(extra)} figure(s) from the input")
+            except Exception as e:
+                notes.append(f"NOTE: pose_keypoint could not be read ({e}); not used")
+        pose_out = pm.to_keypoints(pose_figs, width, height)
         ccfgs = ctl.configs(pdata)
         if ccfgs:
             rmask = ctl.region_mask(regions, id_to_index, idx)
+            # the canvas's pose figures (the Pose tool), for a Control row of kind "pose": those of the regions that are
+            # output (a hidden region's figures are left out with it)
+            pose_map = None
+            if any(c["kind"] == "pose" for c in ccfgs) and pose_figs:
+                pose_map = torch.from_numpy(pm.render(pose_figs, width, height))[None]
+                notes.append(f"pose: {len(pose_figs)} figure(s) drawn as the control map")
             missing, maps, concat_used = [], [], None
             aname = arch.name if arch is not None else None
             for k, ccfg in enumerate(ccfgs):
@@ -1524,7 +1550,7 @@ class RegionGenie:
                         concat_used = k
                     model_out, positive, negative, cmap = ctl.apply(ccfg, aname, model_out, positive, negative, vae, image,
                                                                     control_image, color_map, rmask, width, height, notes,
-                                                                    missing)
+                                                                    missing, pose_map=pose_map)
                     maps.append(cmap)
                 except Exception as e:            # a broken control file must not stop the run
                     logging.exception(f"{LOG} control failed")
@@ -1551,7 +1577,7 @@ class RegionGenie:
         return {
             "ui": ui,
             "result": (model_out, positive, negative, latent, prompt_text, color_map, mask_batch, [bboxes] if bboxes else [],
-                       elements, ", ".join(str(c) for c in characters), info, width, height),
+                       elements, ", ".join(str(c) for c in characters), info, width, height, pose_out),
         }
 
     @staticmethod

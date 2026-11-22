@@ -55,6 +55,20 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] Depth Anything 3 making the depth map (no `control_image` connected)
 - [ ] Control together with LoRAs per region; memory use is acceptable
 
+- [ ] **Pose (round 61)**, with a model that has a pose ControlNet (SDXL / Illustrious / NoobAI with an OpenPose or union ControlNet, SD1.5 openpose, Flux.1 union, Anima pose patch) set for *your control_image*:
+  - one figure, standing: the person takes the pose; then drag an arm up: the picture follows
+  - two figures in two regions with different prompts: each character in its own pose
+  - *Facing away*: the person is seen from behind; a hidden joint (e.g. a hand behind the back) isn't forced into view
+  - each starting pose once: which ones the model reads well, which need better joint positions (tell me)
+  - a union ControlNet without and with other Control rows (pose + depth)
+  - Settings > Region Genie > Control: the four pose files and the SDPose model are picked with the file menu (and Browse…); a pose row uses the model's pose file, and the control_image file when none is set
+  - the mouse wheel on a clicked number field, in your browser (Firefox too): over the field, over the list, the bottom bar and the node's title it steps the value; over the drawing canvas it zooms; outside the node it zooms the graph
+  - **From the image** (needs `sdpose_wholebody_fp16.safetensors` in models/checkpoints): a box around a standing person gives a figure on that person; a sitting person; two people (one box each); how long the first read takes and the next ones; without the file: the message with the link; while a workflow runs: it says it waits
+  - **the import button** with ComfyUI's SDPose Keypoint Extractor on the pose_keypoint input: one click runs the detector only (not the sampler) and the person appears as a figure; a second click adds nothing; change the figure and click: a second figure by default, the same figure reset with *Replace it* in Settings; load another photo and click: the new pose is added (or replaces)
+  - a figure over no region, and a canvas with no regions at all: the person is still posed, described by scene_prompt_positive
+  - **pose_keypoint output** into ComfyUI's SDPose Draw Keypoints: the same figures as on the canvas; **pose_keypoint input** from SDPose Keypoint Extractor: the person's pose is followed with a pose Control row
+  - the Pose tool at 4K in both node modes: joints easy to grab, the strip readable; the new default node size (620 wide, square canvas in legacy mode)
+
 ## 5. Edit Mode
 
 - [ ] Each model you edit with: the Edit row shows the Settings edit LoRA and the run changes only the chosen regions

@@ -33,6 +33,7 @@ export function* menu(E) {
             { label: lays.length > 1 ? `Delete region and its ${lays.length} layers` : "Delete region", icon: "close", danger: true, fn: () => E.change(() => {
                 E.state.regions.splice(E.state.regions.indexOf(r), 1);
                 E.state.layers = E.state.layers.filter((l) => l.region !== r.id);
+                if (E.state.poses) { E.state.poses = E.state.poses.filter((p) => p.region !== r.id); if (!E.state.poses.length) delete E.state.poses; }
                 if (E.curRegion === r.id) E.curRegion = E.state.regions[0]?.id ?? null;
                 if (!E.selLayer()) E.selId = null;
             }) },

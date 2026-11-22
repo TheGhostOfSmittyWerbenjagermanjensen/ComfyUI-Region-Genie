@@ -6,7 +6,7 @@ Paint regions of any shape on the node's canvas, one flat color per region with 
 
 1. **Sockets and image size:** what the node takes and gives, and the size of the picture.
 2. **Scene prompts:** the whole picture, and what to avoid.
-3. **Tools:** select, shapes, brush, lasso, fill, magic wand, eraser, arrange; undo, snap, labels, the large editor.
+3. **Tools:** select, shapes, brush, lasso, fill, magic wand, eraser, pose, arrange; undo, snap, labels, the large editor.
 4. **Canvas:** where you draw the regions.
 5. **Region list:** one row per region with its prompt; open a row for its layers, LoRAs and colors.
 6. **Bottom bar:** Generate / Edit, the model, LLM settings, shortcuts, Export / Import.
@@ -39,6 +39,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - [Magic wand](#magic-wand)
   - [Select object (SAM 3.1)](#select-object-sam-31)
   - [Arrange: flip, align, grow / shrink](#arrange-flip-align-grow--shrink)
+  - [Pose figures](#pose-figures)
 - [The canvas view](#the-canvas-view)
 - [Working from an image](#working-from-an-image)
 - [Text boxes and pop-up editors](#text-boxes-and-pop-up-editors)
@@ -68,7 +69,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 
 ### Shortcuts
 
-- **Shortcuts** (V, R, B, L, F, W, Q, E, G, Ctrl+Z …) work while the pointer is anywhere over the editor: the tools, the canvas, the region list or the bottom bar.
+- **Shortcuts** (V, R, B, L, F, W, Q, E, P, G, Ctrl+Z …) work while the pointer is anywhere over the editor: the tools, the canvas, the region list or the bottom bar.
   - A text field you are typing in keeps the keys.
   - **Press ?** (or the keyboard button in the bottom bar, left of Export) for a sheet with every key and mouse gesture. Esc, ? again or a click outside closes it.
 - **Your own keys:** in that sheet, click a key and press the key or combination you want instead (Ctrl, Alt and Shift combinations, function keys, any letter or symbol).
@@ -89,8 +90,8 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 
 ### Node size and the large editor
 
-- **A new node** is 580 px wide and as tall as a square canvas needs.
-  - In legacy node mode that is about 1146 px, with the sockets a new node shows.
+- **A new node** is 620 px wide and as tall as a square canvas needs.
+  - In legacy node mode that is about 1186 px, with the sockets a new node shows.
   - In Nodes 2.0 ComfyUI shares the height between the scene prompt boxes and the editor, so the canvas starts wider than tall there.
   - Drag the node's corner to resize it, or use the large editor (the bar between the canvas and the list is described below).
 - **The large editor** (the button with two arrows, right of the labels button in the tool bar; or **Alt+Enter** while the pointer is over the editor): the same editor in a window that fills the ComfyUI page.
@@ -132,6 +133,8 @@ The row at the top of the node sets the size of the picture. Three buttons on th
   - A width or height you type can be any number.
 - **Settings > Region Genie > Image size** sets how new nodes start (mode, aspect ratio, megapixels, multiple, manual width / height / step size).
 - **Number fields** (here and everywhere in the pack) are as wide as their value: two digits at least, wider as you type more, so the arrows never cover a digit.
+  - **The mouse wheel changes a number field you clicked into:** click the field, then turn the wheel anywhere over the same node. Each notch is one step of the field's arrows.
+  - Over the drawing canvas the wheel always zooms the canvas, and the field lets go. Without a field clicked, the wheel does what it always did.
 
 ### What decides the size
 
@@ -152,7 +155,7 @@ The row at the top of the node sets the size of the picture. Three buttons on th
 
 - The **sockets button** at the right end of the row (a cable) opens a checklist of the node's inputs and outputs: tick what the node should show.
   - A new node shows `model`, `clip`, `vae`, `image` and `size_from` as inputs, and `model`, `positive`, `negative` and `latent` as outputs.
-  - Everything else is one tick away: `width` / `height`, `import_json`, and the outputs `prompt`, `color_map`, `masks`, `bboxes`, `elements`, `character_boxes`, `region_info`, `width`, `height`.
+  - Everything else is one tick away: `width` / `height`, `import_json`, `pose_keypoint`, and the outputs `prompt`, `color_map`, `masks`, `bboxes`, `elements`, `character_boxes`, `region_info`, `width`, `height`, `pose_keypoint`.
   - A connected socket always stays (its tick is greyed). `control_image` shows by itself while the node has a Control row.
   - **All outputs** and **Sampler only** tick or untick the outputs in one go.
   - Newly ticked outputs go to the end of the list, so the order is yours.
@@ -352,6 +355,41 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - What is grown past the image's edge is kept (it just isn't seen or used), so shrinking again takes it back from every side and the layer ends up where it started.
   - A layer too small to shrink that far is left as it is, with a message.
 
+### Pose figures
+
+- **Pose** (P, the stick-figure button after the eraser) draws figures that tell the model how a person stands: the 18 body joints of OpenPose.
+  - A **Control** row set to **pose** makes the model follow them (see [Control](control.md)). It needs a model with a pose ControlNet: SDXL and SDXL-based models, SD1.5, Flux.1 or Anima.
+- **Drawing a figure:** pick a starting pose in the strip on the canvas, then drag a box. The figure is drawn into the box.
+  - The starting poses: standing, walking, running, jumping, sitting, squatting, crawling, lying on the back, lying on the side, one arm raised, both arms raised, facing away, T-pose.
+- **Changing it:** drag a joint to bend the figure. Drag a bone to move the whole figure.
+  - The square handles resize it and keep its proportions (Shift: stretch it). The round handle turns it (Shift: 15° steps).
+  - The strip's buttons act on the selected figure: flip left to right, hide a joint, duplicate (Ctrl+D), delete (Delete).
+- **Left and right:** the colors are OpenPose's own. The person's right arm is orange and yellow, the left arm green; the right leg is turquoise, the left leg blue. A person facing you has their right side on your left.
+- **A joint that is out of view** (behind something, or outside the picture): click it, then press the hide-joint button.
+  - It and its bones are left out of the pose map, and it shows as a dashed ring while the figure is selected.
+  - *Facing away* starts with the nose and eyes hidden.
+- **From the image:** the last entry of the starting poses. Drag the box around a person in the image under the canvas, and the figure takes that person's pose.
+  - It uses ComfyUI's own pose detector, SDPose.
+  - Put `sdpose_wholebody_fp16.safetensors` ([download](https://huggingface.co/Comfy-Org/SDPose/resolve/main/checkpoints/sdpose_wholebody_fp16.safetensors), about 1.9 GB) in `ComfyUI/models/checkpoints`.
+  - One detector file serves every image model: it only reads the pose from the picture. To use a file with another name or place, pick it in **Settings > Region Genie > Control** (*Pose from the image: SDPose model*).
+  - It needs an image on `image`: a directly connected Load Image, or any image after a run. One person per box.
+  - Joints the detector couldn't see start hidden. The model is released a few minutes after the last use.
+- **Keypoints in and out** (tick them in the sockets list, the cable button of the size row; both are off by default):
+  - The `pose_keypoint` **output** gives the figures to other pose nodes (OpenPose format).
+  - The `pose_keypoint` **input** takes figures from another node, such as a pose detector. Until you take them onto the canvas (next point), a run uses them together with the canvas's figures.
+- **Figures from the input onto the canvas:** the import button in the Pose tool's strip (the arrow into a tray) places the input's people as figures you can edit.
+  - One click is enough: only the nodes that make the keypoints run, not your sampler. It takes as long as those nodes take, and waits while a workflow is running.
+  - The figures are added to the ones already on the canvas. Body joints only; of a batch, the first frame.
+  - Afterwards a run uses the canvas's figures, and the input itself is no longer used.
+  - Press the button again and only what is new comes in: a figure that is on the canvas unchanged is skipped.
+  - A figure **you changed** on the canvas is placed again next to your changed one. A figure **the input changed** is placed as another figure, and the earlier one stays.
+  - Both can be set to *Replace it* instead, in **Settings > Region Genie > Region Genie node** (*Pose import: a figure you changed*, *Pose import: a figure the input changed*).
+- **A figure belongs to the region under its middle** (the point between its neck and hips), or to no region.
+  - Over a region: it is listed with that region's layers and is hidden with it. Move the figure or the region so they overlap, and the figure belongs to it.
+  - Over no region: it belongs to none and is listed under *Whole image*. It still counts for the pose, and `scene_prompt_positive` describes its character. This also works with no regions at all.
+  - Its row in the list has an eye (show / hide), a name, flip, duplicate and delete.
+- The other tools leave figures alone, and the region labels are hidden while the Pose tool is in use.
+
 ## The canvas view
 
 - **Snap** (the magnet button, highlighted when on; slashed magnet when off; or G) snaps drawing, moving and resizing to a grid set in image pixels. Arrow keys nudge (Shift ×10).
@@ -531,11 +569,14 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
   - The **Edit Mode** page (see [Edit Mode](edit-mode.md)).
   - **Canvas tools** (which version the lasso, lasso erase, magic wand and fill buttons start as, the wand tolerance and the fill gap size).
   - **min region pixels** and **import_json when the canvas isn't empty**.
+  - **Pose import: a figure you changed** and **Pose import: a figure the input changed** (see [Pose figures](#pose-figures)).
   - **LLM cache** (see [LLM Prompt Enhancer](llm-prompt-enhancer.md)).
-- **Model files** (in Settings: control LoRAs, ControlNets, Anima LLLite patches, Depth Anything 3, edit LoRAs, the Select object model; on the node: the Edit rows; in the LLM settings: the LLM and its LoRAs) are fields showing the file's name.
+- **Model files** are fields showing the file's name. They are:
+  - In Settings: control LoRAs, ControlNets and pose ControlNets, Anima LLLite patches, Depth Anything 3, the SDPose model, edit LoRAs, the Select object model.
+  - On the node: the Edit rows. In the LLM settings: the LLM and its LoRAs.
   - A click opens **ComfyUI's classic menu**, in both legacy mode and Nodes 2.0:
     - The control and edit files open on ComfyUI's model folders (📁 controlnet, 📁 loras, 📁 model_patches, 📁 geometry_estimation). A file from another folder than the setting's own is saved with its folder.
-    - Select object opens on `checkpoints`.
+    - Select object and the SDPose model open on `checkpoints`.
     - The LLM opens on `text_encoders`.
   - With **rgthree-comfy**'s *Auto Nest Subdirectories in Menus* on, the menu shows subfolders as folders. Typing searches every folder and subfolder at once (the matches with their paths).
 
@@ -563,6 +604,7 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
 | `negative` | `scene_prompt_negative` encoded with the connected clip (like CLIP Text Encode) → the sampler's negative |
 | `region_info` | Text list of the regions, and which prompt format was used and why |
 | `width`, `height` | The layout node's width/height. Pixel boxes need the same canvas size on both sides. |
+| `pose_keypoint` | The pose figures as keypoints (OpenPose format), for other pose nodes. See [Pose figures](#pose-figures). |
 
 A region's box covers all of its visible pixels, across all of its layers; give two objects separate regions if you want separate boxes.
 Regions with no visible pixels are skipped in every output, so index *n* is the same region in `masks`, `bboxes`, `elements` and `prompt`.

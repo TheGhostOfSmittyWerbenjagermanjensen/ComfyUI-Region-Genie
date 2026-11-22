@@ -214,6 +214,7 @@ export function* toolbar(E) {
         gapIn.style.display = E.tool === "fill" && LASSO_MODES.fill === "gaps" ? "" : "none";
         syncShapeOpts();
         syncStrip();
+        E.poseStripSync?.();
     }
     lassoRefreshers.add(refreshVariantButtons);
     bar1.append(grpBtns.shape);
@@ -221,6 +222,8 @@ export function* toolbar(E) {
         + "straight line from where the last stroke ended.\nSize: The slider on the canvas, [ ], Alt+wheel.");
     bar1.append(grpBtns.lasso, grpBtns.fill, grpBtns.wand, grpBtns.erase);
     refreshVariantButtons();
+    addTool("pose", "Pose: Stick figures for pose control (P). Drag a box to draw a figure in the pose picked on the canvas, then drag "
+        + "its joints. Drag a bone to move the figure; the handles resize and turn it.\nA Control row set to pose makes the model follow the figures.");
     // arrange the selected layer: flip, align to the image, grow / shrink
     const arrangeBtn = iconBtn("arrange", "Arrange the selected layer: Flip, align to the image, grow or shrink", () => toggleArrange()); E.arrangeBtn = arrangeBtn;
     bar1.appendChild(arrangeBtn);
@@ -288,7 +291,7 @@ export function* toolbar(E) {
     const redoBtn = iconBtn("redo", "Redo (Ctrl+Shift+Z / Ctrl+Y)", E.redo); E.redoBtn = redoBtn;
     const fitBtn = E.btn("Fit", "Fit the image in view (Home). Wheel zooms, middle-drag or Space+drag pans.", () => { E.userView = false; E.fitView(); E.requestDraw(); });
     const clearBtn = iconBtn("clear", "Clear all: Remove every layer and region (Undo brings them back)", () => {
-        if (E.state.layers.length || E.state.regions.length || E.state.importSig) E.change(() => { E.state.layers = []; E.state.regions = []; delete E.state.importSig; E.selId = null; E.curRegion = null; E.filter = ALL; });
+        if (E.state.layers.length || E.state.regions.length || E.state.poses?.length || E.state.importSig) E.change(() => { E.state.layers = []; E.state.regions = []; delete E.state.poses; delete E.state.importSig; E.selId = null; E.curRegion = null; E.filter = ALL; });
     }, "danger"); E.clearBtn = clearBtn;
     // image opacity: a vertical slider over the canvas's right edge while an image is shown under the regions
     const bdBox = E.el("div", "rg-oslider"); E.bdBox = bdBox; bdBox.style.display = "none";

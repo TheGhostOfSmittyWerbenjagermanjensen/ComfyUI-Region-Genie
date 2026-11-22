@@ -13,6 +13,7 @@ from .save_image import SaveImageRG
 from . import lora_triggers  # noqa: F401  (registers the trigger-word route)
 from . import llm_enhance  # noqa: F401  (LLM Prompt Enhancer routes)
 from . import region_select  # noqa: F401  (Select object: SAM 3.1 routes)
+from . import pose_detect  # noqa: F401  (the Pose tool's "From the image": the SDPose route)
 from . import wildcards  # noqa: F401  (wildcards through Impact Pack: list / preview routes)
 from . import model_paths  # noqa: F401  (model files anywhere: the Settings folder browser route)
 
@@ -65,6 +66,9 @@ for _cls, _extra in _ALIASES.items():
 
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
+# internal: used by the Pose tool's import button in a prompt of its own; DEV_ONLY keeps it out of the node menu
+NODE_CLASS_MAPPINGS["Region-Genie_PoseFetch"] = pose_detect.PoseFetch
+NODE_DISPLAY_NAME_MAPPINGS["Region-Genie_PoseFetch"] = "Pose keypoints to the Region Genie canvas (internal)"
 for _id, _cls, _name in NODES:
     NODE_CLASS_MAPPINGS[_id] = _cls
     NODE_DISPLAY_NAME_MAPPINGS[_id] = _name + ICON

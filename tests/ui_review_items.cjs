@@ -106,7 +106,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await kb.click(); await page.waitForTimeout(120);
     let sh = await sheet();
     check(`the button opens the shortcut list on the page, inside the window (${sh?.groups.join(", ")}; ${sh?.rows.length} rows)`, !!sh && sh.onPage && sh.in && sh.groups.join("|") === "Tools|While drawing|Layers and regions|View|Text" && sh.rows.length > 40);
-    check("keys that can be changed are buttons; mouse gestures and held keys are listed but fixed", !!sh && sh.rows.filter((r) => !r.fixed).length === 35 && sh.rows.filter((r) => r.fixed).length >= 11
+    check("keys that can be changed are buttons; mouse gestures and held keys are listed but fixed", !!sh && sh.rows.filter((r) => !r.fixed).length === 36 && sh.rows.filter((r) => r.fixed).length >= 11
         && rowOf(sh, "edit.redo").keys.join("|") === "Ctrl+Shift+Z|Ctrl+Y" && sh.rows.some((r) => r.fixed && r.keys[0] === "Ctrl+Click" && /Take a spot out of the selection/.test(r.what)));
     check("nothing changed yet: 'Reset all' is greyed", !!sh && sh.resetOff && !sh.rows.some((r) => r.changed));
     check("the button is lit while the list is open", await kb.evaluate((b) => b.classList.contains("on")));
@@ -162,17 +162,17 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`a key in use is taken from the other command, with a note (${sh.note})`, rowOf(sh, "tool.brush").keys.join() === "S" && rowOf(sh, "tool.select").keys.join() === "no key" && /S was the key of “Select/.test(sh.note) && /no key now/.test(sh.note));
     // a second key, a combination, a key with its own Setting
     await page.locator('.rg-keys-row[data-cmd="tool.brush"] .rg-key-act[data-act="plus"]').click(); await page.waitForTimeout(60);
-    await page.keyboard.press("p"); await page.waitForTimeout(120);
+    await page.keyboard.press("j"); await page.waitForTimeout(120);
     await rebind("edit.undo", "Control+u");
     await rebind("view.fit", "Shift+F2");
     await rebind("view.big", "F9");
     sh = await sheet();
-    check("a second key (B, then S and P), a combination (Ctrl+U), Shift+F2, and the large editor's key (F9)", rowOf(sh, "tool.brush").keys.join("|") === "S|P" && rowOf(sh, "edit.undo").keys.join() === "Ctrl+U"
+    check("a second key (B, then S and J), a combination (Ctrl+U), Shift+F2, and the large editor's key (F9)", rowOf(sh, "tool.brush").keys.join("|") === "S|J" && rowOf(sh, "edit.undo").keys.join() === "Ctrl+U"
         && rowOf(sh, "view.fit").keys.join() === "Shift+F2" && rowOf(sh, "view.big").keys.join() === "F9" && await page.evaluate(() => window.__settings["RegionGenie.Main.LargeEditorKey"]) === "F9");
     check("only the changed commands are saved", Object.keys(await saved()).sort().join() === "edit.undo,tool.brush,tool.select,view.fit");
     await page.keyboard.press("Escape"); await page.waitForTimeout(80);
     await page.evaluate(() => window.__node.__rgSetTool("select"));
-    await page.mouse.move(cx0, cy0); await page.keyboard.press("p"); await page.waitForTimeout(40);
+    await page.mouse.move(cx0, cy0); await page.keyboard.press("j"); await page.waitForTimeout(40);
     const viaP = await toolNow();
     const n0 = (await st()).regions.length;
     await page.locator('[title^="Add a region with a new color"]').click(); await page.waitForTimeout(120); await page.evaluate(() => document.activeElement?.blur?.());

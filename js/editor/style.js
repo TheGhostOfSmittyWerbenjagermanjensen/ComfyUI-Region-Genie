@@ -26,6 +26,17 @@ const STYLE = `
 .rg-toolopts { position:absolute; left:6px; top:6px; z-index:4; display:flex; align-items:center; gap:3px; padding:3px 4px;
   background:rgba(20,20,20,.85); border:1px solid var(--border-color,#555); border-radius:5px; box-shadow:0 2px 8px rgba(0,0,0,.5); }
 .rg-toolopts .rg-optlab { line-height:0; opacity:.75; margin-left:2px; }
+/* the Pose tool's strip (same place; always open while the tool is in use) and a figure's row in the list */
+.rg-poseopts { position:absolute; left:6px; top:6px; z-index:4; display:flex; align-items:center; gap:3px; padding:3px 4px;
+  background:rgba(24,24,24,.92); border:1px solid var(--border-color,#555); border-radius:6px; }
+.rg-poseopts .rg-optlab { line-height:0; opacity:.75; margin:0 2px; }
+.rg-poseopts .rg-optlab svg { width:14px; height:14px; display:block; }
+.rg-poseopts .rg-btn { padding:2px 4px; line-height:0; }
+.rg-poseopts .rg-btn svg { width:15px; height:15px; display:block; }
+.rg-poseopts .rg-btn.on { background:#3a6ea5; border-color:#5b8fd0; color:#fff; }
+.rg-poseopts .rg-btn:disabled { opacity:.4; }
+.rg-pose-ic { flex:0 0 14px; line-height:0; opacity:.8; cursor:pointer; }
+.rg-pose-ic svg { width:14px; height:14px; display:block; }
 .rg-toolopts .rg-optlab svg { width:14px; height:14px; display:block; }
 .rg-toolopts .rg-num { width:46px; }
 /* folded to its first icon (a rounded square) until hovered, typed in, clicked (pinned) or a selection waits for ✓ / ✕ */

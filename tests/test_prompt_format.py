@@ -130,7 +130,7 @@ except ValueError as e:
 check("outputs_shown empty: runs as always", size_of(outputs_shown="") == (64, 64))
 check("the outputs are in the order the editor's script maps names to",
       rg.RegionGenie.RETURN_NAMES == ("model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes",
-                                      "elements", "character_boxes", "region_info", "width", "height"))
+                                      "elements", "character_boxes", "region_info", "width", "height", "pose_keypoint"))
 
 # round 44: the node notes what a run used, for Save Image's settings text (in memory, by the node's id)
 from rgpack import gen_params  # noqa: E402
@@ -152,6 +152,40 @@ for m in ("MOSS-Image", "Krea 2", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL",
 p, f = run({"modelPick": "Ideogram 4"}, pd={"v": 2, "regions": [], "layers": []})
 check("Ideogram 4, no regions: its JSON with the scene and no elements", json.loads(p)["compositional_deconstruction"]["elements"] == []
       and json.loads(p)["high_level_description"] == "a sunny park")
+
+# round 62: the pose_keypoint output (the canvas's figures) and input (figures from another node)
+STAND = [[0, -.4], [0, -.3], [-.11, -.29], [-.14, -.13], [-.15, .02], [.11, -.29], [.14, -.13], [.15, .02], [-.07, .02], [-.075, .24],
+         [-.08, .46], [.07, .02], [.075, .24], [.08, .46], [-.025, -.42], [.025, -.42], [-.055, -.405], [.055, -.405]]
+def pose_run(pd_extra, **kw):
+    d = json.loads(json.dumps(BASE)); d.update(pd_extra)
+    args = dict(width=64, height=64, scene_prompt_positive="a", scene_prompt_negative="", scene_prompt_background="", image_mode=rg.IMAGE_MODES[0],
+                min_region_pixels=64, paint_data=json.dumps(d), prompt_format="auto")
+    args.update(kw)
+    out = node.run(**args)
+    return out["result"], out["result"][rg.RegionGenie.RETURN_NAMES.index("pose_keypoint")], out["result"][rg.RegionGenie.RETURN_NAMES.index("region_info")]
+res, kp, info = pose_run({"poses": [{"id": 1, "region": 1, "pts": STAND}, {"id": 2, "region": 2, "pts": STAND, "off": [0]}]})
+check("the node has 14 outputs, pose_keypoint last", len(res) == 14 == len(rg.RegionGenie.RETURN_NAMES) == len(rg.RegionGenie.RETURN_TYPES) == len(rg.RegionGenie.OUTPUT_TOOLTIPS)
+      and rg.RegionGenie.RETURN_NAMES[-1] == "pose_keypoint")
+check("pose_keypoint: the canvas's figures as one OpenPose frame", kp[0]["canvas_width"] == 64 and len(kp[0]["people"]) == 2
+      and kp[0]["people"][1]["pose_keypoints_2d"][2] == 0.0 and abs(kp[0]["people"][0]["pose_keypoints_2d"][3] - 32) < 1e-6)
+res, kp, info = pose_run({}, pose_keypoint=kp)
+check("the pose_keypoint input's figures are passed on (and noted)", len(kp[0]["people"]) == 2 and "pose_keypoint: 2 figure(s) from the input" in info)
+res, kp, info = pose_run({})
+check("no figures: an empty frame", kp[0]["people"] == [])
+hid = {"poses": [{"id": 1, "region": 1, "pts": STAND}], "regions": [dict(regions[0], hidden=True), regions[1]]}
+res, kp, info = pose_run(hid)
+check("a hidden region's figure is left out", kp[0]["people"] == [])
+# round 64: a figure of no region counts (the scene prompt describes it); once the input's figures were taken onto the
+# canvas with the import button, the input itself isn't used
+res, kp, info = pose_run({"poses": [{"id": 1, "region": None, "pts": STAND}, {"id": 2, "region": 99, "pts": STAND}]})
+check("a figure of no region counts; one whose region isn't there doesn't", len(kp[0]["people"]) == 1)
+res, kp, info = pose_run({"poses": [{"id": 1, "region": None, "pts": STAND}], "regions": [], "layers": []})
+check("no regions at all: the figure still counts (plain text-to-image with a pose)", len(kp[0]["people"]) == 1)
+one = [{"canvas_width": 64, "canvas_height": 64, "people": [{"pose_keypoints_2d": [32.0, 20.0, 1.0] * 18}]}]
+res, kp, info = pose_run({"poses": [{"id": 1, "region": 1, "pts": STAND}]}, pose_keypoint=one)
+check("the input counts next to the canvas's figures until it is taken", len(kp[0]["people"]) == 2)
+res, kp, info = pose_run({"poses": [{"id": 1, "region": 1, "pts": STAND}], "poseInputTaken": True}, pose_keypoint=one)
+check("taken onto the canvas: the input isn't used at the run (noted)", len(kp[0]["people"]) == 1 and "pose_keypoint: not used at this run" in info)
 
 print("\nall passed" if not fails else f"\n{len(fails)} failed")
 sys.exit(1 if fails else 0)

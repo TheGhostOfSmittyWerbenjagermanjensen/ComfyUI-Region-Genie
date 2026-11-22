@@ -42,6 +42,8 @@ class FakeCN:                                  # what ControlNetApplyAdvanced do
         self.hint = None; self.args = None
     def copy(self):
         return self
+    def set_extra_arg(self, k, v=None):
+        self.extra = {**getattr(self, "extra", {}), k: v}
     def set_cond_hint(self, hint, strength, rng, vae=None, extra_concat=[]):
         self.hint, self.args = hint, (strength, rng)
         return self
@@ -206,6 +208,103 @@ check("no clip (no conditioning): noted", any("needs 'clip'" in x for x in notes
 notes = []
 ctl.apply(cfg("color"), "SDXL", "M", cond(), cond(), None, photo, dmap, cmap, None, W, H, notes)
 check("color map with another model: noted", any("color map is for MOSS" in x for x in notes))
+
+# ---------------------------------------------------------------- pose (round 61): the canvas's figures as the map
+import pose_map as pm  # noqa: E402
+STAND = [[0, -.40], [0, -.30], [-.11, -.29], [-.14, -.13], [-.15, .02], [.11, -.29], [.14, -.13], [.15, .02], [-.07, .02], [-.075, .24],
+         [-.08, .46], [.07, .02], [.075, .24], [.08, .46], [-.025, -.42], [.025, -.42], [-.055, -.405], [.055, -.405]]
+pd = {"poses": [{"id": 1, "region": 1, "pts": STAND}, {"id": 2, "region": 2, "pts": STAND, "visible": False},
+                {"id": 3, "region": 9, "pts": STAND}, {"id": 4, "region": 1, "pts": STAND, "off": [0, 14, 15]}]}
+figs = pm.figures(pd, {1, 2})
+check("pose: hidden figures and figures of regions that aren't output are left out", len(figs) == 2)
+check("pose: hidden joints are None", figs[1][0] is None and figs[1][14] is None and figs[1][16] is not None and figs[0][0] is not None)
+pmap = pm.render(figs[:1], 256, 256)
+neck, nose = pmap[int(128 - .30 * 256), 128], pmap[int(128 - .40 * 256), 128]
+check("pose map: black background, the joints in OpenPose's colors (neck orange-red, nose red)",
+      pmap.shape == (256, 256, 3) and pmap[5, 5].max() == 0 and neck[0] > .9 and .2 < neck[1] < .5 and neck[2] < .1 and nose[0] > .9 and nose[1] < .1)
+bone = pmap[int(128 + .13 * 256), int(128 - .0725 * 256)]                     # the middle of the right thigh: its color at 60 %
+check("pose map: bones at 60 % brightness", 0.05 < bone.max() <= 0.61)
+nohead = pm.render(figs[1:], 256, 256)
+check("pose map: a hidden nose takes its bones along", nohead[int(128 - .35 * 256), 128].max() == 0 and pmap[int(128 - .35 * 256), 128].max() > 0)
+wide = pm.render(figs[:1], 512, 256)
+check("pose map: on a wide image the figure keeps its shape (units of the shorter side, from the centre)",
+      wide.shape == (256, 512, 3) and wide[int(128 - .30 * 256), 256][0] > .9)
+fake = FakeCN(); ctl._load_controlnet = lambda name: fake
+notes = []
+pt = torch.from_numpy(pm.render(figs, W, H))[None]
+_, p, _, prev = ctl.apply(cfg("pose", {"SDXL.other": "pose.pth"}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes, pose_map=pt)
+check("pose: the figures' map goes to the ControlNet set for 'your control_image', as the openpose type of a union one",
+      fake.hint is not None and prev is not None and torch.equal(prev, pt) and getattr(fake, "extra", {}).get("control_type") == [0]
+      and any("pose.pth" in x for x in notes))
+# round 63: a pose file of the model's own comes first; the control_image file is the fallback; none: the note asks for the pose one
+INSTALLED.add("openpose-sdxl.safetensors")
+notes = []
+ctl.apply(cfg("pose", {"SDXL.other": "pose.pth", "SDXL.pose": "openpose-sdxl.safetensors"}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes, pose_map=pt)
+check("pose: the model's own pose file is used when it is set", any("openpose-sdxl.safetensors" in x for x in notes) and not any("pose.pth" in x for x in notes))
+notes = []
+ctl.apply(cfg("pose", {}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes, pose_map=pt)
+check("pose with no file set: the note names the pose ControlNet", any("no SDXL ControlNet for pose" in x for x in notes))
+notes = []
+_, _, _, prev = ctl.apply(cfg("pose", {"SDXL.other": "pose.pth"}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes)
+check("pose without a figure or a control_image: noted, not used", prev is None and any("no pose figure" in x for x in notes))
+_, _, _, prev = ctl.apply(cfg("pose", {"SDXL.other": "pose.pth"}), "SDXL", "M", cond(), cond(), None, None, ci, cmap, None, W, H, [])
+check("pose without a figure but with a control_image: that image is the map", prev is not None and float(prev.mean()) > 0.8)
+notes = []
+ctl.apply(cfg("pose", {"MOSS": "x"}), "MOSS-Image", "M", cond(), cond(), VAE(), None, None, cmap, None, W, H, notes, pose_map=pt)
+check("pose with MOSS-Image: noted as not read", any("not pose" in x for x in notes))
+
+# keypoints in and out (the pose_keypoint input / output)
+kp = pm.to_keypoints(figs, 256, 512)
+check("to_keypoints: one OpenPose frame, a person per figure, pixels; a hidden joint has score 0",
+      len(kp) == 1 and kp[0]["canvas_width"] == 256 and kp[0]["canvas_height"] == 512 and len(kp[0]["people"]) == 2
+      and len(kp[0]["people"][0]["pose_keypoints_2d"]) == 54 and kp[0]["people"][1]["pose_keypoints_2d"][:3] == [0.0, 0.0, 0.0]
+      and abs(kp[0]["people"][0]["pose_keypoints_2d"][3] - 128) < 1e-3 and abs(kp[0]["people"][0]["pose_keypoints_2d"][4] - (256 - .30 * 256)) < 1e-3)
+back = pm.from_keypoints(kp, 256, 512)
+check("from_keypoints reads them back to the same figures", len(back) == 2 and back[1][0] is None
+      and all(abs(a[0] - b[0]) < 1e-6 and abs(a[1] - b[1]) < 1e-6 for a, b in zip(back[0], figs[0])))
+half_size = pm.from_keypoints(kp, 128, 256)
+check("keypoints made for another canvas size are scaled to this one", abs(half_size[0][1][0] - figs[0][1][0]) < 1e-6 and abs(half_size[0][1][1] - figs[0][1][1]) < 1e-6)
+check("from_keypoints: nothing usable gives no figure", pm.from_keypoints([{"people": [{"pose_keypoints_2d": [0] * 54}]}], 64, 64) == [] and pm.from_keypoints(None, 64, 64) == [])
+
+# pose from the image (pose_detect.py): the box in pixels for ComfyUI's SDPose node, its answer as fractions
+import tempfile  # noqa: E402
+from PIL import Image  # noqa: E402
+import pose_detect as pdet  # noqa: E402
+tmp = tempfile.mkdtemp(); Image.new("RGB", (200, 100), (40, 60, 80)).save(os.path.join(tmp, "photo.png"))
+folder_paths.get_directory_by_type = lambda kind: tmp
+seen = {}
+pdet._load = lambda name, path: ("MODEL", "VAE")
+def fake_extract(model, vae, image, bbox):
+    seen.update(shape=tuple(image.shape), bbox=bbox)
+    flat = []
+    for k in range(18):
+        flat += [bbox["x"] + bbox["width"] / 2, bbox["y"] + k * bbox["height"] / 17, 0.9 if k != 4 else 0.0]
+    return [{"canvas_width": 200, "canvas_height": 100, "people": [{"pose_keypoints_2d": flat}]}]
+pdet._extract = fake_extract
+INSTALLED.add("sdpose_wholebody_fp16.safetensors")
+r = pdet.run_detect({"image": {"filename": "photo.png", "type": "input"}, "box": [0.25, 0.1, 0.75, 0.9]})
+check("pose_detect: the image is read, the box goes to the detector in pixels",
+      seen["shape"] == (1, 100, 200, 3) and seen["bbox"] == {"x": 50.0, "y": 10.0, "width": 100.0, "height": 80.0})
+pp = r["people"][0]
+check("pose_detect: the joints come back as fractions of the image, with their scores",
+      len(r["people"]) == 1 and len(pp["pts"]) == 18 and abs(pp["pts"][0][0] - 0.5) < 1e-6 and abs(pp["pts"][0][1] - 0.1) < 1e-6
+      and abs(pp["pts"][17][1] - 0.9) < 1e-6 and pp["scores"][4] == 0.0 and pp["scores"][0] == 0.9)
+# the import button's internal node: the people of the keypoints, as fractions of their canvas, back to the editor
+fetch = pdet.PoseFetch().run(kp, "x")
+fp = fetch["ui"]["pose_people"]
+check("PoseFetch: the people as fractions of the keypoints' canvas, hidden joints with score 0; hidden from the node menu",
+      len(fp) == 2 and abs(fp[0]["pts"][1][0] - 0.5) < 1e-6 and abs(fp[0]["pts"][1][1] - (256 - .30 * 256) / 512) < 1e-6 and fp[1]["scores"][0] == 0.0
+      and pdet.PoseFetch.DEV_ONLY is True and pdet.PoseFetch.OUTPUT_NODE is True)
+check("PoseFetch: nothing usable gives no people", pdet.PoseFetch().run(None)["ui"]["pose_people"] == [] and pdet.PoseFetch().run([{"people": []}])["ui"]["pose_people"] == [])
+INSTALLED.discard("sdpose_wholebody_fp16.safetensors"); folder_paths.get_filename_list = lambda folder: []
+try:
+    pdet.resolve_model(""); check("pose_detect: no model file: said so", False)
+except pdet.PoseError as e:
+    check("pose_detect: no model file: the message names the file and where it goes", e.code == "no_model" and "sdpose_wholebody_fp16.safetensors" in str(e) and "models/checkpoints" in str(e))
+try:
+    pdet.run_detect({"image": None}); check("pose_detect: no image: said so", False)
+except pdet.PoseError as e:
+    check("pose_detect: no image under the canvas: said so", e.code == "no_image" and "Pose from the image" in str(e))
 
 print("\n" + (f"{len(fails)} failed" if fails else "all passed"))
 sys.exit(1 if fails else 0)

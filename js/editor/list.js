@@ -52,7 +52,7 @@ export function* list(E) {
     }; E.listedOf = listedOf;
     // what an open row / subsection shows; empty subsections are left out
     const subKinds = (r) => [
-        ...(listedOf(r.id).length ? ["layers"] : []),
+        ...(listedOf(r.id).length || E.posesOf(r.id).length ? ["layers"] : []),
         ...((r.loras || []).length ? ["loras"] : []),
         ...(r.paletteOn ? ["palette"] : []),
     ]; E.subKinds = subKinds;
@@ -170,7 +170,7 @@ export function* list(E) {
     // a subsection header inside an open region: ▶ Layers (3)
     function subHeader(r, kind) {
         const key = `${r.id}:${kind}`, open = E.subOpen.has(key);
-        const n = kind === "layers" ? listedOf(r.id).length : kind === "loras" ? (r.loras || []).length : normPalette(r.palette).length;
+        const n = kind === "layers" ? listedOf(r.id).length + E.posesOf(r.id).length : kind === "loras" ? (r.loras || []).length : normPalette(r.palette).length;
         const label = { layers: "Layers", loras: "LoRAs", palette: "Color palette" }[kind];
         const row = E.el("div", "rg-row sub");
         const ch = E.el("span", "rg-chev"); ch.textContent = open ? "▼" : "▶";
@@ -273,6 +273,7 @@ export function* list(E) {
     }
     function layerRows(rid) {
         const frag = document.createDocumentFragment();
+        frag.appendChild(E.poseRows(rid, ico));           // the region's pose figures (pose.js), above its layers
         for (const L of listedOf(rid)) {
             const hole = L.region === UNSPEC;
             const row = E.el("div", "rg-row lvl1 layer" + (L.id === E.selId ? " sel" : "") + (hole ? " hole" : ""));

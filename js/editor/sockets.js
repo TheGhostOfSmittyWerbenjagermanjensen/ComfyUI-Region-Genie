@@ -3,9 +3,9 @@
 //
 // Inputs. A new node shows model, clip, vae, image and size_from. size_from takes an image or a latent (it replaces
 // the size_from_image and size_from_latent sockets: their links are moved here on load). width / height and
-// import_json show when ticked in the sockets list; control_image shows while the node has a Control row.
+// import_json and pose_keypoint show when ticked in the sockets list; control_image shows while the node has a Control row.
 //
-// Outputs. The Python node always returns all 13, in a fixed order. The node here shows the ticked ones only, so the
+// Outputs. The Python node always returns all 14, in a fixed order. The node here shows the ticked ones only, so the
 // output numbers in the workflow (0, 1, 2 … of what is shown) are not the Python node's. mapShownOutputs() puts that
 // right when ComfyUI turns the graph into a prompt: the hidden widget outputs_shown carries the names of the shown
 // outputs into the prompt, every link from this node gets the real number of its output, and the widget is emptied.
@@ -21,7 +21,7 @@ import { linkOf, remapOutputs } from "./graph.js";
 const NODE = "Region-Genie_Main";
 const SAMPLER_OUTS = ["model", "positive", "negative", "latent"];       // what a new node shows
 const OLD_SIZE = ["size_from_image", "size_from_latent"];
-const HIDDEN_BY_DEFAULT = [...OLD_SIZE, "width_in", "height_in", "import_json", "control_image"];
+const HIDDEN_BY_DEFAULT = [...OLD_SIZE, "width_in", "height_in", "import_json", "pose_keypoint", "control_image"];
 
 // ---------------------------------------------------------------- the prompt: shown outputs -> real output numbers
 let outNames = null;
@@ -217,7 +217,7 @@ export function* sockets(E) {
             removeIn(name);
         }
         if (old) {                                          // everything that isn't connected goes, like on a new node
-            for (const name of ["import_json", "control_image"]) removeIn(name);
+            for (const name of ["import_json", "pose_keypoint", "control_image"]) removeIn(name);
             if (!linkedIn("width_in") && !linkedIn("height_in")) { removeIn("width_in"); removeIn("height_in"); }
             for (const name of OUT.slice().reverse()) if (!SAMPLER_OUTS.includes(name)) removeOut(name);
         }
@@ -232,6 +232,8 @@ export function* sockets(E) {
                   tip: "The width and height inputs: The image size from other nodes, in place of the size row." },
                 { key: "import", label: lab(proto.in.import_json, "import_json"), on: findIn("import_json") >= 0, linked: linkedIn("import_json"),
                   tip: "The import_json input: A layout from another node, loaded into the editor when the workflow runs." },
+                { key: "pose", label: lab(proto.in.pose_keypoint, "pose_keypoint"), on: findIn("pose_keypoint") >= 0, linked: linkedIn("pose_keypoint"),
+                  tip: "The pose_keypoint input: Pose keypoints from another node. Their figures are added to the ones drawn on the canvas." },
                 { key: "control", label: lab(proto.in.control_image, "control_image"), on: findIn("control_image") >= 0, linked: linkedIn("control_image"), auto: true,
                   tip: "The control_image input: It shows while the node has a Control row (＋Control on Whole image)." },
             ],
@@ -239,7 +241,7 @@ export function* sockets(E) {
         };
     }
     function setInput(key, on) {
-        const names = key === "size" ? ["width_in", "height_in"] : key === "import" ? ["import_json"] : [];
+        const names = key === "size" ? ["width_in", "height_in"] : key === "import" ? ["import_json"] : key === "pose" ? ["pose_keypoint"] : [];
         return keepBottom(() => { for (const n of names) (on ? addIn : removeIn)(n); });
     }
     const setOutputs = (names, on) => keepBottom(() => { for (const n of names) (on ? addOut : removeOut)(n); });
@@ -312,7 +314,7 @@ export function* sockets(E) {
     queueMicrotask(() => { if (!E.configured) newNodeSockets(); });
     setTimeout(() => { quiet = false; }, 0);
     // tests: every socket at once (the outputs then come in another order than the Python node's)
-    N.__rgShowAll = () => { const q = quiet; quiet = true; try { keepBottom(() => { for (const n of ["width_in", "height_in", "import_json"]) addIn(n); for (const n of OUT) addOut(n); }); } finally { quiet = q; } };      // (the node stays where it is)
+    N.__rgShowAll = () => { const q = quiet; quiet = true; try { keepBottom(() => { for (const n of ["width_in", "height_in", "import_json", "pose_keypoint"]) addIn(n); for (const n of OUT) addOut(n); }); } finally { quiet = q; } };      // (the node stays where it is)
     N.__rgSetOutputs = (names, on) => setOutputs(names, on);
     N.__rgSetInput = (key, on) => setInput(key, on);
     N.__rgSockets = () => ({ inputs: (N.inputs || []).filter((i) => !i.widget).map((i) => i.name), outputs: (N.outputs || []).map((o) => o.name), shown: shownText() });

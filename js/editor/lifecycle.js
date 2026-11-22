@@ -256,6 +256,7 @@ export function* lifecycle(E) {
         if (E.editor && nodeOffCanvas(E.node)) E.closeEditor(true);     // another workflow tab, a subgraph, removed
         if (!E.node.graph) return;
         E.flushRegions();                                              // a redraw held back whose field is gone
+        E.poseStripSync?.();                                           // the import button follows the pose_keypoint input's link
         centerFoot();
         for (const t of Object.values(E.sceneTA || {})) t?.__rgPlaceExpand?.();      // a scene prompt set by something else: its scroll bar may have come or gone
         if (E.pruneManagedLoras()) { E.save(); E.renderRegions(); }

@@ -25,8 +25,11 @@ except ImportError:                                   # loaded on its own (tests
     import model_paths
 
 LOG = "[Region Genie]"
-KINDS = ("color", "color+depth", "depth", "canny", "other")
-KIND_LABEL = {"color": "color map", "color+depth": "color map + depth", "depth": "depth", "canny": "canny", "other": "your control_image"}
+KINDS = ("color", "color+depth", "depth", "canny", "other", "pose")
+KIND_LABEL = {"color": "color map", "color+depth": "color map + depth", "depth": "depth", "canny": "canny", "other": "your control_image",
+              "pose": "pose (the figures on the canvas)"}
+# pose: its own file per model (Settings, round 63); when none is set, the file set for "your control_image"
+FILE_FALLBACK = {"pose": "other"}
 CN_KEY = {"Flux.1": "Flux1", "SDXL": "SDXL", "SD1.5": "SD15"}          # ControlNet files in Settings
 SUPPORTED = ("MOSS-Image", "Flux.1", "SDXL", "SD1.5", "Anima")
 _cache = {}                                                           # loaded control files and the last depth map
@@ -195,8 +198,9 @@ def _load_patch(name):
 
 
 def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, color_map, region_mask, width, height, notes,
-          missing=None):
+          missing=None, pose_map=None):
     """Apply the control. region_mask: (H, W) bool where the control acts, or None for everywhere.
+    pose_map: (1, H, W, 3) skeleton map of the canvas's figures, or None when there are none (kind "pose").
     Returns (model, positive, negative, the map used for the preview or None)."""
     import node_helpers
     kind = cfg["kind"]
@@ -219,6 +223,13 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         return img if mask is None else img * mask[..., None]
 
     def made(k):
+        if k == "pose":                                   # the canvas's own figures; without any, a connected control_image
+            if pose_map is not None:
+                return _fit(pose_map, width, height)
+            if control_image is None:
+                notes.append("NOTE: control (pose): no pose figure is on the canvas (draw one with the Pose tool), and no "
+                             "'control_image' is connected; control not used")
+                return None
         if control_image is not None:
             return _fit(control_image, width, height)
         if k not in ("canny", "depth"):
@@ -291,9 +302,13 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         notes.append(f"control: Flux.1 {kind} LoRA, strength {s:g}, {a:.0%}-{b:.0%}")
         return model, positive, negative, img
 
+    def fkind_for(prefix):
+        fb = FILE_FALLBACK.get(kind)             # the kind's own file; else the fallback's when that one is set
+        return fb if fb and not files.get(f"{prefix}.{kind}") and files.get(f"{prefix}.{fb}") else kind
     if arch_name in CN_KEY:
-        name = files.get(f"{CN_KEY[arch_name]}.{kind}")
-        if not _have(f"{CN_KEY[arch_name]}.{kind}", name, missing):
+        fkind = fkind_for(CN_KEY[arch_name])
+        name = files.get(f"{CN_KEY[arch_name]}.{fkind}")
+        if not _have(f"{CN_KEY[arch_name]}.{fkind}", name, missing):
             if name:
                 notes.append(f"NOTE: control: the {arch_name} ControlNet '{name}' isn't found (in ComfyUI's controlnet folders or at that path); control not used")
                 return model, positive, negative, img
@@ -303,6 +318,15 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         try:
             import nodes
             cn = _load_controlnet(name)
+            if kind == "pose":
+                # a union ControlNet is told which kind of map it gets (as ComfyUI's SetUnionControlNetType, "openpose");
+                # a ControlNet for one kind of map ignores this
+                try:
+                    from comfy.cldm.control_types import UNION_CONTROLNET_TYPES
+                    cn = cn.copy()
+                    cn.set_extra_arg("control_type", [UNION_CONTROLNET_TYPES.get("openpose", 0)])
+                except Exception:
+                    pass
             positive, negative = nodes.ControlNetApplyAdvanced().apply_controlnet(positive, negative, cn, img, s, a, b, vae=vae)
         except Exception as e:
             notes.append(f"NOTE: control: the ControlNet '{name}' could not be used ({e}); control not used")
@@ -311,8 +335,9 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         return model, positive, negative, img
 
     # Anima: an LLLite patch on the model (it takes the region mask itself)
-    name = files.get(f"Anima.{kind}")
-    if not _have(f"Anima.{kind}", name, missing):
+    fkind = fkind_for("Anima")
+    name = files.get(f"Anima.{fkind}")
+    if not _have(f"Anima.{fkind}", name, missing):
         if name:
             notes.append(f"NOTE: control: the Anima LLLite patch '{name}' isn't found (in ComfyUI's model_patches or controlnet folders, or at that path); control not used")
             return model, positive, negative, img

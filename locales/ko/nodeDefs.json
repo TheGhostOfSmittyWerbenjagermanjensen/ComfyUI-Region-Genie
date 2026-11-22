@@ -99,6 +99,10 @@
       "outputs_shown": {
         "name": "표시할 출력",
         "tooltip": "숨김. 이 노드가 모든 출력을 표시하지 않을 때 표시하는 출력입니다(크기 행의 소켓 버튼으로 설정). API 프롬프트에서는 비워 두세요."
+      },
+      "pose_keypoint": {
+        "name": "포즈 키포인트",
+        "tooltip": "선택 사항. 다른 노드(포즈 감지기 또는 포즈 편집기, OpenPose 형식)의 포즈 키포인트. Control 행이 포즈로 설정되면 그 인물이 캔버스에 그린 인물과 함께 사용되고, '포즈 키포인트' 출력에도 포함됩니다."
       }
     },
     "outputs": {
@@ -153,6 +157,10 @@
       "12": {
         "name": "높이",
         "tooltip": "출력 높이입니다."
+      },
+      "13": {
+        "name": "포즈 키포인트",
+        "tooltip": "키포인트로 된 포즈 인물(OpenPose 형식, 신체 관절): 포즈 도구로 캔버스에 그린 인물과 '포즈 키포인트' 입력의 인물. SDPose Draw Keypoints 같은 포즈 노드용."
       }
     }
   },
@@ -518,6 +526,18 @@
       "0": {
         "name": "이미지",
         "tooltip": "입력과 같은 이미지를 그대로 전달합니다."
+      }
+    }
+  },
+  "Region-Genie_PoseFetch": {
+    "display_name": "포즈 키포인트를 Region Genie 캔버스로 (내부용)",
+    "description": "내부 노드: 포즈 키포인트를 Region Genie 편집기에 돌려줍니다 (포즈 도구의 가져오기 버튼).",
+    "inputs": {
+      "keypoints": {
+        "name": "키포인트"
+      },
+      "nonce": {
+        "name": "nonce"
       }
     }
   }

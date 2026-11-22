@@ -70,6 +70,8 @@ export const ICONS = {
     lassoMagnetic: '<ellipse cx="8.8" cy="6" rx="5.4" ry="3.6"/><path d="M5.2 8.7c-1.5.8-1.3 2.5.1 2.9"/><path d="M8.2 10.6h1.8v2.6a1 1 0 0 0 2 0v-2.6h1.8v2.6a2.8 2.8 0 0 1-5.6 0z" stroke-width="1.2"/>',
     lassoEraseMagnetic: '<ellipse cx="7.6" cy="6.4" rx="5.4" ry="3.7" stroke-dasharray="2.2 1.6"/><path d="M1.4 10.6h1.8v2.2a1 1 0 0 0 2 0v-2.2h1.8v2.2a2.8 2.8 0 0 1-5.6 0z" stroke-width="1.2"/><path d="M10.6 10.6l3.6 3.6M14.2 10.6l-3.6 3.6"/>',
     // the selected layer: flip, align, grow / shrink (one button, a small panel)
+    // the Pose tool: a stick figure
+    pose: '<circle cx="8" cy="3" r="1.5"/><path d="M3.4 6l4.6 1.3 4.6-1.3M8 7.3v3.3M5.5 14.5L8 10.6l2.5 3.9"/>',
     arrange: '<rect x="2" y="2" width="5" height="5" rx=".8"/><rect x="9" y="9" width="5" height="5" rx=".8"/><path d="M9.5 3.5h3v3M6.5 12.5h-3v-3"/><path d="M12.5 3.5l-3 3M3.5 12.5l3-3"/>',
     flipH: '<path d="M8 1.6v12.8" stroke-dasharray="1.6 1.4"/><path d="M6 4L2 12h4z"/><path d="M10 4l4 8h-4z" fill="currentColor" stroke="none" opacity=".55"/>',
     flipV: '<path d="M1.6 8h12.8" stroke-dasharray="1.6 1.4"/><path d="M4 6L12 2v4z"/><path d="M4 10l8 4v-4z" fill="currentColor" stroke="none" opacity=".55"/>',
@@ -114,6 +116,7 @@ export const LUCIDE = {
     expand: '<path d="M15 3h6v6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/><path d="M9 21H3v-6"/>',   // maximize-2
     feather: '<path d="M14.086 18.412A2 2 0 0112.67 19H5v-7.672a2 2 0 01.586-1.414L11.75 3.75a6 6 0 118.49 8.49z"/><path d="M16 8 2 22"/><path d="M17.488 15H9"/>',   // feather
     swapWH: '<path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/>',   // arrow-down-up
+    download: '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>',   // download
     up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',   // arrow-up
     down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',   // arrow-down
     copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',   // copy
@@ -576,6 +579,72 @@ export function editAttention(ta, up) {
     ta.setSelectionRange(a, a + out.length);
     return true;
 }
+// ---- the mouse wheel on a number field that has the focus (round 63) ----
+// Click into one of the pack's number fields (a strength, the multiple, a size …), then turn the wheel anywhere over
+// the same node (or the same pop-up / window): the value goes up or down by the field's step, as its arrows do. A
+// field without the focus is left alone, so the wheel keeps zooming the graph as before; and over the editor's drawing
+// canvas the wheel always zooms the canvas.
+const isPackEl = (t) => /(^|\s)rg-/.test(String(t.className || "")) || !!t.closest?.('[class^="rg-"], [class*=" rg-"]');
+// the outermost element of the pack around a field (the node's editor, a pop-up, the settings window …)
+function packRoot(el) {
+    let root = null;
+    for (let p = el; p && p !== document.body; p = p.parentElement) if (/(^|\s)rg-/.test(String(p.className || ""))) root = p;
+    return root;
+}
+// the node whose own element (a DOM widget) holds the field, in legacy mode
+function nodeOfField(f) {
+    for (const n of app.graph?._nodes || app.graph?.nodes || []) for (const w of n.widgets || []) if (w.element?.contains?.(f)) return n;
+    return null;
+}
+function wheelOverField(f, e) {
+    const t = e.composedPath?.()[0] || e.target;
+    // over the drawing canvas the wheel zooms the canvas, whatever has the focus (the owner's rule)
+    if (t?.closest?.(".rg-cv")) return false;
+    if (packRoot(f)?.contains(t)) return true;
+    const vueNode = f.closest("[data-node-id]");
+    if (vueNode) return vueNode.contains(t);
+    // legacy: a node's parts are separate elements (the size row, the editor, a text box …), and its title, sockets and
+    // own widgets are drawn on the graph canvas
+    const n = nodeOfField(f);
+    if (!n) return false;
+    if ((n.widgets || []).some((w) => w.element?.contains?.(t))) return true;
+    const c = app.canvas;
+    if (!c || t !== c.canvas) return false;
+    try {
+        const [x, y] = c.convertEventToCanvasOffset ? c.convertEventToCanvasOffset(e) : c.graph_mouse;
+        const title = window.LiteGraph?.NODE_TITLE_HEIGHT ?? 30;
+        return x >= n.pos[0] && x <= n.pos[0] + n.size[0] && y >= n.pos[1] - title && y <= n.pos[1] + n.size[1];
+    } catch (err) { return false; }
+}
+if (!window.__rgNumberWheel) {
+    window.__rgNumberWheel = true;
+    window.addEventListener("wheel", (e) => {
+        const f = document.activeElement;
+        if (!(f instanceof HTMLInputElement) || f.type !== "number" || f.disabled || f.readOnly || !e.deltaY || e.ctrlKey || e.metaKey) return;
+        if (!isPackEl(f)) return;
+        // over the drawing canvas: the wheel is the canvas's. The editor takes the focus (as when the canvas is clicked),
+        // which is also what lets the wheel reach the canvas in Nodes 2.0
+        const cvBox = (e.composedPath?.()[0] || e.target)?.closest?.(".rg-cv");
+        if (cvBox) { cvBox.closest(".rg-wrap, .rg-big")?.querySelector(".rg-keysink")?.focus({ preventScroll: true }); return; }
+        if (!wheelOverField(f, e)) return;
+        e.preventDefault(); e.stopPropagation();
+        const before = f.value;
+        try { if (e.deltaY < 0) f.stepUp(); else f.stepDown(); } catch (err) { return; }
+        if (f.value === before) return;
+        // as the field's arrows: the value is taken over at once. A list that is rebuilt by the change (the region list)
+        // makes a new field in the old one's place: that one gets the focus, so the wheel can go on
+        const root = packRoot(f), idx = root ? [...root.querySelectorAll('input[type="number"]')].indexOf(f) : -1;
+        f.dispatchEvent(new Event("input", { bubbles: true }));
+        f.dispatchEvent(new Event("change", { bubbles: true }));
+        const again = () => {
+            if (f.isConnected || !root?.isConnected || idx < 0) return;
+            if (document.activeElement && document.activeElement !== document.body && isPackEl(document.activeElement) && document.activeElement.type === "number") return;
+            root.querySelectorAll('input[type="number"]')[idx]?.focus({ preventScroll: true });
+        };
+        again(); setTimeout(again, 0);
+    }, { capture: true, passive: false });
+}
+
 // which text boxes are the pack's (one of its own elements, or a node's text box the pack has marked with a class of
 // its own): all of them go through here, so they all behave alike
 const ownPromptBox = (t) => t instanceof HTMLTextAreaElement && !t.readOnly && !t.disabled
@@ -813,14 +882,17 @@ export const CONTROL_FILES = [
     ...[["Flux1", "Flux.1"], ["SDXL", "SDXL"], ["SD15", "SD1.5"]].flatMap(([k, name]) => [
         [`${k}.depth`, `${name}: depth ControlNet`, "controlnet", name, null],
         [`${k}.canny`, `${name}: canny ControlNet`, "controlnet", name, null],
+        [`${k}.pose`, `${name}: pose ControlNet (OpenPose or union)`, "controlnet", name, null],
         [`${k}.other`, `${name}: ControlNet for your control_image (pose, lineart, union …)`, "controlnet", name, null]]),
     ["Anima.depth", "Anima: depth LLLite patch", "model_patches", "Anima", null],
     ["Anima.canny", "Anima: canny LLLite patch", "model_patches", "Anima", null],
+    ["Anima.pose", "Anima: pose LLLite patch", "model_patches", "Anima", null],
     ["Anima.other", "Anima: LLLite patch for your control_image", "model_patches", "Anima", null],
     ["DA3", "Depth Anything 3 model (makes depth maps from 'image')", "geometry_estimation", null, null],
 ];
 export const CONTROL_NONE = "(none)";
 const SAM_DEFAULT = "sam3.1_multiplex_fp16.safetensors";
+export const SDPOSE_DEFAULT = "sdpose_wholebody_fp16.safetensors";
 // where to get each file (official / original uploads; checked Nov 2026) and the folder it goes in
 const HF = "https://huggingface.co/";
 export const CONTROL_DOWNLOADS = {
@@ -832,6 +904,12 @@ export const CONTROL_DOWNLOADS = {
     "Flux1.canny": { file: "flux-canny-controlnet-v3.safetensors", url: HF + "XLabs-AI/flux-controlnet-collections/resolve/main/flux-canny-controlnet-v3.safetensors" },
     "Flux1.other": { file: "diffusion_pytorch_model.safetensors", url: HF + "InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors",
                      note: "InstantX's union ControlNet (pose, depth, canny, tile …); rename it, e.g. instantx-flux-union.safetensors" },
+    "Flux1.pose": { file: "diffusion_pytorch_model.safetensors", url: HF + "InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors",
+                    note: "InstantX's union ControlNet reads poses; rename it, e.g. instantx-flux-union.safetensors" },
+    "SDXL.pose": { file: "diffusion_pytorch_model.safetensors", url: HF + "xinsir/controlnet-openpose-sdxl-1.0/resolve/main/diffusion_pytorch_model.safetensors",
+                   note: "xinsir's OpenPose ControlNet, also for SDXL-based models such as Illustrious-XL and NoobAI-XL; rename it, e.g. controlnet-openpose-sdxl.safetensors" },
+    "SD15.pose": { file: "control_v11p_sd15_openpose_fp16.safetensors", url: HF + "comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors" },
+    "Anima.pose": { file: "anima-lllite-pose-1.safetensors", url: HF + "Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors" },
     "SDXL.depth": { file: "control-lora-depth-rank128.safetensors", url: HF + "stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-depth-rank128.safetensors" },
     "SDXL.canny": { file: "control-lora-canny-rank128.safetensors", url: HF + "stabilityai/control-lora/resolve/main/control-LoRAs-rank128/control-lora-canny-rank128.safetensors" },
     "SDXL.other": { file: "diffusion_pytorch_model_promax.safetensors", url: HF + "xinsir/controlnet-union-sdxl-1.0/resolve/main/diffusion_pytorch_model_promax.safetensors",
@@ -859,6 +937,7 @@ export function controlFileHelp(key, folder, model, tag) {
         : "ComfyUI's Depth Anything 3. It makes the depth map (near = white) from 'image' when no control_image is connected.";
     const use = tag ? `\nA node's Control row uses it (as a LoRA on the model) for ${model} models${tag !== "moss" ? ", at the row's strength" : ""}.`
         : /^Flux1\.(depth|canny)$/.test(key) ? `\nUsed by the Control row when the model is Flux.1 and no Flux.1 ${key.slice(6)} LoRA is set (the LoRA comes first).`
+        : /\.pose$/.test(key) ? `\nUsed by a Control row set to pose (the figures of the Pose tool) when the model is ${model}. When none is set, the file for your control_image is used.`
         : model ? `\nUsed by the Control row when the model is ${model}.` : "";
     const d = CONTROL_DOWNLOADS[key];
     const where = folder === "model_patches" ? "ComfyUI/models/model_patches (or models/controlnet)" : `ComfyUI/models/${folder}`;
@@ -882,6 +961,9 @@ export const CONTROL_KIND_HELP = {
         + "the land) but is free with textures, colors and details.",
     canny: "Canny: The edge lines of a picture. The model keeps the outlines and composition closely, so it's good for redrawing a "
         + "picture in another style; it follows the lines more strictly than depth.",
+    pose: "Pose: The stick figures drawn on the canvas with the Pose tool, as an OpenPose skeleton map. The model puts a person "
+        + "into each figure's pose. It uses the model's pose file (Settings > Region Genie > Control: An OpenPose or union ControlNet; Anima: its "
+        + "pose patch), or the file set for your control_image when none is set. MOSS-Image has no pose control.",
     other: "Your control_image: Any map made with other nodes (pose skeletons, lineart, scribble, segmentation …). The file set for "
         + "your control_image (Settings > Region Genie > Control) must read that kind of map (a union ControlNet reads several).",
 };
@@ -1875,6 +1957,8 @@ export const SET = {
     cmImageMode: "RegionGenie.Main.ImageMode",
     cmMinPixels: "RegionGenie.Main.MinRegionPixels",
     cmImportMode: "RegionGenie.Main.ImportMode",
+    poseOnChanged: "RegionGenie.Pose.OnChanged",
+    poseOnInput: "RegionGenie.Pose.OnInputChanged",
     cmFeather: "RegionGenie.Main.Feather",
     cmSeparation: "RegionGenie.Main.RegionSeparation",
     cmUntil: "RegionGenie.Main.SeparationUntil",
@@ -1894,6 +1978,7 @@ export const SET = {
     toolFillGap: "RegionGenie.Tools.FillGap",
     toolHints: "RegionGenie.Tools.Hints",
     samModel: "RegionGenie.Select.Model",
+    poseModel: "RegionGenie.Pose.Model",
     filePickers: "RegionGenie.ModelFiles.Browse",
     checkFiles: "RegionGenie.ModelFiles.Check",
     samKeep: "RegionGenie.Select.KeepLoaded",
@@ -2171,6 +2256,14 @@ const SETTINGS = [
             category: CAT("Select object", "1 model"),
         },
         {
+            id: SET.poseModel, name: "Pose from the image: SDPose model", type: fileSettingType(["checkpoints"], SDPOSE_DEFAULT, SET.poseModel, "checkpoints", false), defaultValue: SDPOSE_DEFAULT,
+            tooltip: "The pose detector the Pose tool's 'From the image' uses (ComfyUI's SDPose). One file serves every image model, since it only reads "
+                + "the pose from the picture. Download sdpose_wholebody_fp16.safetensors from huggingface.co/Comfy-Org/SDPose into "
+                + "ComfyUI/models/checkpoints. When this file isn't there, another checkpoint with 'sdpose' in its name is used. With "
+                + "'Browse… for model files' on (Model files), a folder button picks a checkpoint anywhere on the ComfyUI machine.",
+            category: CAT("Control", "99 pose model"),
+        },
+        {
             id: SET.samKeep, name: "After a selection", type: "combo", defaultValue: "keep loaded",
             options: [{ text: "Keep the model loaded (faster next time)", value: "keep loaded" },
                 { text: "Unload the model after each selection", value: "unload" }],
@@ -2240,6 +2333,24 @@ const SETTINGS = [
                 + "always replace: The new layout replaces the canvas right away.\n"
                 + "An empty canvas is always filled. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "05 import"),
+        },
+        {
+            id: SET.poseOnChanged, name: "Pose import: a figure you changed", type: "combo", defaultValue: "keep",
+            options: [{ text: "Keep it, add another", value: "keep" }, { text: "Replace it", value: "replace" }],
+            tooltip: "The Pose tool's import button, for a figure of the pose_keypoint input that you changed on the canvas after it was placed.\n"
+                + "Keep it, add another: Your figure stays, and the input's figure is placed next to it again.\n"
+                + "Replace it: Your figure is put back to the input's pose.\n"
+                + "Applies to every Region Genie node at the next import.",
+            category: CAT("Region Genie node", "05b pose changed"),
+        },
+        {
+            id: SET.poseOnInput, name: "Pose import: a figure the input changed", type: "combo", defaultValue: "keep",
+            options: [{ text: "Keep it, add the new one", value: "keep" }, { text: "Replace it", value: "replace" }],
+            tooltip: "The Pose tool's import button, when the node on the pose_keypoint input now gives another pose for a person than the one placed before.\n"
+                + "Keep it, add the new one: The figure placed before stays, and the new pose is placed as another figure.\n"
+                + "Replace it: The figure placed before takes the new pose (also when you had changed it).\n"
+                + "Applies to every Region Genie node at the next import.",
+            category: CAT("Region Genie node", "05c pose input"),
         },
         // the large editor's key: changed in the shortcut list (round 39; it was a row here), still saved under its own id
         { id: SET.bigKey, name: "Large editor: key", type: "hidden", defaultValue: "Alt+Enter" },

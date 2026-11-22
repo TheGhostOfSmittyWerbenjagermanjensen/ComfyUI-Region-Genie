@@ -611,11 +611,47 @@
     "name": "Manual: tamaño de paso",
     "tooltip": "Cuánto cambian las flechas de ancho y alto con cada clic en el modo manual (px).\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
+  "RegionGenie_Control_Flux1_pose": {
+    "name": "Flux.1: ControlNet de pose (OpenPose o union)",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa una fila Control ajustada a pose (las figuras de la herramienta Pose) cuando el modelo es Flux.1. Si no hay ninguno, se usa el archivo de tu imagen_de_control.\nDescarga diffusion_pytorch_model.safetensors en ComfyUI/models/controlnet (el ControlNet union de InstantX lee poses; renómbralo, p. ej. instantx-flux-union.safetensors): https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_SDXL_pose": {
+    "name": "SDXL: ControlNet de pose (OpenPose o union)",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa una fila Control ajustada a pose (las figuras de la herramienta Pose) cuando el modelo es SDXL. Si no hay ninguno, se usa el archivo de tu imagen_de_control.\nDescarga diffusion_pytorch_model.safetensors en ComfyUI/models/controlnet (el ControlNet OpenPose de Xinsir, también para modelos basados en SDXL como Illustrious-XL y NoobAI-XL; renómbralo, p. ej. controlnet-openpose-sdxl.safetensors): https://huggingface.co/xinsir/controlnet-openpose-sdxl-1.0/resolve/main/diffusion_pytorch_model.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_SD15_pose": {
+    "name": "SD1.5: ControlNet de pose (OpenPose o union)",
+    "tooltip": "Un ControlNet, una red independiente que lee el mapa y guía al modelo en cada paso, con la fuerza y el inicio / fin de la fila Control (también archivos Control-LoRA y union).\nLo usa una fila Control ajustada a pose (las figuras de la herramienta Pose) cuando el modelo es SD1.5. Si no hay ninguno, se usa el archivo de tu imagen_de_control.\nDescarga control_v11p_sd15_openpose_fp16.safetensors en ComfyUI/models/controlnet: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Control_Anima_pose": {
+    "name": "Anima: parche LLLite de pose",
+    "tooltip": "Un parche LLLite de Anima, una pequeña red de control sobre el modelo, con la fuerza y el inicio / fin de la fila Control.\nLo usa una fila Control ajustada a pose (las figuras de la herramienta Pose) cuando el modelo es Anima. Si no hay ninguno, se usa el archivo de tu imagen_de_control.\nDescarga anima-lllite-pose-1.safetensors en ComfyUI/models/model_patches (o models/controlnet): https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
+  },
+  "RegionGenie_Pose_Model": {
+    "name": "Pose desde la imagen: modelo SDPose",
+    "tooltip": "El detector de poses que usa 'Desde la imagen' de la herramienta Pose (SDPose de ComfyUI). Un solo archivo sirve para todos los modelos de imagen: solo lee la pose de la imagen. Descarga sdpose_wholebody_fp16.safetensors de huggingface.co/Comfy-Org/SDPose en ComfyUI/models/checkpoints. Cuando ese archivo no está, se usa otro checkpoint con 'sdpose' en el nombre. Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona un checkpoint en cualquier lugar del equipo de ComfyUI."
+  },
+  "RegionGenie_Pose_OnChanged": {
+    "name": "Importar pose: una figura que cambiaste",
+    "tooltip": "El botón de importar de la herramienta Pose, para una figura de la entrada puntos_de_pose que cambiaste en el lienzo después de colocarla.\nConservarla y añadir otra: Tu figura se queda, y la figura de la entrada se coloca de nuevo a su lado.\nReemplazarla: Tu figura vuelve a la pose de la entrada.\nSe aplica a todos los nodos Region Genie en la siguiente importación.",
+    "options": {
+      "Keep it, add another": "Conservarla y añadir otra",
+      "Replace it": "Reemplazarla"
+    }
+  },
+  "RegionGenie_Pose_OnInputChanged": {
+    "name": "Importar pose: una figura que cambió la entrada",
+    "tooltip": "El botón de importar de la herramienta Pose, cuando el nodo de la entrada puntos_de_pose da ahora otra pose para una persona distinta de la colocada antes.\nConservarla y añadir la nueva: La figura colocada antes se queda, y la pose nueva se coloca como otra figura.\nReemplazarla: La figura colocada antes toma la pose nueva (también si la habías cambiado).\nSe aplica a todos los nodos Region Genie en la siguiente importación.",
+    "options": {
+      "Keep it, add the new one": "Conservarla y añadir la nueva",
+      "Replace it": "Reemplazarla"
+    }
+  },
   "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "Tamaño de imagen",
     "tooltip": "Cómo empieza la fila de tamaño de un nodo Region Genie nuevo, y la lista de preajustes.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Nodo Region Genie",
     "tooltip": "Con qué empieza un nodo Region Genie nuevo (modo de imagen, difuminado, separación, cuadrícula, colores de región, autocompletado de etiquetas, comodines).\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
@@ -627,7 +663,7 @@
     "name": "Tamaño del texto",
     "tooltip": "El tamaño del texto de los cuadros de prompt, en el nodo y en los editores emergentes.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
-  "RegionGenie_Page_control: MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
+  "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "Control",
     "tooltip": "El archivo de LoRA de control, ControlNet o LLLite que usa cada modelo para una fila Control, y el modelo de profundidad.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },

@@ -192,6 +192,7 @@ export function* regions(E) {
     // the Generate / Edit switch isn't part of an undo step: an undone list must still fit the mode it's in now
     function afterRestore() { if (E.pruneManagedLoras()) { save(); E.renderRegions(); } }
     function save() {
+        E.poseAssoc?.();                                  // each pose figure's region: the one under its middle (pose.js)
         E.version++;
         if (E.dataW) E.dataW.value = JSON.stringify(E.state);
         E.wcRefresh?.();
@@ -373,6 +374,7 @@ export function* regions(E) {
         else if (E.pick && t === "object") E.pick.acceptOnAnswer = false;
         if (t !== "object") E.hideMsg();
         E.tool = t;
+        E.markPoseRows?.();
         if (t === "wand" || t === "object") E.grpCur.wand = t;
         if (t === "erase" || t === "lassoErase") E.grpCur.erase = t;
         for (const b of new Set(Object.values(E.toolBtns))) b.classList.toggle("on", E.toolBtns[t] === b);

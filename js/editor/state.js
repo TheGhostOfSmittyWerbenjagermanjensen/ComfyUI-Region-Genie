@@ -118,6 +118,8 @@ export function parseState(text, W, H) {
             rot: +l.rot || 0, ...layerCentre(l, W, H), ops: Array.isArray(l.ops) ? l.ops : [],
             ...((l.region ?? UNSPEC) !== UNSPEC && normGrad(l.grad) ? { grad: normGrad(l.grad) } : {}),
         })),
+        ...(normPoses(d).length ? { poses: normPoses(d) } : {}),
+        ...(d.poseInputTaken ? { poseInputTaken: true } : {}),        // the pose_keypoint input's figures were put on the canvas: the input itself isn't used at a run
         ...(d.importSig ? { importSig: String(d.importSig) } : {}),
         ...(normLoras(d.sceneLoras).length ? { sceneLoras: normLoras(d.sceneLoras) } : {}),
         ...(d.loraOpts ? { loraOpts: normLoraOpts(d.loraOpts) } : {}),
@@ -142,7 +144,21 @@ function normControls(d) {
     return c && d.control.on ? [c] : [];
 }
 // the Control row: on / off, what the map is, strength and the part of the steps (fractions 0..1)
-const CONTROL_KINDS = ["color", "color+depth", "depth", "canny", "other"];
+const CONTROL_KINDS = ["color", "color+depth", "depth", "canny", "other", "pose"];
+// the pose figures (pose.js): 18 points each; region: its region's id, or null for none (also when that region is gone)
+function normPoses(d) {
+    const rids = new Set((d.regions || []).filter((r) => r && r.id != null).map((r) => r.id));
+    const num = (v) => (Number.isFinite(+v) ? +v : 0);
+    return (Array.isArray(d.poses) ? d.poses : []).filter((p) => p && typeof p === "object" && Array.isArray(p.pts) && p.pts.length >= 18)
+        .map((p, i) => {
+            const off = [...new Set((Array.isArray(p.off) ? p.off : []).map((k) => Math.round(+k)).filter((k) => k >= 0 && k < 18))].sort((a, b) => a - b);
+            return { id: Number.isFinite(+p.id) ? +p.id : i + 1, name: String(p.name || `Pose ${i + 1}`), region: rids.has(p.region) ? p.region : null, visible: p.visible !== false,
+                     pts: p.pts.slice(0, 18).map((q) => [num(q?.[0]), num(q?.[1])]), ...(off.length ? { off } : {}),
+                     // taken from the pose_keypoint input: which of its figures (i), that figure's pose (sig) and this
+                     // one's when it was placed (own: differs once the user changes it)
+                     ...(p.src && typeof p.src === "object" ? { src: { i: Math.round(+p.src.i) || 0, sig: String(p.src.sig || ""), own: String(p.src.own || "") } } : {}) };
+        });
+}
 function normControl(c) {
     if (!c || typeof c !== "object") return null;
     const n = (v, d, lo, hi) => (Number.isFinite(+v) ? Math.min(hi, Math.max(lo, +v)) : d);
