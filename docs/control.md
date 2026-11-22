@@ -18,7 +18,7 @@ The **Control** rows under *Whole image* make the model follow a map, with what 
   - Each model type has its own pose file in **Settings > Region Genie > Control** (*SDXL: pose ControlNet*, and the same for SD1.5, Flux.1 and Anima).
   - The file is an OpenPose ControlNet or a union ControlNet (Anima: its pose patch). A union ControlNet is told that the map is a pose.
   - When no pose file is set for the model, the file set for *your control_image* is used.
-  - Only the figures of regions that are shown are used, plus those of the `pose_keypoint` input. With no figure at all, a connected `control_image` is used instead.
+  - The figures used: those of no region, those of regions that are shown, and those of the `pose_keypoint` input (until they are taken onto the canvas). With no figure at all, a connected `control_image` is used instead.
   - MOSS-Image has no pose control: its control LoRA reads color and depth maps only.
 - **your control_image:** any map you make with other nodes (pose skeletons, lineart, scribble, segmentation …), on the `control_image` input. The file set for *other* must read that kind of map (a union ControlNet reads several).
 

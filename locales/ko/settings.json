@@ -631,11 +631,27 @@
     "name": "이미지에서 포즈: SDPose 모델",
     "tooltip": "포즈 도구의 '이미지에서'가 사용하는 포즈 감지기(ComfyUI의 SDPose). 파일 하나로 모든 이미지 모델에 사용합니다. 그림에서 포즈만 읽기 때문입니다. sdpose_wholebody_fp16.safetensors를 huggingface.co/Comfy-Org/SDPose에서 ComfyUI/models/checkpoints로 내려받으세요. 이 파일이 없으면 이름에 'sdpose'가 들어간 다른 체크포인트를 사용합니다. '모델 파일'의 'Browse…로 모델 파일 선택'을 켜면 폴더 버튼으로 ComfyUI 컴퓨터의 어느 위치에 있는 체크포인트든 선택할 수 있습니다."
   },
+  "RegionGenie_Pose_OnChanged": {
+    "name": "포즈 가져오기: 직접 변경한 인물",
+    "tooltip": "포즈 도구의 가져오기 버튼: '포즈 키포인트' 입력의 인물 중 배치한 뒤 캔버스에서 변경한 인물에 대해.\n유지하고 하나 더 추가: 내 인물은 그대로 두고, 입력의 인물을 옆에 다시 배치합니다.\n교체: 내 인물을 입력의 포즈로 되돌립니다.\n다음 가져오기부터 모든 Region Genie 노드에 적용됩니다.",
+    "options": {
+      "Keep it, add another": "유지하고 하나 더 추가",
+      "Replace it": "교체"
+    }
+  },
+  "RegionGenie_Pose_OnInputChanged": {
+    "name": "포즈 가져오기: 입력에서 바뀐 인물",
+    "tooltip": "포즈 도구의 가져오기 버튼: '포즈 키포인트' 입력의 노드가 이전에 배치한 것과 다른 포즈를 내놓는 인물에 대해.\n유지하고 새 것을 추가: 이전에 배치한 인물은 그대로 두고, 새 포즈를 다른 인물로 배치합니다.\n교체: 이전에 배치한 인물이 새 포즈를 따릅니다 (직접 변경했던 경우에도).\n다음 가져오기부터 모든 Region Genie 노드에 적용됩니다.",
+    "options": {
+      "Keep it, add the new one": "유지하고 새 것을 추가",
+      "Replace it": "교체"
+    }
+  },
   "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie 노드",
     "tooltip": "새 Region Genie 노드의 초기 설정(이미지 모드, 페더, 분리, 그리드, 영역 색상, 태그 자동 완성, 와일드카드).\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },

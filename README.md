@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.47.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.48.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -228,7 +228,7 @@ Good starting points:
 
 The **Pose** tool draws stick figures on the same canvas. Drag a box to place one, pick from 13 starting poses (standing, sitting, running …), and drag its joints into shape. A Control row set to **pose** makes the model follow them.
 
-A figure can also be read from a person in a photo, and the figures go to and from other pose nodes as keypoints.
+A figure can also be read from a person in a photo, taken from another pose node as an editable figure, and passed on as keypoints.
 
 Works with models that have a pose ControlNet: SDXL (and SDXL-based models), SD1.5, Flux.1 and Anima.
 

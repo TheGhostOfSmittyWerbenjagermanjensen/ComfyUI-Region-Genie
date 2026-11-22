@@ -528,5 +528,17 @@
         "tooltip": "Las mismas imágenes, sin modificar."
       }
     }
+  },
+  "Region-Genie_PoseFetch": {
+    "display_name": "Puntos de pose al lienzo de Region Genie (interno)",
+    "description": "Interno: devuelve los puntos clave de pose al editor de Region Genie (el botón de importar de la herramienta Pose).",
+    "inputs": {
+      "keypoints": {
+        "name": "puntos_clave"
+      },
+      "nonce": {
+        "name": "nonce"
+      }
+    }
   }
 }

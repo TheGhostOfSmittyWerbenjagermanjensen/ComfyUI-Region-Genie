@@ -528,5 +528,17 @@
         "tooltip": "同じ画像をそのまま通します。"
       }
     }
+  },
+  "Region-Genie_PoseFetch": {
+    "display_name": "ポーズキーポイントを Region Genie のキャンバスへ（内部）",
+    "description": "内部ノード: ポーズキーポイントを Region Genie エディターに返します（ポーズツールのインポートボタン）。",
+    "inputs": {
+      "keypoints": {
+        "name": "キーポイント"
+      },
+      "nonce": {
+        "name": "nonce"
+      }
+    }
   }
 }

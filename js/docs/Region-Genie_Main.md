@@ -52,7 +52,8 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
   or of the selected words: `(tag:1.05)`.
 - **Poses:** the Pose tool (P) draws stick figures: drag a box, then drag the joints. A Control row set to *pose* makes
   the model follow them (SDXL, SD1.5, Flux.1, Anima). "From the image" reads a person's pose from the picture under
-  the canvas (needs the SDPose model). The cable button has a `pose_keypoint` input and output for other pose nodes.
+  the canvas (needs the SDPose model). The cable button has a `pose_keypoint` input and output for other pose nodes; the
+  strip's import button puts the input's people on the canvas as figures you can edit.
 - **Shortcuts** work while the pointer is over the node: V select, R / O / T shapes, B brush, L lasso, F fill,
   W magic wand, Q Select object, E eraser, G snap, Home fit, Space+drag pan, wheel zoom. **Press ?** (or the
   keyboard button in the bottom bar) for the whole list; click a key there to give it another key.

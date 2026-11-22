@@ -64,6 +64,8 @@ Check once in legacy mode and once in Nodes 2.0.
   - Settings > Region Genie > Control: the four pose files and the SDPose model are picked with the file menu (and Browse…); a pose row uses the model's pose file, and the control_image file when none is set
   - the mouse wheel on a clicked number field, in your browser (Firefox too): over the field, over the list, the bottom bar and the node's title it steps the value; over the drawing canvas it zooms; outside the node it zooms the graph
   - **From the image** (needs `sdpose_wholebody_fp16.safetensors` in models/checkpoints): a box around a standing person gives a figure on that person; a sitting person; two people (one box each); how long the first read takes and the next ones; without the file: the message with the link; while a workflow runs: it says it waits
+  - **the import button** with ComfyUI's SDPose Keypoint Extractor on the pose_keypoint input: one click runs the detector only (not the sampler) and the person appears as a figure; a second click adds nothing; change the figure and click: a second figure by default, the same figure reset with *Replace it* in Settings; load another photo and click: the new pose is added (or replaces)
+  - a figure over no region, and a canvas with no regions at all: the person is still posed, described by scene_prompt_positive
   - **pose_keypoint output** into ComfyUI's SDPose Draw Keypoints: the same figures as on the canvas; **pose_keypoint input** from SDPose Keypoint Extractor: the person's pose is followed with a pose Control row
   - the Pose tool at 4K in both node modes: joints easy to grab, the strip readable; the new default node size (620 wide, square canvas in legacy mode)
 

@@ -631,11 +631,27 @@
     "name": "画像からポーズ: SDPose モデル",
     "tooltip": "ポーズツールの「画像から」が使うポーズ検出器（ComfyUI の SDPose）。1 つのファイルがすべての画像モデルで使えます。画像からポーズを読み取るだけだからです。sdpose_wholebody_fp16.safetensors を huggingface.co/Comfy-Org/SDPose から ComfyUI/models/checkpoints にダウンロードしてください。このファイルがない場合は、名前に「sdpose」を含む別のチェックポイントを使います。「モデルファイル」の「Browse… でモデルファイルを選択」をオンにすると、フォルダーボタンで ComfyUI マシン上の任意の場所のチェックポイントを選べます。"
   },
+  "RegionGenie_Pose_OnChanged": {
+    "name": "ポーズのインポート: 自分で変更した人物",
+    "tooltip": "ポーズツールのインポートボタン: 「ポーズキーポイント」入力の人物のうち、配置後にキャンバスで変更したものについて。\n残して、もう 1 つ追加: 自分の人物はそのまま残し、入力の人物をもう一度隣に配置します。\n置き換える: 自分の人物を入力のポーズに戻します。\n次回のインポートから、すべての Region Genie ノードに適用されます。",
+    "options": {
+      "Keep it, add another": "残して、もう 1 つ追加",
+      "Replace it": "置き換える"
+    }
+  },
+  "RegionGenie_Pose_OnInputChanged": {
+    "name": "ポーズのインポート: 入力側で変わった人物",
+    "tooltip": "ポーズツールのインポートボタン: 「ポーズキーポイント」入力のノードが、以前配置したものとは別のポーズを出すようになった人物について。\n残して、新しいものを追加: 以前配置した人物は残し、新しいポーズを別の人物として配置します。\n置き換える: 以前配置した人物が新しいポーズになります（自分で変更していた場合も）。\n次回のインポートから、すべての Region Genie ノードに適用されます。",
+    "options": {
+      "Keep it, add the new one": "残して、新しいものを追加",
+      "Replace it": "置き換える"
+    }
+  },
   "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "画像サイズ",
     "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie ノード",
     "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
   },

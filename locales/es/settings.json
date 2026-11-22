@@ -631,11 +631,27 @@
     "name": "Pose desde la imagen: modelo SDPose",
     "tooltip": "El detector de poses que usa 'Desde la imagen' de la herramienta Pose (SDPose de ComfyUI). Un solo archivo sirve para todos los modelos de imagen: solo lee la pose de la imagen. Descarga sdpose_wholebody_fp16.safetensors de huggingface.co/Comfy-Org/SDPose en ComfyUI/models/checkpoints. Cuando ese archivo no está, se usa otro checkpoint con 'sdpose' en el nombre. Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta selecciona un checkpoint en cualquier lugar del equipo de ComfyUI."
   },
+  "RegionGenie_Pose_OnChanged": {
+    "name": "Importar pose: una figura que cambiaste",
+    "tooltip": "El botón de importar de la herramienta Pose, para una figura de la entrada puntos_de_pose que cambiaste en el lienzo después de colocarla.\nConservarla y añadir otra: Tu figura se queda, y la figura de la entrada se coloca de nuevo a su lado.\nReemplazarla: Tu figura vuelve a la pose de la entrada.\nSe aplica a todos los nodos Region Genie en la siguiente importación.",
+    "options": {
+      "Keep it, add another": "Conservarla y añadir otra",
+      "Replace it": "Reemplazarla"
+    }
+  },
+  "RegionGenie_Pose_OnInputChanged": {
+    "name": "Importar pose: una figura que cambió la entrada",
+    "tooltip": "El botón de importar de la herramienta Pose, cuando el nodo de la entrada puntos_de_pose da ahora otra pose para una persona distinta de la colocada antes.\nConservarla y añadir la nueva: La figura colocada antes se queda, y la pose nueva se coloca como otra figura.\nReemplazarla: La figura colocada antes toma la pose nueva (también si la habías cambiado).\nSe aplica a todos los nodos Region Genie en la siguiente importación.",
+    "options": {
+      "Keep it, add the new one": "Conservarla y añadir la nueva",
+      "Replace it": "Reemplazarla"
+    }
+  },
   "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "Tamaño de imagen",
     "tooltip": "Cómo empieza la fila de tamaño de un nodo Region Genie nuevo, y la lista de preajustes.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Nodo Region Genie",
     "tooltip": "Con qué empieza un nodo Region Genie nuevo (modo de imagen, difuminado, separación, cuadrícula, colores de región, autocompletado de etiquetas, comodines).\nEdit…: Abre los ajustes de Region Genie en esta página."
   },

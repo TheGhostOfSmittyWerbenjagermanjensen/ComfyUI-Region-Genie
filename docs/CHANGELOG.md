@@ -8,11 +8,17 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Built: the same edit for the pack's fields (rg_shared.js `editAttention`, using ComfyUI's own helper functions), each change its own Undo step; a row in the shortcut sheet; manual and README. Version 0.45.0.
 - Tests: new `tests/real_attention.cjs [vue]`: up, back to plain, down in 11 fields (scene prompts, list, pop-up editors, large editor, the Regional LoRAs node), several selected words, Undo, the node's data.
 
+## Round 64 (Nov 22): the input's figures onto the canvas; a figure belongs to the region under its middle
+- Asked: place the pose_keypoint input's figures on the canvas as editable figures; I listed the open questions first.
+- **The owner's answers:** a button, and the figures should appear on the click without a run first; add to the figures already there; once placed the input stops counting at a run, and a later click imports per figure: only one that was changed; when a figure was changed on the canvas, or by the input, the default is *keep it and add*, with a Setting each to *replace* instead; yes to running just the nodes that make the keypoints (the helper node explained in the chat); and the region rule, for every figure: the region under its middle, **no** nearest-region fallback (taken back by the owner), else no region, which still counts for the pose with the scene prompt describing the character.
+- Built: the import button (first in the Pose tool's strip) with its partial run and the internal node `Region-Genie_PoseFetch`; per-figure import with the two Settings; the region rule for drawn, read and imported figures (looked up on every save); figures of no region listed under *Whole image* and used by Python; `poseInputTaken`.
+- Tests: `ui_pose.cjs` (the region rule five ways, the button's prompt, both Settings, Undo), `real_pose_input.cjs [vue]` (new: the real partial run between two Region Genie nodes; only the keypoint node runs), `test_prompt_format.py`, `test_control.py`. Translations. Version 0.48.0.
+
 ## Round 63 (Nov 22): Settings for the pose files; the wheel on number fields
 - Asked: (1) put an input's figures on the canvas as editable figures, with the open questions raised first; (2) a Setting with a file picker for the SDPose file, and if there are different pose files for different checkpoints, one Setting per model type; (3) the mouse wheel raises / lowers a number field of the pack that has the focus, with the pointer anywhere over the node. Then, while I was building: over the drawing canvas the wheel should zoom the canvas, not change the field.
 - Found for (2): the detector (SDPose) is one file for every image model (ComfyUI has only the wholebody one; RT-DETR in the same repository finds people, which the dragged box replaces). The pose **ControlNets** differ per model type.
 - Built: Settings > Region Genie > Control: *pose ControlNet* for Flux.1, SDXL and SD1.5, *pose LLLite patch* for Anima (each with its download; fallback to the file for "your control_image"), and *Pose from the image: SDPose model*. The wheel on a focused number field (see HANDOFF), with the owner's canvas rule. Translations; version 0.47.0.
-- Not built yet: (1), waiting for the owner's answers to the questions in the chat.
+- (1) was built in round 64, after the owner's answers.
 - Tests: new `real_number_wheel.cjs [vue]` (17 checks); `test_control.py` (the pose file comes first, the fallback, the message).
 
 ## Round 62 (Nov 22): a pose from the image; keypoints in and out

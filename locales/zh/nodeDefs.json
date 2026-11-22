@@ -528,5 +528,17 @@
         "tooltip": "相同的图像，原样传出。"
       }
     }
+  },
+  "Region-Genie_PoseFetch": {
+    "display_name": "姿态关键点到 Region Genie 画布（内部）",
+    "description": "内部节点：把姿态关键点交还给 Region Genie 编辑器（姿态工具的导入按钮）。",
+    "inputs": {
+      "keypoints": {
+        "name": "关键点"
+      },
+      "nonce": {
+        "name": "nonce"
+      }
+    }
   }
 }

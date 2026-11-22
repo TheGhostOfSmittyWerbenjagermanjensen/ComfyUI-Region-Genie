@@ -528,5 +528,17 @@
         "tooltip": "입력과 같은 이미지를 그대로 전달합니다."
       }
     }
+  },
+  "Region-Genie_PoseFetch": {
+    "display_name": "포즈 키포인트를 Region Genie 캔버스로 (내부용)",
+    "description": "내부 노드: 포즈 키포인트를 Region Genie 편집기에 돌려줍니다 (포즈 도구의 가져오기 버튼).",
+    "inputs": {
+      "keypoints": {
+        "name": "키포인트"
+      },
+      "nonce": {
+        "name": "nonce"
+      }
+    }
   }
 }

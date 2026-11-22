@@ -26,7 +26,7 @@
     "name": "Image size",
     "tooltip": "How the size row of a new Region Genie node starts, and the list of presets.\nEdit…: Opens the Region Genie settings on this page."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie node",
     "tooltip": "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards).\nEdit…: Opens the Region Genie settings on this page."
   },
@@ -339,6 +339,22 @@
     "options": {
       "ask before replacing": "ask before replacing",
       "always replace": "always replace"
+    }
+  },
+  "RegionGenie_Pose_OnChanged": {
+    "name": "Pose import: a figure you changed",
+    "tooltip": "The Pose tool's import button, for a figure of the pose_keypoint input that you changed on the canvas after it was placed.\nKeep it, add another: Your figure stays, and the input's figure is placed next to it again.\nReplace it: Your figure is put back to the input's pose.\nApplies to every Region Genie node at the next import.",
+    "options": {
+      "Keep it, add another": "Keep it, add another",
+      "Replace it": "Replace it"
+    }
+  },
+  "RegionGenie_Pose_OnInputChanged": {
+    "name": "Pose import: a figure the input changed",
+    "tooltip": "The Pose tool's import button, when the node on the pose_keypoint input now gives another pose for a person than the one placed before.\nKeep it, add the new one: The figure placed before stays, and the new pose is placed as another figure.\nReplace it: The figure placed before takes the new pose (also when you had changed it).\nApplies to every Region Genie node at the next import.",
+    "options": {
+      "Keep it, add the new one": "Keep it, add the new one",
+      "Replace it": "Replace it"
     }
   },
   "RegionGenie_Main_RegionColors": {

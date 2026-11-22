@@ -631,11 +631,27 @@
     "name": "从图像读取姿态：SDPose 模型",
     "tooltip": "姿态工具的“从图像”所用的姿态检测器（ComfyUI 的 SDPose）。一个文件适用于所有图像模型：它只从图片中读取姿态。将 sdpose_wholebody_fp16.safetensors 从 huggingface.co/Comfy-Org/SDPose 下载到 ComfyUI/models/checkpoints。该文件不存在时，使用名称中带有“sdpose”的其他检查点。开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮选取 ComfyUI 所在机器上任意位置的检查点。"
   },
+  "RegionGenie_Pose_OnChanged": {
+    "name": "姿态导入：你修改过的人形",
+    "tooltip": "姿态工具的导入按钮：针对“姿态关键点”输入中、放置后被你在画布上修改过的人形。\n保留，并再添加一个：保留你的人形，并再次把输入的人形放在旁边。\n替换：把你的人形恢复为输入的姿态。\n在下次导入时应用于所有 Region Genie 节点。",
+    "options": {
+      "Keep it, add another": "保留，并再添加一个",
+      "Replace it": "替换"
+    }
+  },
+  "RegionGenie_Pose_OnInputChanged": {
+    "name": "姿态导入：输入更改的人形",
+    "tooltip": "姿态工具的导入按钮：当“姿态关键点”输入上的节点为某人给出了与之前放置的不同的姿态时。\n保留，并添加新的：保留之前放置的人形，并把新姿态作为另一个人形放置。\n替换：之前放置的人形采用新姿态（即使你修改过它）。\n在下次导入时应用于所有 Region Genie 节点。",
+    "options": {
+      "Keep it, add the new one": "保留，并添加新的",
+      "Replace it": "替换"
+    }
+  },
   "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "图像尺寸",
     "tooltip": "新建 Region Genie 节点的尺寸行如何开始，以及预设列表。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
     "name": "Region Genie 节点",
     "tooltip": "新建 Region Genie 节点的初始设置（图像模式、羽化、分离、网格、区域颜色、标签自动补全、通配符）。\nEdit…：在此页打开 Region Genie 设置。"
   },

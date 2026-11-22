@@ -374,9 +374,17 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - Joints the detector couldn't see start hidden. The model is released a few minutes after the last use.
 - **Keypoints in and out** (tick them in the sockets list, the cable button of the size row; both are off by default):
   - The `pose_keypoint` **output** gives the figures to other pose nodes (OpenPose format).
-  - The `pose_keypoint` **input** takes figures from another node, such as a pose detector. They are used together with the ones on the canvas, for the pose Control row and for the output. They aren't shown on the canvas.
-- **A figure belongs to a region.** It is drawn into the region under the box (or the active region), is listed with that region's layers, and is hidden with it.
-  - Drag a figure onto another region and it belongs to that one.
+  - The `pose_keypoint` **input** takes figures from another node, such as a pose detector. Until you take them onto the canvas (next point), a run uses them together with the canvas's figures.
+- **Figures from the input onto the canvas:** the import button in the Pose tool's strip (the arrow into a tray) places the input's people as figures you can edit.
+  - One click is enough: only the nodes that make the keypoints run, not your sampler. It takes as long as those nodes take, and waits while a workflow is running.
+  - The figures are added to the ones already on the canvas. Body joints only; of a batch, the first frame.
+  - Afterwards a run uses the canvas's figures, and the input itself is no longer used.
+  - Press the button again and only what is new comes in: a figure that is on the canvas unchanged is skipped.
+  - A figure **you changed** on the canvas is placed again next to your changed one. A figure **the input changed** is placed as another figure, and the earlier one stays.
+  - Both can be set to *Replace it* instead, in **Settings > Region Genie > Region Genie node** (*Pose import: a figure you changed*, *Pose import: a figure the input changed*).
+- **A figure belongs to the region under its middle** (the point between its neck and hips), or to no region.
+  - Over a region: it is listed with that region's layers and is hidden with it. Move the figure or the region so they overlap, and the figure belongs to it.
+  - Over no region: it belongs to none and is listed under *Whole image*. It still counts for the pose, and `scene_prompt_positive` describes its character. This also works with no regions at all.
   - Its row in the list has an eye (show / hide), a name, flip, duplicate and delete.
 - The other tools leave figures alone, and the region labels are hidden while the Pose tool is in use.
 
