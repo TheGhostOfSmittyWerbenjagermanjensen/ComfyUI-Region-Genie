@@ -6,7 +6,7 @@ Paint regions of any shape on the node's canvas, one flat color per region with 
 
 1. **Sockets and image size:** what the node takes and gives, and the size of the picture.
 2. **Scene prompts:** the whole picture, and what to avoid.
-3. **Tools:** select, shapes, brush, lasso, fill, magic wand, eraser, arrange; undo, snap, labels, the large editor.
+3. **Tools:** select, shapes, brush, lasso, fill, magic wand, eraser, pose, arrange; undo, snap, labels, the large editor.
 4. **Canvas:** where you draw the regions.
 5. **Region list:** one row per region with its prompt; open a row for its layers, LoRAs and colors.
 6. **Bottom bar:** Generate / Edit, the model, LLM settings, shortcuts, Export / Import.
@@ -39,6 +39,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - [Magic wand](#magic-wand)
   - [Select object (SAM 3.1)](#select-object-sam-31)
   - [Arrange: flip, align, grow / shrink](#arrange-flip-align-grow--shrink)
+  - [Pose figures](#pose-figures)
 - [The canvas view](#the-canvas-view)
 - [Working from an image](#working-from-an-image)
 - [Text boxes and pop-up editors](#text-boxes-and-pop-up-editors)
@@ -89,8 +90,8 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 
 ### Node size and the large editor
 
-- **A new node** is 580 px wide and as tall as a square canvas needs.
-  - In legacy node mode that is about 1146 px, with the sockets a new node shows.
+- **A new node** is 620 px wide and as tall as a square canvas needs.
+  - In legacy node mode that is about 1186 px, with the sockets a new node shows.
   - In Nodes 2.0 ComfyUI shares the height between the scene prompt boxes and the editor, so the canvas starts wider than tall there.
   - Drag the node's corner to resize it, or use the large editor (the bar between the canvas and the list is described below).
 - **The large editor** (the button with two arrows, right of the labels button in the tool bar; or **Alt+Enter** while the pointer is over the editor): the same editor in a window that fills the ComfyUI page.
@@ -351,6 +352,22 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - Corners of a shape and of lasso outlines stay pointed when growing, unless something was erased from the layer (then they are rounded, so nothing erased comes back).
   - What is grown past the image's edge is kept (it just isn't seen or used), so shrinking again takes it back from every side and the layer ends up where it started.
   - A layer too small to shrink that far is left as it is, with a message.
+
+### Pose figures
+
+- **Pose** (P, the stick-figure button after the eraser) draws figures that tell the model how a person stands: the 18 body joints of OpenPose.
+  - A **Control** row set to **pose** makes the model follow them (see [Control](control.md)). It needs a model with a pose ControlNet: SDXL and SDXL-based models, SD1.5, Flux.1 or Anima.
+- **Drawing a figure:** pick a starting pose in the strip on the canvas, then drag a box. The figure is drawn into the box.
+  - The starting poses: standing, walking, running, jumping, sitting, squatting, crawling, lying on the back, lying on the side, one arm raised, both arms raised, facing away, T-pose.
+- **Changing it:** drag a joint to bend the figure. Drag a bone to move the whole figure.
+  - The square handles resize it and keep its proportions (Shift: stretch it). The round handle turns it (Shift: 15° steps).
+  - The strip's buttons act on the selected figure: flip left to right, hide a joint, duplicate (Ctrl+D), delete (Delete).
+- **Left and right:** the colors are OpenPose's own. The person's right arm is orange and yellow, the left arm green; the right leg is turquoise, the left leg blue. A person facing you has their right side on your left.
+- **A joint that is out of view** (behind something, or outside the picture): click it, then press the hide-joint button. It and its bones are left out of the pose map, and it shows as a dashed ring while the figure is selected. *Facing away* starts with the nose and eyes hidden.
+- **A figure belongs to a region.** It is drawn into the region under the box (or the active region), is listed with that region's layers, and is hidden with it.
+  - Drag a figure onto another region and it belongs to that one.
+  - Its row in the list has an eye (show / hide), a name, flip, duplicate and delete.
+- The other tools leave figures alone, and the region labels are hidden while the Pose tool is in use.
 
 ## The canvas view
 

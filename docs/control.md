@@ -14,6 +14,10 @@ The **Control** rows under *Whole image* make the model follow a map, with what 
   - The model keeps the 3D layout (what is in front, the shape of a room or a landscape) but is free with textures, colors and details.
   - Good for keeping a scene's composition while changing everything else.
 - **canny:** the edge lines of a picture. The model keeps outlines and composition closely; good for redrawing a picture in another style. It follows lines more strictly than depth.
+- **pose:** the stick figures you draw on the canvas with the **Pose** tool (see [Pose figures](region-genie.md#pose-figures)). The node turns them into an OpenPose skeleton map, and the model puts a person into each figure's pose.
+  - It uses the file set for *your control_image*, which must read poses: an OpenPose ControlNet or a union ControlNet (Anima: its pose patch). A union ControlNet is told that the map is a pose.
+  - Only the figures of regions that are shown are used. With no figure on the canvas, a connected `control_image` is used instead.
+  - MOSS-Image has no pose control: its control LoRA reads color and depth maps only.
 - **your control_image:** any map you make with other nodes (pose skeletons, lineart, scribble, segmentation …), on the `control_image` input. The file set for *other* must read that kind of map (a union ControlNet reads several).
 
 **Where the map comes from:** the `control_image` input when it's connected (used as it is, scaled to the image size); otherwise the node makes it from `image`: canny with ComfyUI's Canny node (no model), depth with ComfyUI's Depth Anything 3 (its model set in Settings).

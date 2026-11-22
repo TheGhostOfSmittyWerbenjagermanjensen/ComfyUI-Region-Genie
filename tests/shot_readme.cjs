@@ -1,5 +1,5 @@
 // The README's pictures: docs/images/editor.png (the whole node), editor-numbered.png (its parts numbered), lora.png (a
-// region with a LoRA), popup-scene.png and popup-region.png (the pop-up editors), large-editor.png, rows.png (a Control row and an Edit row under Whole image), model-menu.png (a model file's menu with a search), settings-tab.png, settings-window.png and save-image.png
+// region with a LoRA), pose.png (pose figures), popup-scene.png and popup-region.png (the pop-up editors), large-editor.png, rows.png (a Control row and an Edit row under Whole image), model-menu.png (a model file's menu with a search), settings-tab.png, settings-window.png and save-image.png
 // (Save Image after a run; it uses input/rg_demo.png when there is one). Needs a running ComfyUI with this pack (legacy mode, English, dark palette):
 //   COMFY_DIR=<the ComfyUI folder> node tests/shot_readme.cjs
 // Rules for the pictures (the owner's): a LoRA is shown with trigger-word chips, and no model name in red (not found).
@@ -94,6 +94,19 @@ if (process.env.COMFY_DIR) {
   await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   await page.locator(".rg-row.region").nth(1).locator(".rg-expand").first().click(); await popShot("popup-region.png");
   await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+  // pose.png: two pose figures drawn with the Pose tool (README "Poses")
+  await page.locator('.rg-bar button[title^="Pose"]').click(); await page.waitForTimeout(300);
+  {
+    const [px, py, pw, ph] = await cv();
+    const box = async (a, b, c, d) => { await page.mouse.move(px + pw * a, py + ph * b); await page.mouse.down(); await page.mouse.move(px + pw * c, py + ph * d, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(300); };
+    await page.locator(".rg-poseopts select").selectOption("oneArm"); await box(0.24, 0.47, 0.40, 0.83);
+    await page.locator(".rg-poseopts select").selectOption("walking"); await box(0.52, 0.36, 0.76, 0.66);
+    await page.mouse.move(4, 4); await page.waitForTimeout(600);
+    const c = await page.evaluate(() => { const a = document.querySelector(".rg-bar").getBoundingClientRect(), b = document.querySelector(".rg-cv").getBoundingClientRect(); return { x: b.x - 6, y: a.y - 6, width: b.width + 12, height: b.bottom - a.y + 12 }; });
+    await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "pose.png"), clip: c });
+    await page.evaluate(() => { const n = window.__rg, s = n.__rgState(); delete s.poses; n.__rgRefresh(); n.__rgSetTool("select"); });
+    await page.waitForTimeout(300);
+  }
   // large-editor.png: the same editor in a window that fills the page
   await page.setViewportSize({ width: 1760, height: 960 });
   await page.locator('[title^="Large editor"]').first().click(); await page.waitForTimeout(900);

@@ -124,8 +124,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
             tips: k.slice(0, 4).every((e) => e.title && e.title.length > 20), same: k[0].title === k[1].title && k[2].title === k[3].title, h: Math.round(document.querySelector(".rg-head").getBoundingClientRect().height) }; });
     check(`with 'Separate' on: an icon and a field for separation, an icon and a field for until, then the button; no words (${hd.kinds.join(" ")})`, hd.kinds.join(" ") === "icon field icon field button" && hd.tips && hd.same);
     check("the button says 'Separate'", (await page.locator(".rg-separate").innerText()).trim() === "Separate" && await page.locator(".rg-separate svg").count() === 1);
-    await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = "560px"; }); await page.waitForTimeout(150);      // the editor's width in a 580 px node
-    check("the header is one line at the new default width (560 px inside a 580 px node)", await page.evaluate(() => document.querySelector(".rg-head").getBoundingClientRect().height) < 26
+    await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = "600px"; }); await page.waitForTimeout(150);      // the editor's width in a 620 px node
+    check("the header is one line at the new default width (600 px inside a 620 px node)", await page.evaluate(() => document.querySelector(".rg-head").getBoundingClientRect().height) < 26
         && await page.evaluate(() => document.querySelector(".rg-bar").getBoundingClientRect().height) < 26);
     await page.locator('.rg-bar .rg-btn.icon[title^="Arrange"]').click().catch(() => {});
     const headMsg = async (text) => { await page.evaluate((t) => window.__node.__rgHint(t), text); await page.waitForTimeout(80);

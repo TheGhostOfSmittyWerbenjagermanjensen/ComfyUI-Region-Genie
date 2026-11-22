@@ -55,6 +55,14 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] Depth Anything 3 making the depth map (no `control_image` connected)
 - [ ] Control together with LoRAs per region; memory use is acceptable
 
+- [ ] **Pose (round 61)**, with a model that has a pose ControlNet (SDXL / Illustrious / NoobAI with an OpenPose or union ControlNet, SD1.5 openpose, Flux.1 union, Anima pose patch) set for *your control_image*:
+  - one figure, standing: the person takes the pose; then drag an arm up: the picture follows
+  - two figures in two regions with different prompts: each character in its own pose
+  - *Facing away*: the person is seen from behind; a hidden joint (e.g. a hand behind the back) isn't forced into view
+  - each starting pose once: which ones the model reads well, which need better joint positions (tell me)
+  - a union ControlNet without and with other Control rows (pose + depth)
+  - the Pose tool at 4K in both node modes: joints easy to grab, the strip readable; the new default node size (620 wide, square canvas in legacy mode)
+
 ## 5. Edit Mode
 
 - [ ] Each model you edit with: the Edit row shows the Settings edit LoRA and the run changes only the chosen regions
