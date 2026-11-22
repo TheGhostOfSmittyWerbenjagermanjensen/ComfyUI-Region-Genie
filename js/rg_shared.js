@@ -517,6 +517,80 @@ export async function openModelMenu(ev, { roots, home, none, noneLabel, title, o
 }
 // the field: the file's name (red when ComfyUI doesn't list it), a click opens the menu; Browse… beside it with the
 // Settings switch on. Returns the element; .set(v) changes what it shows.
+// ---- Ctrl+Up / Ctrl+Down: the weight of the word or tag at the cursor (or of the selection), "(tag:1.05)" ----
+// This is ComfyUI's own feature (its extension Comfy.EditAttention; the step is its Setting "Ctrl+up/down precision",
+// 0.05). ComfyUI listens for the keys on the window, and the pack's own text fields (region prompts, text to render,
+// the pop-up editors) keep their key presses from getting there, so the keys did nothing in them. For those fields
+// the same edit is done here, with ComfyUI's own helpers where the frontend has them (so the result is the same as
+// in every other prompt box), before anything of the pack sees the key. A text box ComfyUI handles itself (a node's
+// own multiline widget, e.g. the scene prompts) is left to ComfyUI.
+const ATTN = {
+    incrementWeight: (w, d) => { const n = parseFloat(w); return isNaN(n) ? w : String(Number((n + d).toFixed(10))); },
+    findNearestEnclosure: (t, pos) => {
+        let s = pos, e = pos, open = 0, close = 0;
+        if (t[pos] === "(") e = pos + 1;
+        else {
+            for (; s >= 0; ) { s--; if (t[s] === "(" && open === close) break; if (t[s] === "(") open++; if (t[s] === ")") close++; }
+            if (s < 0) return null;
+            open = 0; close = 0;
+        }
+        for (; e < t.length; e++) { if (t[e] === ")" && open === close) break; if (t[e] === "(") open++; if (t[e] === ")") close++; }
+        return e === t.length ? null : { start: s + 1, end: e };
+    },
+    addWeightToParentheses: (t) => {
+        const m = t.match(/^\((.*)\)$/);
+        if (!m) return t;
+        return !/(?:^|\s)\d{1,2}:\d{2}$/.test(m[1]) && /:[+-]?(?:\d*\.)?\d+(?:[eE][+-]?\d+)?$/.test(m[1]) ? t : `(${m[1]}:1.0)`;
+    },
+};
+export function editAttention(ta, up) {
+    const api_ = window.comfyAPI?.editAttention || {};
+    const inc = api_.incrementWeight || ATTN.incrementWeight, near = api_.findNearestEnclosure || ATTN.findNearestEnclosure, addW = api_.addWeightToParentheses || ATTN.addWeightToParentheses;
+    let delta = parseFloat(getSetting("Comfy.EditAttention.Delta", 0.05)); if (!(delta > 0)) delta = 0.05;
+    const v = ta.value;
+    let a = ta.selectionStart, b = ta.selectionEnd, sel = v.substring(a, b);
+    if (!sel) {
+        const enc = near(v, a);
+        if (enc) { a = enc.start; b = enc.end; sel = v.substring(a, b); }
+        else {
+            const stop = " .,\\/!?%^*;:{}=-_`~()\r\n\t";
+            while (!stop.includes(v[a - 1]) && a > 0) a--;
+            while (!stop.includes(v[b]) && b < v.length) b++;
+            sel = v.substring(a, b);
+            if (!sel) return false;
+        }
+    }
+    if (sel[sel.length - 1] === " ") { sel = sel.substring(0, sel.length - 1); b -= 1; }
+    if (v[a - 1] === "(" && v[b] === ")") { a -= 1; b += 1; sel = v.substring(a, b); }
+    if (sel[0] !== "(" || sel[sel.length - 1] !== ")") sel = `(${sel})`;
+    sel = addW(sel);
+    const d = up ? delta : -delta;
+    const out = sel.replace(/\((.*):([+-]?(?:\d*\.)?\d+(?:[eE][+-]?\d+)?)\)/, (m, text, w) => { w = inc(w, d); return w == 1 ? text : `(${text}:${w})`; });
+    ta.focus(); ta.setSelectionRange(a, b);
+    // as typed text: one "input" event, so the field saves it and its Undo has it as a step
+    // __rgStep: a step of its own in the field's Undo (textHistory), not part of the word being typed
+    ta.__rgStep = true;
+    try {
+        if (!document.execCommand("insertText", false, out)) { ta.setRangeText(out, a, b, "end"); ta.dispatchEvent(new Event("input", { bubbles: true })); }
+    } finally { delete ta.__rgStep; }
+    ta.setSelectionRange(a, a + out.length);
+    return true;
+}
+// which text boxes are the pack's (one of its own elements, or a node's text box the pack has marked with a class of
+// its own): all of them go through here, so they all behave alike
+const ownPromptBox = (t) => t instanceof HTMLTextAreaElement && !t.readOnly && !t.disabled
+    && (/(^|\s)rg-/.test(t.className) || !!t.closest('[class^="rg-"], [class*=" rg-"]'));
+if (!window.__rgAttention) {
+    window.__rgAttention = true;
+    window.addEventListener("keydown", (e) => {
+        if ((e.key !== "ArrowUp" && e.key !== "ArrowDown") || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+        const t = e.composedPath?.()[0] || e.target;
+        if (!ownPromptBox(t)) return;
+        e.preventDefault(); e.stopPropagation();
+        editAttention(t, e.key === "ArrowUp");
+    }, true);
+}
+
 export function fileField({ roots, home, none, noneLabel, emptyLabel, value, onPick, title, menuTitle, browse, cls }) {
     ffCss();
     home = home || roots[0];
@@ -1280,7 +1354,7 @@ export function textHistory(ta, store, o = {}) {
     const onInput = (e) => {
         if (top().v === ta.value) return;
         const kind = e?.inputType || "", t = performance.now();
-        const typing = kind === "insertText" || kind === "deleteContentBackward" || kind === "deleteContentForward" || kind === "insertCompositionText";
+        const typing = !ta.__rgStep && (kind === "insertText" || kind === "deleteContentBackward" || kind === "deleteContentForward" || kind === "insertCompositionText");
         // a new word starts a new step too, so Undo doesn't take a whole paragraph typed without a pause
         const newWord = kind === "insertText" && /\s/.test(e.data || "") === false && /\s$/.test(top().v.slice(0, top().a));
         if (typing && kind === run && t - runT < HIST_RUN_MS && store.at > 0 && !newWord) store.steps[store.at] = state();

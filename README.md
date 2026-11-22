@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.44.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.45.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -132,6 +132,7 @@ The easiest way to write prompts. Every text field opens in a large editor that 
 |---|---|---|
 | Title bar | ◀ ▶ | Go to the previous / next text field without closing (also Page Up / Page Down) |
 | | Undo / Redo | Take back or repeat your typing in this field (also Ctrl+Z, Ctrl+Y) |
+| Text box | Ctrl+Up / Ctrl+Down | Raise or lower the weight of the word or tag at the cursor, or of the selected words: `(tag:1.05)` |
 | | A− / A+ | Smaller / larger text |
 | | Close | Closes the pop-up (also Esc). Your text always stays |
 | Region only | Object / Character / Text | What kind of region this is |

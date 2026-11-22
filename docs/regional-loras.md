@@ -104,7 +104,9 @@ Region Genie ─────────── masks ──►                �
 - **positive_prompt**: the positive prompt. Connect `prompt` of the Region Genie node (or MOSS-Image Layout Prompt), or type a prompt.
   - It was called `prompt` before; saved workflows keep their text and link.
 - **negative_prompt** is encoded as `negative`.
-- With Impact Pack, typed prompts and the rows' words take wildcards (see [Wildcards](wildcards.md); the seed is at the top right of the rows editor).
+- With Impact Pack, typed prompts and the rows' words take wildcards (see [Wildcards](wildcards.md)). The seed shows at the top right of the rows editor while a field has a wildcard.
+- **Ctrl+Up / Ctrl+Down** raise or lower the weight of the word or tag at the cursor, or of the selected words: `(tag:1.05)`.
+  - It works in `positive_prompt`, `negative_prompt` and each row's words. See [Text boxes and pop-up editors](region-genie.md#text-boxes-and-pop-up-editors).
 - **Pop-up editor:** the **⤢** button in the bottom-right corner of `positive_prompt`, `negative_prompt` and each row's words opens a larger editor right at the field.
   - It floats over the page, so it can be bigger than this small node and isn't shrunk by the canvas zoom.
   - Drag its title bar to move it, the ◢ grip to resize it (remembered).

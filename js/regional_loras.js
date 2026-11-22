@@ -116,7 +116,7 @@ function setup(node) {
         t.dataset.rgField = name;                       // which field this text box is (tests/real_layering.cjs finds it by this)
         if (!WKEY[name]) return;
         widgetTA[name] = t;
-        t.addEventListener("input", () => wcMark(t, WKEY[name], t.value));
+        t.addEventListener("input", () => { wcMark(t, WKEY[name], t.value); wcRefresh(); });
         addExpandButton(t, "Open in the pop-up editor", () => openField("w:" + name));
         if (!t.__rgHist) t.__rgHist = textHistory(t, (widgetHist[name] = widgetHist[name] || {}), { apply: (v) => setW(name, v) });
     });
@@ -163,8 +163,10 @@ function setup(node) {
             catch (e) { return dataW.value; }
         };
     }
+    let wcRefresh = () => {};                      // set once the seed control is there
     const save = () => {
         if (dataW) dataW.value = JSON.stringify({ v: 2, rows });
+        wcRefresh();
         node.setDirtyCanvas?.(true, true);
         app.graph?.setDirtyCanvas?.(true, true);
     };
@@ -188,7 +190,9 @@ function setup(node) {
         rowEls.forEach((e, k) => wcMark(e?.pr, "row" + k, rows[k]?.prompt || ""));
     }
     node.__rgrlFilled = (f) => { wcFilled = { ...(f || {}) }; markAll(); };
+    // the seed group shows only while a field has a wildcard, as in the Region Genie node (round 60)
     const wcCtl = wildcardSeedControl(node, el, {
+        hideIdle: true,
         fields: wcFields,
         onFilled: (f, preview, msg) => { wcFilled = { ...(f || {}) }; markAll(); hint.textContent = msg || (Object.keys(f || {}).length ? "Preview: hover a field to see what it becomes" : ""); },
         useAll: () => {
@@ -200,6 +204,7 @@ function setup(node) {
             save(); render(); markAll();
         },
     });
+    wcRefresh = () => wcCtl.refresh();
     head.append(addBtn, hint, acCtl.el, wcCtl.el);
     const list = el("div");
     list.style.cssText = "display:flex;flex-direction:column;gap:4px;";

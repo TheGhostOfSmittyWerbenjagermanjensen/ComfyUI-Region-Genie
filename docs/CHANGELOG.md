@@ -2,6 +2,18 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 59 (Nov 21): Ctrl+Up / Ctrl+Down (tag weight) in every text field
+- Asked: find out where the "Ctrl+Up / Ctrl+Down changes a tag's weight, `(tag:1.05)`" feature comes from, and make every prompt field of the pack work with it.
+- Found: it is ComfyUI's own (extension `Comfy.EditAttention`; step = Setting *Ctrl+up/down precision*, 0.05). Tried on the real page: it worked in the scene prompt boxes and in none of the pack's own fields (region prompt and text in the list, the pop-up editors), because those keep their key presses from reaching ComfyUI's listener.
+- Built: the same edit for the pack's fields (rg_shared.js `editAttention`, using ComfyUI's own helper functions), each change its own Undo step; a row in the shortcut sheet; manual and README. Version 0.45.0.
+- Tests: new `tests/real_attention.cjs [vue]`: up, back to plain, down in 11 fields (scene prompts, list, pop-up editors, large editor, the Regional LoRAs node), several selected words, Undo, the node's data.
+
+## Round 60 (Nov 21): Regional LoRAs brought up to date
+- Asked: tag weight keys in the rows' "words" fields too, and a check of the Regional LoRAs node for other things that lag behind the main node (e.g. the wildcard controls showing only when a wildcard is present).
+- Found: the words fields already took the keys (they are small multi-line boxes; round 59's note that they didn't was wrong and untested). Now tested.
+- Built: the wildcard seed group (seed, after-run mode, preview) shows only while one of the node's fields has a wildcard, as in the main node. Looked at the rest of the node next to the main node (pictures in both modes): nothing else out of step; the differences that remain are listed for the owner in the chat.
+- Before the pull request, a pass over the README, manual and help pages for these two rounds: the tag weight bullet in docs/region-genie.md had landed inside the ◀ / ▶ bullet (so "Page Up / Page Down do the same" pointed at the wrong thing) and is now its own bullet, with a row in the pop-up table; the Regional LoRAs page and both help pages now mention tag weight and when the seed shows; hardware checklist items added.
+
 ## Round 58 (Nov 21): "no regions needed" said out loud
 - Asked: is it clear that the node also serves plain text-to-image prompts without regions, so one workflow does both? It wasn't: the manual only mentioned it for MOSS-Image's prompt format.
 - Checked by running the node with an empty canvas for each model: `prompt` is the scene prompt as text (Ideogram 4: its caption JSON with no elements). Now a test in `test_prompt_format.py`.

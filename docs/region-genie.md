@@ -398,6 +398,7 @@ Every text field of the node opens in a **pop-up editor**: a large text box that
 |---|---|---|
 | Title bar | ◀ ▶ | The previous / next text field, in the same place and size (Page Up / Page Down) |
 | | Undo / Redo | This field's own text steps (Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y) |
+| Text box | Ctrl+Up / Ctrl+Down | Raise or lower the weight of the word or tag at the cursor, or of the selected words: `(tag:1.05)` |
 | | A− / A+ | Text size of the box you're typing in |
 | | Close | Closes the pop-up (Esc); the text stays |
 | | The bar itself | Drag to move the pop-up; double-click to put it back next to its field |
@@ -448,6 +449,10 @@ The details:
   - The order: `scene_prompt_positive`, `scene_prompt_negative`, `scene_prompt_background` (when shown), then each region's prompt in list order, wrapping around at both ends.
   - The next field opens in the same place and size. They sit in the header left of Undo / Redo and A− / A+, always in the same place, so they don't move while you step.
   - **Page Up / Page Down** do the same while you type; other keys can be set in the shortcut list (press **?** over a Region Genie node, or **Settings > Region Genie > Shortcuts**).
+- **Tag weight:** **Ctrl+Up / Ctrl+Down** raise or lower the weight of the word or tag the cursor is in, or of the words you selected: `tag` becomes `(tag:1.05)`, `(tag:0.95)` and so on.
+  - This is ComfyUI's own feature, and it works in every text box of the pack: on the node, in the list, in the pop-up editors, in the large editor, and in the Regional LoRAs node (its prompts and each row's words).
+  - A weight of 1 removes the brackets again. The step (0.05) is ComfyUI's setting *Ctrl+up/down precision*.
+  - Each change is one step of the field's Undo.
 - **Text size** (Settings > Region Genie > Text size): one size per kind of field (scene prompts, region prompts, text to render), set separately for the pop-up editors and for the node's own fields (0 = as before).
 
 ## Undo and redo
