@@ -8,6 +8,14 @@ Do sections 1 and 2 first: they cover the most with the fewest runs.
 
 For each model: connect `model`, `clip` and `vae`, draw two regions with prompts, run, and check that each region shows its own prompt.
 
+**Example workflows (round 66, never run on a GPU):** open each from Templates > ComfyUI-Region-Genie (or `example_workflows/`), pick your files in the loaders, and run it.
+
+- [ ] Each of the eleven runs without an error and gives a harbor with a lighthouse (left), a boat (lower right) and seagulls (upper right)
+- [ ] The sampler settings suit your version of each model (they are ComfyUI's template values; the note in the workflow names the others)
+- [ ] Ideogram 4 and Flux.2: the `width` / `height` links to the scheduler follow a changed image size
+- [ ] A missing model file is reported with its download link when the workflow opens
+- [ ] On GitHub, the README's Quick start diagram: the pan / zoom buttons no longer cover "Save Image"
+
 - [ ] MOSS-Image, layout mode (regions placed by the layout prompt)
 - [ ] MOSS-Image, standard mode (the layout / standard switch off, and with no regions drawn)
 - [ ] MOSS-Image: with an empty canvas the switch shows standard; drawing the first region brings layout back, and the run's `prompt` is layout JSON

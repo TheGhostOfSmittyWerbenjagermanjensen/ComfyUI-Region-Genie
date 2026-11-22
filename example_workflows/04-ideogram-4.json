@@ -1,0 +1,987 @@
+{
+  "id": "50f0ff0b-7788-417b-9546-abcae6eecee6",
+  "revision": 0,
+  "last_node_id": 15,
+  "last_link_id": 19,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Region-Genie_Main",
+      "pos": [
+        460,
+        80
+      ],
+      "size": [
+        620,
+        1206
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "shape": 7,
+          "type": "MODEL",
+          "link": 1
+        },
+        {
+          "name": "clip",
+          "shape": 7,
+          "type": "CLIP",
+          "link": 2
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 3
+        },
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "size_from",
+          "shape": 7,
+          "type": "IMAGE,LATENT",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            6,
+            8
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": null
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            13
+          ]
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [
+            16
+          ]
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            17
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Region-Genie_Main",
+        "rg_labels": true,
+        "rg_size": {
+          "mode": "aspect ratio",
+          "ratio": {
+            "aspect": "1:1 (Square)",
+            "swap": false,
+            "mp": 1,
+            "multiple": 8
+          },
+          "preset": {
+            "w": 1024,
+            "h": 1024,
+            "swap": false
+          },
+          "manual": {
+            "w": 1024,
+            "h": 1024,
+            "link": false,
+            "step": 64
+          }
+        },
+        "rg_llm": {
+          "regions": {},
+          "scene": null
+        },
+        "rg_widget_values": {
+          "wildcard_seed": 0,
+          "width": 1024,
+          "height": 1024,
+          "scene_prompt_positive": "a quiet harbor at sunrise, soft mist over the water, warm light, painterly",
+          "scene_prompt_negative": "blurry, low quality, watermark",
+          "scene_prompt_background": "",
+          "image_mode": "backdrop (trace over)",
+          "min_region_pixels": 64,
+          "import_mode": "ask before replacing",
+          "prompt_format": "auto",
+          "mode": "generate",
+          "edit_area": "only the regions"
+        },
+        "rg_sockets": 1
+      },
+      "widgets_values": [
+        1024,
+        1024,
+        "a quiet harbor at sunrise, soft mist over the water, warm light, painterly",
+        "blurry, low quality, watermark",
+        "backdrop (trace over)",
+        64,
+        "{\"v\":2,\"regions\":[{\"id\":3,\"color\":\"#3FA9A0\",\"prompt\":\"a flock of seagulls in the pale sky\",\"type\":\"object\",\"text\":\"\"},{\"id\":2,\"color\":\"#E3B341\",\"prompt\":\"a small red fishing boat with a folded sail, reflected in the calm water\",\"type\":\"object\",\"text\":\"\"},{\"id\":1,\"color\":\"#8F73D1\",\"prompt\":\"a white lighthouse on a rocky point, its lamp glowing\",\"type\":\"object\",\"text\":\"\"}],\"layers\":[{\"id\":1,\"name\":\"Rectangle 1\",\"region\":1,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.3187200317382813,\"bh\":0.6573601074218749,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":-0.2589599914550781,\"oy\":0.029880004882812505,\"ops\":[]},{\"id\":2,\"name\":\"Rectangle 2\",\"region\":2,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.41831994628906255,\"bh\":0.31871997070312497,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.20915997314453127,\"oy\":0.17928002929687503,\"ops\":[]},{\"id\":3,\"name\":\"Rectangle 3\",\"region\":3,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.37848004150390624,\"bh\":0.2589600830078125,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.2091600036621094,\"oy\":-0.26891998291015623,\"ops\":[]}],\"loraOpts\":{\"separation\":0.85,\"until\":0.1}}",
+        "ask before replacing",
+        "",
+        "auto",
+        "generate",
+        "only the regions",
+        0,
+        "model,positive,negative,latent,width,height"
+      ],
+      "widgets_values_named": {
+        "width": 1024,
+        "height": 1024,
+        "scene_prompt_positive": "a quiet harbor at sunrise, soft mist over the water, warm light, painterly",
+        "scene_prompt_negative": "blurry, low quality, watermark",
+        "image_mode": "backdrop (trace over)",
+        "min_region_pixels": 64,
+        "paint_data": "{\"v\":2,\"regions\":[{\"id\":3,\"color\":\"#3FA9A0\",\"prompt\":\"a flock of seagulls in the pale sky\",\"type\":\"object\",\"text\":\"\"},{\"id\":2,\"color\":\"#E3B341\",\"prompt\":\"a small red fishing boat with a folded sail, reflected in the calm water\",\"type\":\"object\",\"text\":\"\"},{\"id\":1,\"color\":\"#8F73D1\",\"prompt\":\"a white lighthouse on a rocky point, its lamp glowing\",\"type\":\"object\",\"text\":\"\"}],\"layers\":[{\"id\":1,\"name\":\"Rectangle 1\",\"region\":1,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.3187200317382813,\"bh\":0.6573601074218749,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":-0.2589599914550781,\"oy\":0.029880004882812505,\"ops\":[]},{\"id\":2,\"name\":\"Rectangle 2\",\"region\":2,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.41831994628906255,\"bh\":0.31871997070312497,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.20915997314453127,\"oy\":0.17928002929687503,\"ops\":[]},{\"id\":3,\"name\":\"Rectangle 3\",\"region\":3,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.37848004150390624,\"bh\":0.2589600830078125,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.2091600036621094,\"oy\":-0.26891998291015623,\"ops\":[]}],\"loraOpts\":{\"separation\":0.85,\"until\":0.1}}",
+        "import_mode": "ask before replacing",
+        "scene_prompt_background": "",
+        "prompt_format": "auto",
+        "mode": "generate",
+        "edit_area": "only the regions",
+        "wildcard_seed": 0,
+        "outputs_shown": "model,positive,negative,latent,width,height"
+      }
+    },
+    {
+      "id": 2,
+      "type": "UNETLoader",
+      "pos": [
+        40,
+        80
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "ideogram4_fp8_scaled.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          }
+        ]
+      },
+      "widgets_values": [
+        "ideogram4_fp8_scaled.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "ideogram4_fp8_scaled.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 3,
+      "type": "UNETLoader",
+      "pos": [
+        40,
+        282
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "ideogram4_unconditional_fp8_scaled.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors",
+            "directory": "diffusion_models"
+          }
+        ]
+      },
+      "widgets_values": [
+        "ideogram4_unconditional_fp8_scaled.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "ideogram4_unconditional_fp8_scaled.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 4,
+      "type": "CLIPLoader",
+      "pos": [
+        40,
+        484
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "qwen3vl_8b_fp8_scaled.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/Qwen3-VL/resolve/main/text_encoders/qwen3vl_8b_fp8_scaled.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen3vl_8b_fp8_scaled.safetensors",
+        "ideogram4",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen3vl_8b_fp8_scaled.safetensors",
+        "type": "ideogram4",
+        "device": "default"
+      }
+    },
+    {
+      "id": 5,
+      "type": "VAELoader",
+      "pos": [
+        40,
+        710
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            3,
+            15
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "flux2-vae.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "flux2-vae.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "flux2-vae.safetensors"
+      }
+    },
+    {
+      "id": 6,
+      "type": "CFGOverride",
+      "pos": [
+        1140,
+        80
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CFGOverride"
+      },
+      "widgets_values": [
+        3,
+        0.7,
+        1
+      ],
+      "widgets_values_named": {
+        "cfg": 3,
+        "start_percent": 0.7,
+        "end_percent": 1
+      }
+    },
+    {
+      "id": 7,
+      "type": "ConditioningZeroOut",
+      "pos": [
+        1140,
+        306
+      ],
+      "size": [
+        204.134765625,
+        26
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ConditioningZeroOut"
+      }
+    },
+    {
+      "id": 8,
+      "type": "DualModelGuider",
+      "pos": [
+        1140,
+        452
+      ],
+      "size": [
+        270,
+        118
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 5
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 6
+        },
+        {
+          "name": "model_negative",
+          "shape": 7,
+          "type": "MODEL",
+          "link": 7
+        },
+        {
+          "name": "negative",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DualModelGuider"
+      },
+      "widgets_values": [
+        7
+      ],
+      "widgets_values_named": {
+        "cfg": 7
+      }
+    },
+    {
+      "id": 9,
+      "type": "Ideogram4Scheduler",
+      "pos": [
+        1140,
+        690
+      ],
+      "size": [
+        270,
+        154
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 16
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            18
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Ideogram4Scheduler"
+      },
+      "widgets_values": [
+        20,
+        1024,
+        1024,
+        0,
+        1.75
+      ],
+      "widgets_values_named": {
+        "steps": 20,
+        "width": 1024,
+        "height": 1024,
+        "mu": 0,
+        "std": 1.75
+      }
+    },
+    {
+      "id": 10,
+      "type": "RandomNoise",
+      "pos": [
+        1140,
+        964
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            11
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RandomNoise"
+      },
+      "widgets_values": [
+        0,
+        "randomize"
+      ],
+      "widgets_values_named": {
+        "noise_seed": 0,
+        "control_after_generate": "randomize"
+      }
+    },
+    {
+      "id": 11,
+      "type": "KSamplerSelect",
+      "pos": [
+        1140,
+        1166
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "euler"
+      ],
+      "widgets_values_named": {
+        "sampler_name": "euler"
+      }
+    },
+    {
+      "id": 12,
+      "type": "SamplerCustomAdvanced",
+      "pos": [
+        1140,
+        1344
+      ],
+      "size": [
+        212.3638671875,
+        106
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise",
+          "type": "NOISE",
+          "link": 11
+        },
+        {
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 10
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 12
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 18
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            14
+          ]
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SamplerCustomAdvanced"
+      }
+    },
+    {
+      "id": 13,
+      "type": "VAEDecode",
+      "pos": [
+        1500,
+        80
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 14
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 14,
+      "type": "Region-Genie_SaveImage",
+      "pos": [
+        1500,
+        246
+      ],
+      "size": [
+        300.2428802490234,
+        206
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 19
+        },
+        {
+          "name": "mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Region-Genie_SaveImage",
+        "rg_widget_values": {
+          "filename_prefix": "RegionGenie/ideogram-4",
+          "format": "png",
+          "png_compression": 9,
+          "png_bit_depth": "8-bit",
+          "webp_lossless": false,
+          "webp_quality": 90,
+          "jpeg_quality": 90,
+          "jpeg_extension": ".jpg",
+          "jpeg_workflow": "sidecar .json",
+          "avif_quality": 80,
+          "exr_bit_depth": "16-bit float",
+          "exr_color_space": "sRGB",
+          "invert_mask": false,
+          "a1111_metadata": true
+        }
+      },
+      "widgets_values": [
+        "RegionGenie/ideogram-4",
+        "png",
+        9,
+        "8-bit",
+        false,
+        90,
+        90,
+        ".jpg",
+        "sidecar .json",
+        80,
+        "16-bit float",
+        "sRGB",
+        false,
+        true
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "RegionGenie/ideogram-4",
+        "format": "png",
+        "png_compression": 9,
+        "png_bit_depth": "8-bit",
+        "webp_lossless": false,
+        "webp_quality": 90,
+        "jpeg_quality": 90,
+        "jpeg_extension": ".jpg",
+        "jpeg_workflow": "sidecar .json",
+        "avif_quality": 80,
+        "exr_bit_depth": "16-bit float",
+        "exr_color_space": "sRGB",
+        "invert_mask": false,
+        "a1111_metadata": true
+      }
+    },
+    {
+      "id": 15,
+      "type": "MarkdownNote",
+      "pos": [
+        40,
+        898
+      ],
+      "size": [
+        360,
+        420
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## Region Genie: Ideogram 4\n\nEach region's box and prompt go to Ideogram 4 in its own caption format.\n\nThe sampler part is ComfyUI's own Ideogram 4 template (\"Default\" preset: 20 steps, mu 0, std 1.75): a second, unconditional model guides instead of a negative prompt, so scene_prompt_negative is not used.\n\n**Model files** (pick your own in the loaders if yours are named differently):\n- [ideogram4_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_fp8_scaled.safetensors) → `models/diffusion_models`\n- [ideogram4_unconditional_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors) → `models/diffusion_models`\n- [qwen3vl_8b_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Qwen3-VL/resolve/main/text_encoders/qwen3vl_8b_fp8_scaled.safetensors) → `models/text_encoders`\n- [flux2-vae.safetensors](https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors) → `models/vae`\n\nManual: https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie"
+      ],
+      "widgets_values_named": {
+        "text": "## Region Genie: Ideogram 4\n\nEach region's box and prompt go to Ideogram 4 in its own caption format.\n\nThe sampler part is ComfyUI's own Ideogram 4 template (\"Default\" preset: 20 steps, mu 0, std 1.75): a second, unconditional model guides instead of a negative prompt, so scene_prompt_negative is not used.\n\n**Model files** (pick your own in the loaders if yours are named differently):\n- [ideogram4_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_fp8_scaled.safetensors) → `models/diffusion_models`\n- [ideogram4_unconditional_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors) → `models/diffusion_models`\n- [qwen3vl_8b_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Qwen3-VL/resolve/main/text_encoders/qwen3vl_8b_fp8_scaled.safetensors) → `models/text_encoders`\n- [flux2-vae.safetensors](https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors) → `models/vae`\n\nManual: https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      1,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      4,
+      0,
+      1,
+      1,
+      "CLIP"
+    ],
+    [
+      3,
+      5,
+      0,
+      1,
+      2,
+      "VAE"
+    ],
+    [
+      4,
+      1,
+      0,
+      6,
+      0,
+      "MODEL"
+    ],
+    [
+      5,
+      6,
+      0,
+      8,
+      0,
+      "MODEL"
+    ],
+    [
+      6,
+      1,
+      1,
+      8,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      7,
+      3,
+      0,
+      8,
+      2,
+      "MODEL"
+    ],
+    [
+      8,
+      1,
+      1,
+      7,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      9,
+      7,
+      0,
+      8,
+      3,
+      "CONDITIONING"
+    ],
+    [
+      10,
+      8,
+      0,
+      12,
+      1,
+      "GUIDER"
+    ],
+    [
+      11,
+      10,
+      0,
+      12,
+      0,
+      "NOISE"
+    ],
+    [
+      12,
+      11,
+      0,
+      12,
+      2,
+      "SAMPLER"
+    ],
+    [
+      13,
+      1,
+      3,
+      12,
+      4,
+      "LATENT"
+    ],
+    [
+      14,
+      12,
+      0,
+      13,
+      0,
+      "LATENT"
+    ],
+    [
+      15,
+      5,
+      0,
+      13,
+      1,
+      "VAE"
+    ],
+    [
+      16,
+      1,
+      4,
+      9,
+      0,
+      "INT"
+    ],
+    [
+      17,
+      1,
+      5,
+      9,
+      1,
+      "INT"
+    ],
+    [
+      18,
+      9,
+      0,
+      12,
+      3,
+      "SIGMAS"
+    ],
+    [
+      19,
+      13,
+      0,
+      14,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.55,
+      "offset": [
+        110,
+        60
+      ]
+    },
+    "frontendVersion": "1.59.1"
+  },
+  "version": 0.4
+}
