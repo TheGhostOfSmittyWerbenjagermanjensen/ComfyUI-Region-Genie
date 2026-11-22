@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.48.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.49.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -107,7 +107,7 @@ flowchart LR
 
 The node helps as you go:
 
-- An empty canvas shows the first steps.
+- An empty canvas shows the first steps, and that the node also works without regions.
 - The line at the bottom of the canvas shows the keys of the tool in use.
 - Press **?** over the node for every shortcut.
 - Point at any button for what it does.

@@ -23,8 +23,13 @@ const MAX_KEYS = 2;                                  // keys per command
 export const COMMANDS = [
     { id: "tool.select", group: "Tools", what: "Select: Move, resize and rotate layers", keys: ["V"] },
     { id: "tool.rect", group: "Tools", what: "Shape: Rectangle", keys: ["R"] },
+    { id: "tool.roundrect", group: "Tools", what: "Shape: Rounded rectangle", keys: ["Shift+R"] },
     { id: "tool.ellipse", group: "Tools", what: "Shape: Ellipse", keys: ["O"] },
     { id: "tool.triangle", group: "Tools", what: "Shape: Triangle", keys: ["T"] },
+    { id: "tool.pentagon", group: "Tools", what: "Shape: Pentagon", keys: ["N"] },
+    { id: "tool.hexagon", group: "Tools", what: "Shape: Hexagon", keys: ["X"] },
+    { id: "tool.star", group: "Tools", what: "Shape: Star", keys: ["S"] },
+    { id: "tool.heart", group: "Tools", what: "Shape: Heart", keys: ["H"] },
     { id: "tool.brush", group: "Tools", what: "Brush", keys: ["B"] },
     { id: "tool.erase", group: "Tools", what: "Eraser", keys: ["E"] },
     { id: "tool.lasso", group: "Tools", what: "Lasso", keys: ["L"] },

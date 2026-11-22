@@ -4,7 +4,7 @@ import {
     svgIcon, popFootText, naturalHeight, popNavDir, popNavTip, appendWord, autocompleteOnFocus, autocompleteOpen, autocompleteToggle, SET,
     pickWildcard, insertAtCursor, wildcardsInstalled, textHistory, historyButtons, closeComfyMenus,
 } from "../rg_shared.js";
-import { recentSetting, rememberSetting, CLIPBOARD } from "./shared.js";
+import { recentSetting, rememberSetting, CLIPBOARD, SHAPES } from "./shared.js";
 import { keyIs, keyUpIs } from "../rg_keys.js";
 
 export function* popups(E) {
@@ -483,7 +483,7 @@ export function* popups(E) {
             E.hiddenSel = null; E.requestDraw();
         }
         let handled = true;
-        const shape = ["rect", "ellipse", "triangle"].find((s) => is("tool." + s));
+        const shape = SHAPES.map((s) => s[0]).find((s) => is("tool." + s));
         // while an outline or a selection is being made, its keys come first
         if (E.pick && is("draw.accept")) E.pickAccept(e.shiftKey);
         else if (E.pick && is("draw.cancel")) E.pickCancel();

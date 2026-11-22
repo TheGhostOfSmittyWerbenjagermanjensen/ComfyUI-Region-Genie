@@ -61,7 +61,9 @@ function fill(text) {
 function place() {
     const r = cur.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, W = window.innerWidth, H = window.innerHeight;
     let x, y;
-    if (r.width > BIG_W || r.height > BIG_H) { x = px + 12; y = py + 18; if (y + h > H - 4) y = py - h - 10; }       // a text box, the canvas: at the pointer
+    const menu = cur.closest(".rg-menu")?.getBoundingClientRect();
+    if (menu) { x = menu.right + 6; if (x + w > W - 4) x = menu.left - w - 6; y = r.top; }       // a menu's row: beside the menu, so the other rows stay in view
+    else if (r.width > BIG_W || r.height > BIG_H) { x = px + 12; y = py + 18; if (y + h > H - 4) y = py - h - 10; }       // a text box, the canvas: at the pointer
     else { x = r.left + r.width / 2 - w / 2; y = r.bottom + 7; if (y + h > H - 4) y = r.top - h - 7; }
     tip.style.left = Math.round(Math.max(4, Math.min(x, W - w - 4))) + "px";
     tip.style.top = Math.round(Math.max(4, Math.min(y, H - h - 4))) + "px";

@@ -1,6 +1,7 @@
 // The editor's elements, the tool buttons (with versions), the tool options strip on the canvas, Arrange, opacity and labels.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
-import { svgIcon, setHTML, contextMenu } from "../rg_shared.js";
+import { svgIcon, setHTML } from "../rg_shared.js";
+import { openMenu } from "../rg_menu.js";
 import { keyed, keyText } from "../rg_keys.js";
 import { LASSO_MODES, TOOL_NUMS, lassoRefreshers, initLassoModes, SHAPES, ALL } from "./shared.js";
 
@@ -48,8 +49,9 @@ export function* toolbar(E) {
     };
     const grpCur = { wand: "wand", erase: "erase" }; E.grpCur = grpCur;          // the tool each mixed group shows (session)
     const LASSO_TIP = () => `Drag freehand, or click points and close the loop (click the first point${keyText("draw.accept") ? `, double-click or ${keyText("draw.accept")}` : " or double-click"}). `;
-    const SHAPE_KEYS = { rect: "R", ellipse: "O", triangle: "T" };
-    // (a key that the user took away is left out of the sentence)
+    // every shape has a command, "tool.<shape>": its default key is written into the tooltip (keyed() puts the
+    // user's own there; a key that the user took away is left out of the sentence)
+    const SHAPE_KEYS = { rect: "R", roundrect: "Shift+R", ellipse: "O", triangle: "T", pentagon: "N", hexagon: "X", star: "S", heart: "H" };
     const OBJECT_TIP = () => "Select object (Q): SAM 3.1 finds the object you click in the image under the canvas. Click to add "
         + "a point on the object, Ctrl+click a spot the selection covers but shouldn't (a red point takes it out), drag a box around it"
         + [[keyText("draw.back"), "undoes the last point"], [keyText("draw.accept"), "adds the selection to the active region"], [keyText("draw.cancel"), "cancels"]]
@@ -61,7 +63,7 @@ export function* toolbar(E) {
             entries: () => SHAPES.map(([k, label]) => [k, "shape" + k[0].toUpperCase() + k.slice(1),
                 `Shape (${label}): Drag a box to draw it; Shift for equal sides, Alt to draw from the centre`
                     + (SHAPE_KEYS[k] ? ` (${SHAPE_KEYS[k]})` : "") + ".",
-                () => { E.shapeKind = k; E.setTool("shape"); }]) },
+                () => { E.shapeKind = k; E.setTool("shape"); }, "tool." + k, `(${label})`]) },
         lasso: { name: "Lasso", tools: ["lasso"], cur: () => LASSO_MODES.lasso,
             entries: () => [["plain", "lasso", "Lasso: Straight lines between the points."], ["spline", "lassoSpline", "Lasso (spline): A smooth curve through the points."],
                 ["magnetic", "lassoMagnetic", "Lasso (magnetic): The outline follows edges in the image under the canvas."]]
@@ -93,8 +95,12 @@ export function* toolbar(E) {
     const grpBtns = {};
     function groupMenu(key, e) {
         const g = GROUPS[key], cur = g.cur();
-        const items = g.entries().map(([id, , title, pickIt]) => ({ content: (id === cur ? "✓ " : "   ") + title.split(":")[0], pickIt }));
-        contextMenu(e, items, g.name, (v) => { v?.pickIt?.(); focusSink(); });
+        // the pack's own menu: each row has the entry's icon, its key and, when pointed at, its tooltip.
+        // A shape's row is its icon and "(Name)"; the other rows keep the tool's name.
+        const items = g.entries().map(([id, icon, title, pickIt, cmd, label]) => ({ label: label || title.split(":")[0], icon, tick: id === cur,
+            key: cmd ? keyText(cmd) : "", title: keyed(title), fn: pickIt }));
+        const at = e.target.closest?.(".rg-grp-dd, .rg-btn")?.getBoundingClientRect();
+        openMenu(at ? at.left : e.clientX, at ? at.bottom + 2 : e.clientY, [{ head: g.name }, ...items], { onClose: () => { if (E.wrap.isConnected) focusSink(); } });
     }
     for (const key of Object.keys(GROUPS)) {
         const b = E.el("button", "rg-btn icon grp"); b.type = "button"; b.dataset.group = key;

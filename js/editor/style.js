@@ -60,12 +60,14 @@ const STYLE = `
 .rg-tips-btn:hover { opacity:1; }
 .rg-tips-btn:not(.on) { background:rgba(30,30,30,.8); }
 .rg-start { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; width:min(360px, calc(100% - 60px)); box-sizing:border-box;
-  display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-radius:6px; pointer-events:none; user-select:none;
+  display:flex; flex-direction:column; gap:8px; pointer-events:none; user-select:none; transition:opacity .15s; }
+.rg-start-card { display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-radius:6px; box-sizing:border-box;
   background:rgba(28,28,28,.86); border:1px solid rgba(255,255,255,.14); color:#e8e8e8; font:12px/1.4 sans-serif; }
 .rg-start b { font-size:13px; color:#fff; }
 .rg-start span { display:flex; gap:7px; align-items:baseline; }
 .rg-start i { flex:0 0 auto; font-style:normal; font-weight:700; color:#8fb8e8; }
 .rg-start .more { opacity:.7; font-size:11px; }
+.rg-cv.over .rg-start { opacity:0; }
 .rg-cv.held .rg-start { display:none; }
 /* Click areas (round 39): the small controls keep their look; an unseen area around each takes the click too, at least
    24 px tall and out to the middle of the 3 px gap to its neighbour. It lies behind the control's own content, so a

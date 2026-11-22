@@ -52,7 +52,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const objBtn = page.locator('.rg-bar .rg-btn[data-group="wand"]');
     check("Magic wand / Select object button", await objBtn.count() === 1 && /^Magic wand/.test(await objBtn.getAttribute("title")));
     await objBtn.locator(".rg-grp-dd").click();
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items.find((i) => /Select object/.test(i.content))));
+    await page.locator(".rg-menu .rg-menu-item", { hasText: "Select object" }).click();
     await page.waitForTimeout(80);
     check("▾ list: Select object picked, the button shows it", /^Select object/.test(await objBtn.getAttribute("title")));
     check("Select object button has its icon", await objBtn.evaluate((b) => b.querySelector("svg")?.childElementCount > 0 && !/undefined/.test(b.innerHTML)));

@@ -499,16 +499,27 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await key("o");
     check("shape button shows the active shape (O: ellipse)", (await icon("shape")).includes("ellipse") && /^Shape \(Ellipse\)/.test(await grp("shape").getAttribute("title")));
     await grp("shape").locator(".rg-grp-dd").click();
-    check("▾ opens the shape list (8 shapes, the current one ticked)", await page.evaluate(() => window.__lastMenu.items.length === 8 && window.__lastMenu.items[2].content.startsWith("✓")));
-    await page.evaluate(() => window.__lastMenu.opts.callback(window.__lastMenu.items.find((i) => /Star/.test(i.content))));
+    const shapeRows = await page.evaluate(() => [...document.querySelectorAll(".rg-menu .rg-menu-item")].map((r) => ({ label: r.querySelector(".rg-menu-label").textContent,
+        icon: !!r.querySelector(".rg-menu-ic svg")?.childElementCount, tick: r.getAttribute("aria-checked"), key: r.querySelector(".rg-menu-key")?.textContent || "", title: r.title })));
+    check("▾ opens the shape list (8 shapes, the current one ticked)", shapeRows.length === 8 && shapeRows[2].tick === "true" && shapeRows.filter((r) => r.tick === "true").length === 1);
+    check(`…each row is the shape's icon and its name in brackets (${shapeRows.map((r) => r.label).join(" ")})`, shapeRows.every((r) => r.icon && /^\(.+\)$/.test(r.label)) && shapeRows[0].label === "(Rectangle)");
+    check(`…each with its key (${shapeRows.map((r) => r.key).join(" ")}) and its tooltip, which names the key`, shapeRows.map((r) => r.key).join(" ") === "R Shift+R O T N X S H"
+        && shapeRows.every((r) => r.title.startsWith("Shape " + r.label + ":") && r.title.endsWith(`(${r.key}).`)));
+    await page.locator(".rg-menu .rg-menu-item", { hasText: "(Heart)" }).hover(); await page.waitForTimeout(900);
+    check("pointing at a row shows its tooltip", await page.evaluate(() => { const t = document.querySelector(".rg-tip"); return !!t && t.classList.contains("on") && /^Shape \(Heart\)/.test(t.textContent); }));
+    check("…beside the list, not over its rows", await page.evaluate(() => { const t = document.querySelector(".rg-tip").getBoundingClientRect(), m = document.querySelector(".rg-menu").getBoundingClientRect(); return t.left >= m.right || t.right <= m.left; }));
+    await page.locator(".rg-menu .rg-menu-item", { hasText: "(Star)" }).click();
     await page.waitForTimeout(60);
     check("star picked: star icon, star points in the canvas strip", (await icon("shape")).includes("M8 1.8l1.8 4") && await inStrip(page.locator('.rg-toolopts input[title^="Number of star points"]')));
     await key("Shift+L");
     check("Shift+L: the eraser button shows lasso erase", /^Lasso erase/.test(await grp("erase").getAttribute("title")) && await grp("erase").evaluate((b) => b.classList.contains("on")));
     await key("e");
     check("E: back to the eraser on the same button", /^Eraser/.test(await grp("erase").getAttribute("title")));
+    // the tools' lists are the pack's own menu (round 65): read the open one as { items: [{ content }], opts.callback(item) }
+    await page.evaluate(() => { window.__toolMenu = () => { const rows = [...document.querySelectorAll(".rg-menu .rg-menu-item")];
+        return { items: rows.map((row) => ({ content: (row.getAttribute("aria-checked") === "true" ? "✓ " : "   ") + row.querySelector(".rg-menu-label").textContent, row })), opts: { callback: (it) => it.row.click() } }; }; });
     await grp("erase").click({ button: "right" });
-    check("eraser list: the eraser and the three lasso erase versions", await page.evaluate(() => window.__lastMenu.items.map((i) => i.content).join("|")).then((t) => /Eraser.*Lasso erase.*spline.*magnetic/.test(t)));
+    check("eraser list: the eraser and the three lasso erase versions", await page.evaluate(() => window.__toolMenu().items.map((i) => i.content).join("|")).then((t) => /Eraser.*Lasso erase.*spline.*magnetic/.test(t)));
     await key("w");
     check("W: the wand button shows the wand, tolerance in the strip", /^Magic wand/.test(await grp("wand").getAttribute("title")) && await inStrip(page.locator('.rg-toolopts input[title^="Magic wand tolerance"]')));
     await key("b");

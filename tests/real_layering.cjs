@@ -332,8 +332,12 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
     // the other things that pop up over the window
     const g = await page.locator(".rg-big .rg-btn.icon.grp").first().boundingBox();
     await page.mouse.click(g.x + g.width - 4, g.y + g.height / 2); await sleep(400);
-    check(`${M}: large editor: a tool's menu opens over the window (${await onTop(".litecontextmenu")})`, await onTop(".litecontextmenu") === true);
-    await page.keyboard.press("Escape"); await page.evaluate(() => document.querySelectorAll(".litecontextmenu").forEach((m) => m.remove())); await sleep(200);
+    check(`${M}: large editor: a tool's menu opens over the window (${await onTop(".rg-menu")})`, await onTop(".rg-menu") === true);
+    await page.locator(".rg-menu .rg-menu-item").nth(1).hover(); await sleep(900);
+    check(`${M}: large editor: a row's tooltip shows over the menu`, await page.evaluate(() => { const t = document.querySelector(".rg-tip"), m = document.querySelector(".rg-menu"); if (!t || !m || !t.classList.contains("on") || !t.textContent.trim()) return false;
+        return +getComputedStyle(t).zIndex > +getComputedStyle(m).zIndex && +getComputedStyle(t).zIndex > +(getComputedStyle(document.querySelector(".rg-big")).zIndex || 0); }));
+    await nativeTips("a tool's list", 3);
+    await page.keyboard.press("Escape"); await sleep(200);
     await page.locator(".rg-big .rg-row.region button", { hasText: "＋LoRA" }).first().click(); await sleep(700);
     check(`${M}: large editor: the LoRA menu opens over the window (${await onTop(".litecontextmenu")})`, await onTop(".litecontextmenu") === true);
     await page.keyboard.press("Escape"); await page.evaluate(() => document.querySelectorAll(".litecontextmenu").forEach((m) => m.remove())); await sleep(200);
