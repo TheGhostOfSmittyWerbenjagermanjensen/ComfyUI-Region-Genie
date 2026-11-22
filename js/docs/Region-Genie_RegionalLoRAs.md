@@ -12,6 +12,7 @@ does the same from its own regions: press ＋LoRA on a region there.)
   `feather` softens the mask edges.
 - In any text box, **Ctrl+Up / Ctrl+Down** raise or lower the weight of the word or tag at the cursor: `(tag:1.05)`.
 - The wildcard seed shows at the top right while a field has a wildcard (ComfyUI Impact Pack).
+- Click a number field (index, strength), then turn the mouse wheel over the node to change it.
 - The defaults for new nodes are in **Settings > Region Genie > Regional LoRAs**.
 
 The full manual: [Regional LoRAs](https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie/blob/main/docs/regional-loras.md).

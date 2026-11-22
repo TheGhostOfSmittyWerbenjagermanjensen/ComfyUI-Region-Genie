@@ -274,6 +274,8 @@ The **large editor** opens the same editor in a window that fills the page.
 
 **Press ?** over the node for every key and mouse gesture. Click a key in that sheet to change it to your own.
 
+Click a number field and turn the mouse wheel anywhere over the node to raise or lower it.
+
 **Settings > Region Genie** holds the defaults for new nodes and the model files. Each topic has an **Edit…** button that opens its page in one settings window, with a search.
 
 <img src="docs/images/settings-window.png" alt="The Region Genie settings window: topics on the left, their settings on the right" width="640">

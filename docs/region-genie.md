@@ -69,7 +69,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 
 ### Shortcuts
 
-- **Shortcuts** (V, R, B, L, F, W, Q, E, G, Ctrl+Z …) work while the pointer is anywhere over the editor: the tools, the canvas, the region list or the bottom bar.
+- **Shortcuts** (V, R, B, L, F, W, Q, E, P, G, Ctrl+Z …) work while the pointer is anywhere over the editor: the tools, the canvas, the region list or the bottom bar.
   - A text field you are typing in keeps the keys.
   - **Press ?** (or the keyboard button in the bottom bar, left of Export) for a sheet with every key and mouse gesture. Esc, ? again or a click outside closes it.
 - **Your own keys:** in that sheet, click a key and press the key or combination you want instead (Ctrl, Alt and Shift combinations, function keys, any letter or symbol).
@@ -365,7 +365,9 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - The square handles resize it and keep its proportions (Shift: stretch it). The round handle turns it (Shift: 15° steps).
   - The strip's buttons act on the selected figure: flip left to right, hide a joint, duplicate (Ctrl+D), delete (Delete).
 - **Left and right:** the colors are OpenPose's own. The person's right arm is orange and yellow, the left arm green; the right leg is turquoise, the left leg blue. A person facing you has their right side on your left.
-- **A joint that is out of view** (behind something, or outside the picture): click it, then press the hide-joint button. It and its bones are left out of the pose map, and it shows as a dashed ring while the figure is selected. *Facing away* starts with the nose and eyes hidden.
+- **A joint that is out of view** (behind something, or outside the picture): click it, then press the hide-joint button.
+  - It and its bones are left out of the pose map, and it shows as a dashed ring while the figure is selected.
+  - *Facing away* starts with the nose and eyes hidden.
 - **From the image:** the last entry of the starting poses. Drag the box around a person in the image under the canvas, and the figure takes that person's pose.
   - It uses ComfyUI's own pose detector, SDPose.
   - Put `sdpose_wholebody_fp16.safetensors` ([download](https://huggingface.co/Comfy-Org/SDPose/resolve/main/checkpoints/sdpose_wholebody_fp16.safetensors), about 1.9 GB) in `ComfyUI/models/checkpoints`.
@@ -567,11 +569,12 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
   - The **Edit Mode** page (see [Edit Mode](edit-mode.md)).
   - **Canvas tools** (which version the lasso, lasso erase, magic wand and fill buttons start as, the wand tolerance and the fill gap size).
   - **min region pixels** and **import_json when the canvas isn't empty**.
+  - **Pose import: a figure you changed** and **Pose import: a figure the input changed** (see [Pose figures](#pose-figures)).
   - **LLM cache** (see [LLM Prompt Enhancer](llm-prompt-enhancer.md)).
-- **Model files** (in Settings: control LoRAs, ControlNets, Anima LLLite patches, Depth Anything 3, edit LoRAs, the Select object model; on the node: the Edit rows; in the LLM settings: the LLM and its LoRAs) are fields showing the file's name.
+- **Model files** (in Settings: control LoRAs, ControlNets and pose ControlNets, Anima LLLite patches, Depth Anything 3, the SDPose model, edit LoRAs, the Select object model; on the node: the Edit rows; in the LLM settings: the LLM and its LoRAs) are fields showing the file's name.
   - A click opens **ComfyUI's classic menu**, in both legacy mode and Nodes 2.0:
     - The control and edit files open on ComfyUI's model folders (📁 controlnet, 📁 loras, 📁 model_patches, 📁 geometry_estimation). A file from another folder than the setting's own is saved with its folder.
-    - Select object opens on `checkpoints`.
+    - Select object and the SDPose model open on `checkpoints`.
     - The LLM opens on `text_encoders`.
   - With **rgthree-comfy**'s *Auto Nest Subdirectories in Menus* on, the menu shows subfolders as folders. Typing searches every folder and subfolder at once (the matches with their paths).
 
