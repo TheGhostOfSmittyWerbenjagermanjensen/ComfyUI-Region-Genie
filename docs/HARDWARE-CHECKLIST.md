@@ -61,6 +61,8 @@ Check once in legacy mode and once in Nodes 2.0.
   - *Facing away*: the person is seen from behind; a hidden joint (e.g. a hand behind the back) isn't forced into view
   - each starting pose once: which ones the model reads well, which need better joint positions (tell me)
   - a union ControlNet without and with other Control rows (pose + depth)
+  - **From the image** (needs `sdpose_wholebody_fp16.safetensors` in models/checkpoints): a box around a standing person gives a figure on that person; a sitting person; two people (one box each); how long the first read takes and the next ones; without the file: the message with the link; while a workflow runs: it says it waits
+  - **pose_keypoint output** into ComfyUI's SDPose Draw Keypoints: the same figures as on the canvas; **pose_keypoint input** from SDPose Keypoint Extractor: the person's pose is followed with a pose Control row
   - the Pose tool at 4K in both node modes: joints easy to grab, the strip readable; the new default node size (620 wide, square canvas in legacy mode)
 
 ## 5. Edit Mode

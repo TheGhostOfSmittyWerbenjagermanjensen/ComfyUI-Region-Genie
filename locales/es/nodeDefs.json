@@ -99,6 +99,10 @@
       "outputs_shown": {
         "name": "salidas_mostradas",
         "tooltip": "Oculto. Las salidas que muestra este nodo cuando no las muestra todas (se eligen con el botón de conexiones de la fila de tamaño). Déjalo vacío en los prompts de API."
+      },
+      "pose_keypoint": {
+        "name": "puntos_de_pose",
+        "tooltip": "Opcional. Puntos clave de pose de otro nodo (un detector de poses o un editor de poses, en formato OpenPose). Sus figuras se añaden a las dibujadas en el lienzo para una fila Control ajustada a pose, y a la salida puntos_de_pose."
       }
     },
     "outputs": {
@@ -153,6 +157,10 @@
       "12": {
         "name": "alto",
         "tooltip": "Alto de salida."
+      },
+      "13": {
+        "name": "puntos_de_pose",
+        "tooltip": "Las figuras de pose como puntos clave (formato OpenPose, articulaciones del cuerpo): las dibujadas en el lienzo con la herramienta Pose y las de la entrada puntos_de_pose. Para nodos de pose como SDPose Draw Keypoints."
       }
     }
   },

@@ -153,7 +153,7 @@ The row at the top of the node sets the size of the picture. Three buttons on th
 
 - The **sockets button** at the right end of the row (a cable) opens a checklist of the node's inputs and outputs: tick what the node should show.
   - A new node shows `model`, `clip`, `vae`, `image` and `size_from` as inputs, and `model`, `positive`, `negative` and `latent` as outputs.
-  - Everything else is one tick away: `width` / `height`, `import_json`, and the outputs `prompt`, `color_map`, `masks`, `bboxes`, `elements`, `character_boxes`, `region_info`, `width`, `height`.
+  - Everything else is one tick away: `width` / `height`, `import_json`, `pose_keypoint`, and the outputs `prompt`, `color_map`, `masks`, `bboxes`, `elements`, `character_boxes`, `region_info`, `width`, `height`, `pose_keypoint`.
   - A connected socket always stays (its tick is greyed). `control_image` shows by itself while the node has a Control row.
   - **All outputs** and **Sampler only** tick or untick the outputs in one go.
   - Newly ticked outputs go to the end of the list, so the order is yours.
@@ -364,6 +364,13 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - The strip's buttons act on the selected figure: flip left to right, hide a joint, duplicate (Ctrl+D), delete (Delete).
 - **Left and right:** the colors are OpenPose's own. The person's right arm is orange and yellow, the left arm green; the right leg is turquoise, the left leg blue. A person facing you has their right side on your left.
 - **A joint that is out of view** (behind something, or outside the picture): click it, then press the hide-joint button. It and its bones are left out of the pose map, and it shows as a dashed ring while the figure is selected. *Facing away* starts with the nose and eyes hidden.
+- **From the image:** the last entry of the starting poses. Drag the box around a person in the image under the canvas, and the figure takes that person's pose.
+  - It uses ComfyUI's own pose detector, SDPose. Put `sdpose_wholebody_fp16.safetensors` ([download](https://huggingface.co/Comfy-Org/SDPose/resolve/main/checkpoints/sdpose_wholebody_fp16.safetensors), about 1.9 GB) in `ComfyUI/models/checkpoints`.
+  - It needs an image on `image`: a directly connected Load Image, or any image after a run. One person per box.
+  - Joints the detector couldn't see start hidden. The model is released a few minutes after the last use.
+- **Keypoints in and out** (tick them in the sockets list, the cable button of the size row; both are off by default):
+  - The `pose_keypoint` **output** gives the figures to other pose nodes (OpenPose format).
+  - The `pose_keypoint` **input** takes figures from another node, such as a pose detector. They are used together with the ones on the canvas, for the pose Control row and for the output. They aren't shown on the canvas.
 - **A figure belongs to a region.** It is drawn into the region under the box (or the active region), is listed with that region's layers, and is hidden with it.
   - Drag a figure onto another region and it belongs to that one.
   - Its row in the list has an eye (show / hide), a name, flip, duplicate and delete.
@@ -580,6 +587,7 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
 | `negative` | `scene_prompt_negative` encoded with the connected clip (like CLIP Text Encode) → the sampler's negative |
 | `region_info` | Text list of the regions, and which prompt format was used and why |
 | `width`, `height` | The layout node's width/height. Pixel boxes need the same canvas size on both sides. |
+| `pose_keypoint` | The pose figures as keypoints (OpenPose format), for other pose nodes. See [Pose figures](#pose-figures). |
 
 A region's box covers all of its visible pixels, across all of its layers; give two objects separate regions if you want separate boxes.
 Regions with no visible pixels are skipped in every output, so index *n* is the same region in `masks`, `bboxes`, `elements` and `prompt`.

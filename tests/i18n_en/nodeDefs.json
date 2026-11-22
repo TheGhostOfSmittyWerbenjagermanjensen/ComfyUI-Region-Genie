@@ -80,6 +80,10 @@
         "name": "import_json",
         "tooltip": "A layout to load into the editor when the workflow runs. It can be a file saved with Export (e.g. through a Load Text node), MOSS-Image layout JSON, Ideogram caption JSON / elements, or bboxes. Each new import_json is used once; edits made afterwards are kept."
       },
+      "pose_keypoint": {
+        "name": "pose_keypoint",
+        "tooltip": "Optional. Pose keypoints from another node (a pose detector or a pose editor, in OpenPose format). Their figures are added to the ones drawn on the canvas for a Control row set to pose, and to the pose_keypoint output."
+      },
       "control_image": {
         "name": "control_image",
         "tooltip": "Optional. A control map (depth, canny, pose, lineart ... from any preprocessor) for the Control rows; every row except 'color map' uses it. Without it, canny and depth maps are made from 'image' (depth: With the Depth Anything 3 model set in Settings > Region Genie > Control)."
@@ -153,6 +157,10 @@
       "12": {
         "name": "height",
         "tooltip": "Output height."
+      },
+      "13": {
+        "name": "pose_keypoint",
+        "tooltip": "The pose figures as keypoints (OpenPose format, body joints): Those drawn on the canvas with the Pose tool, and those of the pose_keypoint input. For pose nodes such as SDPose Draw Keypoints."
       }
     }
   },

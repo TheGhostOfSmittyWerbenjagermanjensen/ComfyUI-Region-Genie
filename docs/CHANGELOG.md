@@ -8,6 +8,12 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Built: the same edit for the pack's fields (rg_shared.js `editAttention`, using ComfyUI's own helper functions), each change its own Undo step; a row in the shortcut sheet; manual and README. Version 0.45.0.
 - Tests: new `tests/real_attention.cjs [vue]`: up, back to plain, down in 11 fields (scene prompts, list, pop-up editors, large editor, the Regional LoRAs node), several selected words, Undo, the node's data.
 
+## Round 62 (Nov 22): a pose from the image; keypoints in and out
+- Asked (after the Pose tool's pull request): add reading a pose from a photo, and a keypoint input / output, not shown by default, turned on with the checkboxes of the cable button.
+- Built: **From the image** as the last entry of the Pose tool's starting poses: drag a box around a person in the image under the canvas; ComfyUI's own SDPose finds the joints (new route `/region_genie/pose_detect`, `pose_detect.py`); unsure joints start hidden; a message with the download link when the model file is missing. **`pose_keypoint`** input and output (OpenPose format), both ticked on in the sockets list; the input's figures are used with the canvas's for the pose Control row and the output.
+- Decided while building: no Setting for the SDPose file (any checkpoint with "sdpose" in its name is found); the input's figures are not placed on the canvas.
+- Tests: `ui_pose.cjs` (the request, the figure from the answer, hidden joints, no image, no model, Undo), `test_control.py` (keypoint conversions both ways, the detector route with a stand-in model), `test_prompt_format.py` (14 outputs, the output and input), `real_sockets.cjs` (4 input rows, 14 outputs). Translations of the new input and output.
+
 ## Round 61 (Nov 22): the Pose tool
 - Asked: can OpenPose be used in the node; if not, how best to add it, so characters' poses are set on the same canvas.
 - Found: only through "your control_image" with a skeleton made by other nodes. Pose ControlNets exist for SDXL (and SDXL-based models), SD1.5, Flux.1 and Anima; not for MOSS-Image, Krea 2, Flux.2 / 3 or Ideogram 4. ComfyUI itself has a pose detector (SDPose) and a keypoint drawer.
