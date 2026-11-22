@@ -1,0 +1,1147 @@
+{
+  "id": "2ff4a4a2-3241-4318-bacb-f28922d7fca4",
+  "revision": 0,
+  "last_node_id": 13,
+  "last_link_id": 16,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Region-Genie_Main",
+      "pos": [
+        460,
+        80
+      ],
+      "size": [
+        620,
+        1206
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "shape": 7,
+          "type": "MODEL",
+          "link": 1
+        },
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "shape": 7,
+          "type": "CLIP",
+          "link": 2
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 3
+        },
+        {
+          "localized_name": "image",
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "size_from",
+          "name": "size_from",
+          "shape": 7,
+          "type": "IMAGE,LATENT",
+          "link": null
+        },
+        {
+          "localized_name": "scene_prompt_positive",
+          "name": "scene_prompt_positive",
+          "type": "STRING",
+          "widget": {
+            "name": "scene_prompt_positive"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scene_prompt_negative",
+          "name": "scene_prompt_negative",
+          "type": "STRING",
+          "widget": {
+            "name": "scene_prompt_negative"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scene_prompt_background",
+          "name": "scene_prompt_background",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "scene_prompt_background"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            6
+          ]
+        },
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            4
+          ]
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": null
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            10
+          ]
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": [
+            13
+          ]
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": [
+            14
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Region-Genie_Main",
+        "rg_labels": true,
+        "rg_size": {
+          "mode": "aspect ratio",
+          "ratio": {
+            "aspect": "1:1 (Square)",
+            "swap": false,
+            "mp": 1,
+            "multiple": 8
+          },
+          "preset": {
+            "w": 1024,
+            "h": 1024,
+            "swap": false
+          },
+          "manual": {
+            "w": 1024,
+            "h": 1024,
+            "link": false,
+            "step": 64
+          }
+        },
+        "rg_llm": {
+          "regions": {},
+          "scene": null
+        },
+        "rg_widget_values": {
+          "wildcard_seed": 0,
+          "width": 1024,
+          "height": 1024,
+          "scene_prompt_positive": "a quiet harbor at sunrise, soft mist over the water, warm light, painterly",
+          "scene_prompt_negative": "blurry, low quality, watermark",
+          "scene_prompt_background": "",
+          "image_mode": "backdrop (trace over)",
+          "min_region_pixels": 64,
+          "import_mode": "ask before replacing",
+          "prompt_format": "auto",
+          "mode": "generate",
+          "edit_area": "only the regions"
+        },
+        "rg_sockets": 1
+      },
+      "widgets_values": [
+        1024,
+        1024,
+        "a quiet harbor at sunrise, soft mist over the water, warm light, painterly",
+        "blurry, low quality, watermark",
+        "backdrop (trace over)",
+        64,
+        "{\"v\":2,\"regions\":[{\"id\":3,\"color\":\"#3FA9A0\",\"prompt\":\"a flock of seagulls in the pale sky\",\"type\":\"object\",\"text\":\"\"},{\"id\":2,\"color\":\"#E3B341\",\"prompt\":\"a small red fishing boat with a folded sail, reflected in the calm water\",\"type\":\"object\",\"text\":\"\"},{\"id\":1,\"color\":\"#8F73D1\",\"prompt\":\"a white lighthouse on a rocky point, its lamp glowing\",\"type\":\"object\",\"text\":\"\"}],\"layers\":[{\"id\":1,\"name\":\"Rectangle 1\",\"region\":1,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.3187200317382813,\"bh\":0.6573601074218749,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":-0.2589599914550781,\"oy\":0.029880004882812505,\"ops\":[]},{\"id\":2,\"name\":\"Rectangle 2\",\"region\":2,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.41831994628906255,\"bh\":0.31871997070312497,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.20915997314453127,\"oy\":0.17928002929687503,\"ops\":[]},{\"id\":3,\"name\":\"Rectangle 3\",\"region\":3,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.37848004150390624,\"bh\":0.2589600830078125,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.2091600036621094,\"oy\":-0.26891998291015623,\"ops\":[]}],\"loraOpts\":{\"separation\":0.85,\"until\":0.1}}",
+        "ask before replacing",
+        "",
+        "auto",
+        "generate",
+        "only the regions",
+        0,
+        "model,positive,negative,latent,width,height"
+      ],
+      "widgets_values_named": {
+        "width": 1024,
+        "height": 1024,
+        "scene_prompt_positive": "a quiet harbor at sunrise, soft mist over the water, warm light, painterly",
+        "scene_prompt_negative": "blurry, low quality, watermark",
+        "image_mode": "backdrop (trace over)",
+        "min_region_pixels": 64,
+        "paint_data": "{\"v\":2,\"regions\":[{\"id\":3,\"color\":\"#3FA9A0\",\"prompt\":\"a flock of seagulls in the pale sky\",\"type\":\"object\",\"text\":\"\"},{\"id\":2,\"color\":\"#E3B341\",\"prompt\":\"a small red fishing boat with a folded sail, reflected in the calm water\",\"type\":\"object\",\"text\":\"\"},{\"id\":1,\"color\":\"#8F73D1\",\"prompt\":\"a white lighthouse on a rocky point, its lamp glowing\",\"type\":\"object\",\"text\":\"\"}],\"layers\":[{\"id\":1,\"name\":\"Rectangle 1\",\"region\":1,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.3187200317382813,\"bh\":0.6573601074218749,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":-0.2589599914550781,\"oy\":0.029880004882812505,\"ops\":[]},{\"id\":2,\"name\":\"Rectangle 2\",\"region\":2,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.41831994628906255,\"bh\":0.31871997070312497,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.20915997314453127,\"oy\":0.17928002929687503,\"ops\":[]},{\"id\":3,\"name\":\"Rectangle 3\",\"region\":3,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.37848004150390624,\"bh\":0.2589600830078125,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.2091600036621094,\"oy\":-0.26891998291015623,\"ops\":[]}],\"loraOpts\":{\"separation\":0.85,\"until\":0.1}}",
+        "import_mode": "ask before replacing",
+        "scene_prompt_background": "",
+        "prompt_format": "auto",
+        "mode": "generate",
+        "edit_area": "only the regions",
+        "wildcard_seed": 0,
+        "outputs_shown": "model,positive,negative,latent,width,height"
+      }
+    },
+    {
+      "id": 2,
+      "type": "UNETLoader",
+      "pos": [
+        40,
+        80
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "unet_name",
+          "name": "unet_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "unet_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "weight_dtype",
+          "name": "weight_dtype",
+          "type": "COMBO",
+          "widget": {
+            "name": "weight_dtype"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "MODEL",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "flux2_dev_fp8mixed.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/diffusion_models/flux2_dev_fp8mixed.safetensors",
+            "directory": "diffusion_models"
+          }
+        ]
+      },
+      "widgets_values": [
+        "flux2_dev_fp8mixed.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "flux2_dev_fp8mixed.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 3,
+      "type": "CLIPLoader",
+      "pos": [
+        40,
+        232
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip_name",
+          "name": "clip_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "clip_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "type",
+          "name": "type",
+          "type": "COMBO",
+          "widget": {
+            "name": "type"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "device",
+          "name": "device",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "device"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CLIP",
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "mistral_3_small_flux2_bf16.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_bf16.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "mistral_3_small_flux2_bf16.safetensors",
+        "flux2",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "mistral_3_small_flux2_bf16.safetensors",
+        "type": "flux2",
+        "device": "default"
+      }
+    },
+    {
+      "id": 4,
+      "type": "VAELoader",
+      "pos": [
+        40,
+        408
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "vae_name",
+          "name": "vae_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "vae_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "VAE",
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            3,
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "full_encoder_small_decoder.safetensors",
+            "url": "https://huggingface.co/black-forest-labs/FLUX.2-small-decoder/resolve/main/full_encoder_small_decoder.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "full_encoder_small_decoder.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "full_encoder_small_decoder.safetensors"
+      }
+    },
+    {
+      "id": 5,
+      "type": "FluxGuidance",
+      "pos": [
+        1140,
+        80
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "conditioning",
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 4
+        },
+        {
+          "localized_name": "guidance",
+          "name": "guidance",
+          "type": "FLOAT",
+          "widget": {
+            "name": "guidance"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CONDITIONING",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FluxGuidance"
+      },
+      "widgets_values": [
+        4
+      ],
+      "widgets_values_named": {
+        "guidance": 4
+      }
+    },
+    {
+      "id": 6,
+      "type": "BasicGuider",
+      "pos": [
+        1140,
+        208
+      ],
+      "size": [
+        159.568359375,
+        46
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 6
+        },
+        {
+          "localized_name": "conditioning",
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "GUIDER",
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BasicGuider"
+      }
+    },
+    {
+      "id": 7,
+      "type": "Flux2Scheduler",
+      "pos": [
+        1140,
+        324
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "steps",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 13
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "SIGMAS",
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            15
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Flux2Scheduler"
+      },
+      "widgets_values": [
+        20,
+        1024,
+        1024
+      ],
+      "widgets_values_named": {
+        "steps": 20,
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "id": 8,
+      "type": "RandomNoise",
+      "pos": [
+        1140,
+        500
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "noise_seed",
+          "name": "noise_seed",
+          "type": "INT",
+          "widget": {
+            "name": "noise_seed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "NOISE",
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RandomNoise"
+      },
+      "widgets_values": [
+        0,
+        "randomize"
+      ],
+      "widgets_values_named": {
+        "noise_seed": 0,
+        "control_after_generate": "randomize"
+      }
+    },
+    {
+      "id": 9,
+      "type": "KSamplerSelect",
+      "pos": [
+        1140,
+        652
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "SAMPLER",
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "euler"
+      ],
+      "widgets_values_named": {
+        "sampler_name": "euler"
+      }
+    },
+    {
+      "id": 10,
+      "type": "SamplerCustomAdvanced",
+      "pos": [
+        1140,
+        780
+      ],
+      "size": [
+        212.3638671875,
+        106
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "noise",
+          "name": "noise",
+          "type": "NOISE",
+          "link": 8
+        },
+        {
+          "localized_name": "guider",
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 7
+        },
+        {
+          "localized_name": "sampler",
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 9
+        },
+        {
+          "localized_name": "sigmas",
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 15
+        },
+        {
+          "localized_name": "latent_image",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "output",
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            11
+          ]
+        },
+        {
+          "localized_name": "denoised_output",
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SamplerCustomAdvanced"
+      }
+    },
+    {
+      "id": 11,
+      "type": "VAEDecode",
+      "pos": [
+        1500,
+        80
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "samples",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 11
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            16
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 12,
+      "type": "Region-Genie_SaveImage",
+      "pos": [
+        1500,
+        196
+      ],
+      "size": [
+        300.2428802490234,
+        206
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 16
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "format",
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "png_compression",
+          "name": "png_compression",
+          "type": "INT",
+          "widget": {
+            "name": "png_compression"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "png_bit_depth",
+          "name": "png_bit_depth",
+          "type": "COMBO",
+          "widget": {
+            "name": "png_bit_depth"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "webp_lossless",
+          "name": "webp_lossless",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "webp_lossless"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "webp_quality",
+          "name": "webp_quality",
+          "type": "INT",
+          "widget": {
+            "name": "webp_quality"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "jpeg_quality",
+          "name": "jpeg_quality",
+          "type": "INT",
+          "widget": {
+            "name": "jpeg_quality"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "jpeg_extension",
+          "name": "jpeg_extension",
+          "type": "COMBO",
+          "widget": {
+            "name": "jpeg_extension"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "jpeg_workflow",
+          "name": "jpeg_workflow",
+          "type": "COMBO",
+          "widget": {
+            "name": "jpeg_workflow"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "avif_quality",
+          "name": "avif_quality",
+          "type": "INT",
+          "widget": {
+            "name": "avif_quality"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "exr_bit_depth",
+          "name": "exr_bit_depth",
+          "type": "COMBO",
+          "widget": {
+            "name": "exr_bit_depth"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "exr_color_space",
+          "name": "exr_color_space",
+          "type": "COMBO",
+          "widget": {
+            "name": "exr_color_space"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "invert_mask",
+          "name": "invert_mask",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "invert_mask"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "a1111_metadata",
+          "name": "a1111_metadata",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "a1111_metadata"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Region-Genie_SaveImage",
+        "rg_widget_values": {
+          "filename_prefix": "RegionGenie/flux-2-dev",
+          "format": "png",
+          "png_compression": 9,
+          "png_bit_depth": "8-bit",
+          "webp_lossless": false,
+          "webp_quality": 90,
+          "jpeg_quality": 90,
+          "jpeg_extension": ".jpg",
+          "jpeg_workflow": "sidecar .json",
+          "avif_quality": 80,
+          "exr_bit_depth": "16-bit float",
+          "exr_color_space": "sRGB",
+          "invert_mask": false,
+          "a1111_metadata": true
+        }
+      },
+      "widgets_values": [
+        "RegionGenie/flux-2-dev",
+        "png",
+        9,
+        "8-bit",
+        false,
+        90,
+        90,
+        ".jpg",
+        "sidecar .json",
+        80,
+        "16-bit float",
+        "sRGB",
+        false,
+        true
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "RegionGenie/flux-2-dev",
+        "format": "png",
+        "png_compression": 9,
+        "png_bit_depth": "8-bit",
+        "webp_lossless": false,
+        "webp_quality": 90,
+        "jpeg_quality": 90,
+        "jpeg_extension": ".jpg",
+        "jpeg_workflow": "sidecar .json",
+        "avif_quality": 80,
+        "exr_bit_depth": "16-bit float",
+        "exr_color_space": "sRGB",
+        "invert_mask": false,
+        "a1111_metadata": true
+      }
+    },
+    {
+      "id": 13,
+      "type": "MarkdownNote",
+      "pos": [
+        40,
+        546
+      ],
+      "size": [
+        360,
+        420
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## Region Genie: Flux.2 dev\n\nFlux.2 has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself).\n\nFlux.2 dev uses guidance (4) instead of a negative prompt, so scene_prompt_negative is not used.\n\n**Model files** (pick your own in the loaders if yours are named differently):\n- [flux2_dev_fp8mixed.safetensors](https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/diffusion_models/flux2_dev_fp8mixed.safetensors) → `models/diffusion_models`\n- [mistral_3_small_flux2_bf16.safetensors](https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_bf16.safetensors) → `models/text_encoders`\n- [full_encoder_small_decoder.safetensors](https://huggingface.co/black-forest-labs/FLUX.2-small-decoder/resolve/main/full_encoder_small_decoder.safetensors) → `models/vae`\n\nManual: https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie"
+      ],
+      "widgets_values_named": {
+        "text": "## Region Genie: Flux.2 dev\n\nFlux.2 has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself).\n\nFlux.2 dev uses guidance (4) instead of a negative prompt, so scene_prompt_negative is not used.\n\n**Model files** (pick your own in the loaders if yours are named differently):\n- [flux2_dev_fp8mixed.safetensors](https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/diffusion_models/flux2_dev_fp8mixed.safetensors) → `models/diffusion_models`\n- [mistral_3_small_flux2_bf16.safetensors](https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_bf16.safetensors) → `models/text_encoders`\n- [full_encoder_small_decoder.safetensors](https://huggingface.co/black-forest-labs/FLUX.2-small-decoder/resolve/main/full_encoder_small_decoder.safetensors) → `models/vae`\n\nManual: https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      1,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      3,
+      0,
+      1,
+      1,
+      "CLIP"
+    ],
+    [
+      3,
+      4,
+      0,
+      1,
+      2,
+      "VAE"
+    ],
+    [
+      4,
+      1,
+      1,
+      5,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      5,
+      5,
+      0,
+      6,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      6,
+      1,
+      0,
+      6,
+      0,
+      "MODEL"
+    ],
+    [
+      7,
+      6,
+      0,
+      10,
+      1,
+      "GUIDER"
+    ],
+    [
+      8,
+      8,
+      0,
+      10,
+      0,
+      "NOISE"
+    ],
+    [
+      9,
+      9,
+      0,
+      10,
+      2,
+      "SAMPLER"
+    ],
+    [
+      10,
+      1,
+      3,
+      10,
+      4,
+      "LATENT"
+    ],
+    [
+      11,
+      10,
+      0,
+      11,
+      0,
+      "LATENT"
+    ],
+    [
+      12,
+      4,
+      0,
+      11,
+      1,
+      "VAE"
+    ],
+    [
+      13,
+      1,
+      4,
+      7,
+      1,
+      "INT"
+    ],
+    [
+      14,
+      1,
+      5,
+      7,
+      2,
+      "INT"
+    ],
+    [
+      15,
+      7,
+      0,
+      10,
+      3,
+      "SIGMAS"
+    ],
+    [
+      16,
+      11,
+      0,
+      12,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.55,
+      "offset": [
+        110,
+        60
+      ]
+    }
+  },
+  "version": 0.4
+}

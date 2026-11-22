@@ -20,6 +20,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - [Right-click menu](#right-click-menu)
   - [Node size and the large editor](#node-size-and-the-large-editor)
   - [After a run](#after-a-run)
+- [Example workflows](#example-workflows)
 - [Image size](#image-size)
   - [What decides the size](#what-decides-the-size)
   - [Inputs and outputs shown](#inputs-and-outputs-shown)
@@ -113,6 +114,36 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - An **i in a circle**: it left none.
   - Click it to read the report under the canvas. Click again, ✕ or picking a tool closes it.
   - A run that ComfyUI answers from its cache (nothing changed) reports nothing new, so the button keeps the last report.
+
+## Example workflows
+
+One workflow for each supported model, in the pack's `example_workflows` folder. Each has the model's loaders, the Region Genie node, the sampler and Save Image.
+
+| Workflow | What it shows | Sampler settings |
+|---|---|---|
+| [MOSS-Image: layout](../example_workflows/01-moss-image-layout.json) | 3 regions, in MOSS-Image's layout format | 25 steps, cfg 2.5, er_sde, skip-layer guidance |
+| [MOSS-Image: plain text-to-image](../example_workflows/02-moss-image-text-to-image.json) | No regions: the scene prompts only | 25 steps, cfg 2.5, er_sde |
+| [Krea 2 (Turbo)](../example_workflows/03-krea-2.json) | 3 regions | 8 steps, cfg 1, euler |
+| [Ideogram 4](../example_workflows/04-ideogram-4.json) | 3 regions, in Ideogram 4's caption format | 20 steps, Ideogram 4's scheduler and two-model guider |
+| [Flux.1 dev](../example_workflows/05-flux-1-dev.json) | 3 regions | 20 steps, cfg 1, euler |
+| [Flux.2 dev](../example_workflows/06-flux-2-dev.json) | 3 regions | 20 steps, guidance 4, Flux.2's scheduler |
+| [Flux.2 Klein (4B, distilled)](../example_workflows/07-flux-2-klein.json) | 3 regions | 4 steps, cfg 1, Flux.2's scheduler |
+| [Flux 3 Klein](../example_workflows/08-flux-3-klein.json) | 3 regions | 50 steps, cfg 3.5, euler |
+| [Anima](../example_workflows/09-anima.json) | 3 regions | 30 steps, cfg 4, euler |
+| [SDXL (and SDXL-based models)](../example_workflows/10-sdxl.json) | 3 regions | 25 steps, cfg 7, dpmpp_2m karras |
+| [SD1.5](../example_workflows/11-sd-1-5.json) | 3 regions, 512 × 512 | 20 steps, cfg 8, euler |
+
+- **Opening one:**
+  - In ComfyUI, open **Templates** and pick *ComfyUI-Region-Genie*: the workflows are listed there.
+  - Or open a link above on GitHub, download the file and drag it onto ComfyUI.
+- **The picture** is the same in all of them: a harbor at sunrise with a lighthouse, a fishing boat and seagulls as three regions.
+- **Model files:**
+  - The loaders name the files of ComfyUI's own template for that model. ComfyUI reports a missing one when the workflow opens, with its download link.
+  - A note in each workflow lists the files, their download links and their folders.
+  - If your files have other names, pick them in the loaders. The node finds the model type from the loader by itself.
+- **Sampler settings** follow ComfyUI's own template for each model. The note says what to change for a model's other versions (Flux.2 Klein base, Flux 3 Klein distilled).
+- **Negative prompt:** Krea 2 Turbo, Flux.1 dev, Flux.2 and Ideogram 4 don't use one, so `scene_prompt_negative` has no effect there.
+- **Flux.2 and Ideogram 4** use the node's `width` and `height` outputs for their schedulers (ticked in the sockets list).
 
 ## Image size
 

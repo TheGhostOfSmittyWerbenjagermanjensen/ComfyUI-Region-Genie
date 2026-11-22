@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.49.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.50.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -14,6 +14,7 @@
 - [Supported models](#-supported-models)
 - [Install](#-install)
 - [Quick start](#-quick-start)
+  - [Example workflows](#example-workflows)
 - [Feature tour](#-feature-tour)
   - [Regions on a canvas](#regions-on-a-canvas)
   - [Pop-up text editors](#pop-up-text-editors)
@@ -84,6 +85,9 @@ flowchart LR
     RG -- model, positive, negative, latent --> S[KSampler]
     S --> D[VAE Decode]
     D --> SV[Save Image ✨]
+    SV ~~~ p1[" "] ~~~ p2[" "]
+    classDef pad fill:none,stroke:none
+    class p1,p2 pad
 ```
 
 1. Add the **Region Genie** node (search for "genie"). Connect your loader's `model`, `clip` and `vae` to it.
@@ -94,7 +98,7 @@ flowchart LR
 
 **No regions needed.** Leave the canvas empty and the node works as a normal text-to-image setup: `scene_prompt_positive` and `scene_prompt_negative` are your prompts, the size row sets the image size, and **＋LoRA** on *Whole image* adds LoRAs. Add regions only for the pictures that need them; the workflow stays the same.
 
-**Prefer a ready-made workflow?** Drag [`examples/region-genie-starter-sdxl.json`](examples/) onto ComfyUI and pick your own SDXL checkpoint (SDXL itself, or an SDXL-based model such as Illustrious-XL or NoobAI-XL).
+**Prefer a ready-made workflow?** There is one for every supported model: → [Example workflows](#example-workflows)
 
 <img src="docs/images/editor-numbered.png" alt="The Region Genie node with its parts numbered" width="460">
 
@@ -111,6 +115,29 @@ The node helps as you go:
 - The line at the bottom of the canvas shows the keys of the tool in use.
 - Press **?** over the node for every shortcut.
 - Point at any button for what it does.
+
+### Example workflows
+
+One ready-made workflow for each supported model: loaders, the Region Genie node, the sampler, Save Image.
+
+| Workflow | What it shows |
+|---|---|
+| [MOSS-Image: layout](example_workflows/01-moss-image-layout.json) | 3 regions, in MOSS-Image's layout format |
+| [MOSS-Image: plain text-to-image](example_workflows/02-moss-image-text-to-image.json) | No regions: the scene prompts only |
+| [Krea 2 (Turbo)](example_workflows/03-krea-2.json) | 3 regions |
+| [Ideogram 4](example_workflows/04-ideogram-4.json) | 3 regions, in Ideogram 4's caption format |
+| [Flux.1 dev](example_workflows/05-flux-1-dev.json) | 3 regions |
+| [Flux.2 dev](example_workflows/06-flux-2-dev.json) | 3 regions |
+| [Flux.2 Klein (4B, distilled)](example_workflows/07-flux-2-klein.json) | 3 regions |
+| [Flux 3 Klein](example_workflows/08-flux-3-klein.json) | 3 regions |
+| [Anima](example_workflows/09-anima.json) | 3 regions |
+| [SDXL (and SDXL-based models)](example_workflows/10-sdxl.json) | 3 regions |
+| [SD1.5](example_workflows/11-sd-1-5.json) | 3 regions, 512 × 512 |
+
+- **In ComfyUI:** open **Templates** and pick *ComfyUI-Region-Genie*. Or open a link above, download the file and drag it onto ComfyUI.
+- **Model files:** each workflow has a note listing its files with download links. If yours have other names, pick them in the loaders.
+
+→ [Example workflows in the manual](docs/region-genie.md#example-workflows)
 
 ## ✨ Feature tour
 

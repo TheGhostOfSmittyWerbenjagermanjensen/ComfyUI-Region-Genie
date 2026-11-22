@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 66 (Nov 22): an example workflow for every supported model
+- Asked: workflows for each supported model type in place of the one SDXL sample: MOSS-Image layout first, MOSS-Image plain text-to-image second, then the rest; linked from a table, not shown as pictures. And: what is the Quick start diagram, whose controls on GitHub overlap its last box.
+- Decided by me: eleven files (Flux.2 as dev and Klein 4B distilled; Flux 3 as Klein base; Krea 2 as Turbo); loaders, file names and sampler settings from ComfyUI's own templates; the same three-region harbor scene in all but the plain MOSS-Image one; the folder renamed to `example_workflows`, which ComfyUI lists under Templates; a note with the files and links in each workflow.
+- Built: `tests/make_examples.cjs` (builds the files in real ComfyUI; `check` loads them again), `tests/test_examples.py` (in `run_py.sh`), the tables in the README (Quick start) and the manual. The diagram is Mermaid: two invisible nodes on its right keep GitHub's buttons off "Save Image". Version 0.50.0.
+- Tests: all eleven load in legacy mode and Nodes 2.0 with every node known, 3 (or 0) regions and the right outputs in the prompt; the node names each model from its loader. Not run: none of them on a GPU with the real model files.
+
 ## Round 65 (Nov 22): two start cards; tool dropdowns with icons, keys and tooltips; a key for every shape
 - Asked: say on the empty canvas that regions aren't needed, as its own section; I drew four layouts and the owner chose two cards. With it: name where *Whole image* is; step 2 also names the double-click on the region; the cards hide while the pointer is on the canvas, like the hints; the Shape list shows icons and "(Name)"; every shape has a shortcut; pointing at a row of a tool's list shows its tooltip.
 - Decided by the owner: two cards; on a low canvas the cards may run past its edges ("Leave it").
