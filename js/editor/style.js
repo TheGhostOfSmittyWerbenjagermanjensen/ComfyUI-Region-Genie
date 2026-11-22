@@ -342,10 +342,28 @@ textarea.rg-scene-ta.rg-llm-on, textarea.rg-big-ta.rg-llm-on { outline:1.5px sol
   background:var(--comfy-menu-bg,#2a2a2a); color:var(--input-text,#ddd); border:1px solid var(--border-color,#555); border-radius:6px;
   font:12px sans-serif; box-shadow:0 4px 16px rgba(0,0,0,.5); }
 .rg-presets-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:600; }
-.rg-presets-list { display:flex; flex-direction:column; gap:3px; overflow:auto; }
-.rg-presets-row { display:flex; align-items:center; gap:3px; }
-.rg-presets-name { width:110px; background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555);
+/* the list is one grid (round 69): handle | width | height | name | remove. A row's cells are the grid's own
+   (display:contents), so each column is as wide as its widest field: --rg-pw / --rg-pn, set from the list. */
+.rg-presets-list { display:grid; grid-template-columns:11px var(--rg-pw,70px) var(--rg-pw,70px) minmax(var(--rg-pn,120px), 1fr) auto; gap:3px 5px; align-items:center;
+  overflow:auto; padding:0 2px 1px 3px; }
+.rg-presets-row, .rg-presets-cols { display:contents; }
+.rg-presets-list > .rg-hint { grid-column:1 / -1; }
+.rg-presets-list .rg-num, .rg-presets-list .rg-presets-name { width:100% !important; min-width:0 !important; max-width:100% !important; box-sizing:border-box !important; margin:0 !important; }
+.rg-presets-name { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555);
   border-radius:4px; padding:1px 4px; font:inherit; }
+.rg-presets-col { display:flex; align-items:center; gap:3px; min-width:0; width:100%; box-sizing:border-box; margin:0; padding:1px 4px 2px; border:0; border-bottom:1px solid var(--border-color,#555); border-radius:3px 3px 0 0;
+  background:none; color:inherit; font:600 11px sans-serif; text-align:left; cursor:pointer; opacity:.8; }
+.rg-presets-col:hover { opacity:1; background:color-mix(in srgb, currentColor 10%, transparent); }
+.rg-presets-col.on { opacity:1; color:#8fb8e8; }
+.rg-presets-dir { line-height:0; } .rg-presets-dir svg { width:11px; height:11px; display:block; }
+.rg-presets-drop { grid-column:1 / -1; height:2px; margin:-2.5px 0; border-radius:1px; background:#8fb8e8; pointer-events:none; }
+.rg-presets .dragging { opacity:.45; }
+/* click areas, as in the node (round 39): at least 24 px tall, out to the middle of the gap to the neighbour */
+.rg-presets .rg-btn, .rg-presets .rg-grip, .rg-presets-col { position:relative; isolation:isolate; }
+.rg-presets .rg-btn::before, .rg-presets .rg-grip::before, .rg-presets-col::before {
+  content:""; position:absolute; z-index:-1; left:-3.5px; right:-3.5px; top:50%; height:max(100%, 24px); transform:translateY(-50%); }
+.rg-presets .rg-grip::before { left:-5px; right:-3px; }
+.rg-presets-col::before { left:-2.5px; right:-2.5px; }
 .rg-presets-foot { display:flex; gap:4px; justify-content:flex-end; }
 .rg-presets-adds { display:inline-flex; flex-wrap:wrap; gap:4px; margin-right:auto; }
 .rg-presets .rg-btn:disabled { opacity:.4; }

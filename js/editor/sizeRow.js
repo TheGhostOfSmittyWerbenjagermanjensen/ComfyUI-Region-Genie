@@ -261,26 +261,89 @@ export function* sizeRow(E) {
         let list = parseSizePresets(getSetting(SET.sizePresets, SIZE_PRESETS_DEFAULT));
         const save = () => { setSetting(SET.sizePresets, formatSizePresets(list)); presetsText = null; syncSizeRow(true); };
         const body = el("div", "rg-presets-list");
+        // ---- sorting (round 69): a click on a column's header sorts the whole rows by that column, a second click
+        // the other way round, as a file manager does. The order is the list's own (it is what the node's dropdown
+        // shows), so sorting saves it. Name: rows without a name show their ratio; those come first, from the
+        // tallest picture to the widest (the owner's choice), then the named ones in the order of their text.
+        const text = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+        const COLS = [
+            ["w", "Width", "Width: Click to sort the list by width; click again for the opposite order.", (a, b) => a.w - b.w || a.h - b.h],
+            ["h", "Height", "Height: Click to sort the list by height; click again for the opposite order.", (a, b) => a.h - b.h || a.w - b.w],
+            ["name", "Name", "Name: Click to sort the list by name; click again for the opposite order.\nSizes without a name: They show their ratio and come first, from the tallest picture to the widest.",
+                (a, b) => (a.name ? 1 : 0) - (b.name ? 1 : 0) || (a.name ? text.compare(a.name, b.name) : a.w / a.h - b.w / b.h || a.w - b.w)],
+        ];
+        let sorted = null;                                 // { col, dir }: the header that shows an arrow, while the list is in that order
+        const inOrder = (cmp, dir) => list.every((p, i) => !i || cmp(list[i - 1], p) * dir <= 0);
+        const sortBy = (col) => {
+            const cmp = COLS.find((c) => c[0] === col)[3];
+            const dir = sorted?.col === col && inOrder(cmp, sorted.dir) ? -sorted.dir : 1;
+            list = list.map((p, i) => [p, i]).sort((a, b) => cmp(a[0], b[0]) * dir || a[1] - b[1]).map((x) => x[0]);      // whole rows, ties as they were
+            sorted = { col, dir };
+            save(); render();
+        };
+        // the width and height columns are as wide as their longest number, the name column as its longest text
+        const fit = () => {
+            const len = (f) => Math.max(...list.map(f), 0);
+            const wn = Math.max(4, len((p) => String(p.w).length), len((p) => String(p.h).length));
+            const nn = Math.min(30, Math.max(12, len((p) => (p.name || ratioLabel(p.w, p.h)).length)));
+            body.style.setProperty("--rg-pw", `calc(${wn}ch + 30px)`); body.style.setProperty("--rg-pn", `calc(${nn}ch + 14px)`);
+        };
+        // ---- dragging a row by its handle: a line shows where it will land
+        function startDrag(e, from, grip) {
+            if (e.button !== 0) return;
+            e.preventDefault(); e.stopPropagation();
+            const grips = [...body.querySelectorAll(".rg-presets-row .rg-grip")], line = el("div", "rg-presets-drop");
+            const cells = [...grip.parentElement.children];
+            cells.forEach((c) => c.classList.add("dragging"));
+            let to = from;
+            const at = (y) => { let k = 0; for (const g of grips) { const r = g.getBoundingClientRect(); if (y > r.top + r.height / 2) k++; } return k; };      // 0 … rows: the gap it is over
+            const move = (ev) => {
+                const k = at(ev.clientY); to = k > from ? k - 1 : k;
+                const ref = grips[k]?.parentElement || null;
+                if (to === from) line.remove(); else body.insertBefore(line, ref);
+            };
+            const end = (ev) => {
+                window.removeEventListener("pointermove", move, true); window.removeEventListener("pointerup", end, true); window.removeEventListener("pointercancel", end, true);
+                line.remove(); cells.forEach((c) => c.classList.remove("dragging"));
+                if (ev.type === "pointerup" && to !== from) { const [p] = list.splice(from, 1); list.splice(to, 0, p); save(); }
+                render();
+            };
+            window.addEventListener("pointermove", move, true); window.addEventListener("pointerup", end, true); window.addEventListener("pointercancel", end, true);
+        }
+        // the headers: the sorted column shows an arrow for as long as the list is in that order
+        const hrow = el("div", "rg-presets-cols");
+        const drawHead = () => {
+            hrow.replaceChildren(el("span"));
+            for (const [col, label, title, cmp] of COLS) {
+                const on = sorted?.col === col && inOrder(cmp, sorted.dir);
+                const h = el("button", "rg-presets-col" + (on ? " on" : "")); h.type = "button"; h.title = title; h.dataset.col = col;
+                const t = el("span"); t.textContent = label; h.append(t);
+                if (on) { const a = el("span", "rg-presets-dir"); setHTML(a, svgIcon(sorted.dir > 0 ? "up" : "down")); h.dataset.dir = sorted.dir > 0 ? "up" : "down"; h.append(a); }
+                h.addEventListener("click", (e) => { e.preventDefault(); sortBy(col); });
+                hrow.append(h);
+            }
+            hrow.append(el("span"));
+        };
         const render = () => {
             body.replaceChildren();
+            if (list.length) { body.appendChild(hrow); drawHead(); }
             list.forEach((p, i) => {
                 const row = el("div", "rg-presets-row");
-                const w = sizeNum(16, 16384, 1, "Width", "54px"), h = sizeNum(16, 16384, 1, "Height", "54px");
+                const grip = el("span", "rg-grip"); setHTML(grip, svgIcon("grip")); grip.title = "Drag to move this size up or down in the list.";
+                grip.addEventListener("pointerdown", (e) => startDrag(e, i, grip));
+                const w = sizeNum(16, 16384, 1, "Width", ""), h = sizeNum(16, 16384, 1, "Height", "");
                 w.value = String(p.w); h.value = String(p.h);
                 const name = el("input", "rg-presets-name"); name.type = "text"; name.value = p.name; name.placeholder = ratioLabel(p.w, p.h);
                 name.title = "Name (optional; shown instead of the ratio)";
                 name.addEventListener("keydown", (e) => e.stopPropagation());
-                const upd = () => { list[i] = { w: Math.round(clampNum(w.value, 16, 16384, p.w)), h: Math.round(clampNum(h.value, 16, 16384, p.h)), name: name.value.replace(/[;\n]/g, " ").trim() }; save(); };
+                const upd = () => { list[i] = { w: Math.round(clampNum(w.value, 16, 16384, p.w)), h: Math.round(clampNum(h.value, 16, 16384, p.h)), name: name.value.replace(/[;\n]/g, " ").trim() }; save(); name.placeholder = ratioLabel(list[i].w, list[i].h); fit(); drawHead(); };
                 for (const x of [w, h, name]) x.addEventListener("change", upd);
-                const up = btn("@up", "Move up", () => { if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; save(); render(); } });
-                up.disabled = i === 0;
-                const dn = btn("@down", "Move down", () => { if (i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; save(); render(); } });
-                dn.disabled = i === list.length - 1;
                 const del = btn("@close", "Remove from the list", () => { list.splice(i, 1); save(); render(); });
-                row.append(w, tiny("×", ""), h, name, up, dn, del);
+                row.append(grip, w, h, name, del);
                 body.appendChild(row);
             });
             if (!list.length) { const t = tiny("The list is empty: add a size below.", ""); body.appendChild(t); }
+            fit();
             renderAdds();
         };
         const head = el("div", "rg-presets-head");
