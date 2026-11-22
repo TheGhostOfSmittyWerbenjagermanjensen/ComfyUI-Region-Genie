@@ -1,5 +1,5 @@
 {
-  "id": "57f73e4d-feea-435d-9ce6-e4fff1093827",
+  "id": "dd5b79c7-14f6-4b87-a29d-055f15992b57",
   "revision": 0,
   "last_node_id": 13,
   "last_link_id": 16,
@@ -460,12 +460,12 @@
         "Node name for S&R": "RandomNoise"
       },
       "widgets_values": [
-        0,
-        "randomize"
+        1,
+        "fixed"
       ],
       "widgets_values_named": {
-        "noise_seed": 0,
-        "control_after_generate": "randomize"
+        "noise_seed": 1,
+        "control_after_generate": "fixed"
       }
     },
     {

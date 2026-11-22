@@ -1,5 +1,5 @@
 {
-  "id": "599d0804-371d-4568-9958-71f97c88e41e",
+  "id": "10babc96-a744-40c6-b30f-23ad33febf41",
   "revision": 0,
   "last_node_id": 6,
   "last_link_id": 10,
@@ -261,8 +261,8 @@
         "Node name for S&R": "KSampler"
       },
       "widgets_values": [
-        0,
-        "randomize",
+        1,
+        "fixed",
         25,
         7,
         "dpmpp_2m",
@@ -270,8 +270,8 @@
         1
       ],
       "widgets_values_named": {
-        "seed": 0,
-        "control_after_generate": "randomize",
+        "seed": 1,
+        "control_after_generate": "fixed",
         "steps": 25,
         "cfg": 7,
         "sampler_name": "dpmpp_2m",

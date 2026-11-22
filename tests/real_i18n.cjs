@@ -70,7 +70,7 @@ const plain = (t) => t.replace(/\{'([^']*)'\}/g, "$1");      // vue-i18n's liter
                 out.prompt = Object.fromEntries(Object.values(p.output).map((n) => [n.class_type, n.inputs]));
                 return out;
             });
-            const ids = Object.keys(nodes).filter((id) => r[id]);       // (not the internal Region-Genie_PoseFetch: it is never placed in a graph)
+            const ids = Object.keys(nodes).filter((id) => r[id]);
             check(T(`node titles are translated (${ids.map((id) => r[id].title).join(" | ")})`), ids.every((id) => r[id].title === plain(nodes[id].display_name)));
             const nameBad = [];
             for (const id of ids) {

@@ -1411,21 +1411,21 @@ class RegionalLoRAs:
                                              "SDXL / SD1.5 (other models fall back to separate passes).\n"
                                              "separate passes (classic hooks): ComfyUI's hook method, one model pass per region with its "
                                              "LoRAs, blended by the masks. Works with any model, but strong styles can bleed across regions.")}),
-                "region_separation": ("FLOAT", {"default": 0.4, "min": 0.0, "max": 1.0, "step": 0.05,
+                "region_separation": ("FLOAT", {"default": 0.85, "min": 0.0, "max": 1.0, "step": 0.05,
                                       "tooltip": ("inside the model only.\n"
                                                   "region_separation: How strongly the regions are kept from influencing each other "
                                                   "while the image forms (0 to 1; higher = more separate). It applies to the regions "
                                                   "with LoRAs, or to every mask with separate_all_regions.\n"
-                                                  "Smooth integration of objects, characters and styles: 0.4 with separation_until "
-                                                  "0.1 (the default).\n"
-                                                  "Strong style separation: 0.85-0.99 with separation_until 0.1-0.5.")}),
+                                                  "Regions placed reliably: 0.85 with separation_until 0.1 (the default).\n"
+                                                  "Smoother blending of objects, characters and styles: 0.4 with separation_until 0.1.\n"
+                                                  "Strongest style separation: 0.85-0.99 with separation_until 0.1-0.5.")}),
                 "separation_until": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.05,
                                      "tooltip": ("inside the model only.\n"
                                                  "separation_until: The share of the steps, counted from the start, in which the "
                                                  "regions are kept separate (0 to 1); the remaining steps blend them together.\n"
-                                                 "Smooth integration of objects, characters and styles: 0.1 with region_separation "
-                                                 "0.4 (the default).\n"
-                                                 "Strong style separation: 0.1-0.5 with region_separation 0.85-0.99.")}),
+                                                 "Regions placed reliably: 0.1 with region_separation 0.85 (the default).\n"
+                                                 "Smoother blending of objects, characters and styles: 0.1 with region_separation 0.4.\n"
+                                                 "Strongest style separation: 0.1-0.5 with region_separation 0.85-0.99.")}),
                 "loras_data": ("STRING", {"default": '{"v":2,"rows":[]}', "multiline": False}),
                 # after loras_data, so workflows saved before it existed keep their widget values
                 "separate_all_regions": ("BOOLEAN", {"default": False,
@@ -1479,7 +1479,7 @@ class RegionalLoRAs:
         return True
 
     def run(self, model, clip, masks, positive_prompt, negative_prompt, feather, loras_data, lora_masking=MASKING_MODES[0],
-            region_separation=0.4, separation_until=0.1, separate_all_regions=False, share_background=False,
+            region_separation=0.85, separation_until=0.1, separate_all_regions=False, share_background=False,
             wildcard_seed=0, unique_id=None):
         from .bbox_masks import box_blur
         from .wildcards import Filler

@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.50.1-8f73d6)
+![Version](https://img.shields.io/badge/version-0.51.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -238,8 +238,9 @@ Good starting points:
 
 | Goal | separation | until |
 |---|---|---|
-| Smooth integration of objects, characters and styles (the default) | 0.4 | 0.1 |
-| Strong style separation | 0.85–0.99 | 0.1–0.5 |
+| Regions placed reliably (the default) | 0.85 | 0.1 |
+| Smoother blending of objects, characters and styles | 0.4 | 0.1 |
+| Strongest style separation | 0.85–0.99 | 0.1–0.5 |
 
 → [More in the manual](docs/regional-loras.md#separation-and-until)
 

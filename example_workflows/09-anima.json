@@ -1,5 +1,5 @@
 {
-  "id": "2ca3fbe3-3b25-4a5f-83a7-85ebaf955115",
+  "id": "e972515d-55ed-4330-b5e0-821d46e24062",
   "revision": 0,
   "last_node_id": 8,
   "last_link_id": 10,
@@ -111,8 +111,8 @@
           "wildcard_seed": 0,
           "width": 1024,
           "height": 1024,
-          "scene_prompt_positive": "a quiet harbor at sunrise, soft mist over the water, warm light, painterly",
-          "scene_prompt_negative": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia",
+          "scene_prompt_positive": "a quiet harbor at sunrise, soft mist over the water, warm light, painterly, watercolor \\(medium\\), oil painting \\(medium\\), traditional media, impressionism",
+          "scene_prompt_negative": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, artist name, watermark, signature",
           "scene_prompt_background": "",
           "image_mode": "backdrop (trace over)",
           "min_region_pixels": 64,
@@ -126,11 +126,11 @@
       "widgets_values": [
         1024,
         1024,
-        "a quiet harbor at sunrise, soft mist over the water, warm light, painterly",
-        "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia",
+        "a quiet harbor at sunrise, soft mist over the water, warm light, painterly, watercolor \\(medium\\), oil painting \\(medium\\), traditional media, impressionism",
+        "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, artist name, watermark, signature",
         "backdrop (trace over)",
         64,
-        "{\"v\":2,\"regions\":[{\"id\":3,\"color\":\"#3FA9A0\",\"prompt\":\"a flock of seagulls in the pale sky\",\"type\":\"object\",\"text\":\"\"},{\"id\":2,\"color\":\"#E3B341\",\"prompt\":\"a small red fishing boat with a folded sail, reflected in the calm water\",\"type\":\"object\",\"text\":\"\"},{\"id\":1,\"color\":\"#8F73D1\",\"prompt\":\"a white lighthouse on a rocky point, its lamp glowing\",\"type\":\"object\",\"text\":\"\"}],\"layers\":[{\"id\":1,\"name\":\"Rectangle 1\",\"region\":1,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.3187200317382813,\"bh\":0.6573601074218749,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":-0.2589599914550781,\"oy\":0.029880004882812505,\"ops\":[]},{\"id\":2,\"name\":\"Rectangle 2\",\"region\":2,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.41831994628906255,\"bh\":0.31871997070312497,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.20915997314453127,\"oy\":0.17928002929687503,\"ops\":[]},{\"id\":3,\"name\":\"Rectangle 3\",\"region\":3,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.37848004150390624,\"bh\":0.2589600830078125,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.2091600036621094,\"oy\":-0.26891998291015623,\"ops\":[]}],\"loraOpts\":{\"separation\":0.85,\"until\":0.1}}",
+        "{\"v\":2,\"regions\":[{\"id\":3,\"color\":\"#3FA9A0\",\"prompt\":\"a flock of seagulls in the pale sky\",\"type\":\"object\",\"text\":\"\"},{\"id\":2,\"color\":\"#E3B341\",\"prompt\":\"a small red fishing boat with a folded sail, reflected in the calm water\",\"type\":\"object\",\"text\":\"\"},{\"id\":1,\"color\":\"#8F73D1\",\"prompt\":\"a white lighthouse on a rocky point, its lamp glowing\",\"type\":\"object\",\"text\":\"\"}],\"layers\":[{\"id\":1,\"name\":\"Rectangle 1\",\"region\":1,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.3187200317382813,\"bh\":0.6573601074218749,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":-0.2589599914550781,\"oy\":0.029880004882812505,\"ops\":[]},{\"id\":2,\"name\":\"Rectangle 2\",\"region\":2,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.41831994628906255,\"bh\":0.31871997070312497,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.20915997314453127,\"oy\":0.17928002929687503,\"ops\":[]},{\"id\":3,\"name\":\"Rectangle 3\",\"region\":3,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.37848004150390624,\"bh\":0.2589600830078125,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.2091600036621094,\"oy\":-0.26891998291015623,\"ops\":[]}],\"loraOpts\":{\"separation\":0.85,\"until\":0.1,\"shareBg\":true}}",
         "ask before replacing",
         "",
         "auto",
@@ -142,11 +142,11 @@
       "widgets_values_named": {
         "width": 1024,
         "height": 1024,
-        "scene_prompt_positive": "a quiet harbor at sunrise, soft mist over the water, warm light, painterly",
-        "scene_prompt_negative": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia",
+        "scene_prompt_positive": "a quiet harbor at sunrise, soft mist over the water, warm light, painterly, watercolor \\(medium\\), oil painting \\(medium\\), traditional media, impressionism",
+        "scene_prompt_negative": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, artist name, watermark, signature",
         "image_mode": "backdrop (trace over)",
         "min_region_pixels": 64,
-        "paint_data": "{\"v\":2,\"regions\":[{\"id\":3,\"color\":\"#3FA9A0\",\"prompt\":\"a flock of seagulls in the pale sky\",\"type\":\"object\",\"text\":\"\"},{\"id\":2,\"color\":\"#E3B341\",\"prompt\":\"a small red fishing boat with a folded sail, reflected in the calm water\",\"type\":\"object\",\"text\":\"\"},{\"id\":1,\"color\":\"#8F73D1\",\"prompt\":\"a white lighthouse on a rocky point, its lamp glowing\",\"type\":\"object\",\"text\":\"\"}],\"layers\":[{\"id\":1,\"name\":\"Rectangle 1\",\"region\":1,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.3187200317382813,\"bh\":0.6573601074218749,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":-0.2589599914550781,\"oy\":0.029880004882812505,\"ops\":[]},{\"id\":2,\"name\":\"Rectangle 2\",\"region\":2,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.41831994628906255,\"bh\":0.31871997070312497,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.20915997314453127,\"oy\":0.17928002929687503,\"ops\":[]},{\"id\":3,\"name\":\"Rectangle 3\",\"region\":3,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.37848004150390624,\"bh\":0.2589600830078125,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.2091600036621094,\"oy\":-0.26891998291015623,\"ops\":[]}],\"loraOpts\":{\"separation\":0.85,\"until\":0.1}}",
+        "paint_data": "{\"v\":2,\"regions\":[{\"id\":3,\"color\":\"#3FA9A0\",\"prompt\":\"a flock of seagulls in the pale sky\",\"type\":\"object\",\"text\":\"\"},{\"id\":2,\"color\":\"#E3B341\",\"prompt\":\"a small red fishing boat with a folded sail, reflected in the calm water\",\"type\":\"object\",\"text\":\"\"},{\"id\":1,\"color\":\"#8F73D1\",\"prompt\":\"a white lighthouse on a rocky point, its lamp glowing\",\"type\":\"object\",\"text\":\"\"}],\"layers\":[{\"id\":1,\"name\":\"Rectangle 1\",\"region\":1,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.3187200317382813,\"bh\":0.6573601074218749,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":-0.2589599914550781,\"oy\":0.029880004882812505,\"ops\":[]},{\"id\":2,\"name\":\"Rectangle 2\",\"region\":2,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.41831994628906255,\"bh\":0.31871997070312497,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.20915997314453127,\"oy\":0.17928002929687503,\"ops\":[]},{\"id\":3,\"name\":\"Rectangle 3\",\"region\":3,\"visible\":true,\"shape\":\"rect\",\"sides\":5,\"bw\":0.37848004150390624,\"bh\":0.2589600830078125,\"sx\":1,\"sy\":1,\"rot\":0,\"ox\":0.2091600036621094,\"oy\":-0.26891998291015623,\"ops\":[]}],\"loraOpts\":{\"separation\":0.85,\"until\":0.1,\"shareBg\":true}}",
         "import_mode": "ask before replacing",
         "scene_prompt_background": "",
         "prompt_format": "auto",
@@ -181,21 +181,14 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "UNETLoader",
-        "models": [
-          {
-            "name": "anima-base-v1.0.safetensors",
-            "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors",
-            "directory": "diffusion_models"
-          }
-        ]
+        "Node name for S&R": "UNETLoader"
       },
       "widgets_values": [
-        "anima-base-v1.0.safetensors",
+        "rdbt_v3.0_sma_anima_b1_ckpt.safetensors",
         "default"
       ],
       "widgets_values_named": {
-        "unet_name": "anima-base-v1.0.safetensors",
+        "unet_name": "rdbt_v3.0_sma_anima_b1_ckpt.safetensors",
         "weight_dtype": "default"
       }
     },
@@ -335,8 +328,8 @@
         "Node name for S&R": "KSampler"
       },
       "widgets_values": [
-        0,
-        "randomize",
+        1,
+        "fixed",
         30,
         4,
         "euler",
@@ -344,8 +337,8 @@
         1
       ],
       "widgets_values_named": {
-        "seed": 0,
-        "control_after_generate": "randomize",
+        "seed": 1,
+        "control_after_generate": "fixed",
         "steps": 30,
         "cfg": 4,
         "sampler_name": "euler",
@@ -496,10 +489,10 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "## Region Genie: Anima\n\nAnima has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself).\n\n**Model files** (pick your own in the loaders if yours are named differently):\n- [anima-base-v1.0.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors) → `models/diffusion_models`\n- [qwen_3_06b_base.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors) → `models/text_encoders`\n- [qwen_image_vae.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors) → `models/vae`\n\nManual: https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie"
+        "## Region Genie: Anima\n\nAnima has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself). \"Share the background\" is on (right-click the Separate button).\n\nThe loader names RDBT, an Anima finetune. Anima Base v1.0 works too: pick it in the loader.\n\n**Model files** (pick your own in the loaders if yours are named differently):\n- [anima-base-v1.0.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors) → `models/diffusion_models`\n- [rdbt_v3.0_sma_anima_b1_ckpt.safetensors](https://civitai.com/models/2356447/rdbt-or-anima) → `models/diffusion_models`\n- [qwen_3_06b_base.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors) → `models/text_encoders`\n- [qwen_image_vae.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors) → `models/vae`\n\nManual: https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie"
       ],
       "widgets_values_named": {
-        "text": "## Region Genie: Anima\n\nAnima has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself).\n\n**Model files** (pick your own in the loaders if yours are named differently):\n- [anima-base-v1.0.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors) → `models/diffusion_models`\n- [qwen_3_06b_base.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors) → `models/text_encoders`\n- [qwen_image_vae.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors) → `models/vae`\n\nManual: https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie"
+        "text": "## Region Genie: Anima\n\nAnima has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself). \"Share the background\" is on (right-click the Separate button).\n\nThe loader names RDBT, an Anima finetune. Anima Base v1.0 works too: pick it in the loader.\n\n**Model files** (pick your own in the loaders if yours are named differently):\n- [anima-base-v1.0.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors) → `models/diffusion_models`\n- [rdbt_v3.0_sma_anima_b1_ckpt.safetensors](https://civitai.com/models/2356447/rdbt-or-anima) → `models/diffusion_models`\n- [qwen_3_06b_base.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors) → `models/text_encoders`\n- [qwen_image_vae.safetensors](https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors) → `models/vae`\n\nManual: https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie"
       },
       "color": "#432",
       "bgcolor": "#653"

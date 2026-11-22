@@ -105,18 +105,18 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await tb.click(); await page.waitForTimeout(200); await page.mouse.move(880, 1080); await page.waitForTimeout(200);
     check("another click shows them again", !!(await tips()) && await tb.evaluate((b) => b.classList.contains("on")));
 
-    // ---- round 52: a new node starts at separation 0.4 / until 0.1 and says so in its data; a node saved without the
+    // ---- round 52 (values of round 68): a new node starts at separation 0.85 / until 0.1 and says so in its data; a node saved without the
     // two values (before this round) keeps 0.85 / 0.25
     const lo = await page.evaluate(() => JSON.parse(JSON.stringify(window.__node.__rgState().loraOpts || null)));
-    check(`a new node's data holds separation 0.4 and until 0.1 (${JSON.stringify(lo)})`, !!lo && lo.separation === 0.4 && lo.until === 0.1);
+    check(`a new node's data holds separation 0.85 and until 0.1 (${JSON.stringify(lo)})`, !!lo && lo.separation === 0.85 && lo.until === 0.1);
     await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...s.loraOpts, allRegions: true }; n.__rgRefresh(); }); await page.waitForTimeout(200);
     const flds = () => page.evaluate(() => [...document.querySelectorAll(".rg-loraopts input")].map((i) => i.value));
     const tipsSU = await page.evaluate(() => [...document.querySelectorAll(".rg-loraopts input")].map((i) => i.title));
-    check(`the header's fields show them (${await flds()})`, (await flds()).join() === "0.4,0.1");
-    check("their tooltips: what it does, then the smooth-integration values (the default), then the strong-separation values", /^separation: How strongly the regions are kept from influencing each other/.test(tipsSU[0])
-        && tipsSU[0].indexOf("Smooth integration of objects, characters and styles: 0.4 with until 0.1 (the default).") > 0 && tipsSU[0].indexOf("Strong style separation: 0.85-0.99 with until 0.1-0.5.") > tipsSU[0].indexOf("Smooth integration")
-        && /^until: The share of the steps, counted from the start/.test(tipsSU[1]) && tipsSU[1].indexOf("Smooth integration of objects, characters and styles: 0.1 with separation 0.4 (the default).") > 0
-        && tipsSU[1].indexOf("Strong style separation: 0.1-0.5 with separation 0.85-0.99.") > tipsSU[1].indexOf("Smooth integration") && !/LoRA/.test(tipsSU.join(" ")));
+    check(`the header's fields show them (${await flds()})`, (await flds()).join() === "0.85,0.1");
+    check("their tooltips: what it does, then the default's values, the smoother blend's, the strongest separation's", /^separation: How strongly the regions are kept from influencing each other/.test(tipsSU[0])
+        && tipsSU[0].endsWith("Regions placed reliably: 0.85 with until 0.1 (the default).\nSmoother blending of objects, characters and styles: 0.4 with until 0.1.\nStrongest style separation: 0.85-0.99 with until 0.1-0.5.")
+        && /^until: The share of the steps, counted from the start/.test(tipsSU[1])
+        && tipsSU[1].endsWith("Regions placed reliably: 0.1 with separation 0.85 (the default).\nSmoother blending of objects, characters and styles: 0.1 with separation 0.4.\nStrongest style separation: 0.1-0.5 with separation 0.85-0.99.") && !/LoRA/.test(tipsSU.join(" ")));
     const saved52 = await page.evaluate(() => JSON.stringify(window.__node.__rgState().loraOpts));
     // a workflow saved before: its data has no values; loading it (configure) gives it the earlier defaults
     await page.evaluate(() => { const n = window.__node, w = n.widgets.find((x) => x.name === "paint_data"), d = JSON.parse(w.value || "{}"); delete d.loraOpts; w.value = JSON.stringify(d); n.onConfigure?.({ widgets_values: n.widgets.map((x) => x.value), properties: n.properties }); });

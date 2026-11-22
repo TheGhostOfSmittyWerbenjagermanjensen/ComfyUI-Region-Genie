@@ -1,5 +1,5 @@
 {
-  "id": "82726c77-fcd8-49df-9d5f-907508c8e4d2",
+  "id": "c8307eaa-7f2f-44ad-8df5-951155efc5e4",
   "revision": 0,
   "last_node_id": 6,
   "last_link_id": 10,
@@ -261,8 +261,8 @@
         "Node name for S&R": "KSampler"
       },
       "widgets_values": [
-        0,
-        "randomize",
+        1,
+        "fixed",
         20,
         8,
         "euler",
@@ -270,8 +270,8 @@
         1
       ],
       "widgets_values_named": {
-        "seed": 0,
-        "control_after_generate": "randomize",
+        "seed": 1,
+        "control_after_generate": "fixed",
         "steps": 20,
         "cfg": 8,
         "sampler_name": "euler",

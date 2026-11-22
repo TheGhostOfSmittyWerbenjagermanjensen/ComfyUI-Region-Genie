@@ -8,7 +8,7 @@ does the same from its own regions: press ＋LoRA on a region there.)
   and words for that region.
 - Use the `model`, `positive` and `negative` outputs for the sampler.
 - `region_separation` is how strongly the regions are kept from influencing each other, `separation_until` for
-  how much of the sampling (0.4 / 0.1: a smooth blend; 0.85-0.99 with 0.1-0.5: strong style separation);
+  how much of the sampling (0.85 / 0.1, the defaults: regions placed reliably; 0.4 / 0.1: a smoother blend; 0.85-0.99 with 0.1-0.5: strongest style separation);
   `feather` softens the mask edges.
 - In any text box, **Ctrl+Up / Ctrl+Down** raise or lower the weight of the word or tag at the cursor: `(tag:1.05)`.
 - The wildcard seed shows at the top right while a field has a wildcard (ComfyUI Impact Pack).

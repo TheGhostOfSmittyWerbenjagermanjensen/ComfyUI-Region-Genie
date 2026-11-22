@@ -291,11 +291,11 @@
   },
   "RegionGenie_Main_RegionSeparation": {
     "name": "separation (separación)",
-    "tooltip": "separation: Con qué fuerza se evita que las regiones influyan unas en otras mientras se forma la imagen (de 0 a 1; más alto = más separadas).\nIntegración suave de objetos, personajes y estilos: 0.4 con until 0.1 (el valor predeterminado).\nSeparación fuerte de estilos: 0.85-0.99 con until 0.1-0.5.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+    "tooltip": "separation: Con qué fuerza se evita que las regiones influyan unas en otras mientras se forma la imagen (de 0 a 1; más alto = más separadas).\nRegiones colocadas de forma fiable: 0.85 con until 0.1 (el valor predeterminado).\nIntegración más suave de objetos, personajes y estilos: 0.4 con until 0.1.\nSeparación de estilos más fuerte: 0.85-0.99 con until 0.1-0.5.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
   "RegionGenie_Main_SeparationUntil": {
     "name": "until (hasta)",
-    "tooltip": "until: La parte de los pasos, contada desde el principio, en la que las regiones se mantienen separadas (de 0 a 1); los pasos restantes las funden entre sí.\nIntegración suave de objetos, personajes y estilos: 0.1 con separation 0.4 (el valor predeterminado).\nSeparación fuerte de estilos: 0.1-0.5 con separation 0.85-0.99.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
+    "tooltip": "until: La parte de los pasos, contada desde el principio, en la que las regiones se mantienen separadas (de 0 a 1); los pasos restantes las funden entre sí.\nRegiones colocadas de forma fiable: 0.1 con separation 0.85 (el valor predeterminado).\nIntegración más suave de objetos, personajes y estilos: 0.1 con separation 0.4.\nSeparación de estilos más fuerte: 0.1-0.5 con separation 0.85-0.99.\nSe aplica a los nodos añadidos a partir de ahora; los nodos que ya están en un flujo de trabajo conservan su propio valor."
   },
   "RegionGenie_Main_AllRegionsSeparate": {
     "name": "Mantener todas las regiones separadas (no solo las que tienen LoRAs)",

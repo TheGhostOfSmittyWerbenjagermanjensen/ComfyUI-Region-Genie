@@ -303,8 +303,10 @@ export function* pose(E) {
 
     // ---- the pose_keypoint input's figures onto the canvas (round 64): the strip's import button ----
     // The keypoints only exist once the nodes before the input have run, so the button queues a small prompt of its
-    // own: those nodes and nothing after them, plus the pack's internal node "Region-Genie_PoseFetch", which hands
-    // the people back as its run message. The sampler and the rest of the workflow don't run.
+    // own: those nodes and nothing after them, plus ComfyUI's own "Preview as Text" node (PreviewAny), which hands the
+    // keypoints back as JSON text in its run message; the pack's server turns that text into people
+    // (/region_genie/pose_people). The sampler and the rest of the workflow don't run. (No node of the pack's own
+    // for this: ComfyUI shows a "dev only" node in its search whenever its dev mode is on.)
     // A placed figure remembers which of the input's figures it is (src.sig) and how it looked when placed (src.own):
     //   - an input figure with an unchanged copy on the canvas is skipped;
     //   - one whose copy the user changed is placed again (Setting: next to the changed one, or in its place);
@@ -331,17 +333,20 @@ export function* pose(E) {
             };
             walk(link[0]);
             const fid = `rgpose${me}x${Date.now()}`;
-            need[fid] = { class_type: "Region-Genie_PoseFetch", inputs: { keypoints: link, nonce: String(Date.now()) } };
-            const people = await new Promise((resolve, reject) => {
+            need[fid] = { class_type: "PreviewAny", inputs: { source: link } };
+            const text = await new Promise((resolve, reject) => {
                 let pid = null;
                 const done = (fn, v) => { api.removeEventListener("executed", onEx); api.removeEventListener("execution_error", onErr); clearTimeout(t); fn(v); };
-                const onEx = (e) => { if (String(e.detail?.node) === fid || String(e.detail?.display_node) === fid) done(resolve, e.detail.output?.pose_people || []); };
+                const onEx = (e) => { if (String(e.detail?.node) === fid || String(e.detail?.display_node) === fid) done(resolve, e.detail.output?.text ?? ""); };
                 const onErr = (e) => { if (!pid || e.detail?.prompt_id === pid) done(reject, new Error(e.detail?.exception_message || "the nodes that make the keypoints stopped with an error")); };
                 const t = setTimeout(() => done(reject, new Error("no answer after 10 minutes")), 600000);
                 api.addEventListener("executed", onEx); api.addEventListener("execution_error", onErr);
                 Promise.resolve(api.queuePrompt(0, { output: need, workflow: p.workflow })).then((r) => { pid = r?.prompt_id || null; }, (err) => done(reject, err));
             });
-            placeInput(people);
+            const r = await api.fetchApi("/region_genie/pose_people", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j.error || "the server could not read the keypoints");
+            placeInput(j.people || []);
         } catch (e) {
             E.hint(""); E.showMsg("Pose figures from the input: " + (e?.response?.error?.message || e?.message || e));
         } finally { E.poseTaking = false; poseStripSync(); }
