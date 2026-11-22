@@ -114,6 +114,46 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.waitForTimeout(60);
     const setTxt = () => page.evaluate(() => window.__settings["RegionGenie.Size.Presets"]);
     check("editing saves to the shared Setting", /^1024x1024 square; 896x1152;/.test(await setTxt() || ""));
+    // ---- round 69: columns with headers that sort, a handle to drag a row, no up / down buttons
+    const prow = () => page.evaluate(() => [...document.querySelectorAll(".rg-presets .rg-presets-row")].map((r) => { const i = r.querySelectorAll("input"); return [+i[0].value, +i[1].value, i[2].value || i[2].placeholder]; }));
+    const lay = await page.evaluate(() => { const rows = [...document.querySelectorAll(".rg-presets .rg-presets-row")], col = (k) => rows.map((r) => r.children[k].getBoundingClientRect());
+        const same = (rs) => new Set(rs.map((r) => Math.round(r.left) + ":" + Math.round(r.width))).size === 1;
+        const heads = [...document.querySelectorAll(".rg-presets .rg-presets-col")];
+        return { same: [0, 1, 2, 3, 4].map((k) => same(col(k))), heads: heads.map((h) => h.textContent.trim()), headAt: heads.map((h, k) => Math.round(h.getBoundingClientRect().left) === Math.round(col(k + 1)[0].left) && Math.round(h.getBoundingClientRect().width) === Math.round(col(k + 1)[0].width)),
+            wEq: Math.round(col(1)[0].width) === Math.round(col(2)[0].width), grips: rows.every((r) => r.children[0].classList.contains("rg-grip") && r.children[0].querySelector("svg")), btns: rows.every((r) => r.querySelectorAll("button").length === 1),
+            area: rows.every((r) => [r.children[0], r.children[4]].every((e) => { const b = e.getBoundingClientRect(), a = getComputedStyle(e, "::before"); return parseFloat(a.height) >= 24 && parseFloat(a.width) > b.width; })) }; });
+    check(`the list is a table: every column's fields start at one place and are equally wide (${lay.same}); width and height are as wide as each other`, lay.same.every(Boolean) && lay.wEq);
+    check(`headers Width, Height, Name stand over their columns (${lay.heads})`, lay.heads.join() === "Width,Height,Name" && lay.headAt.every(Boolean));
+    check("each row has a handle on the left and one button, remove; the click areas of both are at least 24 px tall and wider than they look", lay.grips && lay.btns && lay.area);
+    const before69 = await prow(), keyOf = (r) => r.join("/");
+    const hd = (name) => page.locator(".rg-presets .rg-presets-col", { hasText: name });
+    await hd("Width").click(); await page.waitForTimeout(80);
+    let now69 = await prow();
+    check(`Width sorts the rows by width, smallest first (${now69.map((r) => r[0])}), and shows an arrow`, now69.every((r, i) => !i || now69[i - 1][0] <= r[0]) && await hd("Width").getAttribute("data-dir") === "up" && await page.locator(".rg-presets .rg-presets-dir").count() === 1);
+    check("…whole rows moved: each width still has its height and name", now69.map(keyOf).sort().join() === before69.map(keyOf).sort().join());
+    check("…and the new order is the saved list's", (await setTxt()).split(";").map((t) => +t.trim().split("x")[0]).join() === now69.map((r) => r[0]).join());
+    await hd("Width").click(); await page.waitForTimeout(80);
+    now69 = await prow();
+    check(`a second click: largest first (${now69.map((r) => r[0])})`, now69.every((r, i) => !i || now69[i - 1][0] >= r[0]) && await hd("Width").getAttribute("data-dir") === "down");
+    await hd("Height").click(); await page.waitForTimeout(80);
+    now69 = await prow();
+    check(`Height sorts by height (${now69.map((r) => r[1])}); the arrow is on Height only`, now69.every((r, i) => !i || now69[i - 1][1] <= r[1]) && await hd("Height").getAttribute("data-dir") === "up" && await hd("Width").getAttribute("data-dir") === null);
+    await hd("Name").click(); await page.waitForTimeout(80);
+    now69 = await prow();
+    const unnamed = now69.filter((r) => /^\d+:\d+$/.test(r[2])), named = now69.filter((r) => !/^\d+:\d+$/.test(r[2]));
+    check(`Name: the rows that show a ratio come first, from the tallest picture to the widest (${unnamed.map((r) => r[2])}), then the named ones (${named.map((r) => r[2])})`,
+        unnamed.length >= 5 && named.length === 1 && now69.slice(0, unnamed.length).every((r, i) => r === unnamed[i]) && unnamed.every((r, i) => !i || unnamed[i - 1][0] / unnamed[i - 1][1] <= r[0] / r[1]));
+    await hd("Name").click(); await page.waitForTimeout(80);
+    check("…a second click: the opposite order, the named one first", (await prow())[0][2] === "square" && (await prow()).map(keyOf).join() === [...now69].reverse().map(keyOf).join());
+    // drag the first row's handle below the third row
+    const g0 = await page.locator(".rg-presets .rg-presets-row .rg-grip").nth(0).boundingBox(), g2 = await page.locator(".rg-presets .rg-presets-row .rg-grip").nth(2).boundingBox();
+    const b4 = await prow();
+    await page.mouse.move(g0.x + g0.width / 2, g0.y + g0.height / 2); await page.mouse.down(); await page.mouse.move(g0.x + 3, g2.y + g2.height - 1, { steps: 6 });
+    const lineAt = await page.evaluate(() => { const l = document.querySelector(".rg-presets .rg-presets-drop"); return l ? Math.round(l.getBoundingClientRect().top) : null; });
+    await page.mouse.up(); await page.waitForTimeout(100);
+    const af = await prow();
+    check(`dragging a handle moves that row: the first row is now the third (a line showed where: ${lineAt})`, lineAt !== null && lineAt > g2.y && keyOf(af[2]) === keyOf(b4[0]) && keyOf(af[0]) === keyOf(b4[1]) && keyOf(af[1]) === keyOf(b4[2]) && af.length === b4.length);
+    check("…saved, the pop-up is still open, and no header claims an order the list no longer has", (await setTxt()).split(";").length === af.length && await pop.isVisible() && await page.locator(".rg-presets .rg-presets-dir").count() === 0);
     await page.mouse.click(5, 5); await page.waitForTimeout(80);
     check("a click outside closes it", !await pop.isVisible());
     check("list follows the Setting (8 sizes, named one; two to add, Edit list…)", await pre.locator("option:not([disabled])").count() === 11

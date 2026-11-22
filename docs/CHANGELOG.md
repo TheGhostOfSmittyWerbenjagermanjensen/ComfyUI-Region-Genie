@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 69 (Nov 22): the presets editor as a sortable table
+- Asked: in the image size presets' "Edit list…" pop-up: grab handles like the Regions list's, headers Width / Height / Name, columns lined up and as wide as their widest field, a click on a header sorts whole rows as a file manager does (also by the ratio an unnamed row shows). A mock-up first.
+- Decided by the owner (mock-up and three questions): build it as drawn; the up / down buttons go; sorted by Name, the rows showing a ratio are ordered by shape (tallest to widest) and come before the named ones; the handle and ✕ get the node's larger click areas.
+- Built: `openPresetEditor` (sizeRow.js) and its styles: grid table, `COLS` with comparators, stable sort saved to the Setting, the arrow in the sorted header, drag by the handle with a drop line. Version 0.52.0.
+- Tests: `ui_rows_popups.cjs` (columns, headers, click areas, Width / Height / Name both ways, rows stay whole, drag); real ComfyUI in both modes: `real_fields_popups`, `real_tooltips`.
+
 ## Round 68 (Nov 22): separation back to 0.85; no internal node; fixed seed and Anima settings in the examples
 - Asked: the default separation back to 0.85 (until stays 0.1) on both nodes, after the owner's tests across models: the regions end up where they belong more reliably than with 0.4. The internal pose node shows in ComfyUI's search. In the examples: seed 1, fixed; for Anima the RDBT finetune, *Share the background*, style and quality tags.
 - Found: `DEV_ONLY` hides a node only while ComfyUI's dev mode is off.

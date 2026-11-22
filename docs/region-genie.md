@@ -160,8 +160,11 @@ The row at the top of the node sets the size of the picture. Three buttons on th
   - To get a size made with the aspect ratio or typed in into the list, switch to presets and open the dropdown. Under the presets it has **＋ Add 1000 × 760 (the manual size)** and the same for the aspect ratio size.
   - Picking one adds that size to the list and makes it this node's size. A size that is already in the list isn't offered.
   - The last entry, **Edit list…**, opens a small editor:
-    - Change a size or give it a name.
-    - ↑ ↓ to reorder, ✕ to remove.
+    - It is a table with the columns **Width**, **Height** and **Name**. Change a size or give it a name in its row.
+    - Click a column's header to sort the rows by it; click again for the opposite order. An arrow marks the sorted column.
+      - A row without a name shows its ratio. Sorted by Name, those rows come first, from the tallest picture to the widest; the named rows follow.
+      - The order is the list's own: the dropdown on the node follows it.
+    - Drag the handle at a row's left to move it; ✕ removes it.
     - A **＋ W × H** button for each size the other two ways are set to. It adds that size without changing the node's.
     - **Defaults** to put the starting list back (1024×1024, 1152×896, 896×1152, 1216×832, 832×1216, 1344×768, 768×1344, 1536×640, 640×1536).
   - The list is also in **Settings > Region Genie > Image size > Presets**.
