@@ -1,7 +1,7 @@
 {
   "Region-Genie_PoseFetch": {
     "display_name": "Pose keypoints to the Region Genie canvas (internal)",
-    "description": "Internal: gives pose keypoints back to the Region Genie editor (the Pose tool's import button).",
+    "description": "Internal: Gives pose keypoints back to the Region Genie editor (the Pose tool's import button).",
     "inputs": {
       "keypoints": {
         "name": "keypoints"

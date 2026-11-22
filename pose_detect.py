@@ -156,7 +156,7 @@ class PoseFetch:
     editor (as the run's UI message), which places them on the canvas. Nothing is saved, nothing goes on."""
     DEV_ONLY = True                    # hidden from the node menu and search (shown only in ComfyUI's dev mode)
     CATEGORY = "Region Genie"
-    DESCRIPTION = "Internal: gives pose keypoints back to the Region Genie editor (the Pose tool's import button)."
+    DESCRIPTION = "Internal: Gives pose keypoints back to the Region Genie editor (the Pose tool's import button)."
     OUTPUT_NODE = True
     RETURN_TYPES = ()
     FUNCTION = "run"
