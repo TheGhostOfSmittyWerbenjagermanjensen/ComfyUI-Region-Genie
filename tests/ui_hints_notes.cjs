@@ -20,6 +20,17 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
 
     // ---- an empty canvas: the start card and the Select tool's hints
     check("empty canvas: the start card shows three steps", await shown(".rg-start") && await page.locator(".rg-start i").count() === 3);
+    const cards = await page.evaluate(() => [...document.querySelectorAll(".rg-start .rg-start-card")].map((c) => ({ head: c.querySelector("b").textContent, text: c.textContent })));
+    check(`…as two cards: with regions, and without (${cards.map((c) => c.head).join(" | ")})`, cards.length === 2 && cards[0].head === "Start here: with regions" && cards[1].head === "Or without regions"
+        && /double-click the middle of the region/.test(cards[0].text) && /scene_prompt_positive and scene_prompt_negative/.test(cards[1].text) && /Whole image \(the first row of the list under the canvas\)/.test(cards[1].text));
+    const cardOp = () => page.evaluate(() => getComputedStyle(document.querySelector(".rg-start")).opacity);
+    {
+        const cb = await page.locator(".rg-cv").boundingBox();
+        await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height / 2); await page.waitForTimeout(400);
+        const over = await cardOp();
+        await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height + 60); await page.waitForTimeout(400);
+        check(`the start cards hide while the pointer is on the canvas (${over}) and come back when it leaves (${await cardOp()})`, over === "0" && await cardOp() === "1");
+    }
     check("empty canvas: hints for the Select tool (click, zoom, pan)", /Click Select a layer/.test(await tips() || "") && /Wheel Zoom/.test(await tips()) && /Space\+drag Pan/.test(await tips()));
     check("hints and start card take no clicks", await page.evaluate(() => [".rg-tips", ".rg-start"].every((s) => getComputedStyle(document.querySelector(s)).pointerEvents === "none")));
     // ---- every tool has its own hints

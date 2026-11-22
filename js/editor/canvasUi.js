@@ -16,11 +16,16 @@ export function* canvasUi(E) {
     // gestures along the bottom edge, and the first steps while the canvas is empty. Neither takes clicks; the
     // gestures fade while a button is held on the canvas, so they never cover what is being drawn.
     const tips = E.el("div", "rg-tips"), startCard = E.el("div", "rg-start");
-    const setStartCard = () => { startCard.innerHTML = "<b>Start here</b>"
+    // Two cards (round 65): the steps with regions, and that none are needed. Like the gestures they hide while
+    // the pointer is on the canvas (.rg-cv.over), and show only while the canvas is empty (syncTips).
+    const setStartCard = () => { startCard.innerHTML = "<div class=\"rg-start-card\"><b>Start here: with regions</b>"
         + keyed("<span><i>1</i>Pick a shape (R) and drag a box on the canvas: that is your first region.</span>")
-        + "<span><i>2</i>Type what belongs there in the region's prompt, in the list under the canvas.</span>"
+        + "<span><i>2</i>Type what belongs there: in the region's prompt in the list under the canvas, or double-click the middle of the region on the canvas.</span>"
         + "<span><i>3</i>Connect model and clip, send positive, negative and latent to the sampler, and run.</span>"
-        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span>"; };
+        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span></div>"
+        + "<div class=\"rg-start-card\"><b>Or without regions</b>"
+        + "<span>Fill in scene_prompt_positive and scene_prompt_negative, add LoRAs under Whole image (the first row of the list under the canvas) if you like, and run. "
+        + "The same workflow does plain text-to-image.</span></div>"; };
     setStartCard(); E.setStartCard = setStartCard;
     E.cvBox.append(tips, startCard);
     // The keys come from the shortcut table (rg_keys.js), so the hints show the user's own; an entry whose key was

@@ -2,6 +2,13 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 65 (Nov 22): two start cards; tool dropdowns with icons, keys and tooltips; a key for every shape
+- Asked: say on the empty canvas that regions aren't needed, as its own section; I drew four layouts and the owner chose two cards. With it: name where *Whole image* is; step 2 also names the double-click on the region; the cards hide while the pointer is on the canvas, like the hints; the Shape list shows icons and "(Name)"; every shape has a shortcut; pointing at a row of a tool's list shows its tooltip.
+- Decided by the owner: two cards; on a low canvas the cards may run past its edges ("Leave it").
+- Decided by me: the new keys are Shift+R (rounded rectangle), N (pentagon), X (hexagon), S (star), H (heart), all changeable in the shortcut sheet. All five tool lists (not only Shape) got icons, keys and tooltips, by moving them to the pack's own menu. The cards don't come back for the few seconds after a tool change, unlike the hints.
+- Built: `.rg-start-card` ×2 (canvasUi.js, style.js); `groupMenu` on `openMenu` with new row options `tick` and `title` (rg_menu.js); five commands (rg_keys.js). Version 0.49.0.
+- Tests: stub suite (cards, hiding, the Shape list's rows, keys and tooltip); real ComfyUI in both node modes: smoke, tooltips, layering, Settings.
+
 ## Round 59 (Nov 21): Ctrl+Up / Ctrl+Down (tag weight) in every text field
 - Asked: find out where the "Ctrl+Up / Ctrl+Down changes a tag's weight, `(tag:1.05)`" feature comes from, and make every prompt field of the pack work with it.
 - Found: it is ComfyUI's own (extension `Comfy.EditAttention`; step = Setting *Ctrl+up/down precision*, 0.05). Tried on the real page: it worked in the scene prompt boxes and in none of the pack's own fields (region prompt and text in the list, the pop-up editors), because those keep their key presses from reaching ComfyUI's listener.

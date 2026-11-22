@@ -41,7 +41,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("Magic wand / Select object button present", await btn.count() === 1);
     // Select object shares the magic wand's button (round 11): pick it from the button's ▾ list
     await btn.locator(".rg-grp-dd").click(); await page.waitForTimeout(400);
-    await page.locator(".litecontextmenu .litemenu-entry", { hasText: "Select object" }).first().click();
+    await page.locator(".rg-menu .rg-menu-item", { hasText: "Select object" }).first().click();
     await page.waitForTimeout(400);
     check("Select object picked from the ▾ list: the button shows it", /^Select object/.test(await btn.getAttribute("title")));
     await page.locator(".rg-toolopts").first().hover().catch(() => {});      // folded to an icon until hovered (round 12)

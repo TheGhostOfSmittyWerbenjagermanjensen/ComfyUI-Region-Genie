@@ -56,7 +56,7 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
   strip's import button puts the input's people on the canvas as figures you can edit.
 - **Number fields:** click one, then turn the mouse wheel anywhere over the node to change it (over the drawing canvas the
   wheel zooms).
-- **Shortcuts** work while the pointer is over the node: V select, R / O / T shapes, B brush, L lasso, F fill, P pose,
+- **Shortcuts** work while the pointer is over the node: V select, R / O / T shapes (every shape has a key: see the Shape list), B brush, L lasso, F fill, P pose,
   W magic wand, Q Select object, E eraser, G snap, Home fit, Space+drag pan, wheel zoom. **Press ?** (or the
   keyboard button in the bottom bar) for the whole list; click a key there to give it another key.
 - **Right-click the canvas** for a menu: on a region, what you can do with it (edit its prompt, hide, reorder,

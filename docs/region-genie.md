@@ -58,7 +58,9 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - `scene_prompt_positive` and `scene_prompt_negative` are the prompts; `positive`, `negative`, `latent` and `model` go to the sampler as always.
   - The size row sets the image size, and **＋LoRA** on *Whole image* adds LoRAs for the whole picture.
   - `prompt` is then your scene prompt as plain text (Ideogram 4: its caption JSON with no elements). Hiding every region (the eye buttons) does the same without deleting anything.
-- **An empty canvas** shows three first steps: pick a shape and drag a box (your first region), type its prompt in the list under the canvas, connect and run.
+- **An empty canvas** shows two cards. They hide while the pointer is on the canvas.
+  - **Start here: with regions** has three steps: pick a shape and drag a box (your first region), type its prompt (in the list, or double-click the middle of the region), connect and run.
+  - **Or without regions** says how to use the node for plain text-to-image: the two scene prompts, and LoRAs under *Whole image*.
 - **The line along the canvas's bottom edge** shows the keys and gestures of the tool in use (for the Rectangle: drag, Shift for equal sides, Alt from the centre).
   - It fades while the pointer is on the canvas (so it never covers what you work on), comes back when the pointer leaves, and shows for a few seconds when you switch tools.
   - The small **?** button in the canvas's lower right corner hides or shows the hints with one click (the same switch as in Settings).
@@ -249,6 +251,7 @@ The row at the top of the node sets the size of the picture. Three buttons on th
 The tools are the icons in the bar above the canvas. Point at one for its name and shortcut.
 
 - **The tool buttons:** the ones with versions show the version in use, with a **▾** on their right: click the icon to use it, click ▾ (or right-click the button) for the list.
+  - Each row of the list shows the version's icon and its key. Point at a row to read its tooltip before choosing it.
   - **Shape** lists the shapes, **Lasso** and **Fill** their versions, **Magic wand** also holds **Select object**, and **Eraser** also holds the three **Lasso erase** versions.
   - The keyboard shortcuts pick a tool from a list directly (R / O / T, L, F, W, Q, E, Shift+L) and the button follows.
   - Options of the tool in use (star points, corner radius, fill gap, wand tolerance, Select object's find field and ✓ / ✕) show in a small strip in the canvas's top-left corner, so the row of tools never changes width.
@@ -280,7 +283,7 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 
 ### Shapes
 
-- Shapes (the Shape button's ▾; its icon shows the shape it draws): Rectangle (R), Ellipse (O), Triangle (T), Rounded rectangle, Pentagon, Hexagon, Star and Heart.
+- Shapes (the Shape button's ▾; its icon shows the shape it draws): Rectangle (R), Rounded rectangle (Shift+R), Ellipse (O), Triangle (T), Pentagon (N), Hexagon (X), Star (S) and Heart (H).
   - Rounded rectangle: set the corner radius in % of the shorter side, in the strip on the canvas.
   - Star: set the number of points.
   - Drag a box to draw one (Shift for equal sides, Alt to draw from the centre out).

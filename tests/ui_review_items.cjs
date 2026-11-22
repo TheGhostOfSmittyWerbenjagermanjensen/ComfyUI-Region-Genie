@@ -106,7 +106,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await kb.click(); await page.waitForTimeout(120);
     let sh = await sheet();
     check(`the button opens the shortcut list on the page, inside the window (${sh?.groups.join(", ")}; ${sh?.rows.length} rows)`, !!sh && sh.onPage && sh.in && sh.groups.join("|") === "Tools|While drawing|Layers and regions|View|Text" && sh.rows.length > 40);
-    check("keys that can be changed are buttons; mouse gestures and held keys are listed but fixed", !!sh && sh.rows.filter((r) => !r.fixed).length === 36 && sh.rows.filter((r) => r.fixed).length >= 11
+    check("keys that can be changed are buttons; mouse gestures and held keys are listed but fixed", !!sh && sh.rows.filter((r) => !r.fixed).length === 41 && sh.rows.filter((r) => r.fixed).length >= 11
         && rowOf(sh, "edit.redo").keys.join("|") === "Ctrl+Shift+Z|Ctrl+Y" && sh.rows.some((r) => r.fixed && r.keys[0] === "Ctrl+Click" && /Take a spot out of the selection/.test(r.what)));
     check("nothing changed yet: 'Reset all' is greyed", !!sh && sh.resetOff && !sh.rows.some((r) => r.changed));
     check("the button is lit while the list is open", await kb.evaluate((b) => b.classList.contains("on")));
@@ -144,22 +144,22 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.keyboard.press("Escape"); await page.waitForTimeout(80);
     sh = await sheet();
     check("Esc then leaves the key as it is, and the list stays open", !!sh && rowOf(sh, "tool.select").keys.join() === "V");
-    await rebind("tool.select", "s");
+    await rebind("tool.select", "k");
     sh = await sheet();
-    check("click, then S: Select's key is S, marked as changed, and saved", rowOf(sh, "tool.select").keys.join() === "S" && rowOf(sh, "tool.select").changed && !sh.resetOff && JSON.stringify(await saved()) === '{"tool.select":["S"]}');
+    check("click, then K: Select's key is K, marked as changed, and saved", rowOf(sh, "tool.select").keys.join() === "K" && rowOf(sh, "tool.select").changed && !sh.resetOff && JSON.stringify(await saved()) === '{"tool.select":["K"]}');
     check("the tool was not switched by the key press itself", await toolNow() === "brush");
-    check("the Select button's tooltip names the new key at once", /layers \(S\)\./.test(await page.locator(".rg-bar .rg-btn").first().getAttribute("title")));
+    check("the Select button's tooltip names the new key at once", /layers \(K\)\./.test(await page.locator(".rg-bar .rg-btn").first().getAttribute("title")));
     await page.keyboard.press("Escape"); await page.waitForTimeout(80);
     await page.mouse.move(cx0, cy0); await page.keyboard.press("v"); await page.waitForTimeout(40);
     const afterV = await toolNow();
-    await page.keyboard.press("s"); await page.waitForTimeout(40);
-    check("on the canvas: V does nothing now, S picks Select", afterV === "brush" && await toolNow() === "select");
+    await page.keyboard.press("k"); await page.waitForTimeout(40);
+    check("on the canvas: V does nothing now, K picks Select", afterV === "brush" && await toolNow() === "select");
     check("the hints on the canvas use the keys in use too (Home for Fit)", /Home Fit/.test(await page.evaluate(() => document.querySelector(".rg-tips").textContent)));
     // a key that another command has: it is taken from that one, and the list says so
     await kb.click(); await page.waitForTimeout(120);
-    await rebind("tool.brush", "s");
+    await rebind("tool.brush", "k");
     sh = await sheet();
-    check(`a key in use is taken from the other command, with a note (${sh.note})`, rowOf(sh, "tool.brush").keys.join() === "S" && rowOf(sh, "tool.select").keys.join() === "no key" && /S was the key of “Select/.test(sh.note) && /no key now/.test(sh.note));
+    check(`a key in use is taken from the other command, with a note (${sh.note})`, rowOf(sh, "tool.brush").keys.join() === "K" && rowOf(sh, "tool.select").keys.join() === "no key" && /K was the key of “Select/.test(sh.note) && /no key now/.test(sh.note));
     // a second key, a combination, a key with its own Setting
     await page.locator('.rg-keys-row[data-cmd="tool.brush"] .rg-key-act[data-act="plus"]').click(); await page.waitForTimeout(60);
     await page.keyboard.press("j"); await page.waitForTimeout(120);
@@ -167,7 +167,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await rebind("view.fit", "Shift+F2");
     await rebind("view.big", "F9");
     sh = await sheet();
-    check("a second key (B, then S and J), a combination (Ctrl+U), Shift+F2, and the large editor's key (F9)", rowOf(sh, "tool.brush").keys.join("|") === "S|J" && rowOf(sh, "edit.undo").keys.join() === "Ctrl+U"
+    check("a second key (B, then K and J), a combination (Ctrl+U), Shift+F2, and the large editor's key (F9)", rowOf(sh, "tool.brush").keys.join("|") === "K|J" && rowOf(sh, "edit.undo").keys.join() === "Ctrl+U"
         && rowOf(sh, "view.fit").keys.join() === "Shift+F2" && rowOf(sh, "view.big").keys.join() === "F9" && await page.evaluate(() => window.__settings["RegionGenie.Main.LargeEditorKey"]) === "F9");
     check("only the changed commands are saved", Object.keys(await saved()).sort().join() === "edit.undo,tool.brush,tool.select,view.fit");
     await page.keyboard.press("Escape"); await page.waitForTimeout(80);
@@ -315,9 +315,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`${areas.n} small controls: a click up to 24 px tall around each lands on it (${areas.bad.slice(0, 4).join("; ")})`, areas.n > 25 && !areas.bad.length);
     check(`…and they look as before (heights ${areas.minH} to ${areas.maxH} px)`, areas.maxH <= 24);
     const dd = page.locator('.rg-bar .rg-btn.grp[data-group="shape"] .rg-grp-dd');
-    await page.evaluate(() => { window.__lastMenu = null; });
     await dd.click(); await page.waitForTimeout(150);
-    check("a tool button's arrow still opens its list (the click area lies behind it)", await page.evaluate(() => window.__lastMenu?.items?.length === 8));
+    check("a tool button's arrow still opens its list (the click area lies behind it)", await page.locator(".rg-menu .rg-menu-item").count() === 8);
+    await page.keyboard.press("Escape"); await page.waitForTimeout(80);
 
     // ---- round 40: the rows. No size label in the tool bar; a fixed "Edit area" line in Edit Mode
     check("the tool bar has no size label (the size row at the top shows the canvas size)", await page.locator(".rg-bar > .rg-hint").count() === 0

@@ -1,7 +1,8 @@
 // Region Genie: a small menu of the pack's own (the canvas's right-click menu). On the page, at the pointer, not zoomed
 // with the graph; each entry can have an icon, a shortcut shown at its right end, a tick, or a region's color.
 //   openMenu(x, y, items, { onClose })
-//   items: { label, icon, key, fn, disabled, danger, checked, swatch } · { head, swatch } (a title line) · null (a line)
+//   items: { label, icon, key, fn, disabled, danger, checked, swatch, title, tick } · { head, swatch } (a title line) · null (a line)
+//   title: the row's tooltip. tick (true / false): a tick column before the icon, for a list where one entry is the current one.
 import { svgIcon } from "./rg_shared.js";
 
 const CSS = `.rg-menu { position:fixed; z-index:10600; min-width:190px; max-width:min(340px, calc(100vw - 12px)); max-height:calc(100vh - 12px);
@@ -14,6 +15,8 @@ const CSS = `.rg-menu { position:fixed; z-index:10600; min-width:190px; max-widt
 .rg-menu-item.danger { color:#f08a8a; }
 .rg-menu-ic { flex:0 0 16px; height:16px; display:inline-flex; align-items:center; justify-content:center; }
 .rg-menu-ic svg { width:15px; height:15px; display:block; }
+.rg-menu-tick { flex:0 0 12px; height:16px; display:inline-flex; align-items:center; justify-content:center; margin-right:-3px; }
+.rg-menu-tick svg { width:12px; height:12px; display:block; }
 .rg-menu-sw { width:11px; height:11px; border-radius:3px; border:1px solid rgba(0,0,0,.5); box-sizing:border-box; }
 .rg-menu-label { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .rg-menu-key { flex:0 0 auto; margin-left:14px; opacity:.6; font:11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
@@ -41,7 +44,9 @@ export function openMenu(x, y, items, opts = {}) {
         if (!it) { if (box.lastChild && !box.lastChild.classList.contains("rg-menu-sep")) box.append(mk("div", "rg-menu-sep")); continue; }
         if (it.head != null) { const h = mk("div", "rg-menu-head"); h.append(lead(it), mk("span", "rg-menu-label", it.head)); box.append(h); continue; }
         const row = mk("div", "rg-menu-item" + (it.disabled ? " off" : "") + (it.danger ? " danger" : "")); row.setAttribute("role", "menuitem");
+        if (it.tick != null) { const tk = mk("span", "rg-menu-tick"); if (it.tick) tk.innerHTML = svgIcon("check"); row.append(tk); row.setAttribute("aria-checked", String(!!it.tick)); }
         row.append(lead(it), mk("span", "rg-menu-label", it.label));
+        if (it.title) row.title = it.title;
         if (it.key) row.append(mk("span", "rg-menu-key", it.key));
         if (it.checked != null) row.setAttribute("aria-checked", String(!!it.checked));
         if (!it.disabled) { row.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); close(); it.fn?.(e); }); rows.push(row); }
