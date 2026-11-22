@@ -123,6 +123,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
             wEq: Math.round(col(1)[0].width) === Math.round(col(2)[0].width), grips: rows.every((r) => r.children[0].classList.contains("rg-grip") && r.children[0].querySelector("svg")), btns: rows.every((r) => r.querySelectorAll("button").length === 1),
             area: rows.every((r) => [r.children[0], r.children[4]].every((e) => { const b = e.getBoundingClientRect(), a = getComputedStyle(e, "::before"); return parseFloat(a.height) >= 24 && parseFloat(a.width) > b.width; })) }; });
     check(`the list is a table: every column's fields start at one place and are equally wide (${lay.same}); width and height are as wide as each other`, lay.same.every(Boolean) && lay.wEq);
+    const fits = await page.evaluate(() => { const L = document.querySelector(".rg-presets-list"), P = document.querySelector(".rg-presets"); return [L.scrollWidth - L.clientWidth, L.scrollHeight - L.clientHeight, P.scrollWidth - P.clientWidth, P.scrollHeight - P.clientHeight, getComputedStyle(L).overflowX]; });
+    check(`nothing in the list sticks out of it: no scroll bar for a pixel or two (${fits})`, fits.slice(0, 4).every((d) => d <= 0) && fits[4] === "hidden");
     check(`headers Width, Height, Name stand over their columns (${lay.heads})`, lay.heads.join() === "Width,Height,Name" && lay.headAt.every(Boolean));
     check("each row has a handle on the left and one button, remove; the click areas of both are at least 24 px tall and wider than they look", lay.grips && lay.btns && lay.area);
     const before69 = await prow(), keyOf = (r) => r.join("/");

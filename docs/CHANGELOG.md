@@ -7,6 +7,7 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Decided by the owner (mock-up and three questions): build it as drawn; the up / down buttons go; sorted by Name, the rows showing a ratio are ordered by shape (tallest to widest) and come before the named ones; the handle and ✕ get the node's larger click areas.
 - Built: `openPresetEditor` (sizeRow.js) and its styles: grid table, `COLS` with comparators, stable sort saved to the Setting, the arrow in the sorted header, drag by the handle with a drop line. Version 0.52.0.
 - Tests: `ui_rows_popups.cjs` (columns, headers, click areas, Width / Height / Name both ways, rows stay whole, drag); real ComfyUI in both modes: `real_fields_popups`, `real_tooltips`.
+- Follow-up (0.52.1): the owner saw scroll bars that moved by a pixel or two. The enlarged click areas reached past the list's edge (1 px sideways, 2 px down). The list now has padding that holds them, never scrolls sideways, and its name column gives way when a vertical scroll bar takes room (checked in Firefox with 30 rows and a 12 px scroll bar).
 
 ## Round 68 (Nov 22): separation back to 0.85; no internal node; fixed seed and Anima settings in the examples
 - Asked: the default separation back to 0.85 (until stays 0.1) on both nodes, after the owner's tests across models: the regions end up where they belong more reliably than with 0.4. The internal pose node shows in ComfyUI's search. In the examples: seed 1, fixed; for Anima the RDBT finetune, *Share the background*, style and quality tags.

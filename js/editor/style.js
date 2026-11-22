@@ -344,8 +344,12 @@ textarea.rg-scene-ta.rg-llm-on, textarea.rg-big-ta.rg-llm-on { outline:1.5px sol
 .rg-presets-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:600; }
 /* the list is one grid (round 69): handle | width | height | name | remove. A row's cells are the grid's own
    (display:contents), so each column is as wide as its widest field: --rg-pw / --rg-pn, set from the list. */
-.rg-presets-list { display:grid; grid-template-columns:11px var(--rg-pw,70px) var(--rg-pw,70px) minmax(var(--rg-pn,120px), 1fr) auto; gap:3px 5px; align-items:center;
-  overflow:auto; padding:0 2px 1px 3px; }
+.rg-presets-list { display:grid; grid-template-columns:11px var(--rg-pw,70px) var(--rg-pw,70px) minmax(60px, 1fr) auto; gap:3px 5px; align-items:center;
+  /* Its own least width: the columns at their full widths (26 px: the remove button; 20 px: four gaps; 12 px: the padding).
+     The name column is what gives when a scroll bar takes room at the right, so nothing ever sticks out sideways.
+     The padding holds the click areas, which reach past the controls (they made the list scroll by a pixel or two). */
+  min-width:calc(11px + 2 * var(--rg-pw,70px) + var(--rg-pn,120px) + 26px + 20px + 12px); box-sizing:border-box;
+  overflow-x:hidden; overflow-y:auto; padding:3px 6px; }
 .rg-presets-row, .rg-presets-cols { display:contents; }
 .rg-presets-list > .rg-hint { grid-column:1 / -1; }
 .rg-presets-list .rg-num, .rg-presets-list .rg-presets-name { width:100% !important; min-width:0 !important; max-width:100% !important; box-sizing:border-box !important; margin:0 !important; }
