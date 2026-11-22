@@ -179,10 +179,11 @@ export function* model(E) {
         } else if (arch === "Flux.1") {
             if (c.kind === "depth") need.push(files.Flux1Depth || !files["Flux1.depth"] ? "Flux1Depth" : "Flux1.depth");
             else if (c.kind === "canny") need.push(files.Flux1Canny || !files["Flux1.canny"] ? "Flux1Canny" : "Flux1.canny");
-            else if (c.kind === "other" || c.kind === "pose") need.push("Flux1.other");
+            else if (c.kind === "pose") need.push(!files["Flux1.pose"] && files["Flux1.other"] ? "Flux1.other" : "Flux1.pose");
+            else if (c.kind === "other") need.push("Flux1.other");
         } else if (arch === "SDXL" || arch === "SD1.5" || arch === "Anima") {
             const k = { SDXL: "SDXL", "SD1.5": "SD15", Anima: "Anima" }[arch];
-            if (["depth", "canny", "other", "pose"].includes(c.kind)) need.push(`${k}.${c.kind === "pose" ? "other" : c.kind}`);
+            if (["depth", "canny", "other", "pose"].includes(c.kind)) need.push(`${k}.${c.kind === "pose" && !files[`${k}.pose`] && files[`${k}.other`] ? "other" : c.kind}`);
         }
         if (mapMade && need.length) need.push("DA3");
         return need;

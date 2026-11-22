@@ -28,8 +28,8 @@ LOG = "[Region Genie]"
 KINDS = ("color", "color+depth", "depth", "canny", "other", "pose")
 KIND_LABEL = {"color": "color map", "color+depth": "color map + depth", "depth": "depth", "canny": "canny", "other": "your control_image",
               "pose": "pose (the figures on the canvas)"}
-# the file a kind uses: pose has no Setting of its own, it is read by the file set for "your control_image"
-FILE_KIND = {"pose": "other"}
+# pose: its own file per model (Settings, round 63); when none is set, the file set for "your control_image"
+FILE_FALLBACK = {"pose": "other"}
 CN_KEY = {"Flux.1": "Flux1", "SDXL": "SDXL", "SD1.5": "SD15"}          # ControlNet files in Settings
 SUPPORTED = ("MOSS-Image", "Flux.1", "SDXL", "SD1.5", "Anima")
 _cache = {}                                                           # loaded control files and the last depth map
@@ -302,8 +302,11 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         notes.append(f"control: Flux.1 {kind} LoRA, strength {s:g}, {a:.0%}-{b:.0%}")
         return model, positive, negative, img
 
-    fkind = FILE_KIND.get(kind, kind)
+    def fkind_for(prefix):
+        fb = FILE_FALLBACK.get(kind)             # the kind's own file; else the fallback's when that one is set
+        return fb if fb and not files.get(f"{prefix}.{kind}") and files.get(f"{prefix}.{fb}") else kind
     if arch_name in CN_KEY:
+        fkind = fkind_for(CN_KEY[arch_name])
         name = files.get(f"{CN_KEY[arch_name]}.{fkind}")
         if not _have(f"{CN_KEY[arch_name]}.{fkind}", name, missing):
             if name:
@@ -332,6 +335,7 @@ def apply(cfg, arch_name, model, positive, negative, vae, image, control_image, 
         return model, positive, negative, img
 
     # Anima: an LLLite patch on the model (it takes the region mask itself)
+    fkind = fkind_for("Anima")
     name = files.get(f"Anima.{fkind}")
     if not _have(f"Anima.{fkind}", name, missing):
         if name:

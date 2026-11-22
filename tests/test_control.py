@@ -236,6 +236,14 @@ _, p, _, prev = ctl.apply(cfg("pose", {"SDXL.other": "pose.pth"}), "SDXL", "M", 
 check("pose: the figures' map goes to the ControlNet set for 'your control_image', as the openpose type of a union one",
       fake.hint is not None and prev is not None and torch.equal(prev, pt) and getattr(fake, "extra", {}).get("control_type") == [0]
       and any("pose.pth" in x for x in notes))
+# round 63: a pose file of the model's own comes first; the control_image file is the fallback; none: the note asks for the pose one
+INSTALLED.add("openpose-sdxl.safetensors")
+notes = []
+ctl.apply(cfg("pose", {"SDXL.other": "pose.pth", "SDXL.pose": "openpose-sdxl.safetensors"}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes, pose_map=pt)
+check("pose: the model's own pose file is used when it is set", any("openpose-sdxl.safetensors" in x for x in notes) and not any("pose.pth" in x for x in notes))
+notes = []
+ctl.apply(cfg("pose", {}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes, pose_map=pt)
+check("pose with no file set: the note names the pose ControlNet", any("no SDXL ControlNet for pose" in x for x in notes))
 notes = []
 _, _, _, prev = ctl.apply(cfg("pose", {"SDXL.other": "pose.pth"}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes)
 check("pose without a figure or a control_image: noted, not used", prev is None and any("no pose figure" in x for x in notes))

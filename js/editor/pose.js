@@ -7,7 +7,7 @@
 // Joints (the person's right / left): 0 nose, 1 neck, 2-4 right shoulder / elbow / wrist, 5-7 left arm, 8-10 right hip
 // / knee / ankle, 11-13 left leg, 14 right eye, 15 left eye, 16 right ear, 17 left ear.
 import { api } from "../../../scripts/api.js";
-import { svgIcon } from "../rg_shared.js";
+import { svgIcon, getSetting, SET, SDPOSE_DEFAULT } from "../rg_shared.js";
 import { UNSPEC } from "./shared.js";
 
 export const POSE_LIMBS = [[1, 2], [1, 5], [2, 3], [3, 4], [5, 6], [6, 7], [1, 8], [8, 9], [9, 10], [1, 11], [11, 12], [12, 13],
@@ -262,7 +262,7 @@ export function* pose(E) {
         E.poseBusy = true; E.hint("Reading the pose …"); E.requestDraw();
         try {
             const r = await api.fetchApi("/region_genie/pose_detect", { method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ image: E.backdropRef, box: [x0 / W, y0 / H, x1 / W, y1 / H] }) });
+                body: JSON.stringify({ image: E.backdropRef, box: [x0 / W, y0 / H, x1 / W, y1 / H], model: getSetting(SET.poseModel, SDPOSE_DEFAULT) }) });
             const j = await r.json().catch(() => ({}));
             if (!r.ok || j.error) { E.hint(""); E.showMsg(j.error || `Pose from the image failed (${r.status})`); return; }
             const person = (j.people || [])[0];
@@ -343,7 +343,7 @@ export function* pose(E) {
     const lab = E.el("span", "rg-optlab"); lab.innerHTML = svgIcon("pose");
     const preSel = E.el("select", "rg-sel");
     preSel.title = "The pose a new figure starts in: Drag a box on the canvas and the figure is drawn into it. Every joint can be dragged afterwards.\n"
-        + "From the image: Drag the box around a person in the image under the canvas, and the figure takes that person's pose (needs the SDPose model in ComfyUI/models/checkpoints).";
+        + "From the image: Drag the box around a person in the image under the canvas, and the figure takes that person's pose (needs the SDPose model: Settings > Region Genie > Control).";
     lab.title = preSel.title;
     for (const [key, label] of POSE_PRESETS) { const o = E.el("option"); o.value = key; o.textContent = label; preSel.appendChild(o); }
     { const o = E.el("option"); o.value = FROM_IMAGE; o.textContent = "From the image: drag a box around a person"; preSel.appendChild(o); }

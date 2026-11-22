@@ -89,7 +89,8 @@ export function* rows(E) {
     function controlFileFor(c, arch) {
         const f = controlFiles(), n = (k) => f[k] ? (isFullPath(f[k]) ? f[k] : splitValue(f[k]).name) : "none set (Settings > Region Genie > Control)";
         if (!arch) return "The file depends on the model, which isn't known yet (pick it in the bottom bar).";
-        const fileKind = (kind) => (kind === "pose" ? "other" : kind);      // pose is read by the file set for "your control_image"
+        // pose: its own file for the model (round 63), else the one set for "your control_image"
+        const fileKind = (kind) => { const k = { "Flux.1": "Flux1", SDXL: "SDXL", "SD1.5": "SD15", Anima: "Anima" }[arch]; return kind !== "pose" || f[`${k}.pose`] || !f[`${k}.other`] ? kind : "other"; };
         if (arch === "MOSS-Image") return ["color", "color+depth", "depth"].includes(c.kind) ? `File for MOSS-Image: ${n("MOSS")} (control LoRA).`
             : "MOSS-Image reads only the color map and / or depth.";
         if (arch === "Flux.1") {
