@@ -1517,7 +1517,10 @@ class RegionGenie:
         from . import pose_map as pm
         # the pose figures: the canvas's (the Pose tool; those of regions that are output) and the pose_keypoint input's
         pose_figs = pm.figures(pdata, {r.get("id") for r in regions if isinstance(r, dict)})
-        if pose_keypoint is not None:
+        if pose_keypoint is not None and isinstance(pdata, dict) and pdata.get("poseInputTaken"):
+            # the editor's import button put the input's figures on the canvas: those count, the input doesn't
+            notes.append("pose_keypoint: not used at this run (its figures were taken onto the canvas with the Pose tool's import button)")
+        elif pose_keypoint is not None:
             try:
                 extra = pm.from_keypoints(pose_keypoint, width, height)
                 pose_figs += extra

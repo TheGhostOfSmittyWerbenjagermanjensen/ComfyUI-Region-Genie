@@ -150,6 +150,34 @@ def people_of(frames, width, height):
     return out
 
 
+class PoseFetch:
+    """Internal (not in the node menu): the node the Pose tool's "take the input's figures" button adds to a small
+    prompt of its own, after the nodes that make the keypoints. It hands the people in the keypoints back to the
+    editor (as the run's UI message), which places them on the canvas. Nothing is saved, nothing goes on."""
+    DEV_ONLY = True                    # hidden from the node menu and search (shown only in ComfyUI's dev mode)
+    CATEGORY = "Region Genie"
+    DESCRIPTION = "Internal: gives pose keypoints back to the Region Genie editor (the Pose tool's import button)."
+    OUTPUT_NODE = True
+    RETURN_TYPES = ()
+    FUNCTION = "run"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"keypoints": ("POSE_KEYPOINT", {"forceInput": True})},
+                "optional": {"nonce": ("STRING", {"default": ""})}}       # changes with every click: never answered from the cache
+
+    def run(self, keypoints, nonce=""):
+        frame = keypoints[0] if isinstance(keypoints, (list, tuple)) and keypoints else keypoints
+        people = []
+        if isinstance(frame, dict):
+            try:
+                cw, ch = float(frame.get("canvas_width") or 1), float(frame.get("canvas_height") or 1)
+            except (TypeError, ValueError):
+                cw, ch = 1.0, 1.0
+            people = people_of([frame], max(cw, 1e-6), max(ch, 1e-6))
+        return {"ui": {"pose_people": people}}
+
+
 def run_detect(body):
     rs = _select()
     try:

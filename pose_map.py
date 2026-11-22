@@ -30,8 +30,8 @@ def figures(pdata, region_ids=None):
     for p in poses if isinstance(poses, list) else []:
         if not isinstance(p, dict) or p.get("visible") is False:
             continue
-        if region_ids is not None and p.get("region") not in region_ids:
-            continue
+        if region_ids is not None and p.get("region") is not None and p.get("region") not in region_ids:
+            continue                                        # (a figure of no region always counts)
         pts = p.get("pts")
         if not isinstance(pts, list) or len(pts) < JOINTS:
             continue

@@ -116,6 +116,7 @@ export const LUCIDE = {
     expand: '<path d="M15 3h6v6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/><path d="M9 21H3v-6"/>',   // maximize-2
     feather: '<path d="M14.086 18.412A2 2 0 0112.67 19H5v-7.672a2 2 0 01.586-1.414L11.75 3.75a6 6 0 118.49 8.49z"/><path d="M16 8 2 22"/><path d="M17.488 15H9"/>',   // feather
     swapWH: '<path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/>',   // arrow-down-up
+    download: '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>',   // download
     up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',   // arrow-up
     down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',   // arrow-down
     copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',   // copy
@@ -1956,6 +1957,8 @@ export const SET = {
     cmImageMode: "RegionGenie.Main.ImageMode",
     cmMinPixels: "RegionGenie.Main.MinRegionPixels",
     cmImportMode: "RegionGenie.Main.ImportMode",
+    poseOnChanged: "RegionGenie.Pose.OnChanged",
+    poseOnInput: "RegionGenie.Pose.OnInputChanged",
     cmFeather: "RegionGenie.Main.Feather",
     cmSeparation: "RegionGenie.Main.RegionSeparation",
     cmUntil: "RegionGenie.Main.SeparationUntil",
@@ -2330,6 +2333,24 @@ const SETTINGS = [
                 + "always replace: The new layout replaces the canvas right away.\n"
                 + "An empty canvas is always filled. Applies to every Region Genie node at its next run.",
             category: CAT("Region Genie node", "05 import"),
+        },
+        {
+            id: SET.poseOnChanged, name: "Pose import: a figure you changed", type: "combo", defaultValue: "keep",
+            options: [{ text: "Keep it, add another", value: "keep" }, { text: "Replace it", value: "replace" }],
+            tooltip: "The Pose tool's import button, for a figure of the pose_keypoint input that you changed on the canvas after it was placed.\n"
+                + "Keep it, add another: Your figure stays, and the input's figure is placed next to it again.\n"
+                + "Replace it: Your figure is put back to the input's pose.\n"
+                + "Applies to every Region Genie node at the next import.",
+            category: CAT("Region Genie node", "05b pose changed"),
+        },
+        {
+            id: SET.poseOnInput, name: "Pose import: a figure the input changed", type: "combo", defaultValue: "keep",
+            options: [{ text: "Keep it, add the new one", value: "keep" }, { text: "Replace it", value: "replace" }],
+            tooltip: "The Pose tool's import button, when the node on the pose_keypoint input now gives another pose for a person than the one placed before.\n"
+                + "Keep it, add the new one: The figure placed before stays, and the new pose is placed as another figure.\n"
+                + "Replace it: The figure placed before takes the new pose (also when you had changed it).\n"
+                + "Applies to every Region Genie node at the next import.",
+            category: CAT("Region Genie node", "05c pose input"),
         },
         // the large editor's key: changed in the shortcut list (round 39; it was a row here), still saved under its own id
         { id: SET.bigKey, name: "Large editor: key", type: "hidden", defaultValue: "Alt+Enter" },

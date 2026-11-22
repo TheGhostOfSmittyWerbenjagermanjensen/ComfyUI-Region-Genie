@@ -289,6 +289,13 @@ pp = r["people"][0]
 check("pose_detect: the joints come back as fractions of the image, with their scores",
       len(r["people"]) == 1 and len(pp["pts"]) == 18 and abs(pp["pts"][0][0] - 0.5) < 1e-6 and abs(pp["pts"][0][1] - 0.1) < 1e-6
       and abs(pp["pts"][17][1] - 0.9) < 1e-6 and pp["scores"][4] == 0.0 and pp["scores"][0] == 0.9)
+# the import button's internal node: the people of the keypoints, as fractions of their canvas, back to the editor
+fetch = pdet.PoseFetch().run(kp, "x")
+fp = fetch["ui"]["pose_people"]
+check("PoseFetch: the people as fractions of the keypoints' canvas, hidden joints with score 0; hidden from the node menu",
+      len(fp) == 2 and abs(fp[0]["pts"][1][0] - 0.5) < 1e-6 and abs(fp[0]["pts"][1][1] - (256 - .30 * 256) / 512) < 1e-6 and fp[1]["scores"][0] == 0.0
+      and pdet.PoseFetch.DEV_ONLY is True and pdet.PoseFetch.OUTPUT_NODE is True)
+check("PoseFetch: nothing usable gives no people", pdet.PoseFetch().run(None)["ui"]["pose_people"] == [] and pdet.PoseFetch().run([{"people": []}])["ui"]["pose_people"] == [])
 INSTALLED.discard("sdpose_wholebody_fp16.safetensors"); folder_paths.get_filename_list = lambda folder: []
 try:
     pdet.resolve_model(""); check("pose_detect: no model file: said so", False)

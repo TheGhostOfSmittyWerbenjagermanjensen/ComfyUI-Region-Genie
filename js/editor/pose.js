@@ -6,6 +6,7 @@
 // The Python side (pose_map.py) draws the same figures as the standard OpenPose picture for a Control row "pose".
 // Joints (the person's right / left): 0 nose, 1 neck, 2-4 right shoulder / elbow / wrist, 5-7 left arm, 8-10 right hip
 // / knee / ankle, 11-13 left leg, 14 right eye, 15 left eye, 16 right ear, 17 left ear.
+import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
 import { svgIcon, getSetting, SET, SDPOSE_DEFAULT } from "../rg_shared.js";
 import { UNSPEC } from "./shared.js";
@@ -65,7 +66,7 @@ export function presetIn(key, bx0, by0, bx1, by1) {
 }
 
 export function* pose(E) {
-    Object.assign(E, { poses, posesOf, poseShown, drawPoses, poseDown, poseMove, poseUp, poseRows, deletePose, selectPose,
+    Object.assign(E, { poseAssoc, takePoseInput, poses, posesOf, poseShown, drawPoses, poseDown, poseMove, poseUp, poseRows, deletePose, selectPose,
                        poseStripSync, flipPose, toggleJoint, duplicatePose, poseKey, selPose });
     yield;
 
@@ -75,9 +76,10 @@ export function* pose(E) {
     E.posePreset = "standing";
 
     function poses() { return E.state.poses || []; }
-    function posesOf(rid) { return poses().filter((p) => p.region === rid); }
+    function posesOf(rid) { return poses().filter((p) => (p.region ?? null) === (rid ?? null)); }        // null: the figures of no region
     function selPose() { return poses().find((p) => p.id === E.poseSel) || null; }
-    function poseShown(P) { return P.visible !== false && !E.regionById(P.region)?.hidden && !!E.regionById(P.region); }
+    // a figure of no region is always shown; one of a region is hidden with it
+    function poseShown(P) { return P.visible !== false && (P.region == null || (!!E.regionById(P.region) && !E.regionById(P.region).hidden)); }
     const unit = () => { const [W, H] = E.dims(); return [W, H, Math.min(W, H)]; };
     const toImg = (p) => { const [W, H, s] = unit(); return [W / 2 + p[0] * s, H / 2 + p[1] * s]; };
     const fromImg = (ix, iy) => { const [W, H, s] = unit(); return [(ix - W / 2) / s, (iy - H / 2) / s]; };
@@ -105,6 +107,31 @@ export function* pose(E) {
         const L = E.hitLayer(...E.toScr(ix, iy));
         return L && L.region !== UNSPEC && E.regionById(L.region) ? L.region : null;
     }
+    // ---- which region a figure belongs to (the owner's rule, round 64): the region under its middle (the point
+    // between neck and hips); over no region, none. A figure of no region still counts for the pose map: the scene
+    // prompt describes its character. Looked up whenever the editor saves (save() in regions.js), so moving a region
+    // under a figure counts as much as moving the figure. A hidden figure, and one of a hidden region, keeps what it has.
+    function poseAssoc() {
+        if (!E.poseReady) return 0;
+        let n = 0;
+        for (const P of poses()) {
+            if (P.visible === false || (P.region != null && E.regionById(P.region)?.hidden)) continue;
+            let r = null;
+            try { r = regionUnder(...toImg(middle(P))); } catch (e) { continue; }
+            if ((P.region ?? null) !== r) { P.region = r; n++; }
+        }
+        return n;
+    }
+    // new figures (drawn, read from the image, taken from the input): one Undo step; the last one is selected
+    function addFigures(figs, before) {
+        if (!figs.length) return;
+        E.state.poses = [...poses(), ...figs];
+        E.pushUndo(before); E.save();
+        const last = poses().find((p) => p.id === figs[figs.length - 1].id);
+        if (last?.region != null) E.openSub?.(last.region, "layers");
+        E.refreshUI();
+        selectPose(last);
+    }
     const middle = (P) => { const q = [1, 8, 11].map((k) => P.pts[k]); return [(q[0][0] + q[1][0] + q[2][0]) / 3, (q[0][1] + q[1][1] + q[2][1]) / 3]; };
     const nextId = () => poses().reduce((m, p) => Math.max(m, +p.id || 0), 0) + 1;
 
@@ -112,7 +139,7 @@ export function* pose(E) {
         E.poseSel = P ? P.id : null; E.poseJoint = P ? joint : null;
         if (P) {
             if (E.tool !== "pose") E.setTool("pose");
-            if (E.curRegion !== P.region) E.activateRegion(P.region);
+            if (P.region != null && E.curRegion !== P.region) E.activateRegion(P.region);
         }
         E.markPoseRows?.(); poseStripSync(); E.requestDraw();
     }
@@ -230,25 +257,19 @@ export function* pose(E) {
             if (d.moved < 6 * E.dprNow()) { if (E.poseSel != null) selectPose(null); else E.hint("Drag a box: A figure is drawn into it"); E.requestDraw(); return; }
             if (E.posePreset === FROM_IMAGE) { poseFromImage(d); return; }
             const a = fromImg(...d.start), b = fromImg(...d.cur);
-            const mid = [(d.start[0] + d.cur[0]) / 2, (d.start[1] + d.cur[1]) / 2];
-            const region = regionUnder(...mid) ?? E.ensureRegion();
             const id = nextId(), fig = presetIn(E.posePreset, a[0], a[1], b[0], b[1]);
-            E.state.poses = [...poses(), { id, name: `Pose ${id}`, region, visible: true, pts: fig.pts, ...(fig.off.length ? { off: fig.off } : {}) }];
-            E.pushUndo(d.before); E.save();
-            E.openSub?.(region, "layers");
-            E.refreshUI();
-            selectPose(poses().find((p) => p.id === id));
+            addFigures([{ id, name: `Pose ${id}`, region: null, visible: true, pts: fig.pts, ...(fig.off.length ? { off: fig.off } : {}) }], d.before);
             return;
         }
         if (!d.moved) { E.requestDraw(); return; }
-        if (d.mode === "poseMove") {                           // dropped on another region: it belongs to that one now
-            const to = regionUnder(...toImg(middle(d.P)));
-            if (to != null && to !== d.P.region) {
-                d.P.region = to; E.activateRegion(to); E.openSub?.(to, "layers");
-                E.hint(`The figure now belongs to region ${E.state.regions.findIndex((r) => r.id === to)}`);
-            }
+        const was = d.P.region ?? null;
+        E.pushUndo(d.before); E.save();                        // (save() looks up each figure's region: poseAssoc)
+        const to = d.P.region ?? null;
+        if (to !== was) {
+            if (to != null) { E.activateRegion(to); E.openSub?.(to, "layers"); }
+            E.hint(to != null ? `The figure now belongs to region ${E.state.regions.findIndex((r) => r.id === to)}` : "The figure's middle is over no region: It belongs to none now (the scene prompt describes it)");
         }
-        E.pushUndo(d.before); E.save(); E.refreshUI(); poseStripSync();
+        E.refreshUI(); poseStripSync();
     }
 
     // ---- From the image: ComfyUI's pose detector (SDPose, pose_detect.py) on the person in the dragged box ----
@@ -272,15 +293,101 @@ export function* pose(E) {
             if (!pts || pts.length < 18 || off.length >= 14) { E.hint("No person found in that box: Drag it around one person"); return; }
             const seen = pts.filter((_, k) => !off.includes(k)), c = [seen.reduce((a, p) => a + p[0], 0) / seen.length, seen.reduce((a, p) => a + p[1], 0) / seen.length];
             for (const k of off) pts[k] = [c[0], c[1]];
-            const before = E.snapshot(), region = regionUnder(...mid) ?? E.ensureRegion(), id = nextId();
-            E.state.poses = [...poses(), { id, name: `Pose ${id}`, region, visible: true, pts, ...(off.length ? { off } : {}) }];
-            E.pushUndo(before); E.save(); E.openSub?.(region, "layers"); E.refreshUI();
-            selectPose(poses().find((p) => p.id === id));
+            const id = nextId();
+            addFigures([{ id, name: `Pose ${id}`, region: null, visible: true, pts, ...(off.length ? { off } : {}) }], E.snapshot());
             E.hint(off.length ? `Pose read; ${off.length} joint(s) it couldn't see are hidden` : "Pose read from the image");
         } catch (e) {
             E.hint(""); E.showMsg("Pose from the image: no answer from the server (" + (e?.message || e) + ")");
         } finally { E.poseBusy = false; E.requestDraw(); void s; }
     }
+
+    // ---- the pose_keypoint input's figures onto the canvas (round 64): the strip's import button ----
+    // The keypoints only exist once the nodes before the input have run, so the button queues a small prompt of its
+    // own: those nodes and nothing after them, plus the pack's internal node "Region-Genie_PoseFetch", which hands
+    // the people back as its run message. The sampler and the rest of the workflow don't run.
+    // A placed figure remembers which of the input's figures it is (src.sig) and how it looked when placed (src.own):
+    //   - an input figure with an unchanged copy on the canvas is skipped;
+    //   - one whose copy the user changed is placed again (Setting: next to the changed one, or in its place);
+    //   - one the input changed (no copy has its pose; an earlier figure has its place in the input): Setting too.
+    // After the first import the node's data says so (poseInputTaken) and a run uses the canvas's figures only.
+    const sigOf = (pts, off) => JSON.stringify([pts.map(([x, y]) => [Math.round(x * 1e4), Math.round(y * 1e4)]), [...(off || [])].sort((a, b) => a - b)]);
+    E.poseTaking = false;
+    async function takePoseInput() {
+        if (!E.isLinked("pose_keypoint")) { E.hint("Connect a node to the pose_keypoint input first (tick it in the sockets list of the size row)"); return; }
+        if (E.poseTaking) return;
+        E.poseTaking = true; E.hint("Getting the input's figures …"); poseStripSync();
+        try {
+            const p = await app.graphToPrompt(), out = p?.output || {};
+            const me = String(E.node.id);
+            const key = out[me] ? me : Object.keys(out).find((k) => k.split(":").pop() === me && out[k].class_type === "Region-Genie_Main");
+            const link = out[key]?.inputs?.pose_keypoint;
+            if (!Array.isArray(link)) { E.hint("The pose_keypoint input has nothing connected that can run"); return; }
+            const need = {};
+            const walk = (id) => {
+                id = String(id);
+                if (need[id] || !out[id]) return;
+                need[id] = out[id];
+                for (const v of Object.values(out[id].inputs || {})) if (Array.isArray(v) && v.length === 2 && out[String(v[0])]) walk(v[0]);
+            };
+            walk(link[0]);
+            const fid = `rgpose${me}x${Date.now()}`;
+            need[fid] = { class_type: "Region-Genie_PoseFetch", inputs: { keypoints: link, nonce: String(Date.now()) } };
+            const people = await new Promise((resolve, reject) => {
+                let pid = null;
+                const done = (fn, v) => { api.removeEventListener("executed", onEx); api.removeEventListener("execution_error", onErr); clearTimeout(t); fn(v); };
+                const onEx = (e) => { if (String(e.detail?.node) === fid || String(e.detail?.display_node) === fid) done(resolve, e.detail.output?.pose_people || []); };
+                const onErr = (e) => { if (!pid || e.detail?.prompt_id === pid) done(reject, new Error(e.detail?.exception_message || "the nodes that make the keypoints stopped with an error")); };
+                const t = setTimeout(() => done(reject, new Error("no answer after 10 minutes")), 600000);
+                api.addEventListener("executed", onEx); api.addEventListener("execution_error", onErr);
+                Promise.resolve(api.queuePrompt(0, { output: need, workflow: p.workflow })).then((r) => { pid = r?.prompt_id || null; }, (err) => done(reject, err));
+            });
+            placeInput(people);
+        } catch (e) {
+            E.hint(""); E.showMsg("Pose figures from the input: " + (e?.response?.error?.message || e?.message || e));
+        } finally { E.poseTaking = false; poseStripSync(); }
+    }
+    // people: [{ pts: 18 x [x, y] as fractions of their canvas, scores: [18] }]
+    function placeInput(people) {
+        const [W, H] = unit(), figs = poses(), before = E.snapshot();
+        const keepChanged = getSetting(SET.poseOnChanged, "keep") !== "replace", keepStale = getSetting(SET.poseOnInput, "keep") !== "replace";
+        const items = [];
+        (people || []).forEach((pp, i) => {
+            if (!Array.isArray(pp?.pts) || pp.pts.length < 18) return;
+            const off = (pp.scores || []).map((sc, k) => (sc < 0.3 ? k : -1)).filter((k) => k >= 0);
+            if (off.length >= 14) return;
+            const pts = pp.pts.slice(0, 18).map(([x, y]) => fromImg(x * W, y * H));
+            const seen = pts.filter((_, k) => !off.includes(k)), c = [seen.reduce((a, q) => a + q[0], 0) / seen.length, seen.reduce((a, q) => a + q[1], 0) / seen.length];
+            for (const k of off) pts[k] = [c[0], c[1]];           // a joint the input doesn't have: hidden, at the figure's middle
+            items.push({ i, sig: sigOf(pp.pts.slice(0, 18), off), pts, off });
+        });
+        if (!items.length) { E.hint("The pose_keypoint input has no figure"); return; }
+        const sigs = new Set(items.map((x) => x.sig));
+        const added = [];
+        let replaced = 0, same = 0, id = nextId(), last = null;
+        for (const it of items) {
+            const src = { i: it.i, sig: it.sig, own: sigOf(it.pts, it.off) };
+            const copies = figs.filter((f) => f.src?.sig === it.sig);
+            if (copies.some((f) => sigOf(f.pts, f.off) === f.src.own)) { same++; continue; }       // an unchanged copy is on the canvas
+            const target = copies.length ? (keepChanged ? null : copies[0])                           // the user changed the copy
+                : (keepStale ? null : figs.find((f) => f.src && f.src.i === it.i && !sigs.has(f.src.sig)) || null);   // the input changed this figure
+            if (target) {
+                target.pts = it.pts.map((q) => [...q]); if (it.off.length) target.off = [...it.off]; else delete target.off;
+                target.src = src; replaced++; last = target;
+            } else {
+                added.push({ id, name: `Pose ${id}`, region: null, visible: true, pts: it.pts, ...(it.off.length ? { off: it.off } : {}), src });
+                id++;
+            }
+        }
+        if (!added.length && !replaced) { E.hint("Nothing new: The canvas already has the input's figures, unchanged"); return; }
+        E.state.poseInputTaken = true;
+        E.state.poses = [...poses(), ...added];
+        E.pushUndo(before); E.save();
+        last = added.length ? poses().find((q) => q.id === added[added.length - 1].id) : last;
+        if (last?.region != null) E.openSub?.(last.region, "layers");
+        E.refreshUI(); selectPose(last);
+        E.hint(`${added.length ? `${added.length} figure(s) placed` : ""}${added.length && replaced ? ", " : ""}${replaced ? `${replaced} replaced` : ""}${same ? `, ${same} already there` : ""}. A run now uses the canvas's figures, not the input`);
+    }
+    E.placePoseInput = placeInput;       // (tests)
 
     // ---- drawing on the canvas (render.js calls it after the layers and labels) ----
     function drawFigure(ctx, P, o = {}) {
@@ -353,7 +460,11 @@ export function* pose(E) {
     const jointBtn = sBtn("@eyeOff", "", () => toggleJoint());
     const dupBtn = sBtn("@copy", "Duplicate the selected figure (Ctrl+D)", () => duplicatePose());
     const delBtn = sBtn("@clear", "Delete the selected figure (Delete)", () => deletePose());
-    strip.append(lab, preSel, flipBtn, jointBtn, dupBtn, delBtn);
+    const takeBtn = sBtn("@download", "", () => takePoseInput());
+    const TAKE_TIP = "Take the figures of the pose_keypoint input onto the canvas, as figures you can edit. Only the nodes that make the keypoints run, not the whole workflow.\n"
+        + "Figures taken before and unchanged are skipped. One you changed, or one the input changed, is placed again (Settings > Region Genie > Region Genie node: Keep or replace).\n"
+        + "After this a run uses the canvas's figures; the input itself is no longer used.";
+    strip.append(lab, preSel, takeBtn, flipBtn, jointBtn, dupBtn, delBtn);
     function poseStripSync() {
         if (!E.poseReady) return;                      // called by parts that run before this one
         if (!strip.parentElement && E.optStrip?.parentElement) E.optStrip.parentElement.appendChild(strip);
@@ -363,6 +474,10 @@ export function* pose(E) {
         if (!on) return;
         if (document.activeElement !== preSel) preSel.value = E.posePreset;
         for (const b of [flipBtn, dupBtn, delBtn]) b.disabled = !P;
+        const linked = E.isLinked("pose_keypoint");
+        takeBtn.disabled = !linked || E.poseTaking;
+        const tip = linked ? TAKE_TIP : "Take the figures of the pose_keypoint input onto the canvas: Tick pose_keypoint in the sockets list (the cable button of the size row) and connect a pose node to it first.";
+        if (takeBtn.title !== tip) takeBtn.title = tip;
         const k = P ? E.poseJoint : null, off = P && k != null && offSet(P).has(k);
         jointBtn.disabled = k == null;
         jointBtn.classList.toggle("on", !!off);

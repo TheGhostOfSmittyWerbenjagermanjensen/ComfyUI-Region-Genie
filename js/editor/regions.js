@@ -192,6 +192,7 @@ export function* regions(E) {
     // the Generate / Edit switch isn't part of an undo step: an undone list must still fit the mode it's in now
     function afterRestore() { if (E.pruneManagedLoras()) { save(); E.renderRegions(); } }
     function save() {
+        E.poseAssoc?.();                                  // each pose figure's region: the one under its middle (pose.js)
         E.version++;
         if (E.dataW) E.dataW.value = JSON.stringify(E.state);
         E.wcRefresh?.();

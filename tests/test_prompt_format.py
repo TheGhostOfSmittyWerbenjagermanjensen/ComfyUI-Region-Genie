@@ -175,6 +175,17 @@ check("no figures: an empty frame", kp[0]["people"] == [])
 hid = {"poses": [{"id": 1, "region": 1, "pts": STAND}], "regions": [dict(regions[0], hidden=True), regions[1]]}
 res, kp, info = pose_run(hid)
 check("a hidden region's figure is left out", kp[0]["people"] == [])
+# round 64: a figure of no region counts (the scene prompt describes it); once the input's figures were taken onto the
+# canvas with the import button, the input itself isn't used
+res, kp, info = pose_run({"poses": [{"id": 1, "region": None, "pts": STAND}, {"id": 2, "region": 99, "pts": STAND}]})
+check("a figure of no region counts; one whose region isn't there doesn't", len(kp[0]["people"]) == 1)
+res, kp, info = pose_run({"poses": [{"id": 1, "region": None, "pts": STAND}], "regions": [], "layers": []})
+check("no regions at all: the figure still counts (plain text-to-image with a pose)", len(kp[0]["people"]) == 1)
+one = [{"canvas_width": 64, "canvas_height": 64, "people": [{"pose_keypoints_2d": [32.0, 20.0, 1.0] * 18}]}]
+res, kp, info = pose_run({"poses": [{"id": 1, "region": 1, "pts": STAND}]}, pose_keypoint=one)
+check("the input counts next to the canvas's figures until it is taken", len(kp[0]["people"]) == 2)
+res, kp, info = pose_run({"poses": [{"id": 1, "region": 1, "pts": STAND}], "poseInputTaken": True}, pose_keypoint=one)
+check("taken onto the canvas: the input isn't used at the run (noted)", len(kp[0]["people"]) == 1 and "pose_keypoint: not used at this run" in info)
 
 print("\nall passed" if not fails else f"\n{len(fails)} failed")
 sys.exit(1 if fails else 0)

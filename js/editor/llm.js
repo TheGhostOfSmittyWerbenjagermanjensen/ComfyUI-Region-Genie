@@ -257,6 +257,7 @@ export function* llm(E) {
 
         if (E.isEdit()) E.regList.appendChild(E.editRows());
         E.controls().forEach((c, k) => E.regList.appendChild(E.controlRow(c, k)));
+        E.regList.appendChild(E.poseRows(null, E.ico));           // the pose figures of no region (pose.js)
 
         E.state.regions.forEach((r, i) => {
             const lays = E.listedOf(r.id);
