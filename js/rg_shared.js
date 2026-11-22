@@ -70,6 +70,8 @@ export const ICONS = {
     lassoMagnetic: '<ellipse cx="8.8" cy="6" rx="5.4" ry="3.6"/><path d="M5.2 8.7c-1.5.8-1.3 2.5.1 2.9"/><path d="M8.2 10.6h1.8v2.6a1 1 0 0 0 2 0v-2.6h1.8v2.6a2.8 2.8 0 0 1-5.6 0z" stroke-width="1.2"/>',
     lassoEraseMagnetic: '<ellipse cx="7.6" cy="6.4" rx="5.4" ry="3.7" stroke-dasharray="2.2 1.6"/><path d="M1.4 10.6h1.8v2.2a1 1 0 0 0 2 0v-2.2h1.8v2.2a2.8 2.8 0 0 1-5.6 0z" stroke-width="1.2"/><path d="M10.6 10.6l3.6 3.6M14.2 10.6l-3.6 3.6"/>',
     // the selected layer: flip, align, grow / shrink (one button, a small panel)
+    // the Pose tool: a stick figure
+    pose: '<circle cx="8" cy="3" r="1.5"/><path d="M3.4 6l4.6 1.3 4.6-1.3M8 7.3v3.3M5.5 14.5L8 10.6l2.5 3.9"/>',
     arrange: '<rect x="2" y="2" width="5" height="5" rx=".8"/><rect x="9" y="9" width="5" height="5" rx=".8"/><path d="M9.5 3.5h3v3M6.5 12.5h-3v-3"/><path d="M12.5 3.5l-3 3M3.5 12.5l3-3"/>',
     flipH: '<path d="M8 1.6v12.8" stroke-dasharray="1.6 1.4"/><path d="M6 4L2 12h4z"/><path d="M10 4l4 8h-4z" fill="currentColor" stroke="none" opacity=".55"/>',
     flipV: '<path d="M1.6 8h12.8" stroke-dasharray="1.6 1.4"/><path d="M4 6L12 2v4z"/><path d="M4 10l8 4v-4z" fill="currentColor" stroke="none" opacity=".55"/>',
@@ -882,6 +884,9 @@ export const CONTROL_KIND_HELP = {
         + "the land) but is free with textures, colors and details.",
     canny: "Canny: The edge lines of a picture. The model keeps the outlines and composition closely, so it's good for redrawing a "
         + "picture in another style; it follows the lines more strictly than depth.",
+    pose: "Pose: The stick figures drawn on the canvas with the Pose tool, as an OpenPose skeleton map. The model puts a person "
+        + "into each figure's pose. It uses the file set for your control_image (Settings > Region Genie > Control), which must read "
+        + "poses: an OpenPose or union ControlNet (Anima: its pose patch). MOSS-Image has no pose control.",
     other: "Your control_image: Any map made with other nodes (pose skeletons, lineart, scribble, segmentation …). The file set for "
         + "your control_image (Settings > Region Genie > Control) must read that kind of map (a union ControlNet reads several).",
 };

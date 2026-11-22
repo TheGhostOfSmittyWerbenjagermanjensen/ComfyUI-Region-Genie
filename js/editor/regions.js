@@ -373,6 +373,7 @@ export function* regions(E) {
         else if (E.pick && t === "object") E.pick.acceptOnAnswer = false;
         if (t !== "object") E.hideMsg();
         E.tool = t;
+        E.markPoseRows?.();
         if (t === "wand" || t === "object") E.grpCur.wand = t;
         if (t === "erase" || t === "lassoErase") E.grpCur.erase = t;
         for (const b of new Set(Object.values(E.toolBtns))) b.classList.toggle("on", E.toolBtns[t] === b);

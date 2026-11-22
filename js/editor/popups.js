@@ -494,6 +494,10 @@ export function* popups(E) {
         else if (is("view.pan")) E.spaceDown = true;
         else if (is("edit.undo")) E.undo();
         else if (is("edit.redo")) E.redo();
+        else if (is("edit.duplicate") && E.poseKey("duplicate")) { /* the selected pose figure (pose.js) */ }
+        else if (is("edit.delete") && E.poseKey("delete")) { /* " */ }
+        else if (is("edit.deselect") && E.poseKey("deselect")) { /* " */ }
+        else if (is("tool.pose")) E.setTool("pose");
         else if (is("edit.duplicate")) E.duplicate();
         else if (is("edit.copy") && L) E.copyLayer(L, false);
         else if (is("edit.cut") && L) E.copyLayer(L, true);

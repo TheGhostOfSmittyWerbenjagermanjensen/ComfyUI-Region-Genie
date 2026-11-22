@@ -1511,6 +1511,15 @@ class RegionGenie:
         ccfgs = ctl.configs(pdata)
         if ccfgs:
             rmask = ctl.region_mask(regions, id_to_index, idx)
+            # the canvas's pose figures (the Pose tool), for a Control row of kind "pose": those of the regions that are
+            # output (a hidden region's figures are left out with it)
+            pose_map = None
+            if any(c["kind"] == "pose" for c in ccfgs):
+                from . import pose_map as pm
+                figs = pm.figures(pdata, {r.get("id") for r in regions if isinstance(r, dict)})
+                if figs:
+                    pose_map = torch.from_numpy(pm.render(figs, width, height))[None]
+                    notes.append(f"pose: {len(figs)} figure(s) drawn as the control map")
             missing, maps, concat_used = [], [], None
             aname = arch.name if arch is not None else None
             for k, ccfg in enumerate(ccfgs):
@@ -1524,7 +1533,7 @@ class RegionGenie:
                         concat_used = k
                     model_out, positive, negative, cmap = ctl.apply(ccfg, aname, model_out, positive, negative, vae, image,
                                                                     control_image, color_map, rmask, width, height, notes,
-                                                                    missing)
+                                                                    missing, pose_map=pose_map)
                     maps.append(cmap)
                 except Exception as e:            # a broken control file must not stop the run
                     logging.exception(f"{LOG} control failed")

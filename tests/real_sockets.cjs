@@ -39,7 +39,7 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
     check(`${M}: a new node shows model, clip, vae, image, size_from (${s.inputs.join(", ")})`, s.inputs.join() === "model,clip,vae,image,size_from");
     check(`${M}: …and the sampler's four outputs (${s.outputs.join(", ")})`, s.outputs.join() === "model,positive,negative,latent");
     check(`${M}: the hidden outputs_shown widget carries them`, s.shown === "model,positive,negative,latent" && await page.evaluate(() => { const w = window.__rg.widgets.find((x) => x.name === "outputs_shown"); return !!w && w.hidden === true; }));
-    if (!vue) check(`${M}: its canvas is square (${g.cv.join(" x ")}), the node 580 wide and shorter than before (${g.h})`, Math.abs(g.cv[0] - g.cv[1]) <= 2 && g.h < 1320 && await page.evaluate(() => Math.round(window.__rg.size[0])) === 580);
+    if (!vue) check(`${M}: its canvas is square (${g.cv.join(" x ")}), the node 620 wide (${g.h} tall)`, Math.abs(g.cv[0] - g.cv[1]) <= 2 && g.h < 1360 && await page.evaluate(() => Math.round(window.__rg.size[0])) === 620);
     check(`${M}: no size label in the tool bar; the size row shows the canvas size`, await page.evaluate(() => !document.querySelector(".rg-bar > .rg-hint") && document.querySelector(".rg-size-out").textContent === window.__rg.__rgDims().join(" × ")));
 
     // ---------------- the sockets list
@@ -129,7 +129,7 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
     s = await socks();
     check(`${M}: the Control row removed: control_image goes again`, !s.inputs.includes("control_image"));
 
-    // ---------------- the rows at the default width (580 px): nothing wraps, also in Edit Mode with keep-separate on and an image connected
+    // ---------------- the rows at the default width (620 px): nothing wraps, also in Edit Mode with keep-separate on and an image connected
     const rows = () => page.evaluate(() => { const out = {};
         for (const [name, sel] of [["tool bar", ".rg-bar"], ["list header", ".rg-head"], ["bottom bar", ".rg-foot"], ["size row", ".rg-size"]]) {
             const c = document.querySelector(sel), cr = c.getBoundingClientRect();

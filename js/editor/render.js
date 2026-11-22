@@ -215,8 +215,9 @@ export function* render(E) {
             }
             E.ctx.restore();
         }
-        drawLabels();
+        if (E.tool !== "pose") drawLabels();              // the figures are edited on top of the regions: no labels in the way
         updateRegionIndices();
+        E.drawPoses();
         const L = E.selLayer();
         if (L && E.isShown(L) && E.hiddenSel !== E.selId) {
             const cs = E.boxCornersImg(L);

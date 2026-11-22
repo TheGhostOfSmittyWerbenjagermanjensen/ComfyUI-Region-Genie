@@ -15,7 +15,7 @@ export function* rows(E) {
 
     // ---- Control (ControlNet / control LoRAs): the row under Whole image, the per-region switch, the LoRAs it adds
     const CONTROL_KIND_LABELS = [["color", "color map (MOSS-Image)"], ["color+depth", "color map + depth (MOSS-Image)"], ["depth", "depth"],
-                                 ["canny", "canny"], ["other", "your control_image"]];
+                                 ["canny", "canny"], ["pose", "pose (the figures on the canvas)"], ["other", "your control_image"]];
     const CONTROL_DEFAULT = { kind: "depth", strength: 1, start: 0, end: 1 };
     const controls = () => E.state.controls || []; E.controls = controls;           // the Control rows (round 23: several)
     E.controlMaps = []; E.controlMapsKey = ""; E.controlShowK = -1;   // each row's map of the last run; the one shown
@@ -89,15 +89,16 @@ export function* rows(E) {
     function controlFileFor(c, arch) {
         const f = controlFiles(), n = (k) => f[k] ? (isFullPath(f[k]) ? f[k] : splitValue(f[k]).name) : "none set (Settings > Region Genie > Control)";
         if (!arch) return "The file depends on the model, which isn't known yet (pick it in the bottom bar).";
+        const fileKind = (kind) => (kind === "pose" ? "other" : kind);      // pose is read by the file set for "your control_image"
         if (arch === "MOSS-Image") return ["color", "color+depth", "depth"].includes(c.kind) ? `File for MOSS-Image: ${n("MOSS")} (control LoRA).`
             : "MOSS-Image reads only the color map and / or depth.";
         if (arch === "Flux.1") {
             if (c.kind === "depth" && f.Flux1Depth) return `File for Flux.1: ${n("Flux1Depth")} (depth LoRA, at this row's strength).`;
             if (c.kind === "canny" && f.Flux1Canny) return `File for Flux.1: ${n("Flux1Canny")} (canny LoRA, at this row's strength).`;
-            return ["depth", "canny", "other"].includes(c.kind) ? `File for Flux.1: ${n(`Flux1.${c.kind}`)} (ControlNet).` : "Flux.1 doesn't read a color map.";
+            return ["depth", "canny", "other", "pose"].includes(c.kind) ? `File for Flux.1: ${n(`Flux1.${fileKind(c.kind)}`)} (ControlNet).` : "Flux.1 doesn't read a color map.";
         }
         const k = { SDXL: "SDXL", "SD1.5": "SD15", Anima: "Anima" }[arch];
-        if (k) return ["depth", "canny", "other"].includes(c.kind) ? `File for ${arch}: ${n(`${k}.${c.kind}`)}.` : `${arch} doesn't read a color map.`;
+        if (k) return ["depth", "canny", "other", "pose"].includes(c.kind) ? `File for ${arch}: ${n(`${k}.${fileKind(c.kind)}`)}.` : `${arch} doesn't read a color map.`;
         return `ComfyUI has no ControlNet for ${arch} yet.`;
     }
     // ---- round 23: the Edit rows (Edit Mode only). The first is the edit LoRA set in Settings > Region Genie >

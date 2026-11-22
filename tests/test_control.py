@@ -42,6 +42,8 @@ class FakeCN:                                  # what ControlNetApplyAdvanced do
         self.hint = None; self.args = None
     def copy(self):
         return self
+    def set_extra_arg(self, k, v=None):
+        self.extra = {**getattr(self, "extra", {}), k: v}
     def set_cond_hint(self, hint, strength, rng, vae=None, extra_concat=[]):
         self.hint, self.args = hint, (strength, rng)
         return self
@@ -206,6 +208,42 @@ check("no clip (no conditioning): noted", any("needs 'clip'" in x for x in notes
 notes = []
 ctl.apply(cfg("color"), "SDXL", "M", cond(), cond(), None, photo, dmap, cmap, None, W, H, notes)
 check("color map with another model: noted", any("color map is for MOSS" in x for x in notes))
+
+# ---------------------------------------------------------------- pose (round 61): the canvas's figures as the map
+import pose_map as pm  # noqa: E402
+STAND = [[0, -.40], [0, -.30], [-.11, -.29], [-.14, -.13], [-.15, .02], [.11, -.29], [.14, -.13], [.15, .02], [-.07, .02], [-.075, .24],
+         [-.08, .46], [.07, .02], [.075, .24], [.08, .46], [-.025, -.42], [.025, -.42], [-.055, -.405], [.055, -.405]]
+pd = {"poses": [{"id": 1, "region": 1, "pts": STAND}, {"id": 2, "region": 2, "pts": STAND, "visible": False},
+                {"id": 3, "region": 9, "pts": STAND}, {"id": 4, "region": 1, "pts": STAND, "off": [0, 14, 15]}]}
+figs = pm.figures(pd, {1, 2})
+check("pose: hidden figures and figures of regions that aren't output are left out", len(figs) == 2)
+check("pose: hidden joints are None", figs[1][0] is None and figs[1][14] is None and figs[1][16] is not None and figs[0][0] is not None)
+pmap = pm.render(figs[:1], 256, 256)
+neck, nose = pmap[int(128 - .30 * 256), 128], pmap[int(128 - .40 * 256), 128]
+check("pose map: black background, the joints in OpenPose's colors (neck orange-red, nose red)",
+      pmap.shape == (256, 256, 3) and pmap[5, 5].max() == 0 and neck[0] > .9 and .2 < neck[1] < .5 and neck[2] < .1 and nose[0] > .9 and nose[1] < .1)
+bone = pmap[int(128 + .13 * 256), int(128 - .0725 * 256)]                     # the middle of the right thigh: its color at 60 %
+check("pose map: bones at 60 % brightness", 0.05 < bone.max() <= 0.61)
+nohead = pm.render(figs[1:], 256, 256)
+check("pose map: a hidden nose takes its bones along", nohead[int(128 - .35 * 256), 128].max() == 0 and pmap[int(128 - .35 * 256), 128].max() > 0)
+wide = pm.render(figs[:1], 512, 256)
+check("pose map: on a wide image the figure keeps its shape (units of the shorter side, from the centre)",
+      wide.shape == (256, 512, 3) and wide[int(128 - .30 * 256), 256][0] > .9)
+fake = FakeCN(); ctl._load_controlnet = lambda name: fake
+notes = []
+pt = torch.from_numpy(pm.render(figs, W, H))[None]
+_, p, _, prev = ctl.apply(cfg("pose", {"SDXL.other": "pose.pth"}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes, pose_map=pt)
+check("pose: the figures' map goes to the ControlNet set for 'your control_image', as the openpose type of a union one",
+      fake.hint is not None and prev is not None and torch.equal(prev, pt) and getattr(fake, "extra", {}).get("control_type") == [0]
+      and any("pose.pth" in x for x in notes))
+notes = []
+_, _, _, prev = ctl.apply(cfg("pose", {"SDXL.other": "pose.pth"}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes)
+check("pose without a figure or a control_image: noted, not used", prev is None and any("no pose figure" in x for x in notes))
+_, _, _, prev = ctl.apply(cfg("pose", {"SDXL.other": "pose.pth"}), "SDXL", "M", cond(), cond(), None, None, ci, cmap, None, W, H, [])
+check("pose without a figure but with a control_image: that image is the map", prev is not None and float(prev.mean()) > 0.8)
+notes = []
+ctl.apply(cfg("pose", {"MOSS": "x"}), "MOSS-Image", "M", cond(), cond(), VAE(), None, None, cmap, None, W, H, notes, pose_map=pt)
+check("pose with MOSS-Image: noted as not read", any("not pose" in x for x in notes))
 
 print("\n" + (f"{len(fails)} failed" if fails else "all passed"))
 sys.exit(1 if fails else 0)
