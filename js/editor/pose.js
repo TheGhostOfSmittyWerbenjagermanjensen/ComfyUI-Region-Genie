@@ -6,6 +6,7 @@
 // The Python side (pose_map.py) draws the same figures as the standard OpenPose picture for a Control row "pose".
 // Joints (the person's right / left): 0 nose, 1 neck, 2-4 right shoulder / elbow / wrist, 5-7 left arm, 8-10 right hip
 // / knee / ankle, 11-13 left leg, 14 right eye, 15 left eye, 16 right ear, 17 left ear.
+import { api } from "../../../scripts/api.js";
 import { svgIcon } from "../rg_shared.js";
 import { UNSPEC } from "./shared.js";
 
@@ -68,6 +69,7 @@ export function* pose(E) {
                        poseStripSync, flipPose, toggleJoint, duplicatePose, poseKey, selPose });
     yield;
 
+    const FROM_IMAGE = "__image__";   // the strip's last entry: the figure is read from the person in the dragged box
     E.poseSel = null;                 // the selected figure's id
     E.poseJoint = null;               // the joint last grabbed in it
     E.posePreset = "standing";
@@ -226,6 +228,7 @@ export function* pose(E) {
     function poseUp(d) {
         if (d.mode === "poseBox") {
             if (d.moved < 6 * E.dprNow()) { if (E.poseSel != null) selectPose(null); else E.hint("Drag a box: A figure is drawn into it"); E.requestDraw(); return; }
+            if (E.posePreset === FROM_IMAGE) { poseFromImage(d); return; }
             const a = fromImg(...d.start), b = fromImg(...d.cur);
             const mid = [(d.start[0] + d.cur[0]) / 2, (d.start[1] + d.cur[1]) / 2];
             const region = regionUnder(...mid) ?? E.ensureRegion();
@@ -246,6 +249,37 @@ export function* pose(E) {
             }
         }
         E.pushUndo(d.before); E.save(); E.refreshUI(); poseStripSync();
+    }
+
+    // ---- From the image: ComfyUI's pose detector (SDPose, pose_detect.py) on the person in the dragged box ----
+    E.poseBusy = false;
+    async function poseFromImage(d) {
+        if (!E.backdrop || !E.backdropRef) { E.hint("Pose from the image " + E.NEEDS_IMAGE); E.requestDraw(); return; }
+        if (E.poseBusy) return;
+        const [W, H, s] = unit();
+        const x0 = Math.min(d.start[0], d.cur[0]), x1 = Math.max(d.start[0], d.cur[0]), y0 = Math.min(d.start[1], d.cur[1]), y1 = Math.max(d.start[1], d.cur[1]);
+        const mid = [(x0 + x1) / 2, (y0 + y1) / 2];
+        E.poseBusy = true; E.hint("Reading the pose …"); E.requestDraw();
+        try {
+            const r = await api.fetchApi("/region_genie/pose_detect", { method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: E.backdropRef, box: [x0 / W, y0 / H, x1 / W, y1 / H] }) });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || j.error) { E.hint(""); E.showMsg(j.error || `Pose from the image failed (${r.status})`); return; }
+            const person = (j.people || [])[0];
+            const pts = person?.pts?.map(([x, y]) => fromImg(x * W, y * H));
+            // a joint the detector isn't sure of (or didn't find) starts hidden; its place: its neighbour's, so it can be shown and dragged
+            const off = (person?.scores || []).map((sc, k) => (sc < 0.3 ? k : -1)).filter((k) => k >= 0);
+            if (!pts || pts.length < 18 || off.length >= 14) { E.hint("No person found in that box: Drag it around one person"); return; }
+            const seen = pts.filter((_, k) => !off.includes(k)), c = [seen.reduce((a, p) => a + p[0], 0) / seen.length, seen.reduce((a, p) => a + p[1], 0) / seen.length];
+            for (const k of off) pts[k] = [c[0], c[1]];
+            const before = E.snapshot(), region = regionUnder(...mid) ?? E.ensureRegion(), id = nextId();
+            E.state.poses = [...poses(), { id, name: `Pose ${id}`, region, visible: true, pts, ...(off.length ? { off } : {}) }];
+            E.pushUndo(before); E.save(); E.openSub?.(region, "layers"); E.refreshUI();
+            selectPose(poses().find((p) => p.id === id));
+            E.hint(off.length ? `Pose read; ${off.length} joint(s) it couldn't see are hidden` : "Pose read from the image");
+        } catch (e) {
+            E.hint(""); E.showMsg("Pose from the image: no answer from the server (" + (e?.message || e) + ")");
+        } finally { E.poseBusy = false; E.requestDraw(); void s; }
     }
 
     // ---- drawing on the canvas (render.js calls it after the layers and labels) ----
@@ -296,8 +330,10 @@ export function* pose(E) {
             const [ax, ay] = E.toScr(...d.start), [bx, by] = E.toScr(...d.cur);
             ctx.save(); ctx.setLineDash([5 * dpr, 4 * dpr]); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.2 * dpr;
             ctx.strokeRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay)); ctx.restore();
-            const a = fromImg(...d.start), b = fromImg(...d.cur), fig = presetIn(E.posePreset, a[0], a[1], b[0], b[1]);
-            drawFigure(ctx, { pts: fig.pts }, { off: new Set(fig.off), alpha: 0.85 });
+            if (E.posePreset !== FROM_IMAGE) {
+                const a = fromImg(...d.start), b = fromImg(...d.cur), fig = presetIn(E.posePreset, a[0], a[1], b[0], b[1]);
+                drawFigure(ctx, { pts: fig.pts }, { off: new Set(fig.off), alpha: 0.85 });
+            }
         }
     }
 
@@ -306,9 +342,11 @@ export function* pose(E) {
     for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "contextmenu", "keydown"]) strip.addEventListener(ev, (e) => e.stopPropagation());
     const lab = E.el("span", "rg-optlab"); lab.innerHTML = svgIcon("pose");
     const preSel = E.el("select", "rg-sel");
-    preSel.title = "The pose a new figure starts in: Drag a box on the canvas and the figure is drawn into it. Every joint can be dragged afterwards.";
+    preSel.title = "The pose a new figure starts in: Drag a box on the canvas and the figure is drawn into it. Every joint can be dragged afterwards.\n"
+        + "From the image: Drag the box around a person in the image under the canvas, and the figure takes that person's pose (needs the SDPose model in ComfyUI/models/checkpoints).";
     lab.title = preSel.title;
     for (const [key, label] of POSE_PRESETS) { const o = E.el("option"); o.value = key; o.textContent = label; preSel.appendChild(o); }
+    { const o = E.el("option"); o.value = FROM_IMAGE; o.textContent = "From the image: drag a box around a person"; preSel.appendChild(o); }
     preSel.addEventListener("change", () => { E.posePreset = preSel.value; E.focusSink(); });
     const sBtn = (icon, title, fn) => { const b = E.btn(icon, title, () => { fn(); E.focusSink(); }); b.classList.add("icon"); return b; };
     const flipBtn = sBtn("@flipH", "Flip the selected figure left to right", () => flipPose());

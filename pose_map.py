@@ -49,6 +49,57 @@ def figures(pdata, region_ids=None):
     return out
 
 
+def from_keypoints(frames, width, height):
+    """POSE_KEYPOINT (OpenPose frames, as ComfyUI's SDPose nodes and pose preprocessors give them) -> figures, placed on
+    this image: the first frame's people, their pixels scaled from the frame's canvas size to width x height. Joints
+    without a score (or at 0, 0) are hidden."""
+    frame = frames[0] if isinstance(frames, (list, tuple)) and frames else frames
+    if not isinstance(frame, dict):
+        return []
+    try:
+        cw, ch = float(frame.get("canvas_width") or width), float(frame.get("canvas_height") or height)
+    except (TypeError, ValueError):
+        cw, ch = float(width), float(height)
+    short = float(min(width, height))
+    out = []
+    for person in frame.get("people") or []:
+        kp = person.get("pose_keypoints_2d") if isinstance(person, dict) else None
+        if not isinstance(kp, (list, tuple)) or len(kp) < JOINTS * 3:
+            continue
+        fig = []
+        for k in range(JOINTS):
+            try:
+                x, y, sc = float(kp[3 * k]), float(kp[3 * k + 1]), float(kp[3 * k + 2])
+            except (TypeError, ValueError):
+                fig.append(None)
+                continue
+            if sc <= 0 or not (math.isfinite(x) and math.isfinite(y)) or (x <= 0 and y <= 0):
+                fig.append(None)
+                continue
+            if cw <= 1.5 and ch <= 1.5 and x <= 1.5 and y <= 1.5:          # some nodes give fractions of the image
+                x, y = x * cw * width, y * ch * height
+            else:
+                x, y = x * width / max(cw, 1e-6), y * height / max(ch, 1e-6)
+            fig.append(((x - width / 2) / short, (y - height / 2) / short))
+        if any(f is not None for f in fig):
+            out.append(fig)
+    return out
+
+
+def to_keypoints(figs, width, height):
+    """Figures -> POSE_KEYPOINT: one OpenPose frame with every figure as a person (body only; a hidden joint has
+    score 0), in pixels of width x height."""
+    short = float(min(width, height))
+    people = []
+    for fig in figs:
+        flat = []
+        for q in fig:
+            flat += [0.0, 0.0, 0.0] if q is None else [width / 2 + q[0] * short, height / 2 + q[1] * short, 1.0]
+        people.append({"pose_keypoints_2d": flat, "face_keypoints_2d": None, "hand_left_keypoints_2d": None,
+                       "hand_right_keypoints_2d": None, "foot_keypoints_2d": None})
+    return [{"canvas_width": int(width), "canvas_height": int(height), "people": people}]
+
+
 def render(figs, width, height):
     """(H, W, 3) float32 0..1: the skeleton map of the figures, black where there is none."""
     from PIL import Image, ImageDraw

@@ -34,7 +34,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("P picks the Pose tool; its button is lit and has a tooltip", await page.evaluate(() => { const b = [...document.querySelectorAll(".rg-bar button")].find((x) => /^Pose: /.test(x.title)); return !!b && b.classList.contains("on"); }));
     const strip = page.locator(".rg-poseopts");
     const names = await strip.locator("select option").allTextContents();
-    check(`the strip on the canvas lists the 13 starting poses (${names.length})`, await strip.isVisible() && names.length === 13
+    check(`the strip on the canvas lists the 13 starting poses and "From the image" (${names.length})`, await strip.isVisible() && names.length === 14 && /^From the image/.test(names[13])
         && ["Standing", "Walking", "Running", "Jumping", "Sitting", "Squatting", "Crawling", "Lying on the back", "Lying on the side", "One arm raised", "Both arms raised", "Facing away", "T-pose"].every((x) => names.includes(x)));
     check("with no figure selected, flip / duplicate / delete are off", await strip.locator("button:disabled").count() === 4);
     check("the region labels are out of the way while the Pose tool is in use (the hints name the tool's moves)", /Drag a box/.test(await page.evaluate(() => document.querySelector(".rg-tips").textContent)));
@@ -119,6 +119,38 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const h2 = (await poses())[1].pts; await drag(h2[4], [h2[4][0] + .1, h2[4][1]]);
     check("the Select tool doesn't move joints", JSON.stringify((await poses()).map((p) => p.pts[4])) === JSON.stringify(JSON.parse(before).map((p) => p.pts[4])));
     await page.keyboard.press("Control+z"); await sleep(120);
+
+    // ---- From the image: the box goes to the server (ComfyUI's pose detector), the answer becomes a figure
+    await page.evaluate(() => window.__node.__rgSetTool("pose")); await sleep(80);
+    await strip.locator("select").selectOption("__image__"); await sleep(60);
+    await drag([-.40, -.38], [-.10, .38]);
+    check("From the image without an image under the canvas: a hint, no request, no figure", (await poses()).length === 2
+        && await page.evaluate(() => window.__fetches.filter(([u]) => u.includes("pose_detect")).length) === 0 && /needs an image/.test(await page.evaluate(() => document.querySelector(".rg-status")?.textContent || document.querySelector(".rg-head").textContent)));
+    await page.evaluate(async () => {
+        const c = document.createElement("canvas"); c.width = 256; c.height = 256; const x = c.getContext("2d"); x.fillStyle = "#335"; x.fillRect(0, 0, 256, 256);
+        const img = new Image(); img.src = c.toDataURL(); await img.decode();
+        window.__node.inputs = [{ name: "image", link: 7 }]; window.__node.__rgSetBackdrop(img, { filename: "photo.png", subfolder: "", type: "input" });
+        // the detector's answer: a person in the box's middle, as fractions of the image; the left wrist and ankle unsure
+        window.__apiHandlers["/region_genie/pose_detect"] = async (b) => { window.__poseBody = b; const [x0, y0, x1, y1] = b.box;
+            const base = [[.5, .1], [.5, .2], [.39, .21], [.36, .37], [.35, .52], [.61, .21], [.64, .37], [.65, .52], [.43, .52], [.425, .74], [.42, .96], [.57, .52], [.575, .74], [.58, .96], [.475, .08], [.525, .08], [.445, .095], [.555, .095]];
+            return [200, { people: [{ pts: base.map(([x, y]) => [x0 + x * (x1 - x0), y0 + y * (y1 - y0)]), scores: base.map((_, k) => (k === 7 || k === 13 ? 0.1 : 0.9)) }] }]; };
+    });
+    await sleep(150);
+    await drag([-.40, -.38], [-.10, .38]); await sleep(300);
+    P = await poses();
+    const body = await page.evaluate(() => window.__poseBody);
+    const [dW, dH] = await page.evaluate(() => window.__node.__rgDims());
+    check(`From the image: the box is sent as fractions of the image, with the image (${(body?.box || []).map((v) => v.toFixed(2))})`, !!body && body.image?.filename === "photo.png"
+        && body.box.every((v) => v > 0 && v < 1) && body.box[0] < body.box[2] && body.box[1] < body.box[3]);
+    const nf = P[P.length - 1];
+    check("the answer is a figure in that box, in the region under it; the joints the detector wasn't sure of are hidden", P.length === 3 && nf.region === 1 && JSON.stringify(nf.off) === "[7,13]"
+        && nf.pts[1][0] > -.40 && nf.pts[1][0] < -.10 && nf.pts[0][1] < nf.pts[10][1] && Math.abs(nf.pts[1][0] - (-.25)) < .03);
+    await page.evaluate(() => { window.__apiHandlers["/region_genie/pose_detect"] = async () => [404, { error: "Pose from the image needs the SDPose model: put sdpose_wholebody_fp16.safetensors in ComfyUI/models/checkpoints (https://huggingface.co/x), press R to refresh, then try again", code: "no_model" }]; });
+    await drag([.10, -.38], [.40, .38]); await sleep(300);
+    check("without the model: the message bar says where to get it; no figure", (await poses()).length === 3 && /SDPose model/.test(await page.evaluate(() => document.querySelector(".rg-msg")?.textContent || "")));
+    await page.keyboard.press("Control+z"); await sleep(150);
+    check("Undo takes the read figure back", (await poses()).length === 2);
+    await page.evaluate(() => { window.__node.__rgSetTool("select"); document.querySelector(".rg-msg button, .rg-msg .x")?.click(); }); await sleep(80);
 
     // ---- Control: the kind "pose"; saving and loading; deleting a region
     await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.controls = [{ kind: "pose", strength: 1, start: 0, end: 1 }]; n.__rgRefresh(); }); await sleep(200);

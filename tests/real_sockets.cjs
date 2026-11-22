@@ -9,7 +9,7 @@ const vue = process.argv.includes("vue"), M = vue ? "Nodes 2.0" : "legacy";
 const fails = [];
 const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (!ok) fails.push(name); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes", "elements", "character_boxes", "region_info", "width", "height"];
+const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "masks", "bboxes", "elements", "character_boxes", "region_info", "width", "height", "pose_keypoint"];
 
 (async () => {
     const browser = await chromium.launch();
@@ -48,8 +48,8 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
         return { rows: [...b.querySelectorAll("label")].map((l) => ({ key: l.dataset.sock, on: l.querySelector("input").checked, off: l.querySelector("input").disabled, why: l.querySelector(".rg-socks-why")?.textContent || "" })),
             in: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight, top: document.elementFromPoint(r.left + 20, r.top + 12)?.closest(".rg-socks") === b }; });
     let l = await list();
-    check(`${M}: the sockets button opens a list on top, in the window: 3 input rows and all 13 outputs`, !!l && l.in && l.top && l.rows.length === 16 && l.rows.slice(3).map((r) => r.key).join() === OUT.join());
-    check(`${M}: the four shown outputs are ticked, the rest not; control_image waits for a Control row`, l.rows.slice(3).filter((r) => r.on).map((r) => r.key).join() === "model,positive,negative,latent"
+    check(`${M}: the sockets button opens a list on top, in the window: 4 input rows and all 14 outputs`, !!l && l.in && l.top && l.rows.length === 18 && l.rows.slice(4).map((r) => r.key).join() === OUT.join());
+    check(`${M}: the four shown outputs are ticked, the rest not; control_image waits for a Control row`, l.rows.slice(4).filter((r) => r.on).map((r) => r.key).join() === "model,positive,negative,latent"
         && l.rows.find((r) => r.key === "control").off && /Control row/.test(l.rows.find((r) => r.key === "control").why));
     const tick = async (key) => { await page.locator(`.rg-socks label[data-sock="${key}"] input`).click(); await sleep(900); };
     const g0 = await geo();
@@ -77,7 +77,7 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
     check(`${M}: a connected output is ticked and can't be unticked ("${l.rows.find((r) => r.key === "height").why}")`, l.rows.find((r) => r.key === "height").off && l.rows.find((r) => r.key === "height").on && l.rows.find((r) => r.key === "height").why === "connected");
     await page.locator(".rg-socks-acts button", { hasText: "All outputs" }).click(); await sleep(1200);
     s = await socks();
-    check(`${M}: All outputs: all 13 show (${s.outputs.length})`, s.outputs.length === 13 && OUT.every((n) => s.outputs.includes(n)));
+    check(`${M}: All outputs: all 14 show (${s.outputs.length})`, s.outputs.length === 14 && OUT.every((n) => s.outputs.includes(n)));
     await page.locator(".rg-socks-acts button", { hasText: "Sampler only" }).click(); await sleep(1200);
     s = await socks();
     check(`${M}: Sampler only: the four, and the connected one (${s.outputs.join(", ")})`, s.outputs.join() === "model,positive,negative,latent,height");

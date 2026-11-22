@@ -245,5 +245,51 @@ notes = []
 ctl.apply(cfg("pose", {"MOSS": "x"}), "MOSS-Image", "M", cond(), cond(), VAE(), None, None, cmap, None, W, H, notes, pose_map=pt)
 check("pose with MOSS-Image: noted as not read", any("not pose" in x for x in notes))
 
+# keypoints in and out (the pose_keypoint input / output)
+kp = pm.to_keypoints(figs, 256, 512)
+check("to_keypoints: one OpenPose frame, a person per figure, pixels; a hidden joint has score 0",
+      len(kp) == 1 and kp[0]["canvas_width"] == 256 and kp[0]["canvas_height"] == 512 and len(kp[0]["people"]) == 2
+      and len(kp[0]["people"][0]["pose_keypoints_2d"]) == 54 and kp[0]["people"][1]["pose_keypoints_2d"][:3] == [0.0, 0.0, 0.0]
+      and abs(kp[0]["people"][0]["pose_keypoints_2d"][3] - 128) < 1e-3 and abs(kp[0]["people"][0]["pose_keypoints_2d"][4] - (256 - .30 * 256)) < 1e-3)
+back = pm.from_keypoints(kp, 256, 512)
+check("from_keypoints reads them back to the same figures", len(back) == 2 and back[1][0] is None
+      and all(abs(a[0] - b[0]) < 1e-6 and abs(a[1] - b[1]) < 1e-6 for a, b in zip(back[0], figs[0])))
+half_size = pm.from_keypoints(kp, 128, 256)
+check("keypoints made for another canvas size are scaled to this one", abs(half_size[0][1][0] - figs[0][1][0]) < 1e-6 and abs(half_size[0][1][1] - figs[0][1][1]) < 1e-6)
+check("from_keypoints: nothing usable gives no figure", pm.from_keypoints([{"people": [{"pose_keypoints_2d": [0] * 54}]}], 64, 64) == [] and pm.from_keypoints(None, 64, 64) == [])
+
+# pose from the image (pose_detect.py): the box in pixels for ComfyUI's SDPose node, its answer as fractions
+import tempfile  # noqa: E402
+from PIL import Image  # noqa: E402
+import pose_detect as pdet  # noqa: E402
+tmp = tempfile.mkdtemp(); Image.new("RGB", (200, 100), (40, 60, 80)).save(os.path.join(tmp, "photo.png"))
+folder_paths.get_directory_by_type = lambda kind: tmp
+seen = {}
+pdet._load = lambda name, path: ("MODEL", "VAE")
+def fake_extract(model, vae, image, bbox):
+    seen.update(shape=tuple(image.shape), bbox=bbox)
+    flat = []
+    for k in range(18):
+        flat += [bbox["x"] + bbox["width"] / 2, bbox["y"] + k * bbox["height"] / 17, 0.9 if k != 4 else 0.0]
+    return [{"canvas_width": 200, "canvas_height": 100, "people": [{"pose_keypoints_2d": flat}]}]
+pdet._extract = fake_extract
+INSTALLED.add("sdpose_wholebody_fp16.safetensors")
+r = pdet.run_detect({"image": {"filename": "photo.png", "type": "input"}, "box": [0.25, 0.1, 0.75, 0.9]})
+check("pose_detect: the image is read, the box goes to the detector in pixels",
+      seen["shape"] == (1, 100, 200, 3) and seen["bbox"] == {"x": 50.0, "y": 10.0, "width": 100.0, "height": 80.0})
+pp = r["people"][0]
+check("pose_detect: the joints come back as fractions of the image, with their scores",
+      len(r["people"]) == 1 and len(pp["pts"]) == 18 and abs(pp["pts"][0][0] - 0.5) < 1e-6 and abs(pp["pts"][0][1] - 0.1) < 1e-6
+      and abs(pp["pts"][17][1] - 0.9) < 1e-6 and pp["scores"][4] == 0.0 and pp["scores"][0] == 0.9)
+INSTALLED.discard("sdpose_wholebody_fp16.safetensors"); folder_paths.get_filename_list = lambda folder: []
+try:
+    pdet.resolve_model(""); check("pose_detect: no model file: said so", False)
+except pdet.PoseError as e:
+    check("pose_detect: no model file: the message names the file and where it goes", e.code == "no_model" and "sdpose_wholebody_fp16.safetensors" in str(e) and "models/checkpoints" in str(e))
+try:
+    pdet.run_detect({"image": None}); check("pose_detect: no image: said so", False)
+except pdet.PoseError as e:
+    check("pose_detect: no image under the canvas: said so", e.code == "no_image" and "Pose from the image" in str(e))
+
 print("\n" + (f"{len(fails)} failed" if fails else "all passed"))
 sys.exit(1 if fails else 0)
