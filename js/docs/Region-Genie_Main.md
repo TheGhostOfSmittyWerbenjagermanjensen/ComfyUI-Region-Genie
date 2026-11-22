@@ -48,6 +48,8 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
 - **Nothing is lost by trying:** Ctrl+Z undoes every change in the editor, Clear all and typed text included.
   - Each visit to a text box is one step. With the cursor in a box, Ctrl+Z goes back through that box's text.
   - The history is kept in memory only, never saved.
+- **Tag weight:** in any text box, Ctrl+Up / Ctrl+Down raise or lower the weight of the word or tag at the cursor,
+  or of the selected words: `(tag:1.05)`.
 - **Shortcuts** work while the pointer is over the node: V select, R / O / T shapes, B brush, L lasso, F fill,
   W magic wand, Q Select object, E eraser, G snap, Home fit, Space+drag pan, wheel zoom. **Press ?** (or the
   keyboard button in the bottom bar) for the whole list; click a key there to give it another key.

@@ -12,6 +12,7 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Asked: tag weight keys in the rows' "words" fields too, and a check of the Regional LoRAs node for other things that lag behind the main node (e.g. the wildcard controls showing only when a wildcard is present).
 - Found: the words fields already took the keys (they are small multi-line boxes; round 59's note that they didn't was wrong and untested). Now tested.
 - Built: the wildcard seed group (seed, after-run mode, preview) shows only while one of the node's fields has a wildcard, as in the main node. Looked at the rest of the node next to the main node (pictures in both modes): nothing else out of step; the differences that remain are listed for the owner in the chat.
+- Before the pull request, a pass over the README, manual and help pages for these two rounds: the tag weight bullet in docs/region-genie.md had landed inside the ◀ / ▶ bullet (so "Page Up / Page Down do the same" pointed at the wrong thing) and is now its own bullet, with a row in the pop-up table; the Regional LoRAs page and both help pages now mention tag weight and when the seed shows; hardware checklist items added.
 
 ## Round 58 (Nov 21): "no regions needed" said out loud
 - Asked: is it clear that the node also serves plain text-to-image prompts without regions, so one workflow does both? It wasn't: the manual only mentioned it for MOSS-Image's prompt format.

@@ -161,7 +161,8 @@ Check once in legacy mode and once in Nodes 2.0.
 - **Both node modes, 4K display:** tick and untick sockets: the node's top moves, the editor and the node's bottom edge stay; wires to other nodes follow.
 - `size_from` with a real image and with a real latent (also one from another node than Empty Latent, where the size is only known after a run): the size at the right end of the size row and the canvas agree with the result.
 - Edit Mode: the **Edit area** line is under *Whole image*, its dropdown and two fields act as the bottom bar's dropdown and the header's fields did; removing the Edit row with ✕ leaves it.
-- A wildcard typed into any prompt brings the seed group into the bottom bar at once; removing the last wildcard hides it.
+- A wildcard typed into any prompt brings the seed group into the bottom bar at once; removing the last wildcard hides it. The same on the Regional LoRAs node (top right of its rows editor).
+- Ctrl+Up / Ctrl+Down in each kind of text box (scene prompts, a region's prompt in the list, a pop-up editor, the large editor, Regional LoRAs' prompts and a row's words): the tag at the cursor gets a weight, `(tag:1.05)`; back at 1 the brackets go. Also Cmd on a Mac, and in Firefox.
 - Subgraphs: a Region Genie node inside a subgraph, with only some outputs shown and one of them leaving the subgraph, runs with the right data. (Not tested here.)
 - "Save (API Format)" of a workflow whose node shows only some outputs: the file has the Python node's output numbers and an empty `outputs_shown`.
 
