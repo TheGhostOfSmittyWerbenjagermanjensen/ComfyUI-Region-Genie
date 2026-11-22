@@ -571,7 +571,9 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
   - **min region pixels** and **import_json when the canvas isn't empty**.
   - **Pose import: a figure you changed** and **Pose import: a figure the input changed** (see [Pose figures](#pose-figures)).
   - **LLM cache** (see [LLM Prompt Enhancer](llm-prompt-enhancer.md)).
-- **Model files** (in Settings: control LoRAs, ControlNets and pose ControlNets, Anima LLLite patches, Depth Anything 3, the SDPose model, edit LoRAs, the Select object model; on the node: the Edit rows; in the LLM settings: the LLM and its LoRAs) are fields showing the file's name.
+- **Model files** are fields showing the file's name. They are:
+  - In Settings: control LoRAs, ControlNets and pose ControlNets, Anima LLLite patches, Depth Anything 3, the SDPose model, edit LoRAs, the Select object model.
+  - On the node: the Edit rows. In the LLM settings: the LLM and its LoRAs.
   - A click opens **ComfyUI's classic menu**, in both legacy mode and Nodes 2.0:
     - The control and edit files open on ComfyUI's model folders (📁 controlnet, 📁 loras, 📁 model_patches, 📁 geometry_estimation). A file from another folder than the setting's own is saved with its folder.
     - Select object and the SDPose model open on `checkpoints`.
