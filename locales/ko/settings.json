@@ -611,6 +611,26 @@
     "name": "수동: 스텝 크기",
     "tooltip": "수동 모드에서 너비와 높이의 화살표를 한 번 클릭할 때 값이 변하는 양 (px).\n지금부터 추가하는 노드에 적용됩니다. 워크플로에 이미 있는 노드는 자체 값을 유지합니다."
   },
+  "RegionGenie_Control_Flux1_pose": {
+    "name": "Flux.1: 포즈 ControlNet (OpenPose 또는 union)",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 Flux.1일 때 포즈로 설정된 Control 행(포즈 도구의 인물)이 사용합니다. 설정되지 않은 경우 '컨트롤 이미지'용으로 설정된 파일을 사용합니다.\ndiffusion_pytorch_model.safetensors을(를) ComfyUI/models/controlnet에 넣으세요 (InstantX의 union ControlNet은 포즈를 읽습니다. 이름을 바꾸세요. 예: instantx-flux-union.safetensors): https://huggingface.co/InstantX/FLUX.1-dev-Controlnet-Union/resolve/main/diffusion_pytorch_model.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_SDXL_pose": {
+    "name": "SDXL: 포즈 ControlNet (OpenPose 또는 union)",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 SDXL일 때 포즈로 설정된 Control 행(포즈 도구의 인물)이 사용합니다. 설정되지 않은 경우 '컨트롤 이미지'용으로 설정된 파일을 사용합니다.\ndiffusion_pytorch_model.safetensors을(를) ComfyUI/models/controlnet에 넣으세요 (Xinsir의 OpenPose ControlNet. Illustrious-XL, NoobAI-XL 같은 SDXL 기반 모델에도 사용합니다. 이름을 바꾸세요. 예: controlnet-openpose-sdxl.safetensors): https://huggingface.co/xinsir/controlnet-openpose-sdxl-1.0/resolve/main/diffusion_pytorch_model.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_SD15_pose": {
+    "name": "SD1.5: 포즈 ControlNet (OpenPose 또는 union)",
+    "tooltip": "ControlNet으로, 맵을 읽어 매 스텝마다 모델을 유도하는 별도의 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다(Control-LoRA 및 union 파일도 가능).\n모델이 SD1.5일 때 포즈로 설정된 Control 행(포즈 도구의 인물)이 사용합니다. 설정되지 않은 경우 '컨트롤 이미지'용으로 설정된 파일을 사용합니다.\ncontrol_v11p_sd15_openpose_fp16.safetensors을(를) ComfyUI/models/controlnet에 넣으세요: https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11p_sd15_openpose_fp16.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Control_Anima_pose": {
+    "name": "Anima: 포즈 LLLite 패치",
+    "tooltip": "Anima LLLite 패치로, 모델에 붙는 작은 컨트롤 네트워크입니다. Control 행의 강도와 시작 / 끝이 적용됩니다.\n모델이 Anima일 때 포즈로 설정된 Control 행(포즈 도구의 인물)이 사용합니다. 설정되지 않은 경우 '컨트롤 이미지'용으로 설정된 파일을 사용합니다.\nanima-lllite-pose-1.safetensors을(를) ComfyUI/models/model_patches (또는 models/controlnet)에 넣으세요: https://huggingface.co/Comfy-Org/Anima-LLLite/resolve/main/model_patches/anima-lllite-pose-1.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
+  },
+  "RegionGenie_Pose_Model": {
+    "name": "이미지에서 포즈: SDPose 모델",
+    "tooltip": "포즈 도구의 '이미지에서'가 사용하는 포즈 감지기(ComfyUI의 SDPose). 파일 하나로 모든 이미지 모델에 사용합니다. 그림에서 포즈만 읽기 때문입니다. sdpose_wholebody_fp16.safetensors를 huggingface.co/Comfy-Org/SDPose에서 ComfyUI/models/checkpoints로 내려받으세요. 이 파일이 없으면 이름에 'sdpose'가 들어간 다른 체크포인트를 사용합니다. '모델 파일'의 'Browse…로 모델 파일 선택'을 켜면 폴더 버튼으로 ComfyUI 컴퓨터의 어느 위치에 있는 체크포인트든 선택할 수 있습니다."
+  },
   "RegionGenie_Page_size: Image size: mode, Aspect ratio, Megapixels, Multiple, Presets, Manual: width, Manual: height, Manual: step size": {
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
@@ -627,7 +647,7 @@
     "name": "텍스트 크기",
     "tooltip": "노드와 팝업 편집기에서 프롬프트 상자의 글자 크기.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_control: MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
+  "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "컨트롤",
     "tooltip": "각 모델이 Control 행에 사용하는 컨트롤 LoRA, ControlNet 또는 LLLite 파일과 깊이 모델.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },

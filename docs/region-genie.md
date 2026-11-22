@@ -133,6 +133,8 @@ The row at the top of the node sets the size of the picture. Three buttons on th
   - A width or height you type can be any number.
 - **Settings > Region Genie > Image size** sets how new nodes start (mode, aspect ratio, megapixels, multiple, manual width / height / step size).
 - **Number fields** (here and everywhere in the pack) are as wide as their value: two digits at least, wider as you type more, so the arrows never cover a digit.
+  - **The mouse wheel changes a number field you clicked into:** click the field, then turn the wheel anywhere over the same node. Each notch is one step of the field's arrows.
+  - Over the drawing canvas the wheel always zooms the canvas, and the field lets go. Without a field clicked, the wheel does what it always did.
 
 ### What decides the size
 
@@ -365,7 +367,9 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 - **Left and right:** the colors are OpenPose's own. The person's right arm is orange and yellow, the left arm green; the right leg is turquoise, the left leg blue. A person facing you has their right side on your left.
 - **A joint that is out of view** (behind something, or outside the picture): click it, then press the hide-joint button. It and its bones are left out of the pose map, and it shows as a dashed ring while the figure is selected. *Facing away* starts with the nose and eyes hidden.
 - **From the image:** the last entry of the starting poses. Drag the box around a person in the image under the canvas, and the figure takes that person's pose.
-  - It uses ComfyUI's own pose detector, SDPose. Put `sdpose_wholebody_fp16.safetensors` ([download](https://huggingface.co/Comfy-Org/SDPose/resolve/main/checkpoints/sdpose_wholebody_fp16.safetensors), about 1.9 GB) in `ComfyUI/models/checkpoints`.
+  - It uses ComfyUI's own pose detector, SDPose.
+  - Put `sdpose_wholebody_fp16.safetensors` ([download](https://huggingface.co/Comfy-Org/SDPose/resolve/main/checkpoints/sdpose_wholebody_fp16.safetensors), about 1.9 GB) in `ComfyUI/models/checkpoints`.
+  - One detector file serves every image model: it only reads the pose from the picture. To use a file with another name or place, pick it in **Settings > Region Genie > Control** (*Pose from the image: SDPose model*).
   - It needs an image on `image`: a directly connected Load Image, or any image after a run. One person per box.
   - Joints the detector couldn't see start hidden. The model is released a few minutes after the last use.
 - **Keypoints in and out** (tick them in the sockets list, the cable button of the size row; both are off by default):

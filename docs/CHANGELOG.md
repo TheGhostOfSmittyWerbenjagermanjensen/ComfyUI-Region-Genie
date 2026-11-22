@@ -8,6 +8,13 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Built: the same edit for the pack's fields (rg_shared.js `editAttention`, using ComfyUI's own helper functions), each change its own Undo step; a row in the shortcut sheet; manual and README. Version 0.45.0.
 - Tests: new `tests/real_attention.cjs [vue]`: up, back to plain, down in 11 fields (scene prompts, list, pop-up editors, large editor, the Regional LoRAs node), several selected words, Undo, the node's data.
 
+## Round 63 (Nov 22): Settings for the pose files; the wheel on number fields
+- Asked: (1) put an input's figures on the canvas as editable figures, with the open questions raised first; (2) a Setting with a file picker for the SDPose file, and if there are different pose files for different checkpoints, one Setting per model type; (3) the mouse wheel raises / lowers a number field of the pack that has the focus, with the pointer anywhere over the node. Then, while I was building: over the drawing canvas the wheel should zoom the canvas, not change the field.
+- Found for (2): the detector (SDPose) is one file for every image model (ComfyUI has only the wholebody one; RT-DETR in the same repository finds people, which the dragged box replaces). The pose **ControlNets** differ per model type.
+- Built: Settings > Region Genie > Control: *pose ControlNet* for Flux.1, SDXL and SD1.5, *pose LLLite patch* for Anima (each with its download; fallback to the file for "your control_image"), and *Pose from the image: SDPose model*. The wheel on a focused number field (see HANDOFF), with the owner's canvas rule. Translations; version 0.47.0.
+- Not built yet: (1), waiting for the owner's answers to the questions in the chat.
+- Tests: new `real_number_wheel.cjs [vue]` (17 checks); `test_control.py` (the pose file comes first, the fallback, the message).
+
 ## Round 62 (Nov 22): a pose from the image; keypoints in and out
 - Asked (after the Pose tool's pull request): add reading a pose from a photo, and a keypoint input / output, not shown by default, turned on with the checkboxes of the cable button.
 - Built: **From the image** as the last entry of the Pose tool's starting poses: drag a box around a person in the image under the canvas; ComfyUI's own SDPose finds the joints (new route `/region_genie/pose_detect`, `pose_detect.py`); unsure joints start hidden; a message with the download link when the model file is missing. **`pose_keypoint`** input and output (OpenPose format), both ticked on in the sockets list; the input's figures are used with the canvas's for the pose Control row and the output.
