@@ -2254,7 +2254,7 @@ const SETTINGS = [
         },
         {
             id: SET.poseModel, name: "Pose from the image: SDPose model", type: fileSettingType(["checkpoints"], SDPOSE_DEFAULT, SET.poseModel, "checkpoints", false), defaultValue: SDPOSE_DEFAULT,
-            tooltip: "The pose detector the Pose tool's 'From the image' uses (ComfyUI's SDPose). One file serves every image model: it only reads "
+            tooltip: "The pose detector the Pose tool's 'From the image' uses (ComfyUI's SDPose). One file serves every image model, since it only reads "
                 + "the pose from the picture. Download sdpose_wholebody_fp16.safetensors from huggingface.co/Comfy-Org/SDPose into "
                 + "ComfyUI/models/checkpoints. When this file isn't there, another checkpoint with 'sdpose' in its name is used. With "
                 + "'Browse… for model files' on (Model files), a folder button picks a checkpoint anywhere on the ComfyUI machine.",
