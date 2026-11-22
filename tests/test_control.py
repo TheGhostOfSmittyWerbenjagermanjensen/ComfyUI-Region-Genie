@@ -290,12 +290,17 @@ check("pose_detect: the joints come back as fractions of the image, with their s
       len(r["people"]) == 1 and len(pp["pts"]) == 18 and abs(pp["pts"][0][0] - 0.5) < 1e-6 and abs(pp["pts"][0][1] - 0.1) < 1e-6
       and abs(pp["pts"][17][1] - 0.9) < 1e-6 and pp["scores"][4] == 0.0 and pp["scores"][0] == 0.9)
 # the import button's internal node: the people of the keypoints, as fractions of their canvas, back to the editor
-fetch = pdet.PoseFetch().run(kp, "x")
-fp = fetch["ui"]["pose_people"]
-check("PoseFetch: the people as fractions of the keypoints' canvas, hidden joints with score 0; hidden from the node menu",
+import json as _json
+fp = pdet.handle_people({"text": [_json.dumps(kp, indent=4)]})["people"]            # as ComfyUI's Preview as Text node hands it over
+check("pose_people: the people as fractions of the keypoints' canvas, hidden joints with score 0; no node of the pack's own",
       len(fp) == 2 and abs(fp[0]["pts"][1][0] - 0.5) < 1e-6 and abs(fp[0]["pts"][1][1] - (256 - .30 * 256) / 512) < 1e-6 and fp[1]["scores"][0] == 0.0
-      and pdet.PoseFetch.DEV_ONLY is True and pdet.PoseFetch.OUTPUT_NODE is True)
-check("PoseFetch: nothing usable gives no people", pdet.PoseFetch().run(None)["ui"]["pose_people"] == [] and pdet.PoseFetch().run([{"people": []}])["ui"]["pose_people"] == [])
+      and not hasattr(pdet, "PoseFetch"))
+check("pose_people: nothing usable gives no people", pdet.handle_people({"text": "null"})["people"] == [] and pdet.handle_people({"text": _json.dumps([{"people": []}])})["people"] == [])
+try:
+    pdet.handle_people({"text": "[{'people': array([1.])}]"}); bad = False
+except pdet.PoseError as e:
+    bad = e.code == "bad_keypoints"
+check("pose_people: text that is not JSON (data the preview node could not write as JSON) is refused with a message", bad)
 INSTALLED.discard("sdpose_wholebody_fp16.safetensors"); folder_paths.get_filename_list = lambda folder: []
 try:
     pdet.resolve_model(""); check("pose_detect: no model file: said so", False)

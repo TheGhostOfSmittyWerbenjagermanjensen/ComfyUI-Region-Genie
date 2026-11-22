@@ -1692,7 +1692,7 @@ class RegionGenie:
             except (TypeError, ValueError):
                 return d
         # a node that says nothing was saved before round 52, when 0.85 / 0.25 were the defaults: it keeps them. New nodes
-        # always say (0.4 / 0.1 unless Settings set other values; lifecycle.js writes loraOpts when a node is added)
+        # always say (0.85 / 0.1 unless Settings set other values; lifecycle.js writes loraOpts when a node is added)
         separation, until = clamp(opts.get("separation"), 0.85), clamp(opts.get("until"), 0.25)
 
         # spans: each region's caption in prompt_text, as character ranges (trigger words act with their LoRA)

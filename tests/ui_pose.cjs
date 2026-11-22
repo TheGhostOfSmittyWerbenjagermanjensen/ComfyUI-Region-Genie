@@ -198,15 +198,16 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         window.__person = person; window.__people = [person(.05), person(.7)];
         app.graphToPrompt = async () => ({ workflow: {}, output: { "5": { class_type: "LoadImage", inputs: { image: "a.png" } }, "6": { class_type: "SDPoseKeypointExtractor", inputs: { image: ["5", 0] } },
             "9": { class_type: "KSampler", inputs: { latent: [String(n.id), 3] } }, [String(n.id)]: { class_type: "Region-Genie_Main", inputs: { pose_keypoint: ["6", 0] } } } });
-        api.queuePrompt = async (num, p) => { window.__queued = p; const fid = Object.keys(p.output).find((k) => p.output[k].class_type === "Region-Genie_PoseFetch");
-            setTimeout(() => { for (const f of [...(L.executed || [])]) f({ detail: { node: fid, output: { pose_people: window.__people } } }); }, 30); return { prompt_id: "p1" }; };
+        api.queuePrompt = async (num, p) => { window.__queued = p; const fid = Object.keys(p.output).find((k) => p.output[k].class_type === "PreviewAny");
+            setTimeout(() => { for (const f of [...(L.executed || [])]) f({ detail: { node: fid, output: { text: ["KEYPOINTS-AS-TEXT"] } } }); }, 30); return { prompt_id: "p1" }; };
+        window.__apiHandlers["/region_genie/pose_people"] = async (b) => { window.__peopleBody = b; return [200, { people: window.__people }]; };
     }, base18);
     await sleep(700);
     check("with the input connected the button is on; its tooltip says what it does", !(await takeBtn.isDisabled()) && /Only the nodes that make the keypoints run/.test(await takeBtn.getAttribute("title")));
     const count0 = (await poses()).length;
     await takeBtn.click(); await sleep(400);
-    const q = await page.evaluate(() => ({ keys: Object.keys(window.__queued.output).map((k) => window.__queued.output[k].class_type).sort(), fetch: Object.values(window.__queued.output).find((x) => x.class_type === "Region-Genie_PoseFetch").inputs.keypoints }));
-    check(`the click queues only the nodes that make the keypoints, and the pack's fetch node after them (${q.keys})`, q.keys.join() === "LoadImage,Region-Genie_PoseFetch,SDPoseKeypointExtractor" && q.fetch.join() === "6,0");
+    const q = await page.evaluate(() => ({ keys: Object.keys(window.__queued.output).map((k) => window.__queued.output[k].class_type).sort(), fetch: Object.values(window.__queued.output).find((x) => x.class_type === "PreviewAny").inputs.source, sent: window.__peopleBody?.text?.[0] }));
+    check(`the click queues only the nodes that make the keypoints, and ComfyUI's Preview as Text node after them (${q.keys}); its text goes to the pack's server`, q.keys.join() === "LoadImage,PreviewAny,SDPoseKeypointExtractor" && q.fetch.join() === "6,0" && q.sent === "KEYPOINTS-AS-TEXT");
     P = await poses();
     const got = P.slice(count0);
     check(`both people are placed as figures; the one over region 2 belongs to it, the other to none (${got.map((g) => g.region)})`, got.length === 2 && got[0].region === null && got[1].region === 2 && got.every((g) => g.src && g.src.sig && g.src.own));

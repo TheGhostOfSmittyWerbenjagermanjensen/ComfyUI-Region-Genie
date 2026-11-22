@@ -71,7 +71,7 @@ if (process.env.COMFY_DIR) {
   await page.evaluate(async () => { try { const r = await (await fetch("/object_info/LoraLoaderModelOnly")).json(); window.__loras = r.LoraLoaderModelOnly.input.required.lora_name[0]; } catch (e) { window.__loras = []; } });
   await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || []).find((x) => /rg_demo.red_dragon/.test(x)) || (window.__loras || [])[0];
     if (!lo) throw new Error("no LoRA file in ComfyUI: run with COMFY_DIR set");
-    s.loraOpts = { ...(s.loraOpts || {}), separation: 0.4, until: 0.1 };          // the defaults, whatever this ComfyUI has in its Settings
+    s.loraOpts = { ...(s.loraOpts || {}), separation: 0.85, until: 0.1 };          // the defaults, whatever this ComfyUI has in its Settings
     s.regions[1].loras = [{ lora: lo, strength: 0.8, on: true }]; n.__rgRefresh(); });
   await page.waitForTimeout(300);
   await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(400);

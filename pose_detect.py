@@ -10,6 +10,7 @@ through ComfyUI's SDPose Keypoint Extractor node, so the result is what that nod
 minutes after the last request, then released.
 """
 import asyncio
+import json
 import gc
 import logging
 import os
@@ -150,32 +151,31 @@ def people_of(frames, width, height):
     return out
 
 
-class PoseFetch:
-    """Internal (not in the node menu): the node the Pose tool's "take the input's figures" button adds to a small
-    prompt of its own, after the nodes that make the keypoints. It hands the people in the keypoints back to the
-    editor (as the run's UI message), which places them on the canvas. Nothing is saved, nothing goes on."""
-    DEV_ONLY = True                    # hidden from the node menu and search (shown only in ComfyUI's dev mode)
-    CATEGORY = "Region Genie"
-    DESCRIPTION = "Internal: Gives pose keypoints back to the Region Genie editor (the Pose tool's import button)."
-    OUTPUT_NODE = True
-    RETURN_TYPES = ()
-    FUNCTION = "run"
+def people_from_keypoints(keypoints):
+    """The people in a POSE_KEYPOINT value (or its first frame), as fractions of the keypoints' own canvas."""
+    frame = keypoints[0] if isinstance(keypoints, (list, tuple)) and keypoints else keypoints
+    if not isinstance(frame, dict):
+        return []
+    try:
+        cw, ch = float(frame.get("canvas_width") or 1), float(frame.get("canvas_height") or 1)
+    except (TypeError, ValueError):
+        cw, ch = 1.0, 1.0
+    return people_of([frame], max(cw, 1e-6), max(ch, 1e-6))
 
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {"required": {"keypoints": ("POSE_KEYPOINT", {"forceInput": True})},
-                "optional": {"nonce": ("STRING", {"default": ""})}}       # changes with every click: never answered from the cache
 
-    def run(self, keypoints, nonce=""):
-        frame = keypoints[0] if isinstance(keypoints, (list, tuple)) and keypoints else keypoints
-        people = []
-        if isinstance(frame, dict):
-            try:
-                cw, ch = float(frame.get("canvas_width") or 1), float(frame.get("canvas_height") or 1)
-            except (TypeError, ValueError):
-                cw, ch = 1.0, 1.0
-            people = people_of([frame], max(cw, 1e-6), max(ch, 1e-6))
-        return {"ui": {"pose_people": people}}
+def handle_people(body):
+    """The Pose tool's import button (round 68). The button queues the nodes that make the keypoints with ComfyUI's own
+    "Preview as Text" node after them, which gives the keypoints back as JSON text; that text comes here and the people
+    in it go back to the editor. (Rounds 64 to 67 had a node of the pack's own for this step: ComfyUI lists such a node
+    in its search whenever its dev mode is on, so it is gone.)"""
+    text = body.get("text")
+    if isinstance(text, (list, tuple)):
+        text = text[0] if text else ""
+    try:
+        data = json.loads(text) if isinstance(text, str) else text
+    except (TypeError, ValueError):
+        raise PoseError("The pose_keypoint input's data could not be read (it is not plain keypoint data)", "bad_keypoints", 400)
+    return {"people": people_from_keypoints(data)}
 
 
 def run_detect(body):
@@ -220,6 +220,16 @@ def register_routes():
         return
     if getattr(PromptServer, "instance", None) is None:
         return
+
+    @PromptServer.instance.routes.post("/region_genie/pose_people")
+    async def _pose_people(request):
+        try:
+            body = await request.json()
+            return web.json_response(handle_people(body if isinstance(body, dict) else {}))
+        except PoseError as e:
+            return web.json_response({"error": str(e), "code": e.code}, status=e.status)
+        except Exception as e:
+            return web.json_response({"error": f"Pose figures from the input: {e}", "code": "error"}, status=400)
 
     @PromptServer.instance.routes.post("/region_genie/pose_detect")
     async def _pose_detect(request):

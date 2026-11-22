@@ -344,11 +344,11 @@
       },
       "region_separation": {
         "name": "separación_de_regiones",
-        "tooltip": "Solo dentro del modelo.\nseparación_de_regiones: Con qué fuerza se evita que las regiones influyan unas en otras mientras se forma la imagen (de 0 a 1; más alto = más separadas). Se aplica a las regiones con LoRA, o a todas las máscaras con separar_todas_las_regiones.\nIntegración suave de objetos, personajes y estilos: 0.4 con separación_hasta 0.1 (el valor predeterminado).\nSeparación fuerte de estilos: 0.85-0.99 con separación_hasta 0.1-0.5."
+        "tooltip": "Solo dentro del modelo.\nseparación_de_regiones: Con qué fuerza se evita que las regiones influyan unas en otras mientras se forma la imagen (de 0 a 1; más alto = más separadas). Se aplica a las regiones con LoRA, o a todas las máscaras con separar_todas_las_regiones.\nRegiones colocadas de forma fiable: 0.85 con separación_hasta 0.1 (el valor predeterminado).\nIntegración más suave de objetos, personajes y estilos: 0.4 con separación_hasta 0.1.\nSeparación de estilos más fuerte: 0.85-0.99 con separación_hasta 0.1-0.5."
       },
       "separation_until": {
         "name": "separación_hasta",
-        "tooltip": "Solo dentro del modelo.\nseparación_hasta: La parte de los pasos, contada desde el principio, en la que las regiones se mantienen separadas (de 0 a 1); los pasos restantes las funden entre sí.\nIntegración suave de objetos, personajes y estilos: 0.1 con separación_de_regiones 0.4 (el valor predeterminado).\nSeparación fuerte de estilos: 0.1-0.5 con separación_de_regiones 0.85-0.99."
+        "tooltip": "Solo dentro del modelo.\nseparación_hasta: La parte de los pasos, contada desde el principio, en la que las regiones se mantienen separadas (de 0 a 1); los pasos restantes las funden entre sí.\nRegiones colocadas de forma fiable: 0.1 con separación_de_regiones 0.85 (el valor predeterminado).\nIntegración más suave de objetos, personajes y estilos: 0.1 con separación_de_regiones 0.4.\nSeparación de estilos más fuerte: 0.1-0.5 con separación_de_regiones 0.85-0.99."
       },
       "loras_data": {
         "name": "datos_de_loras"
@@ -526,18 +526,6 @@
       "0": {
         "name": "imágenes",
         "tooltip": "Las mismas imágenes, sin modificar."
-      }
-    }
-  },
-  "Region-Genie_PoseFetch": {
-    "display_name": "Puntos de pose al lienzo de Region Genie (interno)",
-    "description": "Interno: devuelve los puntos clave de pose al editor de Region Genie (el botón de importar de la herramienta Pose).",
-    "inputs": {
-      "keypoints": {
-        "name": "puntos_clave"
-      },
-      "nonce": {
-        "name": "nonce"
       }
     }
   }

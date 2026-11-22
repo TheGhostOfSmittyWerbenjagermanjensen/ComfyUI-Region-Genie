@@ -418,7 +418,7 @@ function setup(node) {
         };
         set("feather", Math.max(0, Math.round(+getSetting(SET.hlFeather, 0)) || 0));
         set("lora_masking", getSetting(SET.hlMasking, "inside the model (one pass)"));
-        set("region_separation", +getSetting(SET.hlSeparation, 0.4));
+        set("region_separation", +getSetting(SET.hlSeparation, 0.85));
         set("separation_until", +getSetting(SET.hlUntil, 0.1));
         set("separate_all_regions", !!getSetting(SET.hlAllRegions, false));
         set("share_background", !!getSetting(SET.hlShareBg, false));

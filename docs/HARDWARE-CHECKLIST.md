@@ -93,7 +93,7 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] No regions (empty canvas), the other models you use: the same as with ComfyUI's own text encode nodes; a whole-image LoRA still acts
 - [ ] An SDXL-based checkpoint (Illustrious-XL or NoobAI-XL, also a v-prediction one): the bottom bar shows SDXL, regions are placed, a regional LoRA acts only in its region
 - [ ] The Regional LoRAs node and Create Hook LoRA (Quantized)
-- [ ] separation 0.4 / until 0.1 (the defaults since 0.43): objects, characters and styles blend into one picture; 0.85-0.99 with until 0.1-0.5: styles stay strictly in their regions. Is 0.4 / 0.1 a good default on each model you use?
+- [ ] separation 0.85 / until 0.1 (the defaults again since 0.51, after the owner's tests across models; 0.4 / 0.1 from 0.43 to 0.50): each region ends up where it was drawn. 0.4 / 0.1 blends more; up to 0.99 with until up to 0.5 keeps styles strictly in their regions.
 - [ ] A workflow saved before 0.43 whose separation / until were never changed opens with 0.85 / 0.25 and gives the same picture as before
 - [ ] After updating to 0.43: the "keep all regions separate" Settings (all regions, and the per-model ones) are back at their defaults; set them again if you had changed them
 

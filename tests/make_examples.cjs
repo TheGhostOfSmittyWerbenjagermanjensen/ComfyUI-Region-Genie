@@ -49,6 +49,8 @@ const F = {
     animaClip: ["qwen_3_06b_base.safetensors", "text_encoders", HF + "circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors"],
     animaVae: ["qwen_image_vae.safetensors", "vae", HF + "circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors"],
     sdxl: ["sd_xl_base_1.0.safetensors", "checkpoints", HF + "stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"],
+    // RDBT, an Anima finetune (the owner's pick for the Anima example); the link is its page, not a file
+    rdbt: ["rdbt_v3.0_sma_anima_b1_ckpt.safetensors", "diffusion_models", "https://civitai.com/models/2356447/rdbt-or-anima"],
     sd15: ["v1-5-pruned-emaonly-fp16.safetensors", "checkpoints", HF + "Comfy-Org/stable-diffusion-v1-5-archive/resolve/main/v1-5-pruned-emaonly-fp16.safetensors"],
 };
 
@@ -58,10 +60,11 @@ const unet = (f) => ["unet", "UNETLoader", { unet_name: f[0], weight_dtype: "def
 const clip = (f, type) => ["clip", "CLIPLoader", { clip_name: f[0], type, device: "default" }, [f]];
 const vae = (f) => ["vae", "VAELoader", { vae_name: f[0] }, [f]];
 const LOAD3 = [["unet", "MODEL", "rg", "model"], ["clip", "CLIP", "rg", "clip"], ["vae", "VAE", "rg", "vae"]];
-const KS = (steps, cfg, sampler, scheduler) => ["ks", "KSampler", { seed: 0, steps, cfg, sampler_name: sampler, scheduler, denoise: 1 }];
+// the seed is 1 and fixed (the owner's choice): a change to a region or a prompt shows as that change alone
+const KS = (steps, cfg, sampler, scheduler) => ["ks", "KSampler", { seed: 1, control_after_generate: "fixed", steps, cfg, sampler_name: sampler, scheduler, denoise: 1 }];
 const KS_LINKS = [["rg", "model", "ks", "model"], ["rg", "positive", "ks", "positive"], ["rg", "negative", "ks", "negative"], ["rg", "latent", "ks", "latent_image"],
     ["ks", "LATENT", "dec", "samples"], ["vae", "VAE", "dec", "vae"]];
-const CUSTOM = [["noise", "RandomNoise", { noise_seed: 0 }], ["sel", "KSamplerSelect", { sampler_name: "euler" }], ["sca", "SamplerCustomAdvanced", {}]];
+const CUSTOM = [["noise", "RandomNoise", { noise_seed: 1, control_after_generate: "fixed" }], ["sel", "KSamplerSelect", { sampler_name: "euler" }], ["sca", "SamplerCustomAdvanced", {}]];
 const CUSTOM_LINKS = [["noise", "NOISE", "sca", "noise"], ["sel", "SAMPLER", "sca", "sampler"], ["rg", "latent", "sca", "latent_image"], ["sca", "output", "dec", "samples"], ["vae", "VAE", "dec", "vae"],
     ["rg", "width", "sch", "width"], ["rg", "height", "sch", "height"], ["sch", "SIGMAS", "sca", "sigmas"]];
 // skip-layer guidance is on in both MOSS-Image workflows (the owner's choice: it is not specific to a layout)
@@ -99,9 +102,13 @@ const SPECS = [
       note: "Flux.2 Klein has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself).\n\nThe distilled model runs 4 steps at cfg 1, so the negative prompt has no effect. For the base model (flux-2-klein-base-4b) use 20 steps and cfg 5." },
     { file: "08-flux-3-klein", title: "Flux 3 Klein", regions: true, nodes: [unet(F.flux3), clip(F.flux3Clip, "flux3"), vae(F.flux3Vae), KS(50, 3.5, "euler", "simple")], links: [...LOAD3, ...KS_LINKS],
       note: "Flux 3 has no layout format in this node: the Separate button ties each prompt to its region by attention (it turns on by itself).\n\nSettings are those of ComfyUI's Flux 3 Klein (base) template: 50 steps, cfg 3.5. For the distilled model (flux3-image-klein-int8-convrot) use 16 steps and cfg 1." },
-    { file: "09-anima", title: "Anima", regions: true, neg: "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia",
-      nodes: [unet(F.anima), clip(F.animaClip, "stable_diffusion"), vae(F.animaVae), KS(30, 4, "euler", "simple")], links: [...LOAD3, ...KS_LINKS],
-      note: "Anima has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself)." },
+    // the owner's settings for a good first picture: the RDBT finetune, "Share the background", style and quality tags
+    { file: "09-anima", title: "Anima", regions: true, shareBg: true,
+      scene: SCENE + ", watercolor \\(medium\\), oil painting \\(medium\\), traditional media, impressionism",
+      neg: "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, artist name, watermark, signature",
+      nodes: [["unet", "UNETLoader", { unet_name: F.rdbt[0], weight_dtype: "default" }], clip(F.animaClip, "stable_diffusion"), vae(F.animaVae), KS(30, 4, "euler", "simple")], links: [...LOAD3, ...KS_LINKS],
+      noteFiles: [F.anima, F.rdbt, F.animaClip, F.animaVae],
+      note: "Anima has no layout format: the Separate button ties each prompt to its region by attention (it turns on by itself). \"Share the background\" is on (right-click the Separate button).\n\nThe loader names RDBT, an Anima finetune. Anima Base v1.0 works too: pick it in the loader." },
     { file: "10-sdxl", title: "SDXL", regions: true,
       nodes: [["ckpt", "CheckpointLoaderSimple", { ckpt_name: F.sdxl[0] }, [F.sdxl]], KS(25, 7, "dpmpp_2m", "karras")],
       links: [["ckpt", "MODEL", "rg", "model"], ["ckpt", "CLIP", "rg", "clip"], ["ckpt", "VAE", "rg", "vae"], ...KS_LINKS.slice(0, 5), ["ckpt", "VAE", "dec", "vae"]],
@@ -113,7 +120,7 @@ const SPECS = [
 ];
 
 const noteText = (spec) => {
-    const files = [], seen = new Set();
+    const files = [...(spec.noteFiles || [])], seen = new Set(files.map((f) => f[0]));
     for (const n of spec.nodes) for (const f of n[3] || []) { if (!seen.has(f[0])) { seen.add(f[0]); files.push(f); } }
     return `## Region Genie: ${spec.title}\n\n${spec.note}\n\n**Model files** (pick your own in the loaders if yours are named differently):\n`
         + files.map((f) => `- [${f[0]}](${f[2]}) → \`models/${f[1]}\``).join("\n")
@@ -170,6 +177,8 @@ async function build(page, spec) {
     }
     await page.evaluate(([pos, neg]) => { const n = window.__rg; for (const [name, v] of [["scene_prompt_positive", pos], ["scene_prompt_negative", neg]]) { const wd = n.widgets.find((x) => x.name === name); wd.value = v; wd.callback?.(v); } },
         [spec.scene || SCENE, spec.neg || NEG]);
+    // separation / until: the pack's defaults, whatever this ComfyUI has in its Settings
+    await page.evaluate((shareBg) => { const n = window.__rg, s = n.__rgState(); s.loraOpts = { ...(s.loraOpts || {}), separation: 0.85, until: 0.1 }; if (shareBg) s.loraOpts.shareBg = true; n.__rgRefresh(); }, !!spec.shareBg);
     // width / height outputs, where a scheduler needs them
     if (spec.links.some((l) => l[0] === "rg" && (l[1] === "width" || l[1] === "height"))) {
         await page.locator(".rg-socks-btn").click(); await sleep(300);

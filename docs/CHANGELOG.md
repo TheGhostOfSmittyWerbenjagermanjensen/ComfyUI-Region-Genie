@@ -2,6 +2,13 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 68 (Nov 22): separation back to 0.85; no internal node; fixed seed and Anima settings in the examples
+- Asked: the default separation back to 0.85 (until stays 0.1) on both nodes, after the owner's tests across models: the regions end up where they belong more reliably than with 0.4. The internal pose node shows in ComfyUI's search. In the examples: seed 1, fixed; for Anima the RDBT finetune, *Share the background*, style and quality tags.
+- Found: `DEV_ONLY` hides a node only while ComfyUI's dev mode is off.
+- Decided by me: no node of the pack's own for the import button any more: ComfyUI's "Preview as Text" node hands the keypoints back as text, and a route of the pack's server reads the people from it. The tooltips' three value lines (default first: "Regions placed reliably: 0.85 with until 0.1"). RandomNoise gets seed 1, fixed, like KSampler. The Anima loader's file name without a folder.
+- Built: defaults in rg_shared.js (`SEPARATION_DEFAULT`), lifecycle.js, regional_loras.js, regional_lora.py; tooltips and their translations; `handle_people` and `/region_genie/pose_people`; the examples rebuilt; README pictures retaken. Nodes already in a workflow keep their values; a Settings value the user changed stays. Version 0.51.0.
+- Tests: stub suite, Python and control tests, real ComfyUI in both modes: pose import (a real partial run), smoke (six node types registered), tooltips, Settings, translations; the examples loaded again in both modes.
+
 ## Round 67 (Nov 22): the example workflows saved as ComfyUI saves; Save Image's height in Nodes 2.0
 - Reported: in the example workflows (legacy mode, Firefox, dropped onto the graph) every widget showed its input socket, and nine sockets hung under the Save Image node (its hidden fields'). Asked: skip-layer guidance in both MOSS-Image workflows.
 - Found: the files were written with `graph.serialize()`, which keeps a socket entry for every widget; ComfyUI's own Save (`graphToPrompt().workflow`) leaves out the unused ones. The sockets themselves did not show here (Chromium, Firefox 160, frontend 1.53 to 1.59.13, dropped file and Templates), so the cause on the owner's machine is not confirmed.

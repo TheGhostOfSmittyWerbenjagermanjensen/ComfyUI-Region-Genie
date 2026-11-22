@@ -2,7 +2,7 @@
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { nodeOffCanvas, getSetting, SET, editLoras, controlFiles, hintsListeners, regionColors } from "../rg_shared.js";
+import { nodeOffCanvas, getSetting, SET, SEPARATION_DEFAULT, UNTIL_DEFAULT, editLoras, controlFiles, hintsListeners, regionColors } from "../rg_shared.js";
 import { closeLlmSettings } from "../rg_llm.js";
 import { lassoRefreshers, ALL, DEFAULT_W, DEFAULT_H, LAYOUT_FORMAT } from "./shared.js";
 import { normLoraOpts, parseState } from "./state.js";
@@ -130,10 +130,10 @@ export function* lifecycle(E) {
         E.state = parseState(E.dataW?.value, W, H);
         // separation / until (round 52): a node always says them from here on. Data that doesn't: a node saved while
         // 0.85 / 0.25 were the defaults keeps those (the Python side reads missing values the same way); a node that
-        // is new takes the Settings' values (0.4 / 0.1 unless changed)
+        // is new takes the Settings' values (0.85 / 0.1 unless changed; 0.4 / 0.1 from round 52 to 67)
         if (!E.state.loraOpts) {
             E.state.loraOpts = normLoraOpts(E.configured ? { separation: 0.85, until: 0.25 }
-                : { separation: +getSetting(SET.cmSeparation, 0.4), until: +getSetting(SET.cmUntil, 0.1) });
+                : { separation: +getSetting(SET.cmSeparation, SEPARATION_DEFAULT), until: +getSetting(SET.cmUntil, UNTIL_DEFAULT) });
         }
         E.version++;                                       // new state: drop cached label boxes / indices
         if (wasV1) E.save();
@@ -359,7 +359,7 @@ export function* lifecycle(E) {
             E.applySize();
             setWidget(E.modeW, getSetting(SET.cmImageMode, "backdrop (trace over)"));
             const f = Math.max(0, Math.round(+getSetting(SET.cmFeather, 0)) || 0);
-            const sp = +getSetting(SET.cmSeparation, 0.4), un = +getSetting(SET.cmUntil, 0.1);
+            const sp = +getSetting(SET.cmSeparation, SEPARATION_DEFAULT), un = +getSetting(SET.cmUntil, UNTIL_DEFAULT);
             if (f) E.state.feather = f;
             const allSeparate = !!getSetting(SET.cmAllRegions, false), shareBg = !!getSetting(SET.cmShareBg, false);
             // always written (round 52): a node without it is one saved while 0.85 / 0.25 were the defaults, and keeps

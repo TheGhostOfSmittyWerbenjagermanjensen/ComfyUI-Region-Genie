@@ -129,7 +129,7 @@ One workflow for each supported model, in the pack's `example_workflows` folder.
 | [Flux.2 dev](../example_workflows/06-flux-2-dev.json) | 3 regions | 20 steps, guidance 4, Flux.2's scheduler |
 | [Flux.2 Klein (4B, distilled)](../example_workflows/07-flux-2-klein.json) | 3 regions | 4 steps, cfg 1, Flux.2's scheduler |
 | [Flux 3 Klein](../example_workflows/08-flux-3-klein.json) | 3 regions | 50 steps, cfg 3.5, euler |
-| [Anima](../example_workflows/09-anima.json) | 3 regions | 30 steps, cfg 4, euler |
+| [Anima](../example_workflows/09-anima.json) | 3 regions, the background shared | 30 steps, cfg 4, euler |
 | [SDXL (and SDXL-based models)](../example_workflows/10-sdxl.json) | 3 regions | 25 steps, cfg 7, dpmpp_2m karras |
 | [SD1.5](../example_workflows/11-sd-1-5.json) | 3 regions, 512 × 512 | 20 steps, cfg 8, euler |
 
@@ -142,6 +142,10 @@ One workflow for each supported model, in the pack's `example_workflows` folder.
   - A note in each workflow lists the files, their download links and their folders.
   - If your files have other names, pick them in the loaders. The node finds the model type from the loader by itself.
 - **Sampler settings** follow ComfyUI's own template for each model. The note says what to change for a model's other versions (Flux.2 Klein base, Flux 3 Klein distilled).
+- **Seed:** 1 and fixed in every workflow, so a change to a region or a prompt shows as that change alone. Set *control after generate* to *randomize* for a new picture at each run.
+- **Anima** is set up for a good first picture:
+  - The loader names [RDBT](https://civitai.com/models/2356447/rdbt-or-anima), an Anima finetune. Anima Base v1.0 works too.
+  - *Share the background* is on, and the scene prompts end in style and quality tags.
 - **Negative prompt:** Krea 2 Turbo, Flux.1 dev, Flux.2 and Ideogram 4 don't use one, so `scene_prompt_negative` has no effect there.
 - **Flux.2 and Ideogram 4** use the node's `width` and `height` outputs for their schedulers (ticked in the sockets list).
 

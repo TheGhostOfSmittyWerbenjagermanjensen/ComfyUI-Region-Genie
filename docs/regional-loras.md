@@ -144,7 +144,7 @@ Region Genie ─────────── masks ──►                �
   - The `model` output is the model unchanged; the LoRAs ride on `positive` / `negative`.
   - Works with any model, but every pass sees the whole image, so strong style LoRAs tend to bleed across regions.
 
-**region_separation** / **separation_until** (inside-the-model mode; defaults 0.4 / 0.1): the Region Genie node's *separation* and *until*. What they do and good values: [Separation and until](#separation-and-until).
+**region_separation** / **separation_until** (inside-the-model mode; defaults 0.85 / 0.1): the Region Genie node's *separation* and *until*. What they do and good values: [Separation and until](#separation-and-until).
 
 - Why they exist: a LoRA limited to its region still reaches the rest of the picture through attention, because every image token looks at every other one.
   - region_separation removes that fraction of the attention between the image of different LoRA regions.
@@ -173,8 +173,9 @@ Good starting points:
 
 | Goal | separation | until |
 |---|---|---|
-| Smooth integration of objects, characters and styles (the default) | 0.4 | 0.1 |
-| Strong style separation | 0.85–0.99 | 0.1–0.5 |
+| Regions placed reliably (the default) | 0.85 | 0.1 |
+| Smoother blending of objects, characters and styles | 0.4 | 0.1 |
+| Strongest style separation | 0.85–0.99 | 0.1–0.5 |
 
 If one region still takes on the other's style:
 1. Check each LoRA on its own first: one row, index −1 (everywhere).
