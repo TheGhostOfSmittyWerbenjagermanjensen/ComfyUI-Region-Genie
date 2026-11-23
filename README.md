@@ -85,7 +85,11 @@ Nothing else is needed. These extras are optional:
 
 ## ✨ Quick start
 
-<img src="docs/images/quickstart.svg" alt="Load model, clip, vae → Region Genie → KSampler (model, positive, negative, latent) → VAE Decode → Save Image. The vae also goes from the loader to VAE Decode.">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/quickstart-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/quickstart-light.svg">
+  <img src="docs/images/quickstart-light.svg" alt="Load model, clip, vae → Region Genie → KSampler (model, positive, negative, latent) → VAE Decode → Save Image. The vae also goes from the loader to VAE Decode.">
+</picture>
 
 1. Add the **Region Genie** node (search for "genie"). Connect your loader's `model`, `clip` and `vae` to it.
 2. Set the image size in the row at the top of the node: by aspect ratio, from your presets list, or by hand (width and height, with a step size for their arrows).

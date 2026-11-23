@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1050 146" width="1050" height="146" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="14">
+<title>Load model, clip, vae → Region Genie → (model, positive, negative, latent) → KSampler → VAE Decode → Save Image; the vae also goes from the loader to VAE Decode</title>
+<rect x="0.5" y="0.5" width="1049" height="145" rx="10" fill="#ffffff" stroke="#c9d1d9"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#59636e"/></marker></defs>
+<path d="M190 54.0H228" stroke="#59636e" fill="none" marker-end="url(#a)"/>
+<path d="M380 54.0H588" stroke="#59636e" fill="none" marker-end="url(#a)"/>
+<path d="M690 54.0H728" stroke="#59636e" fill="none" marker-end="url(#a)"/>
+<path d="M850 54.0H888" stroke="#59636e" fill="none" marker-end="url(#a)"/>
+<rect x="20" y="32" width="170" height="44" rx="5" fill="#f6f8fa" stroke="#59636e"/><text x="105.0" y="59.0" text-anchor="middle" fill="#1f2328">Load model, clip, vae</text>
+<rect x="230" y="32" width="150" height="44" rx="5" fill="#f6f8fa" stroke="#59636e"/><text x="305.0" y="59.0" text-anchor="middle" fill="#1f2328">Region Genie ✨</text>
+<rect x="590" y="32" width="100" height="44" rx="5" fill="#f6f8fa" stroke="#59636e"/><text x="640.0" y="59.0" text-anchor="middle" fill="#1f2328">KSampler</text>
+<rect x="730" y="32" width="120" height="44" rx="5" fill="#f6f8fa" stroke="#59636e"/><text x="790.0" y="59.0" text-anchor="middle" fill="#1f2328">VAE Decode</text>
+<rect x="890" y="32" width="140" height="44" rx="5" fill="#f6f8fa" stroke="#59636e"/><text x="960.0" y="59.0" text-anchor="middle" fill="#1f2328">Save Image ✨</text>
+<rect x="388.0" y="33.0" width="186" height="42" rx="3" fill="#eaeef2"/><text x="481.0" y="51.0" text-anchor="middle" fill="#1f2328" font-size="12.5">model, positive, negative,</text><text x="481.0" y="68.0" text-anchor="middle" fill="#1f2328" font-size="12.5">latent</text>
+<path d="M105.0 76V114H790.0V78" stroke="#59636e" fill="none" marker-end="url(#a)"/>
+<rect x="427.5" y="103" width="40" height="22" rx="3" fill="#eaeef2"/><text x="447.5" y="119" text-anchor="middle" fill="#1f2328" font-size="12.5">vae</text>
+</svg>

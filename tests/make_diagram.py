@@ -1,9 +1,9 @@
-"""Draws the README's Quick start diagram: docs/images/quickstart.svg.
+"""Draws the README's Quick start diagram: docs/images/quickstart-dark.svg and quickstart-light.svg.
 (A drawn picture since round 70: Mermaid can't start an arrow at a box's bottom, and GitHub lays its pan / zoom
 buttons over a Mermaid diagram.) Change the boxes or the arrows here, then run:  python3 tests/make_diagram.py
-One file with its own dark panel, so it looks the same in every theme and wherever the README is shown. (Two files
-picked by <picture> and prefers-color-scheme were tried first: with GitHub's theme set by hand to the opposite of the
-system's, GitHub kept showing the system's.)"""
+The README picks the file by the reader's light / dark setting (<picture>, prefers-color-scheme). That follows the
+system's setting: with GitHub's theme set by hand to the opposite, the other file shows. So each file has its own
+panel (a rounded rectangle in its own background color) and reads well on either page."""
 import os
 
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "images")
@@ -13,8 +13,9 @@ LABEL = ("model, positive, negative,", "latent")
 Y, H, W, TOTAL_H = 32, 44, 1050, 146
 
 
-def svg():
-    fg, box, line, lab, panel, edge = "#e6edf3", "#22262d", "#9aa4b1", "#30363d", "#12151a", "#3a404a"
+def svg(dark):
+    fg, box, line, lab, panel, edge = (("#e6edf3", "#22262d", "#9aa4b1", "#30363d", "#12151a", "#3a404a") if dark
+                                       else ("#1f2328", "#f6f8fa", "#59636e", "#eaeef2", "#ffffff", "#c9d1d9"))
     ym = Y + H / 2
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {TOTAL_H}" width="{W}" height="{TOTAL_H}" '
            'font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="14">',
@@ -41,6 +42,7 @@ def svg():
     return "\n".join(out) + "\n"
 
 
-with open(os.path.join(OUT, "quickstart.svg"), "w", encoding="utf-8") as f:
-    f.write(svg())
-print("wrote docs/images/quickstart.svg")
+for name, dark in (("quickstart-dark.svg", True), ("quickstart-light.svg", False)):
+    with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
+        f.write(svg(dark))
+    print("wrote docs/images/" + name)
