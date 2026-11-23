@@ -1,12 +1,15 @@
 # The checks that need no ComfyUI and no GPU. The real-ComfyUI tests (tests/real_*.cjs, test_control.py,
 # test_select.py) need a ~5 GB setup and stay manual: see tests/README.md.
 name: tests
-# Every push to any branch of this repository, and every pull request. A pull request from a fork is not a push
-# here, so without the second trigger the required checks (python, editor) would never run for it. A pull request
-# from a branch of this repository runs them twice: once for the branch as pushed, once for the result of merging it
-# into main. A fork's run gets a read-only token and no secrets (permissions below; GitHub's rule for forks).
+# Once per pull request (from a branch of this repository or from a fork: both test the result of merging it into
+# main), and once for every push to main. A branch that has no pull request yet is not tested by itself: run the
+# workflow by hand for it (Actions > tests > Run workflow), or open the pull request.
+# (Until round 70 every push to any branch ran it; with the pull_request trigger added for forks, that ran everything
+# twice for a pull request from a branch of this repository.)
+# A fork's run gets a read-only token and no secrets (permissions below; GitHub's rule for forks).
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
