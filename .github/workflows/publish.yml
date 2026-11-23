@@ -1,11 +1,15 @@
 # Publishes the version in pyproject.toml to the Comfy Registry (which ComfyUI Manager installs from).
-# Manual only: Actions > "Publish to Comfy registry" > Run workflow. The Registry's own example also runs on every
-# change of pyproject.toml; the version there is raised in almost every round, so that would release every merge.
+# By itself: after a merge to main that changes the `version` line of pyproject.toml (a merge that leaves the
+# version as it was publishes nothing). So merging a pull request that raises the version is the release.
+# By hand, as a fallback: Actions > "Publish to Comfy registry" > Run workflow (on main).
 # Needs the repository secret REGISTRY_ACCESS_TOKEN: the publisher's API key from registry.comfy.org.
-# A published version can't be changed: raise the version first, and publish from main.
+# A published version can't be changed: a correction needs a new version number.
 name: Publish to Comfy registry
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [pyproject.toml]
 permissions:
   contents: read
 jobs:
@@ -16,7 +20,26 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Has the version changed?
+        id: ver
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          ver() { grep -m1 -E '^version[[:space:]]*=' | sed -E 's/^[^"]*"([^"]*)".*/\1/'; }
+          new=$(ver < pyproject.toml)
+          old=$(git show HEAD^:pyproject.toml 2>/dev/null | ver || true)
+          echo "version before: ${old:-none}, now: $new"
+          if [ -z "$new" ]; then echo "No version in pyproject.toml"; exit 1; fi
+          if [ "$EVENT" = "workflow_dispatch" ] || [ "$new" != "$old" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "The version is unchanged: nothing to publish."
+          fi
       - name: Publish Custom Node
+        if: steps.ver.outputs.publish == 'true'
         uses: Comfy-Org/publish-node-action@main
         with:
           personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN }}

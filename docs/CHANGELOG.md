@@ -13,6 +13,9 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Then asked (the owner's Manager install had `tests/` and `CLAUDE.md`: it was the "nightly" git clone, which ignores `.comfyignore`; the Registry package of 0.52.1 leaves them out): split the Python lines the publish tool warns about.
 - Built: no Python file joins two statements with `;` any more (53 lines in 11 files, 10 of them in the pack's own files). The publish tool's check (`ruff check . --select S102,S307,E702`) is clean; it says these will be errors soon.
 - Tests: the parsed code of every changed file is identical before and after; Python suite, `test_select.py` (random-weight fixture), `test_control.py`.
+- Then asked: publish a newly merged version to the Registry automatically, so it can't be forgotten. Chosen from three options: when the version number changes.
+- Built: `publish.yml` also runs after a merge to `main` that touches pyproject.toml, and publishes only when its `version` line differs from the commit before; the manual run stays as a fallback. Merging a version raise is now the release.
+- Tests: the step's script against real commits (version raised: publishes; unchanged: skips; a trial merge of this branch into main: publishes). Not tested: the workflow itself on GitHub, which first runs when this is merged.
 
 ## Round 70 (Nov 23): preparing the repo to go public and for the Comfy Registry
 - Asked: a walk-through of making the repo public, a Registry account and the listing; then to push what was decided.
