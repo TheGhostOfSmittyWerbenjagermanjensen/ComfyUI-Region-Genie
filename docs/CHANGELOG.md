@@ -5,7 +5,7 @@ Each round is one request from the owner: what was asked, what was decided (and 
 ## Round 70 (Nov 23): preparing the repo to go public and for the Comfy Registry
 - Asked: a walk-through of making the repo public, a Registry account and the listing; then to push what was decided.
 - Decided by the owner: keep the planning files and leave them out of the package; About text and topics (set by the owner on GitHub).
-- Built: `.comfyignore`; the open points are listed in the handoff. No change to the nodes, no new version.
+- Built: `.comfyignore`; the publisher ID `ghost-of-smitty` and the Registry name `region-genie` in pyproject.toml; a publish workflow with a manual trigger only. The open points are listed in the handoff. No change to the nodes, no new version.
 
 ## Round 69 (Nov 22): the presets editor as a sortable table
 - Asked: in the image size presets' "Edit list…" pop-up: grab handles like the Regions list's, headers Width / Height / Name, columns lined up and as wide as their widest field, a click on a header sorts whole rows as a file manager does (also by the ratio an unnamed row shows). A mock-up first.
