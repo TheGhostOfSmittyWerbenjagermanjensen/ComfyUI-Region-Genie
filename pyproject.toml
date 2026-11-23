@@ -1,10 +1,12 @@
 [project]
-name = "comfyui-region-genie"
+# The pack's id in the Comfy Registry: it can't be changed after the first publish. (The repository keeps its name.)
+name = "region-genie"
 description = "Regional prompting and regional LoRAs for ComfyUI: paint regions on a layered canvas and get masks, bboxes, layout prompts and per-region LoRAs (MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)."
 version = "0.52.1"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
+classifiers = ["Operating System :: OS Independent"]
 # Everything the pack imports (torch, numpy, Pillow, scipy) is installed with ComfyUI itself.
 dependencies = []
 
@@ -14,7 +16,8 @@ Documentation = "https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI
 "Bug Tracker" = "https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie/issues"
 
 [tool.comfy]
-# PublisherId: only needed to publish to the Comfy Registry (create one at registry.comfy.org, then fill it in).
-PublisherId = ""
+# The publisher at registry.comfy.org (permanent). Publishing: .github/workflows/publish.yml, run by hand.
+PublisherId = "ghost-of-smitty"
 DisplayName = "Region Genie"
-Icon = ""
+# The pack's picture in the Registry and in ComfyUI Manager: docs/images/icon.png on main (400 x 400 px, the owner's).
+Icon = "https://raw.githubusercontent.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie/main/docs/images/icon.png"

@@ -1,0 +1,6 @@
+# Files kept in git for development but left out of the package published to the Comfy Registry
+# (comfy node publish packs every file git tracks, minus what is listed here; the syntax is .gitignore's).
+# The manual (README.md, docs/*.md, docs/images/) and the example workflows stay in: the node links to them.
+tests/
+docs/superpowers/
+CLAUDE.md
