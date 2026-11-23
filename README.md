@@ -66,8 +66,14 @@ The node picks the right format from the connected model. See [Prompt formats by
 
 ## ✨ Install
 
-- **ComfyUI Manager:** choose *Install via Git URL*, paste this repository's address, then restart ComfyUI.
-- **By hand:** clone or unzip into `ComfyUI/custom_nodes/` (the folder is `ComfyUI-Region-Genie`), then restart.
+- **ComfyUI Manager (recommended):** open the Manager, search for **Region Genie**, click **Install**, then restart ComfyUI.
+  - Updates arrive the same way: the Manager shows when a newer version is out.
+- **Command line:** `comfy node install region-genie` (with [comfy-cli](https://docs.comfy.org/comfy-cli/getting-started)), then restart.
+- **By hand:** clone or unzip this repository into `ComfyUI/custom_nodes/`, then restart. Update with `git pull`.
+
+Install it one way only. If you cloned it by hand earlier, delete that folder before installing through the Manager, or the pack is loaded twice.
+
+The pack is listed in the [Comfy Registry](https://registry.comfy.org/publishers/ghost-of-smitty/nodes/region-genie) as `region-genie`.
 
 Nothing else is needed. These extras are optional:
 
