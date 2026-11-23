@@ -73,7 +73,7 @@ The node picks the right format from the connected model. See [Prompt formats by
 
 Install it one way only. If you cloned it by hand earlier, delete that folder before installing through the Manager, or the pack is loaded twice.
 
-The pack is listed in the [Comfy Registry](https://registry.comfy.org/publishers/ghost-of-smitty/nodes/region-genie) as `region-genie`.
+The pack is listed in the [Comfy Registry](https://registry.comfy.org/nodes/region-genie) as `region-genie`.
 
 Nothing else is needed. These extras are optional:
 
