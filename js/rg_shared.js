@@ -846,28 +846,33 @@ const llmRowType = (key) => () => {
     const e = document.createElement("span"); e.textContent = "…"; return e;
 };
 const SAMPLED = "\nUsed only while the preset's sampling is on (greyed otherwise).";
-// [key, name, tooltip]; each row edits the preset chosen in 'Preset to edit' and saves at once
+// The LLM page of the settings window is laid out like the node's LLM Settings pop-up (round 71): its settings are in
+// these sections (a section's name is the heading over its rows), and under a heading a row shows its short label
+// (rgLabel: "System prompt", not "Preset: system prompt"). A setting's name and id stay as they were: searches, the
+// tab's rows and the translations go by them.
+export const LLM_SEC_TYPES = "Preset for each prompt type", LLM_SEC_EDIT = "Edit preset (shared by all your workflows)";
+// [key, name, tooltip, short label]; each row edits the preset chosen in 'Preset to edit' and saves at once
 export const LLM_FIELDS = [
-    ["name", "Preset: name", "The preset's name. Press Enter (or leave the field) to rename it; the defaults above follow."],
+    ["name", "Preset: name", "The preset's name. Press Enter (or leave the field) to rename it; the defaults above follow.", "Name"],
     ["llm", "Preset: LLM", "The LLM that rewrites the prompts.\nThe connected clip: Used as it is (no extra memory).\n"
-        + "A file: From ComfyUI's text_encoders folders (or anywhere with 'Browse… for model files' on, Model files); loaded once and kept while in use."],
-    ["llm_type", "Preset: LLM type", "As the 'type' of Load CLIP, for an LLM file. 'auto (detect)' works for plain Qwen3 / Qwen3.5 / Gemma files."],
+        + "A file: From ComfyUI's text_encoders folders (or anywhere with 'Browse… for model files' on, Model files); loaded once and kept while in use.", "LLM"],
+    ["llm_type", "Preset: LLM type", "As the 'type' of Load CLIP, for an LLM file. 'auto (detect)' works for plain Qwen3 / Qwen3.5 / Gemma files.", "LLM type"],
     ["loras", "Preset: LLM LoRAs", "LoRAs applied to the LLM only (like Load LoRA (Text Encoder)); the image model and the clip "
-        + "used for conditioning are not changed.\nEach row: On / off, the file (a click opens ComfyUI's menu; a folder button with 'Browse… for model files' on), strength, ✕ removes it."],
-    ["system_prompt", "Preset: system prompt", "Sent as the system prompt (Generate Text's system_prompt). Ignored when the preset's default template is off."],
-    ["max_length", "Preset: max_length", "Most tokens the LLM writes."],
+        + "used for conditioning are not changed.\nEach row: On / off, the file (a click opens ComfyUI's menu; a folder button with 'Browse… for model files' on), strength, ✕ removes it.", "LLM LoRAs"],
+    ["system_prompt", "Preset: system prompt", "Sent as the system prompt (Generate Text's system_prompt). Ignored when the preset's default template is off.", "System prompt"],
+    ["max_length", "Preset: max_length", "Most tokens the LLM writes.", "max_length"],
     ["sampling", "Preset: sampling", "On: Sampling with the settings below.\nOff (default): Greedy decoding, always the same text for "
-        + "the same input; temperature, top_k, top_p, min_p, the penalties and the seed are not used."],
-    ["temperature", "Preset: temperature", "Sampling temperature." + SAMPLED],
-    ["top_k", "Preset: top_k", "Sample from the k most likely tokens (0 = all)." + SAMPLED],
-    ["top_p", "Preset: top_p", "Sample from the most likely tokens up to this total probability." + SAMPLED],
-    ["min_p", "Preset: min_p", "Leave out tokens less likely than this share of the most likely one." + SAMPLED],
-    ["repetition_penalty", "Preset: repetition_penalty", "Penalty for repeating tokens (1 = none)." + SAMPLED],
-    ["presence_penalty", "Preset: presence_penalty", "Penalty for tokens already used (0 = none)." + SAMPLED],
-    ["seed", "Preset: seed", "The seed (a region's right-click 'Run again with a new seed' adds to it for that region)." + SAMPLED],
-    ["thinking", "Preset: thinking", "Thinking mode, if the model supports it (the reasoning is shown in the tooltip of the LLM button, the one with the sparkles icon; it is not used)."],
-    ["use_default_template", "Preset: default template", "Use the model's built-in chat template (needed for the system prompt)."],
-    ["mtp", "Preset: mtp", "Speculative decoding with the model's multi-token-prediction head (no effect without MTP weights)."],
+        + "the same input; temperature, top_k, top_p, min_p, the penalties and the seed are not used.", "sampling"],
+    ["temperature", "Preset: temperature", "Sampling temperature." + SAMPLED, "temperature"],
+    ["top_k", "Preset: top_k", "Sample from the k most likely tokens (0 = all)." + SAMPLED, "top_k"],
+    ["top_p", "Preset: top_p", "Sample from the most likely tokens up to this total probability." + SAMPLED, "top_p"],
+    ["min_p", "Preset: min_p", "Leave out tokens less likely than this share of the most likely one." + SAMPLED, "min_p"],
+    ["repetition_penalty", "Preset: repetition_penalty", "Penalty for repeating tokens (1 = none)." + SAMPLED, "repetition_penalty"],
+    ["presence_penalty", "Preset: presence_penalty", "Penalty for tokens already used (0 = none)." + SAMPLED, "presence_penalty"],
+    ["seed", "Preset: seed", "The seed (a region's right-click 'Run again with a new seed' adds to it for that region)." + SAMPLED, "seed"],
+    ["thinking", "Preset: thinking", "Thinking mode, if the model supports it (the reasoning is shown in the tooltip of the LLM button, the one with the sparkles icon; it is not used).", "thinking"],
+    ["use_default_template", "Preset: default template", "Use the model's built-in chat template (needed for the system prompt).", "default template"],
+    ["mtp", "Preset: mtp", "Speculative decoding with the model's multi-token-prediction head (no effect without MTP weights).", "mtp"],
 ];
 
 // ---------------------------------------------------------------- Control (ControlNet / control LoRAs)
@@ -2153,17 +2158,17 @@ const SETTINGS = [
         ...[["character", "Character"], ["object", "Object"], ["text", "Text"], ["scene", "Scene"]].map(([t, label], i) => ({
             id: `RegionGenie.LLM.Default.${t}`, name: `Default preset: ${label}`, type: llmRowType("default." + t), defaultValue: "",
             tooltip: `The preset for ${label.toLowerCase()} prompts in every Region Genie node whose LLM Settings don't choose another.`,
-            category: CAT("LLM Prompt Enhancer", "2a default " + i),
+            category: CAT(LLM_SEC_TYPES, "2a default " + i), rgLabel: label,
         })),
         {
             id: SET.llmEdit, name: "Preset to edit", type: llmRowType("edit"), defaultValue: "",
             tooltip: "The preset the rows below show and change (saved at once, for all your workflows).\n"
                 + "New: A copy of this preset under a new name.\nDelete: Removes it (not while it is a default above; click twice).",
-            category: CAT("LLM Prompt Enhancer", "2b edit"),
+            category: CAT(LLM_SEC_EDIT, "2b edit"), rgLabel: "Preset",
         },
-        ...LLM_FIELDS.map(([key, name, tooltip], i) => ({
+        ...LLM_FIELDS.map(([key, name, tooltip, label], i) => ({
             id: `RegionGenie.LLM.Preset.${key}`, name, type: llmRowType("field." + key), defaultValue: "", tooltip,
-            category: CAT("LLM Prompt Enhancer", "2c field " + String(i).padStart(2, "0")),
+            category: CAT(LLM_SEC_EDIT, "2c field " + String(i).padStart(2, "0")), rgLabel: label,
         })),
         {
             id: SET.llmCacheDisk, name: "Keep LLM results on disk between ComfyUI restarts", type: "boolean", defaultValue: false,
@@ -2509,7 +2514,7 @@ export const SETTINGS_PAGES = [
 // the pages are named as the old sections were, so "Settings > Region Genie > Edit Mode" in a tooltip or the manual still leads there
 const TAB_SECTIONS = { node: "Basics", files: "Models and files", other: "Other nodes" };
 const PAGE_OF_SECTION = { "Tag autocomplete": "node", "Wildcards (Impact Pack)": "node", "Region Genie node": "node", "Image size": "size",
-    "Canvas tools": "tools", "Select object": "sam", "Text size": "text", "LLM Prompt Enhancer": "llm", "LLM cache": "llm", "Control": "control",
+    "Canvas tools": "tools", "Select object": "sam", "Text size": "text", "LLM Prompt Enhancer": "llm", [LLM_SEC_TYPES]: "llm", [LLM_SEC_EDIT]: "llm", "LLM cache": "llm", "Control": "control",
     "Edit Mode": "edit", "Regional LoRAs": "hl", "Save Image": "save" };
 const PAGE_ROW_CSS = `.rg-page-row { display:flex; align-items:center; gap:8px; }
 .rg-page-row button { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer;

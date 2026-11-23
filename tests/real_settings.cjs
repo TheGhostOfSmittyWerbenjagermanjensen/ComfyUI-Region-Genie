@@ -72,7 +72,7 @@ for (const sub of ["loras", "controlnet"]) {
     const tp = Date.now(); await openPage("edit"); const pageMs = Date.now() - tp;
     check(`a page opens quickly with ${BIG.length + ODD.length} LoRAs (${pageMs} ms)`, pageMs < 3000);
     const all0 = await walk();
-    const moved = await page.evaluate(() => Object.values(window.app.ui.settings.settingsParamLookup).filter((d) => /^RegionGenie/.test(d.id) && d.rgPage && d.type === "hidden").map((d) => d.name.trim()));
+    const moved = await page.evaluate(() => Object.values(window.app.ui.settings.settingsParamLookup).filter((d) => /^RegionGenie/.test(d.id) && d.rgPage && d.type === "hidden").map((d) => (d.rgLabel || d.name).trim()));      // (rgLabel: the short label a row shows under its heading, round 71)
     const lost = moved.filter((n) => !all0.text.includes(n));
     check(`every setting that left the tab is on a page of the window (${moved.length}; missing: ${lost.slice(0, 6).join(" | ")})`, moved.length > 95 && !lost.length);
     await toPage("edit");

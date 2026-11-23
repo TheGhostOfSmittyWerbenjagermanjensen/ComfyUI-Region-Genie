@@ -2,6 +2,21 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 71 (Nov 23): Settings: 'Preset to edit' fills the row the focus is in too
+- Reported (after the first release, 0.52.1): in Settings > Region Genie > LLM Prompt Enhancer, choosing another preset in 'Preset to edit' didn't put its text into 'Preset: system prompt'. (Also asked: a way to delete a preset. Both places have a Delete button already, off while the preset is a default.)
+- Found: the rows skip the one the keyboard focus is in, so that typing isn't interrupted when the library is saved. With the focus still in the system prompt box when the choice changed (Firefox on Windows, the owner's browser), that box kept the previous preset's text. Chromium moves the focus to the dropdown, so it never showed here.
+- Built: a change of the preset being edited (the choice, New, Delete) redraws every row (`refreshRows(except, all)`, js/rg_llm.js). Version 0.52.2.
+- Tests: `real_llm_settings.cjs` in both modes, with a new check that fails without the fix; stub and Python suites.
+- Then asked: lay the Settings page out like the node's LLM Settings pop-up, with a section titled "Edit preset" where the preset is picked and its options follow right below; and the *Preset: LLM* and *Preset: LLM LoRAs* fields ran past the page's right edge.
+- Built: the LLM page's settings are in four sections, shown as headings (LLM Prompt Enhancer, Preset for each prompt type, Edit preset (shared by all your workflows), LLM cache); under a heading a row shows a short label (`rgLabel`: "System prompt" for "Preset: system prompt"; names and ids unchanged, so searches and translations hold; a search shows the full names). The file field and the LoRA rows shrink to their column and cut the name with "…" (a button rule had kept them as wide as their text). Two headings translated. Version 0.53.0.
+- Tests: `real_llm_settings.cjs` (headings, order, nothing past the edge, at two window widths by hand), `real_settings.cjs`, `real_tooltips`, `real_i18n`, stub and Python suites.
+- Then asked (the owner's Manager install had `tests/` and `CLAUDE.md`: it was the "nightly" git clone, which ignores `.comfyignore`; the Registry package of 0.52.1 leaves them out): split the Python lines the publish tool warns about.
+- Built: no Python file joins two statements with `;` any more (53 lines in 11 files, 10 of them in the pack's own files). The publish tool's check (`ruff check . --select S102,S307,E702`) is clean; it says these will be errors soon.
+- Tests: the parsed code of every changed file is identical before and after; Python suite, `test_select.py` (random-weight fixture), `test_control.py`.
+- Then asked: publish a newly merged version to the Registry automatically, so it can't be forgotten. Chosen from three options: when the version number changes.
+- Built: `publish.yml` also runs after a merge to `main` that touches pyproject.toml, and publishes only when its `version` line differs from the commit before; the manual run stays as a fallback. Merging a version raise is now the release.
+- Tests: the step's script against real commits (version raised: publishes; unchanged: skips; a trial merge of this branch into main: publishes). Not tested: the workflow itself on GitHub, which first runs when this is merged.
+
 ## Round 70 (Nov 23): preparing the repo to go public and for the Comfy Registry
 - Asked: a walk-through of making the repo public, a Registry account and the listing; then to push what was decided.
 - Decided by the owner: keep the planning files and leave them out of the package; About text and topics (set by the owner on GitHub).

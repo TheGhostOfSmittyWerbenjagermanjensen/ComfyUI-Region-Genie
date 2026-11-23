@@ -157,7 +157,8 @@ check("Ideogram 4, no regions: its JSON with the scene and no elements", json.lo
 STAND = [[0, -.4], [0, -.3], [-.11, -.29], [-.14, -.13], [-.15, .02], [.11, -.29], [.14, -.13], [.15, .02], [-.07, .02], [-.075, .24],
          [-.08, .46], [.07, .02], [.075, .24], [.08, .46], [-.025, -.42], [.025, -.42], [-.055, -.405], [.055, -.405]]
 def pose_run(pd_extra, **kw):
-    d = json.loads(json.dumps(BASE)); d.update(pd_extra)
+    d = json.loads(json.dumps(BASE))
+    d.update(pd_extra)
     args = dict(width=64, height=64, scene_prompt_positive="a", scene_prompt_negative="", scene_prompt_background="", image_mode=rg.IMAGE_MODES[0],
                 min_region_pixels=64, paint_data=json.dumps(d), prompt_format="auto")
     args.update(kw)

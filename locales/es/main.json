@@ -16,7 +16,9 @@
     "Wildcards (Impact Pack)": "Comodines (Impact Pack)",
     "Models and files": "Modelos y archivos",
     "Other nodes": "Otros nodos",
-    "Basics": "Básico"
+    "Basics": "Básico",
+    "Edit preset (shared by all your workflows)": "Editar preajuste (compartido por todos tus flujos de trabajo)",
+    "Preset for each prompt type": "Preajuste para cada tipo de prompt"
   },
   "regionGenie": {
     "choices": {

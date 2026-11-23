@@ -15,7 +15,8 @@ from rgpack import llm_enhance as le  # noqa: E402
 
 # ---------------------------------------------------------------- grow_mask / edit_mask
 H = W = 64
-sq = np.zeros((H, W), bool); sq[20:30, 20:30] = True
+sq = np.zeros((H, W), bool)
+sq[20:30, 20:30] = True
 g = rg.grow_mask(sq, 3)
 check("grow 3: round growth (corner not reached)", g[17, 25] and not g[16, 25] and not g[17, 17])
 check("grow 3: diagonal within radius", g[18, 18])            # dist sqrt(8) < 3
@@ -24,11 +25,14 @@ check("shrink 2", s[22:28, 22:28].all() and not s[21, 25] and s.sum() == 36)
 check("grow 0 is the same mask", rg.grow_mask(sq, 0) is sq)
 full = np.ones((H, W), bool)
 check("shrink of a full mask keeps it", rg.grow_mask(full, -3).all())
-edge = np.zeros((H, W), bool); edge[:, :10] = True
+edge = np.zeros((H, W), bool)
+edge[:, :10] = True
 check("shrink keeps the image border inside", rg.grow_mask(edge, -2)[:, 0].all() and not rg.grow_mask(edge, -2)[:, 8].any())
 
-keep = np.zeros((H, W), bool); keep[:, 32:] = True               # right half kept
-chg = np.zeros((H, W), bool); chg[10:20, 24:32] = True          # touches the kept half
+keep = np.zeros((H, W), bool)
+keep[:, 32:] = True               # right half kept
+chg = np.zeros((H, W), bool)
+chg[10:20, 24:32] = True          # touches the kept half
 m = rg.edit_mask(chg, keep, False, grow=6, feather=0)
 check("regions only: grows past the change region", m[25, 26] == 1 and m[10, 20] == 1)
 check("regions only: never grows into kept pixels", m[:, 32:].max() == 0)
@@ -63,7 +67,8 @@ check("no scipy: shrink", ss.sum() == 36)
 # ---------------------------------------------------------------- shared background (RegionSeparation.bias)
 class FakeRegion:
     def __init__(self, cells, n=4, spans=(), text_len=None):
-        m = np.zeros(n, np.float32); m[list(cells)] = 1
+        m = np.zeros(n, np.float32)
+        m[list(cells)] = 1
         self.m, self.text_spans, self.text_len = m.view(T), list(spans), text_len
     def grid_mask(self, h, w, src=None):
         return self.m

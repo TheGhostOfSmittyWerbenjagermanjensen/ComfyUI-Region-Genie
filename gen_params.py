@@ -796,12 +796,15 @@ def build(traced, size=None, overrides=None, path_of=None):
             if v is not None:
                 add(f"ADetailer {label}" + nth, _fmt(v))
         if c.get("steps") is not None and c.get("steps") != first.get("steps"):
-            add("ADetailer use separate steps" + nth, "True"); add("ADetailer steps" + nth, _fmt(c["steps"]))
+            add("ADetailer use separate steps" + nth, "True")
+            add("ADetailer steps" + nth, _fmt(c["steps"]))
         if c.get("cfg") is not None and c.get("cfg") != first.get("cfg"):
-            add("ADetailer use separate CFG scale" + nth, "True"); add("ADetailer CFG scale" + nth, _fmt(c["cfg"]))
+            add("ADetailer use separate CFG scale" + nth, "True")
+            add("ADetailer CFG scale" + nth, _fmt(c["cfg"]))
         ds = c.get("sampler")
         if isinstance(ds, str) and ds and ds != first.get("sampler"):
-            add("ADetailer use separate sampler" + nth, "True"); add("ADetailer sampler" + nth, SAMPLERS.get(ds.lower(), ds))
+            add("ADetailer use separate sampler" + nth, "True")
+            add("ADetailer sampler" + nth, SAMPLERS.get(ds.lower(), ds))
     if traced.get("clip_skip") and traced["clip_skip"] > 1:
         add("Clip skip", traced["clip_skip"])
     if path_of and loras:

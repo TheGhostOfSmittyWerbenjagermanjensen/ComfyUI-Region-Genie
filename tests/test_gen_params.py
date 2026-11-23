@@ -247,16 +247,20 @@ REF = {"30": N("CheckpointLoaderSimple", ckpt_name="SDXL/sd_xl_refiner_1.0.safet
 ln, tr = last_line(REF, ["23", 0], (1024, 768), refiner)
 check(f"a refiner: its model and where it took over, the steps of the whole run, nothing written as hi-res fix ({ln!r})",
       "Steps: 30," in ln and "Seed: 111" in ln and "Model: juggernaut, Refiner: sd_xl_refiner_1.0, Refiner switch at: 0.8" in ln and "Hires" not in ln and "Denoising" not in ln)
-same = json.loads(json.dumps(REF)); same["22"]["inputs"]["model"] = ["2", 0]
+same = json.loads(json.dumps(REF))
+same["22"]["inputs"]["model"] = ["2", 0]
 ln, _ = last_line(same, ["23", 0], (1024, 768), refiner)
 check(f"one run split over two samplers with the same model: one pass, no refiner ({ln!r})", "Steps: 30," in ln and "Refiner" not in ln and "Hires" not in ln and "Denoising" not in ln)
 ln, _ = last_line({**REF, "40": N("LatentUpscaleBy", samples=["22", 0], upscale_method="bislerp", scale_by=2.0), "41": N("KSampler", latent_image=["40", 0], **K2),
                    "23": N("VAEDecode", samples=["41", 0], vae=["1", 2])}, ["23", 0], (2048, 1536), refiner)
 check(f"a refiner and hi-res fix after it: both ({ln!r})", "Refiner: sd_xl_refiner_1.0, Refiner switch at: 0.8, Denoising strength: 0.4, Hires resize: 2048x1536, Hires upscale: 2, Hires steps: 12" in ln)
 with tempfile.TemporaryDirectory() as RD:
-    rp = os.path.join(RD, "sd_xl_refiner_1.0.safetensors"); open(rp, "wb").write(b"\0" * 16)
+    rp = os.path.join(RD, "sd_xl_refiner_1.0.safetensors")
+    open(rp, "wb").write(b"\0" * 16)
     json.dump({"sha256": "7440042BBD" + "0" * 54}, open(os.path.join(RD, "sd_xl_refiner_1.0.metadata.json"), "w"))
-    g = json.loads(json.dumps(PLAIN)); g.update(REF); refiner(g)
+    g = json.loads(json.dumps(PLAIN))
+    g.update(REF)
+    refiner(g)
     g["9"]["inputs"]["images"] = ["23", 0]
     txt = gp.build(gp.trace(g, "9"), (1024, 768), path_of=lambda folder, name: rp if "refiner" in name else None)[0]
     check("the refiner's hash, where a metadata file has one, in A1111's brackets", "Refiner: sd_xl_refiner_1.0 [7440042bbd], Refiner switch at: 0.8" in txt)

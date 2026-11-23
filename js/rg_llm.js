@@ -199,6 +199,12 @@ body:has(.rg-llm-pop) .litecontextmenu, body:has(.rg-llm-pop) .litegraph.litecon
 .rg-lset.col > button { align-self:flex-start; }
 .rg-lset-lora { display:flex; gap:6px; align-items:center; margin-top:4px; }
 .rg-lset-lora .rg-ff { flex:1 1 auto; width:auto; min-width:0; }
+/* never wider than the row's column (a long file name used to push the field past the window's edge): the file
+   field and a LoRA row shrink, and the name inside is cut with "…" */
+.rg-lset, .rg-lset > *, .rg-lset-loras, .rg-lset-lora { min-width:0; max-width:100%; box-sizing:border-box; }
+.rg-lset > .rg-ff { flex:1 1 auto; width:auto; }
+.rg-lset .rg-ff-name { flex:1 1 0; min-width:0; padding-right:22px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }      /* (.rg-lset button: flex 0 0 auto, as wide as its text) */
+.rg-lset-loras { width:100%; }
 .rg-llm-pop .lora .rg-ff, .rg-llm-pop .row > .rg-ff { width:auto; min-width:0; gap:3px; flex:1 1 0; }
 .rg-llm-pop .rg-ff-name { padding:2px 20px 2px 5px; border-radius:4px; }
 .rg-llm-pop .rg-ff-browse { width:24px; height:22px; border-radius:4px; }
@@ -499,12 +505,16 @@ export const rerenderLlmSettings = () => openPop?.rerender();
 // They read and write the same library as the pop-up and save at once; the rows follow each other (and the pop-up)
 // through onLibraryChange and the 'Preset to edit' choice.
 const rowRefreshers = new Set();
-function refreshRows(except) {
+// all: Another preset is being edited now (the 'Preset to edit' choice, New, Delete, a new name), so every row shows
+// that one, also the row the keyboard focus is in. Without it a row being typed in is left alone: the same preset,
+// only saved or changed elsewhere. (Round 71: with the focus still in the system prompt box, as after a click on
+// the dropdown in Firefox on Windows, that box kept the previous preset's text. What was typed is in the library
+// already: each field writes at every keystroke.)
+function refreshRows(except, all = false) {
     for (const f of [...rowRefreshers]) {
         if (!f.box.isConnected) { rowRefreshers.delete(f); continue; }
-        // don't rebuild what is being typed in (a row whose button was just clicked is rebuilt: New, Delete)
         const ae = document.activeElement;
-        if (f.box === except || (f.box.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.type !== "checkbox")) continue;
+        if (f.box === except || (!all && f.box.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.type !== "checkbox")) continue;
         f();
     }
 }
@@ -546,13 +556,13 @@ function build(key, box) {
         const sel = RS("select");
         for (const n of names) sel.append(ROPT(n, n));
         sel.value = name;
-        sel.addEventListener("change", async () => { await setSetting(SET.llmEdit, sel.value); refreshRows(box); });
+        sel.addEventListener("change", async () => { await setSetting(SET.llmEdit, sel.value); refreshRows(box, true); });
         const newB = RS("button", "", "New"); newB.title = "A copy of this preset under a new name";
         newB.addEventListener("click", async () => {
             let i = 2, n = `${name} ${i}`;
             while (lib.presets[n]) n = `${name} ${++i}`;
             lib.presets[n] = normSettings(lib.presets[name]);
-            await setSetting(SET.llmEdit, n); await saveLibrary(); refreshRows();
+            await setSetting(SET.llmEdit, n); await saveLibrary(); refreshRows(null, true);
         });
         const inUse = LLM_TYPES.filter((t) => lib.defaults[t] === name);
         const del = RS("button", "", "Delete");
@@ -561,7 +571,7 @@ function build(key, box) {
         del.addEventListener("click", async () => {
             if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "Delete?"; return; }
             delete lib.presets[name];
-            await setSetting(SET.llmEdit, ""); await saveLibrary(); refreshRows();
+            await setSetting(SET.llmEdit, ""); await saveLibrary(); refreshRows(null, true);
         });
         box.append(sel, newB, del);
         return;

@@ -16,7 +16,9 @@
     "Wildcards (Impact Pack)": "通配符（Impact Pack）",
     "Models and files": "模型与文件",
     "Other nodes": "其他节点",
-    "Basics": "基础"
+    "Basics": "基础",
+    "Edit preset (shared by all your workflows)": "编辑预设（所有工作流共用）",
+    "Preset for each prompt type": "每种提示词类型的预设"
   },
   "regionGenie": {
     "choices": {
