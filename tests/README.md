@@ -58,6 +58,8 @@ Round 9 (`real_run_wildcards.cjs`): clone ComfyUI-Impact-Pack into `custom_nodes
 
 **The example workflows** (`example_workflows/*.json`, one per supported model): `node tests/make_examples.cjs` builds them in a real ComfyUI page, so the files are what the current node saves; `node tests/make_examples.cjs check` loads each again in legacy mode and Nodes 2.0. `tests/test_examples.py` (part of `run_py.sh`) checks the files and the tables that list them. Build them again when the node's saved data changes.
 
+**The README's Quick start diagram** (`docs/images/quickstart-dark.svg`, `quickstart-light.svg`): `python3 tests/make_diagram.py` draws both. Change the boxes or arrows in that script, not in the files.
+
 **The README's pictures** (`docs/images/editor.png`, `rows.png`): `node tests/shot_readme.cjs` with ComfyUI running. Retake them when the node's look changes.
 
 ## Firefox

@@ -66,8 +66,14 @@ The node picks the right format from the connected model. See [Prompt formats by
 
 ## ✨ Install
 
-- **ComfyUI Manager:** choose *Install via Git URL*, paste this repository's address, then restart ComfyUI.
-- **By hand:** clone or unzip into `ComfyUI/custom_nodes/` (the folder is `ComfyUI-Region-Genie`), then restart.
+- **ComfyUI Manager (recommended):** open the Manager, search for **Region Genie**, click **Install**, then restart ComfyUI.
+  - Updates arrive the same way: the Manager shows when a newer version is out.
+- **Command line:** `comfy node install region-genie` (with [comfy-cli](https://docs.comfy.org/comfy-cli/getting-started)), then restart.
+- **By hand:** clone or unzip this repository into `ComfyUI/custom_nodes/`, then restart. Update with `git pull`.
+
+Install it one way only. If you cloned it by hand earlier, delete that folder before installing through the Manager, or the pack is loaded twice.
+
+The pack is listed in the [Comfy Registry](https://registry.comfy.org/nodes/region-genie) as `region-genie`.
 
 Nothing else is needed. These extras are optional:
 
@@ -79,16 +85,11 @@ Nothing else is needed. These extras are optional:
 
 ## ✨ Quick start
 
-```mermaid
-flowchart LR
-    L[Load model, clip, vae] --> RG[Region Genie ✨]
-    RG -- model, positive, negative, latent --> S[KSampler]
-    S --> D[VAE Decode]
-    D --> SV[Save Image ✨]
-    SV ~~~ p1[" "] ~~~ p2[" "]
-    classDef pad fill:none,stroke:none
-    class p1,p2 pad
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/quickstart-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/quickstart-light.svg">
+  <img src="docs/images/quickstart-light.svg" alt="Load model, clip, vae → Region Genie → KSampler (model, positive, negative, latent) → VAE Decode → Save Image. The vae also goes from the loader to VAE Decode.">
+</picture>
 
 1. Add the **Region Genie** node (search for "genie"). Connect your loader's `model`, `clip` and `vae` to it.
 2. Set the image size in the row at the top of the node: by aspect ratio, from your presets list, or by hand (width and height, with a step size for their arrows).
