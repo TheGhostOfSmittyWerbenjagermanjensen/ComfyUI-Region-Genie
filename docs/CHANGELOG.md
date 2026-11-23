@@ -16,6 +16,9 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Then asked: publish a newly merged version to the Registry automatically, so it can't be forgotten. Chosen from three options: when the version number changes.
 - Built: `publish.yml` also runs after a merge to `main` that touches pyproject.toml, and publishes only when its `version` line differs from the commit before; the manual run stays as a fallback. Merging a version raise is now the release.
 - Tests: the step's script against real commits (version raised: publishes; unchanged: skips; a trial merge of this branch into main: publishes). Not tested: the workflow itself on GitHub, which first runs when this is merged.
+- After the merge: 0.53.0 was published by the merge itself; the publish log says "All validation checks passed" (no semicolon warnings left).
+- Then reported: a "Node.js 20 is deprecated" warning on every tests run. Built: the workflows use `actions/checkout@v7`, `actions/setup-python@v7` and `actions/setup-node@v7` (Node 24; none of their breaking changes touch these workflows). The publish run keeps the warning: it comes from inside `Comfy-Org/publish-node-action`.
+- Then: a new icon from the owner (same lamp, redrawn), uploaded by them to the working branch; re-saved with its pixels only (it carried colour-profile and dpi chunks, nothing else). It shows once it is on `main`: the Registry reads the picture from there.
 
 ## Round 70 (Nov 23): preparing the repo to go public and for the Comfy Registry
 - Asked: a walk-through of making the repo public, a Registry account and the listing; then to push what was decided.
