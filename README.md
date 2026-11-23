@@ -87,6 +87,7 @@ Nothing else is needed. These extras are optional:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/quickstart-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/quickstart-light.svg">
   <img src="docs/images/quickstart-light.svg" alt="Load model, clip, vae → Region Genie → KSampler (model, positive, negative, latent) → VAE Decode → Save Image. The vae also goes from the loader to VAE Decode.">
 </picture>
 
