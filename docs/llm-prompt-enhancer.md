@@ -46,9 +46,11 @@ Nothing needs installing: by default it uses the text encoder already connected 
   - *The LLM file and the LLM LoRAs:* file fields that open ComfyUI's menu (the LLM: "None (the connected clip …)" and `models/text_encoders`; a LoRA: `models/loras`).
     - With *Browse… for model files* on (Settings > Region Genie) each has the folder button (**Browse…**) too, so a file kept anywhere on the ComfyUI machine works (saved by its full path).
 - **The same in ComfyUI's Settings** (Settings > Region Genie > LLM Prompt Enhancer):
-  - *Default preset* for Character / Object / Text / Scene.
-  - *Preset to edit* (with New and Delete).
-  - Then one row per field of that preset (name, LLM with Browse…, LLM type, LLM LoRAs, system prompt, max_length, sampling, temperature … seed, thinking, default template, mtp).
+  - The page has the pop-up's sections:
+    - **Preset for each prompt type:** the default preset for Character, Object, Text and Scene.
+    - **Edit preset (shared by all your workflows):** *Preset* picks the one to edit (with New and Delete), and its fields follow right below.
+    - The fields: Name, LLM (with Browse…), LLM type, LLM LoRAs, System prompt, max_length, sampling, temperature … seed, thinking, default template, mtp.
+  - **Delete** is off while the preset is the default of a prompt type: choose another default first. The last remaining preset can't be deleted.
   - They edit the same presets as the node's LLM Settings and save at once. The sampling values are greyed out while sampling is off.
   - A node's own choices (its preset per type, its own *What the LLM sees*) stay in the node's LLM Settings.
 - The generation is ComfyUI's own Generate Text node, called with these settings; it works with the LLM types Generate Text supports (Qwen3 / Qwen3.5, Gemma ...).

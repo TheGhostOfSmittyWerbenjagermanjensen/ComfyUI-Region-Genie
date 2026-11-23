@@ -79,10 +79,13 @@ export function closeSettingsWindow() {
 }
 
 // one setting as a row: its name (with its tooltip) and the control for its kind
-function row(d, redraw) {
+// short: Under its section's heading a row can show a shorter label (rgLabel). In another language the label is the
+// translated name without its "Preset: " start, which the heading says already.
+const shortOf = (d) => { const t = trOf(d)?.name; return !d.rgLabel ? nameOf(d) : !t || t === d.name ? d.rgLabel : t.replace(/^[^:：]{1,30}[:：]\s*/, "").replace(/^./, (c) => (/^[A-Z]/.test(d.rgLabel) ? c.toUpperCase() : c)); };
+function row(d, redraw, short = false) {
     const mk = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
     const r = mk("div", "rg-setwin-row"); r.dataset.id = d.id;
-    const lab = mk("label"); lab.textContent = nameOf(d); lab.title = tipOf(d);
+    const lab = mk("label"); lab.textContent = short ? shortOf(d) : nameOf(d); lab.title = tipOf(d);
     const ctl = mk("div", "rg-setwin-ctl");
     const cur = () => getSetting(d.id, d.defaultValue);
     const set = async (v) => { await setSetting(d.id, v); window.dispatchEvent(new Event("rg-settings")); redraw?.(); };
@@ -173,7 +176,7 @@ export async function openSettingsWindow(anchor, key) {
             // a search lists the page each match is on; a page is divided by the sections its settings came from
             const grp = q ? pageTitle(d.rgPage) : catLabel(d.rgSection);
             if (grp !== last && (q || new Set(list.map((y) => y.rgSection)).size > 1)) { page.appendChild(mk("div", "rg-setwin-grp", grp)); last = grp; }
-            page.appendChild(row(d, counts));
+            page.appendChild(row(d, counts, !q));
         }
         page.scrollTop = 0;
     };

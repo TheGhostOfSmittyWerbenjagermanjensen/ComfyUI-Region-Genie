@@ -199,6 +199,12 @@ body:has(.rg-llm-pop) .litecontextmenu, body:has(.rg-llm-pop) .litegraph.litecon
 .rg-lset.col > button { align-self:flex-start; }
 .rg-lset-lora { display:flex; gap:6px; align-items:center; margin-top:4px; }
 .rg-lset-lora .rg-ff { flex:1 1 auto; width:auto; min-width:0; }
+/* never wider than the row's column (a long file name used to push the field past the window's edge): the file
+   field and a LoRA row shrink, and the name inside is cut with "…" */
+.rg-lset, .rg-lset > *, .rg-lset-loras, .rg-lset-lora { min-width:0; max-width:100%; box-sizing:border-box; }
+.rg-lset > .rg-ff { flex:1 1 auto; width:auto; }
+.rg-lset .rg-ff-name { flex:1 1 0; min-width:0; padding-right:22px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }      /* (.rg-lset button: flex 0 0 auto, as wide as its text) */
+.rg-lset-loras { width:100%; }
 .rg-llm-pop .lora .rg-ff, .rg-llm-pop .row > .rg-ff { width:auto; min-width:0; gap:3px; flex:1 1 0; }
 .rg-llm-pop .rg-ff-name { padding:2px 20px 2px 5px; border-radius:4px; }
 .rg-llm-pop .rg-ff-browse { width:24px; height:22px; border-radius:4px; }

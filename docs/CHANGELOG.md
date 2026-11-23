@@ -7,6 +7,9 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Found: the rows skip the one the keyboard focus is in, so that typing isn't interrupted when the library is saved. With the focus still in the system prompt box when the choice changed (Firefox on Windows, the owner's browser), that box kept the previous preset's text. Chromium moves the focus to the dropdown, so it never showed here.
 - Built: a change of the preset being edited (the choice, New, Delete) redraws every row (`refreshRows(except, all)`, js/rg_llm.js). Version 0.52.2.
 - Tests: `real_llm_settings.cjs` in both modes, with a new check that fails without the fix; stub and Python suites.
+- Then asked: lay the Settings page out like the node's LLM Settings pop-up, with a section titled "Edit preset" where the preset is picked and its options follow right below; and the *Preset: LLM* and *Preset: LLM LoRAs* fields ran past the page's right edge.
+- Built: the LLM page's settings are in four sections, shown as headings (LLM Prompt Enhancer, Preset for each prompt type, Edit preset (shared by all your workflows), LLM cache); under a heading a row shows a short label (`rgLabel`: "System prompt" for "Preset: system prompt"; names and ids unchanged, so searches and translations hold; a search shows the full names). The file field and the LoRA rows shrink to their column and cut the name with "…" (a button rule had kept them as wide as their text). Two headings translated. Version 0.53.0.
+- Tests: `real_llm_settings.cjs` (headings, order, nothing past the edge, at two window widths by hand), `real_settings.cjs`, `real_tooltips`, `real_i18n`, stub and Python suites.
 
 ## Round 70 (Nov 23): preparing the repo to go public and for the Comfy Registry
 - Asked: a walk-through of making the repo public, a Registry account and the listing; then to push what was decided.

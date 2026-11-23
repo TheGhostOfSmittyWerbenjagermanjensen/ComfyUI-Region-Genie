@@ -111,7 +111,10 @@ const plain = (t) => t.replace(/\{'([^']*)'\}/g, "$1");      // vue-i18n's liter
             check(T(`the settings window opens with ${navN} pages`), navN === 11);
             const squash = (t) => t.replace(/\s+/g, " ");
             const visible = Object.keys(en.settings);
-            const miss = visible.filter((k) => !squash(s).includes(squash(plain(settings[k].name)).trim()));
+            // (round 71: on the LLM page a row under its heading shows the name without its "Preset: " start)
+            const short = (t) => t.replace(/^[^:：]{1,30}[:：]\s*/, ""), cap = (t) => t.replace(/^./, (c) => c.toUpperCase());
+            const shown = (k) => { const t = squash(plain(settings[k].name)).trim(); return squash(s).includes(t) || (/^RegionGenie_LLM_(Default|Preset)_/.test(k) && (squash(s).includes(short(t)) || squash(s).includes(cap(short(t))))); };
+            const miss = visible.filter((k) => !shown(k));
             check(T(`the Settings dialog shows every translated Setting name (${visible.length}${miss.length ? `; missing: ${miss.slice(0, 4).join(" | ")}` : ""})`), !miss.length);
             // the sections that are shown: the tab's three, and the headings of the pages made of several old sections
             const SHOWN = ["Basics", "Models and files", "Other nodes", "Region Genie node", "Tag autocomplete", "Wildcards (Impact Pack)", "LLM Prompt Enhancer", "LLM cache"];

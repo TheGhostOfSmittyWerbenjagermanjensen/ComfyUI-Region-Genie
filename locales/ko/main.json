@@ -16,7 +16,9 @@
     "Wildcards (Impact Pack)": "와일드카드 (Impact Pack)",
     "Models and files": "모델 및 파일",
     "Other nodes": "기타 노드",
-    "Basics": "기본"
+    "Basics": "기본",
+    "Edit preset (shared by all your workflows)": "프리셋 편집 (모든 워크플로에서 공유)",
+    "Preset for each prompt type": "프롬프트 유형별 프리셋"
   },
   "regionGenie": {
     "choices": {
