@@ -138,6 +138,24 @@ fs.writeFileSync(outLlm, "");
     await rowOf("Default preset: Text");
     const opts = await page.locator(`${sel("Default preset: Text")} select option`).allTextContents();
     check(`${M}: 'Default preset' rows list the presets (${opts.length})`, opts.length >= 2);
+    // round 71: 'Preset to edit' fills every row below it, also the one the keyboard focus is in (in Firefox on Windows
+    // the focus stayed in the system prompt box after a click on the dropdown, and the box kept the old preset's text)
+    {
+        const rowEl = (name) => `[...document.querySelectorAll(".rg-setwin-row")].find((r) => r.querySelector("label")?.textContent.trim() === ${JSON.stringify(name)})`;
+        const sys = () => page.evaluate(`${rowEl("Preset: system prompt")}.querySelector("textarea").value`);
+        const pickEdit = (v) => page.evaluate(`(() => { const s = ${rowEl("Preset to edit")}.querySelector("select"); s.value = ${JSON.stringify(v)}; s.dispatchEvent(new Event("change", { bubbles: true })); })()`);   // the choice changes, the focus stays where it is
+        const names = await page.evaluate(`[...${rowEl("Preset to edit")}.querySelectorAll("select option")].map((o) => o.value)`);
+        const first = await page.evaluate(`${rowEl("Preset to edit")}.querySelector("select").value`), other = names.find((n) => n !== first && /Scene|Region/.test(n));
+        const before = await sys();
+        await page.evaluate(`${rowEl("Preset: system prompt")}.querySelector("textarea").focus()`); await sleep(150);
+        await pickEdit(other); await sleep(900);
+        const after = await sys(), nameNow = await page.evaluate(`${rowEl("Preset: name")}.querySelector("input").value`);
+        check(`${M}: another 'Preset to edit' with the focus in the system prompt box: the box shows the new preset's prompt, and the name row its name (${nameNow})`,
+            !!other && after !== before && after.length > 40 && nameNow === other);
+        await page.evaluate(`${rowEl("Preset: system prompt")}.querySelector("textarea").focus()`); await sleep(150);
+        await pickEdit(first); await sleep(900);
+        check(`${M}: …and back: the first preset's prompt again, unchanged`, await sys() === before);
+    }
     await page.keyboard.press("Escape"); await sleep(400);          // the window
     check(`${M}: Esc closes the settings window first, ComfyUI's Settings stay`, await page.locator(".rg-setwin").count() === 0 && await page.locator('[role="dialog"] .rg-page-row').count() > 5);
     await page.keyboard.press("Escape"); await sleep(600);          // ComfyUI's Settings

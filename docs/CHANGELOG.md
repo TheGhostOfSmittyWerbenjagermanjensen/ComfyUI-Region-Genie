@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 71 (Nov 23): Settings: 'Preset to edit' fills the row the focus is in too
+- Reported (after the first release, 0.52.1): in Settings > Region Genie > LLM Prompt Enhancer, choosing another preset in 'Preset to edit' didn't put its text into 'Preset: system prompt'. (Also asked: a way to delete a preset. Both places have a Delete button already, off while the preset is a default.)
+- Found: the rows skip the one the keyboard focus is in, so that typing isn't interrupted when the library is saved. With the focus still in the system prompt box when the choice changed (Firefox on Windows, the owner's browser), that box kept the previous preset's text. Chromium moves the focus to the dropdown, so it never showed here.
+- Built: a change of the preset being edited (the choice, New, Delete) redraws every row (`refreshRows(except, all)`, js/rg_llm.js). Version 0.52.2.
+- Tests: `real_llm_settings.cjs` in both modes, with a new check that fails without the fix; stub and Python suites.
+
 ## Round 70 (Nov 23): preparing the repo to go public and for the Comfy Registry
 - Asked: a walk-through of making the repo public, a Registry account and the listing; then to push what was decided.
 - Decided by the owner: keep the planning files and leave them out of the package; About text and topics (set by the owner on GitHub).
