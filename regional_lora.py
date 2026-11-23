@@ -1591,7 +1591,8 @@ class RegionalLoRAs:
                 p_, n_ = comfy.hooks.set_conds_props(conds=[encode(region_text), negative], strength=1.0,
                                                      set_cond_area="default",
                                                      mask=torch.from_numpy(arr[idx:idx + 1].copy()), hooks=hooks)
-                final_pos += p_; final_neg += n_
+                final_pos += p_
+                final_neg += n_
                 lines.append(f"index {idx}: {desc(groups[idx])}{words_note(idx)}")
             if groups:
                 # the plain prompt fills whatever the region masks leave uncovered (1 - their sum), every step

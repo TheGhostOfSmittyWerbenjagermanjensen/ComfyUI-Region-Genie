@@ -17,7 +17,8 @@ import torch  # noqa: E402
 PACK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PACK)                      # control.py imports model_paths next to it
 _spec = importlib.util.spec_from_file_location("rg_control", os.path.join(PACK, "control.py"))
-ctl = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(ctl)
+ctl = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(ctl)
 
 # the files "installed" for these checks (ComfyUI looks them up in its model folders)
 import folder_paths  # noqa: E402
@@ -39,7 +40,8 @@ class VAE:                                     # 8x down, 3 channels: enough to 
 
 class FakeCN:                                  # what ControlNetApplyAdvanced does with a ControlNet
     def __init__(self):
-        self.hint = None; self.args = None
+        self.hint = None
+        self.args = None
     def copy(self):
         return self
     def set_extra_arg(self, k, v=None):
@@ -58,9 +60,13 @@ def ce(c):                                     # the conditioning entry that car
     return next((t[1] for t in c if "concat_latent_image" in t[1] or "control" in t[1]), {})
 def cfg(kind, files=None, **kw):
     return ctl.config({"control": {"on": True, "kind": kind, "files": files or {}, **kw}})
-cmap = torch.zeros(1, H, W, 3); cmap[:, :, :32] = torch.tensor([1.0, 0.1, 0.3]); cmap[:, :, 32:] = torch.tensor([0.2, 0.7, 0.3])
-photo = torch.zeros(1, H, W, 3); photo[:, 16:48, 16:48] = 1.0                 # a white square: edges for canny
-half = np.zeros((H, W), bool); half[:, :32] = True                            # the left half: a region still on for control
+cmap = torch.zeros(1, H, W, 3)
+cmap[:, :, :32] = torch.tensor([1.0, 0.1, 0.3])
+cmap[:, :, 32:] = torch.tensor([0.2, 0.7, 0.3])
+photo = torch.zeros(1, H, W, 3)
+photo[:, 16:48, 16:48] = 1.0                 # a white square: edges for canny
+half = np.zeros((H, W), bool)
+half[:, :32] = True                            # the left half: a region still on for control
 
 # ---------------------------------------------------------------- settings
 check("off: no config", ctl.config({"control": {"on": False}}) is None and ctl.config({}) is None)
@@ -83,7 +89,9 @@ check("LoRA tag: not with another model", not ctl.lora_tag_ok({"control": "MOSS-
 check("LoRA tag: Flux depth LoRA not for canny", not ctl.lora_tag_ok({"control": "Flux.1", "ckind": "depth"}, cfg("canny"), "Flux.1"))
 check("LoRA tag: nothing while control is off", not ctl.lora_tag_ok({"control": "MOSS-Image", "ckind": "moss"}, None, "MOSS-Image"))
 regions = [{"id": 1}, {"id": 2, "noControl": True}]
-idx = np.zeros((H, W), np.uint8); idx[:, :32] = 1; idx[:, 32:] = 2
+idx = np.zeros((H, W), np.uint8)
+idx[:, :32] = 1
+idx[:, 32:] = 2
 check("region mask: everywhere while all regions are on", ctl.region_mask([{"id": 1}, {"id": 2}], {1: 1, 2: 2}, idx) is None)
 rm = ctl.region_mask(regions, {1: 1, 2: 2}, idx)
 check("region mask: only the regions still on", rm[:, :32].all() and not rm[:, 32:].any())
@@ -169,8 +177,10 @@ folder_paths.get_full_path = lambda folder, name: (f"/models/controlnet/{name}" 
 notes = []
 ctl.apply(cfg("canny", {"Anima.canny": "anima_in_cn.safetensors"}), "Anima", "M", cond(), cond(), None, photo, None, cmap, half, W, H, notes)
 check("Anima: a patch in models/controlnet is found and used", seen["patch"] == "PATCH:anima_in_cn.safetensors" and not any("isn't found" in x for x in notes))
-tmp = tempfile.mkdtemp(prefix="rg_anima_"); full = os.path.join(tmp, "@author", "lllite.safetensors")
-os.makedirs(os.path.dirname(full)); open(full, "wb").write(b"x")
+tmp = tempfile.mkdtemp(prefix="rg_anima_")
+full = os.path.join(tmp, "@author", "lllite.safetensors")
+os.makedirs(os.path.dirname(full))
+open(full, "wb").write(b"x")
 from comfy_extras.nodes_model_patch import ModelPatchLoader  # noqa: E402
 _mpl = ModelPatchLoader.load_model_patch
 ModelPatchLoader.load_model_patch = lambda self, name: (folder_paths.get_full_path_or_raise("model_patches", name),)   # the loader's first step
@@ -229,7 +239,8 @@ check("pose map: a hidden nose takes its bones along", nohead[int(128 - .35 * 25
 wide = pm.render(figs[:1], 512, 256)
 check("pose map: on a wide image the figure keeps its shape (units of the shorter side, from the centre)",
       wide.shape == (256, 512, 3) and wide[int(128 - .30 * 256), 256][0] > .9)
-fake = FakeCN(); ctl._load_controlnet = lambda name: fake
+fake = FakeCN()
+ctl._load_controlnet = lambda name: fake
 notes = []
 pt = torch.from_numpy(pm.render(figs, W, H))[None]
 _, p, _, prev = ctl.apply(cfg("pose", {"SDXL.other": "pose.pth"}), "SDXL", "M", cond(), cond(), None, None, None, cmap, None, W, H, notes, pose_map=pt)
@@ -270,7 +281,8 @@ check("from_keypoints: nothing usable gives no figure", pm.from_keypoints([{"peo
 import tempfile  # noqa: E402
 from PIL import Image  # noqa: E402
 import pose_detect as pdet  # noqa: E402
-tmp = tempfile.mkdtemp(); Image.new("RGB", (200, 100), (40, 60, 80)).save(os.path.join(tmp, "photo.png"))
+tmp = tempfile.mkdtemp()
+Image.new("RGB", (200, 100), (40, 60, 80)).save(os.path.join(tmp, "photo.png"))
 folder_paths.get_directory_by_type = lambda kind: tmp
 seen = {}
 pdet._load = lambda name, path: ("MODEL", "VAE")
@@ -297,17 +309,21 @@ check("pose_people: the people as fractions of the keypoints' canvas, hidden joi
       and not hasattr(pdet, "PoseFetch"))
 check("pose_people: nothing usable gives no people", pdet.handle_people({"text": "null"})["people"] == [] and pdet.handle_people({"text": _json.dumps([{"people": []}])})["people"] == [])
 try:
-    pdet.handle_people({"text": "[{'people': array([1.])}]"}); bad = False
+    pdet.handle_people({"text": "[{'people': array([1.])}]"})
+    bad = False
 except pdet.PoseError as e:
     bad = e.code == "bad_keypoints"
 check("pose_people: text that is not JSON (data the preview node could not write as JSON) is refused with a message", bad)
-INSTALLED.discard("sdpose_wholebody_fp16.safetensors"); folder_paths.get_filename_list = lambda folder: []
+INSTALLED.discard("sdpose_wholebody_fp16.safetensors")
+folder_paths.get_filename_list = lambda folder: []
 try:
-    pdet.resolve_model(""); check("pose_detect: no model file: said so", False)
+    pdet.resolve_model("")
+    check("pose_detect: no model file: said so", False)
 except pdet.PoseError as e:
     check("pose_detect: no model file: the message names the file and where it goes", e.code == "no_model" and "sdpose_wholebody_fp16.safetensors" in str(e) and "models/checkpoints" in str(e))
 try:
-    pdet.run_detect({"image": None}); check("pose_detect: no image: said so", False)
+    pdet.run_detect({"image": None})
+    check("pose_detect: no image: said so", False)
 except pdet.PoseError as e:
     check("pose_detect: no image under the canvas: said so", e.code == "no_image" and "Pose from the image" in str(e))
 

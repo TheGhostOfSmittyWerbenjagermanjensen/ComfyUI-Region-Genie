@@ -36,7 +36,9 @@ class T(np.ndarray):
 
 class _Pair(tuple):
     def __new__(cls, v, i):
-        o = super().__new__(cls, (v, i)); o.values, o.indices = v, i; return o
+        o = super().__new__(cls, (v, i))
+        o.values, o.indices = v, i
+        return o
 
 
 def _t(x): return np.asarray(x).view(T)
@@ -56,8 +58,10 @@ torch.from_numpy = lambda a: _t(a)
 torch.arange = lambda n, dtype=None, **k: _t(np.arange(n, dtype=dtype))
 torch.minimum = lambda a, b: _t(np.minimum(a, b))
 torch.maximum = lambda a, b: _t(np.maximum(a, b))
-nn = types.ModuleType("torch.nn"); F = types.ModuleType("torch.nn.functional")
-nn.functional = F; torch.nn = nn
+nn = types.ModuleType("torch.nn")
+F = types.ModuleType("torch.nn.functional")
+nn.functional = F
+torch.nn = nn
 sys.modules["torch"], sys.modules["torch.nn"], sys.modules["torch.nn.functional"] = torch, nn, F
 
 USER_DIR = tempfile.mkdtemp(prefix="rg_user_")

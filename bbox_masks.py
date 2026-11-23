@@ -359,10 +359,13 @@ def box_blur(masks_np, feather, solid_border=True):
         pad[axis] = (feather, feather)
         p = np.pad(out, pad, mode="edge" if solid_border else "constant")
         c = np.cumsum(p, axis=axis, dtype=np.float64)
-        zero_shape = list(c.shape); zero_shape[axis] = 1
+        zero_shape = list(c.shape)
+        zero_shape[axis] = 1
         c = np.concatenate([np.zeros(zero_shape), c], axis=axis)
-        hi = [slice(None)] * 3; lo = [slice(None)] * 3
-        hi[axis] = slice(k, None); lo[axis] = slice(None, -k)
+        hi = [slice(None)] * 3
+        lo = [slice(None)] * 3
+        hi[axis] = slice(k, None)
+        lo[axis] = slice(None, -k)
         out = ((c[tuple(hi)] - c[tuple(lo)]) / k).astype(np.float32)
     return np.clip(out, 0.0, 1.0)
 

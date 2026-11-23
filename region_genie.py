@@ -331,15 +331,18 @@ def layer_mask(layer, width, height):
     # shape + strokes: draw in the layer's own (unrotated) raster, then warp into place
     xs, ys = [], []
     if verts:
-        xs += [0.0, bw]; ys += [0.0, bh]
+        xs += [0.0, bw]
+        ys += [0.0, bh]
     for o in ops:
         if o.get("t") == "bitmap":
-            xs += [_f(o.get("x0"), 0.0), _f(o.get("x1"), 0.0)]; ys += [_f(o.get("y0"), 0.0), _f(o.get("y1"), 0.0)]
+            xs += [_f(o.get("x0"), 0.0), _f(o.get("x1"), 0.0)]
+            ys += [_f(o.get("y0"), 0.0), _f(o.get("y1"), 0.0)]
             continue
         pts = _local_points(o.get("p"))
         r = max(0.0, _f(o.get("d"), 0.02)) / 2 if o.get("t") == "stroke" else 0.0
         for x, y in pts:
-            xs += [x - r, x + r]; ys += [y - r, y + r]
+            xs += [x - r, x + r]
+            ys += [y - r, y + r]
     if not xs:
         return np.zeros((height, width), bool)
     ex0, ex1, ey0, ey1 = min(xs), max(xs), min(ys), max(ys)
