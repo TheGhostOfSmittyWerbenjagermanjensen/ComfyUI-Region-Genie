@@ -10,6 +10,7 @@ from .bbox_masks import BBoxesToMasks, MaskPicker
 from .region_genie import RegionGenie
 from .regional_lora import CreateHookLoRAQuantized, RegionalLoRAs
 from .save_image import SaveImageRG
+from .tiled_diffusion import TiledDiffusionRG, TiledUpscaleRG
 from . import lora_triggers  # noqa: F401  (registers the trigger-word route)
 from . import llm_enhance  # noqa: F401  (LLM Prompt Enhancer routes)
 from . import region_select  # noqa: F401  (Select object: SAM 3.1 routes)
@@ -31,6 +32,8 @@ NODES = [
     ("Region-Genie_RegionalLoRAs", RegionalLoRAs, "Regional LoRAs"),
     ("Region-Genie_CreateHookLoRA", CreateHookLoRAQuantized, "Create Hook LoRA (Quantized)"),
     ("Region-Genie_SaveImage", SaveImageRG, "Save Image (Region Genie)"),
+    ("Region-Genie_TiledUpscale", TiledUpscaleRG, "Tiled Upscale (Region Genie)"),
+    ("Region-Genie_TiledDiffusion", TiledDiffusionRG, "Tiled Diffusion (Region Genie)"),
 ]
 
 
@@ -53,6 +56,10 @@ _ALIASES = {
                     "int8", "fp8", "trigger words"],
     SaveImageRG: ["save", "save image", "export image", "output image", "png", "jpeg", "jpg", "webp", "avif", "exr", "hdr",
                   "compression", "compress", "quality", "file size", "transparency", "alpha"],
+    TiledUpscaleRG: ["upscale", "upscaler", "tiled upscale", "tiled diffusion", "mixture of diffusers", "multidiffusion",
+                     "hires fix", "high resolution", "tile", "tiles", "ultimate upscale", "detail"],
+    TiledDiffusionRG: ["tiled diffusion", "mixture of diffusers", "multidiffusion", "tile", "tiles", "tiled sampling",
+                       "upscale", "high resolution"],
     CreateHookLoRAQuantized: ["hook LoRA", "LoRA", "regional LoRA", "LoRA mask", "masked LoRA", "runtime LoRA",
                               "quantized LoRA", "int8", "fp8", "LoRA hook", "Create Hook LoRA"],
 }
