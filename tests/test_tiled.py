@@ -163,6 +163,55 @@ m2, _ = td.tiled_model(m, 128, 128, 32, 1)
 import comfy.patcher_extension  # noqa: E402
 check("applying it twice replaces the first (one wrapper on the model)", len(m2.wrappers[comfy.patcher_extension.WrappersMP.APPLY_MODEL][td.WRAPPER_KEY]) == 1)
 
+# ---- with the regional LoRAs' wrapper (regional_lora.py) on the same model
+sys.path.insert(0, PACK)
+spec2 = importlib.util.spec_from_file_location("rg_regional", os.path.join(PACK, "regional_lora.py"))
+rl = importlib.util.module_from_spec(spec2)
+spec2.loader.exec_module(rl)
+KIND = comfy.patcher_extension.WrappersMP.APPLY_MODEL
+seen = []
+
+
+def spy(x, t, c_concat, c_crossattn, control, transformer_options, **kw):
+    seen.append(transformer_options.get(td.TILES_KEY))
+    return x
+
+
+W3 = td.TiledModel(32 * 8, 32 * 8, 8 * 8, 3, 8)
+W3(spy, torch.zeros(2, 4, 48, 80), torch.tensor([1.0, 1.0]), None, None, None, {"sample_sigmas": torch.ones(3)})
+g3 = W3.grid(48, 80, "cpu")
+check(f"transformer_options['{td.TILES_KEY}'] per call: canvas, rows and the boxes of that call ({seen[0]})", seen[0]["canvas"] == (48, 80) and seen[0]["rows"] == 2
+      and seen[0]["boxes"] == [(y_, x_, 32, 32) for y_, x_ in g3.boxes[:3]] and seen[1]["boxes"] == [(y_, x_, 32, 32) for y_, x_ in g3.boxes[3:]])
+seen.clear()
+W3(spy, torch.zeros(1, 4, 16, 16), torch.tensor([1.0]), None, None, None, {})
+check("a call that isn't tiled announces nothing", seen == [None])
+reg = rl.regional_lora_model(patcher, (), "test regions")
+both = td.tiled_model(reg, 128, 128, 32, 4)[0]
+check("Region Genie's model -> tiled: the tiling is the outermost wrapper", list(both.wrappers[KIND])[0] == td.WRAPPER_KEY and len(both.wrappers[KIND]) == 2)
+other = rl.regional_lora_model(td.tiled_model(patcher, 128, 128, 32, 4)[0], (), "test regions")
+check("tiled -> Region Genie's model: the tiling is the outermost wrapper too", list(other.wrappers[KIND])[0] == td.WRAPPER_KEY and len(other.wrappers[KIND]) == 2)
+
+
+class Exec:                                   # what ComfyUI hands a wrapper: the rest of the call, and the model
+    class_obj = base
+
+    def __init__(self):
+        self.got = None
+
+    def __call__(self, *a, **k):
+        self.got = (a, k)
+        return "out"
+
+
+wrap = rl._ActivateRegionalLoRAsWrapper((), "test regions", None, rl.model_arch(patcher))
+ex = Exec()
+topt = {td.TILES_KEY: {"canvas": (48, 80), "boxes": [(0, 0, 32, 32)], "rows": 1}, "sample_sigmas": torch.ones(3)}
+r = wrap(ex, torch.zeros(1, 4, 32, 32), torch.tensor([1.0]), None, torch.zeros(1, 5, 24), None, topt)
+check("the regional wrapper steps aside for a batch of tiles: the call goes on unchanged, nothing regional is switched on",
+      r == "out" and ex.got[0][5] is topt and "optimized_attention_override" not in topt and not rl._active())
+res2 = nodes.common_ksampler(both, 3, 3, 4.0, "euler", "simple", pos, neg, lat, denoise=0.5)[0]["samples"]
+check("a sampling run with both on the model finishes and gives the tiled result", torch.allclose(res2, res, atol=1e-5))
+
 # ---- the nodes
 it = td.TiledUpscaleRG.INPUT_TYPES()
 check("tile_overlap and tile_blend are inputs of both nodes; blend 1 at first", all("tile_overlap" in n_.INPUT_TYPES()["required"] and n_.INPUT_TYPES()["required"]["tile_blend"][1]["default"] == 1.0 for n_ in (td.TiledUpscaleRG, td.TiledDiffusionRG)))

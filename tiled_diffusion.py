@@ -33,6 +33,7 @@ import comfy.patcher_extension
 import comfy.utils
 
 WRAPPER_KEY = "region_genie_tiled"
+TILES_KEY = "rg_tiles"            # in transformer_options while a batch of tiles is in the model (see TiledModel)
 GAUSS_VAR = 0.01                 # the paper's variance of the tile weights (on a tile of width 1)
 
 
@@ -187,8 +188,12 @@ class TiledModel:
                 self._warn("this ControlNet's output can't be cut into tiles: it is left out while tiling")
                 ct = None
             kw = {k: self._per_tile(v, g, tiles, rows) for k, v in kwargs.items()}
+            # for code inside the model call that works by place in the picture (the regional LoRAs' wrapper):
+            # which part of the whole latent each row of this batch is (rows: sample 0's tiles, then sample 1's …)
+            to = dict(transformer_options) if isinstance(transformer_options, dict) else {}
+            to[TILES_KEY] = {"canvas": (h, w), "boxes": [(y, x0, g.th, g.tw) for y, x0 in tiles], "rows": rows}
             res = executor(xt, tt, self._per_tile(c_concat, g, tiles, rows), self._per_tile(c_crossattn, g, tiles, rows),
-                           ct, transformer_options, **kw)
+                           ct, to, **kw)
             self.calls += 1
             if out is None:
                 out = torch.zeros((rows, *res.shape[1:-2], h, w), device=res.device, dtype=res.dtype)
@@ -211,8 +216,14 @@ def tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size, t
     """A clone of `model` that samples in tiles (Mixture of Diffusers)."""
     m = model.clone()
     wrapper = TiledModel(tile_width, tile_height, tile_overlap, tile_batch_size, px_per_cell(model), tile_blend)
-    m.remove_wrappers_with_key(comfy.patcher_extension.WrappersMP.APPLY_MODEL, WRAPPER_KEY)
-    m.add_wrapper_with_key(comfy.patcher_extension.WrappersMP.APPLY_MODEL, WRAPPER_KEY, wrapper)
+    kind = comfy.patcher_extension.WrappersMP.APPLY_MODEL
+    m.remove_wrappers_with_key(kind, WRAPPER_KEY)
+    m.add_wrapper_with_key(kind, WRAPPER_KEY, wrapper)
+    # The tiling goes around every other wrapper of the model call (ComfyUI runs them in the order of their keys,
+    # the first outermost): what works by place in the picture, as the regional LoRAs do, must be given the tiles
+    # and told which they are, not the whole latent
+    mine = m.wrappers[kind].pop(WRAPPER_KEY)
+    m.wrappers[kind] = {WRAPPER_KEY: mine, **m.wrappers[kind]}
     return m, wrapper
 
 

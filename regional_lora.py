@@ -901,6 +901,7 @@ class _ActivateRegionalLoRAsWrapper:
         self.separation = separation                     # RegionSeparation or None
         self.arch = arch or ModelArch("MOSS-Image")
         self._last_run = None
+        self._tiled_run = None
 
     def __call__(self, executor, *args, **kwargs):
         base_model = executor.class_obj
@@ -914,6 +915,16 @@ class _ActivateRegionalLoRAsWrapper:
             topts = kwargs["transformer_options"]
         elif len(args) > 5:
             topts = args[5]
+        if isinstance(topts, dict) and topts.get("rg_tiles"):
+            # Tiled sampling (tiled_diffusion.py): x is a batch of tiles, and the regions are laid out on the whole
+            # picture. Until the regions are cut per tile, they are left out of a tiled run: mapping the whole
+            # layout onto each tile would put every region in every tile.
+            sigmas = topts.get("sample_sigmas")
+            if sigmas is not None and id(sigmas) != self._tiled_run:
+                self._tiled_run = id(sigmas)
+                _log(f"{LOG} tiled sampling: the regional LoRAs and the region separation are left out of this run "
+                     f"(regions aren't cut per tile): {self.label}")
+            return executor(*args, **kwargs)
         first = self._announce(topts)
         grid = self.arch.grid(int(x.shape[-2]), int(x.shape[-1])) if isinstance(x, torch.Tensor) and x.dim() >= 4 else None
         sep_on = False
