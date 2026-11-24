@@ -715,10 +715,11 @@ export function* render(E) {
         if (E.node.properties?.rg_labels === false) return;
         // Everything a label is made of is measured in "dpr" here, so one factor sizes it all: the screen's pixel
         // ratio, the text size from Settings (11 px is 1), and the zoom. With the image fitted in view (fitView's
-        // zoom) the text has its set size; zoomed in it grows with the image, zoomed out it stays at that size.
+        // zoom) the text has its set size; zoomed in it grows with the image up to the largest size set, zoomed out it
+        // stays at its size.
         const [fw, fh] = E.dims(), zFit = Math.min((E.cv.width || 1) / (fw * 1.2), (E.cv.height || 1) / (fh * 1.2));
-        const dpr = E.dprNow() * (E.labelPx() / 11) * Math.max(1, E.view.z / zFit);
-        const shadowPx = E.labelShadow(), shadowUnits = E.labelShadowStrength() * 2;       // at 100% the text is drawn twice with its shadow
+        const dpr = E.dprNow() * (E.labelPx() / 11) * Math.min(E.labelMaxPx() / E.labelPx(), Math.max(1, E.view.z / zFit));
+        const shadowPx = E.labelShadow(), shadowUnits = E.labelShadowStrength() * 2;       // per 50%, the text is drawn once more with its shadow
         E.ctx.save();
         E.ctx.font = `${11 * dpr}px sans-serif`;
         E.ctx.textBaseline = "top";

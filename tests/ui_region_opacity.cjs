@@ -106,6 +106,7 @@ async function run(browser, noGL) {
     const h22 = await labH();
     check(`the text size Setting doubles the label (${h11} -> ${h22} px high)`, Math.abs(h22 - 2 * h11) <= 3);
     await set("RegionGenie.Main.LabelSize", 11);
+    await set("RegionGenie.Main.LabelMax", 64);
     const [zx, zy] = await toClient(128, 128); await page.mouse.move(zx, zy);
     for (let i = 0; i < 4; i++) await page.mouse.wheel(0, -100); await settle();
     const zIn = await page.evaluate(() => window.__node.__rgView().z), hIn = await labH();
@@ -115,6 +116,13 @@ async function run(browser, noGL) {
     await page.mouse.move(zx, zy); for (let i = 0; i < 4; i++) await page.mouse.wheel(0, 100); await settle();
     const zOut = await page.evaluate(() => window.__node.__rgView().z), hOut = await labH();
     check(`zooming out never makes it smaller than the set size (zoom x${(zOut / zFit).toFixed(2)}: ${hOut})`, zOut < zFit * 0.9 && (hOut === 0 || Math.abs(hOut - h11) <= 1));
+    // the largest size: 16 px at first; a value under the text size counts as the text size
+    const zoomedH = async () => { await page.mouse.move(zx, zy); for (let i = 0; i < 24; i++) await page.mouse.wheel(0, -100); await settle(); const h = await labH(), z = await page.evaluate(() => window.__node.__rgView().z); await page.keyboard.press("Home"); await settle(); return [h, z / zFit]; };
+    await set("RegionGenie.Main.LabelMax", 16); const [hCap, zr] = await zoomedH();
+    check(`zoomed in x${zr.toFixed(1)}, the text stops at the largest size (16 px: ${h11} -> ${hCap})`, zr > 1.6 && Math.abs(hCap / h11 - 16 / 11) < 0.12);
+    await set("RegionGenie.Main.LabelMax", 8); const [hSame] = await zoomedH();
+    check(`a largest size under the text size counts as the text size: no growth (${hSame})`, Math.abs(hSame - h11) <= 1);
+    await set("RegionGenie.Main.LabelMax", 16);
     await page.keyboard.press("Home"); await settle();
     // the shadow: a dark halo next to the white text; none with size 0 or strength 0
     const halo = () => page.evaluate(() => { const l = window.__node.__rgLabels().find((r) => r.inside), cv = document.querySelector(".rg-cv canvas"), c = cv.getContext("2d");
@@ -122,7 +130,7 @@ async function run(browser, noGL) {
     await page.evaluate(() => { window.__node.properties.rg_fill = 1; window.__node.__rgRefresh(); }); await settle();
     const h0 = await halo(); await set("RegionGenie.Main.LabelShadow", 0); const hNone = await halo();
     await set("RegionGenie.Main.LabelShadow", 4); await set("RegionGenie.Main.LabelShadowStrength", 0); const hOff = await halo();
-    await set("RegionGenie.Main.LabelShadowStrength", 300); const hStrong = await halo(); await set("RegionGenie.Main.LabelShadowStrength", 100);
+    await set("RegionGenie.Main.LabelShadowStrength", 300); const hStrong = await halo(); await set("RegionGenie.Main.LabelShadowStrength", 200);
     check(`the shadow darkens what is around the text; size 0 or strength 0 removes it; 300% is darker (${h0}, ${hNone}, ${hOff}, ${hStrong})`, h0 < hNone - 25 && Math.abs(hNone - hOff) < 12 && hStrong < h0 - 10);
     await page.evaluate(() => { window.__node.properties.rg_labels = false; window.__node.__rgRefresh(); }); await settle();
 

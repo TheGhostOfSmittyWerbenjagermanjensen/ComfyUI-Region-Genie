@@ -1975,6 +1975,7 @@ export const SET = {
     cmFill: "RegionGenie.Main.Fill",
     cmEdge: "RegionGenie.Main.EdgeLine",
     cmLabelSize: "RegionGenie.Main.LabelSize",
+    cmLabelMax: "RegionGenie.Main.LabelMax",
     cmLabelShadow: "RegionGenie.Main.LabelShadow",
     cmLabelShadowStrength: "RegionGenie.Main.LabelShadowStrength",
     cmGridShow: "RegionGenie.Main.GridShow",
@@ -2304,6 +2305,9 @@ const SETTINGS = [
             ["fsPopText", "Pop-up editor: text to render", "6", 14, "the Text box of the region pop-up editor (A− / A+ in its header, with the Text box in use)"]]
             .map(([k, name, ord, dflt, what]) => ({ id: SET[k], name, type: "number", defaultValue: dflt, attrs: { min: k.startsWith("fsNode") ? 0 : 8, max: 40, step: 1 },
                 tooltip: `Text size in px for ${what}. Applies to every node.`, category: CAT("Text size", `${ord} ${k}`) })),
+        // the prompts written on the canvas (round 73): here with the other text sizes, though only the Region Genie node has them
+        { id: SET.cmLabelSize, name: "On the canvas: region labels", type: "number", defaultValue: 11, attrs: { min: 8, max: 32, step: 1 }, tooltip: "Text size in px for the region prompts written on the canvas, while the whole image is in view. Zooming in enlarges them with the image, up to the size below; zooming out never makes them smaller than this. Applies to every node.", category: CAT("Text size", "7 labelSize") },
+        { id: SET.cmLabelMax, name: "On the canvas: region labels, largest when zoomed in", type: "number", defaultValue: 16, attrs: { min: 8, max: 64, step: 1 }, tooltip: "Text size in px the region prompts on the canvas grow to at most when zooming in. A value under the size above counts as that size: The text then doesn't grow. Applies to every node.", category: CAT("Text size", "8 labelMax") },
         { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
         // the keys that step to the previous / next text field in a pop-up editor: changed in the shortcut list (round 39;
         // they were two rows here), still saved under their own ids
@@ -2417,9 +2421,8 @@ const SETTINGS = [
         { id: SET.cmFillImage, name: "Region opacity over an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while a connected image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "101 fill image") },
         { id: SET.cmFill, name: "Region opacity without an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while no image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "102 fill") },
         { id: SET.cmEdge, name: "Region edge line (px)", type: "number", defaultValue: 3.5, attrs: { min: 0, max: 10, step: 0.5 }, tooltip: "How wide the solid line along each region's edge is while the regions are see-through, on every Region Genie node. A line wider than a shape fills it. 0: No line.", category: CAT("Region Genie node", "103 edge") },
-        { id: SET.cmLabelSize, name: "Label text size (px)", type: "number", defaultValue: 11, attrs: { min: 8, max: 32, step: 1 }, tooltip: "The size of the region prompts written on the canvas while the whole image is in view, on every Region Genie node. Zooming in enlarges them with the image; zooming out never makes them smaller than this.", category: CAT("Region Genie node", "104 label size") },
         { id: SET.cmLabelShadow, name: "Label shadow size (px)", type: "number", defaultValue: 4, attrs: { min: 0, max: 12, step: 0.5 }, tooltip: "How far the dark shadow around the region prompts on the canvas spreads (a white glow around dark text on a light region). 0: None.", category: CAT("Region Genie node", "105 label shadow") },
-        { id: SET.cmLabelShadowStrength, name: "Label shadow strength (%)", type: "number", defaultValue: 100, attrs: { min: 0, max: 300, step: 10 }, tooltip: "How dense the shadow or glow around the region prompts on the canvas is. 0: None.", category: CAT("Region Genie node", "106 label shadow strength") },
+        { id: SET.cmLabelShadowStrength, name: "Label shadow strength (%)", type: "number", defaultValue: 200, attrs: { min: 0, max: 300, step: 10 }, tooltip: "How dense the shadow or glow around the region prompts on the canvas is. 0: None.", category: CAT("Region Genie node", "106 label shadow strength") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
             // the file field: ComfyUI's menu on the model folders (round 23), Browse… with SET.filePickers
             id: SET.control + "." + key, name, type: fileSettingType(MODEL_ROOTS, CONTROL_NONE, SET.control + "." + key, folder), defaultValue: CONTROL_NONE,
@@ -2520,7 +2523,7 @@ export const SETTINGS_PAGES = [
     ["size", "Image size", "node", "How the size row of a new Region Genie node starts, and the list of presets."],
     ["node", "Region Genie node", "node", "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards)."],
     ["tools", "Canvas tools", "node", "Which version the lasso, magic wand and fill buttons start as, the wand tolerance, the fill gap size, the hints on the canvas."],
-    ["text", "Text size", "node", "The text size of the prompt boxes, on the node and in the pop-up editors."],
+    ["text", "Text size", "node", "The text size of the prompt boxes, on the node and in the pop-up editors, and of the region labels on the canvas."],
     ["control", "Control", "files", "The control LoRA, ControlNet or LLLite file each model uses for a Control row, and the depth model."],
     ["edit", "Edit Mode", "files", "The edit LoRA of each model, whether the source image is sent as a reference, and the edit mask's grow and feather."],
     ["llm", "LLM Prompt Enhancer", "files", "What the LLM sees, the default preset of each prompt type, the presets themselves, and the LLM cache."],
