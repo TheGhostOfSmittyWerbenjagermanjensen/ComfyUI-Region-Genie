@@ -371,6 +371,19 @@
     "name": "그리드 크기 (이미지 px)",
     "tooltip": "Region Genie 노드를 추가하거나 워크플로를 열 때의 그리드 크기입니다."
   },
+  "RegionGenie_Main_GridShow": {
+    "name": "스냅 없이 그리드 표시",
+    "tooltip": "Region Genie 노드를 추가하거나 워크플로를 열 때, 그리드 스냅이 꺼져 있어도 그리드 선을 그릴지 여부입니다. 노드에서는: 자석 버튼의 ▾."
+  },
+  "RegionGenie_Main_GridLines": {
+    "name": "그리드 선",
+    "tooltip": "모든 Region Genie 노드의 캔버스에 그리는 그리드 선의 세기입니다. 자석 버튼의 ▾에도 있습니다.",
+    "options": {
+      "Faint": "옅게",
+      "Normal": "보통",
+      "Strong": "진하게"
+    }
+  },
   "RegionGenie_Main_FillImage": {
     "name": "이미지가 있을 때 영역 불투명도 (%)",
     "tooltip": "연결된 이미지를 영역 아래에 표시할 때 영역 색을 얼마나 진하게 그릴지 정합니다(노드에서 캔버스 오른쪽 가장자리의 슬라이더를 움직이기 전까지의 값). 100% 미만에서는 각 영역 가장자리의 선이 불투명하게 유지됩니다."
@@ -659,7 +672,7 @@
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Region opacity over an image , Region opacity without an image ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image ": {
     "name": "Region Genie 노드",
     "tooltip": "새 Region Genie 노드의 초기 설정(이미지 모드, 페더, 분리, 그리드, 영역 색상, 태그 자동 완성, 와일드카드).\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },

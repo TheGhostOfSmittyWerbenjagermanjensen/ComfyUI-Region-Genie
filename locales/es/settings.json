@@ -371,6 +371,19 @@
     "name": "Tamaño de la cuadrícula (px de imagen)",
     "tooltip": "El tamaño de la cuadrícula cuando se añade un nodo Region Genie o se abre un flujo de trabajo."
   },
+  "RegionGenie_Main_GridShow": {
+    "name": "Mostrar la cuadrícula sin ajuste",
+    "tooltip": "Si las líneas de la cuadrícula se dibujan mientras el ajuste a la cuadrícula está desactivado, al añadir un nodo Region Genie o abrir un flujo de trabajo. En un nodo: el ▾ del botón del imán."
+  },
+  "RegionGenie_Main_GridLines": {
+    "name": "Líneas de la cuadrícula",
+    "tooltip": "Con qué intensidad se dibujan las líneas de la cuadrícula en el lienzo de todos los nodos Region Genie. También en el ▾ del botón del imán.",
+    "options": {
+      "Faint": "Tenues",
+      "Normal": "Normales",
+      "Strong": "Marcadas"
+    }
+  },
   "RegionGenie_Main_FillImage": {
     "name": "Opacidad de las regiones sobre una imagen (%)",
     "tooltip": "Con qué intensidad se dibujan los colores de las regiones mientras se muestra debajo una imagen conectada, hasta que se mueva en un nodo el deslizador del borde derecho del lienzo. Por debajo del 100 %, una línea a lo largo del borde de cada región permanece opaca."
@@ -659,7 +672,7 @@
     "name": "Tamaño de imagen",
     "tooltip": "Cómo empieza la fila de tamaño de un nodo Region Genie nuevo, y la lista de preajustes.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Region opacity over an image , Region opacity without an image ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image ": {
     "name": "Nodo Region Genie",
     "tooltip": "Con qué empieza un nodo Region Genie nuevo (modo de imagen, difuminado, separación, cuadrícula, colores de región, autocompletado de etiquetas, comodines).\nEdit…: Abre los ajustes de Region Genie en esta página."
   },

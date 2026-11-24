@@ -88,7 +88,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 - **Right-click on the canvas** opens a menu.
   - On a region (which becomes the active one): Edit prompt, Hide region, Move up / down in the list, Duplicate or Delete the layer under the pointer, Delete region.
   - Where regions overlap, the others under the pointer are listed under *Also here*.
-  - On empty canvas: Add a region, Paste layer, Fit the image in view, Labels on / off, Snap to grid on / off, the large editor and the shortcut sheet.
+  - On empty canvas: Add a region, Paste layer, Fit the image in view, Labels on / off, Snap to grid on / off, Show the grid without snapping, the large editor and the shortcut sheet.
   - Everything in it can be undone with Ctrl+Z like the buttons it stands for.
 
 ### Node size and the large editor
@@ -434,6 +434,8 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 ## The canvas view
 
 - **Snap** (the magnet button, highlighted when on; slashed magnet when off; or G) snaps drawing, moving and resizing to a grid set in image pixels. Arrow keys nudge (Shift ×10).
+  - The grid's lines are drawn while snap is on.
+  - The magnet's ▾ (or a right-click on it) has the rest: **Show the grid without snapping** (Shift+G) and **Grid lines** (Faint, Normal, Strong; for every node).
 - **View:** the image sits in a checkered margin.
   - Shapes can hang off the edge, and only the part inside the image is output.
   - The mouse wheel zooms, middle-drag or Space+drag pans, Fit (Home) resets the view, and Alt+wheel or `[` `]` changes brush size.
@@ -457,7 +459,7 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - The image is shown at full strength, and the regions over it are see-through: 50% at first.
   - The **region opacity** slider on the canvas's right edge sets how solid the regions' colors are; drag it or use the mouse wheel over it.
   - Below 100% a thin line along each region's edge keeps the solid color, so the shapes stay exact. At 0% only the lines remain.
-  - Without an image the regions are solid (100%). The slider is there too, and the canvas keeps one value for each case.
+  - Without an image the regions start at 80%, on black. The slider is there too, and the canvas keeps one value for each case.
   - A directly connected Load Image shows right away; anything else shows after a run.
 - **`image` input, "use as color map":** the image's flat colors become regions under all layers, and they appear in the region list after a run so you can give them prompts.
 - **min region pixels** and **what import_json does when the canvas isn't empty** are settings for all nodes: **Settings > Region Genie > Region Genie node** (*Color map: min region pixels*, *import_json when the canvas isn't empty*).
@@ -606,7 +608,8 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
   - Tag autocomplete, what the LLM sees, whether new regions start with the LLM on.
   - The Region Genie node's image size (mode, aspect ratio, megapixels, multiple, manual width / height / step size; the presets list is shared by every node).
   - image_mode, feather, separation / until, keep all regions separate, share the background, snap and grid size.
-  - Region opacity over an image (50%) and without one (100%): what the slider on the canvas starts at.
+  - Region opacity over an image (50%) and without one (80%): what the slider on the canvas starts at.
+  - Show the grid without snapping, and Grid lines (Faint, Normal, Strong).
   - Regional LoRAs' feather, lora_masking, region_separation, separation_until, separate_all_regions and share_background.
 - Some settings apply to every node at its next run instead:
   - **Plain-text prompts: keep all regions separate automatically** (on by default) and one per model, see *Which format `prompt` uses*.

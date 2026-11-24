@@ -371,6 +371,19 @@
     "name": "网格大小（图像 px）",
     "tooltip": "添加 Region Genie 节点或打开工作流时的网格大小。"
   },
+  "RegionGenie_Main_GridShow": {
+    "name": "不吸附时也显示网格",
+    "tooltip": "添加 Region Genie 节点或打开工作流时，吸附网格关闭的情况下是否仍绘制网格线。在节点上：磁铁按钮的 ▾。"
+  },
+  "RegionGenie_Main_GridLines": {
+    "name": "网格线",
+    "tooltip": "每个 Region Genie 节点画布上网格线的强度。也可在磁铁按钮的 ▾ 中设置。",
+    "options": {
+      "Faint": "淡",
+      "Normal": "正常",
+      "Strong": "醒目"
+    }
+  },
   "RegionGenie_Main_FillImage": {
     "name": "有图像时的区域不透明度 (%)",
     "tooltip": "在区域下方显示已连接的图像时，区域颜色绘制的浓度（在节点上移动画布右侧的滑块之前使用此值）。低于 100% 时，每个区域边缘的一条线保持不透明。"
@@ -659,7 +672,7 @@
     "name": "图像尺寸",
     "tooltip": "新建 Region Genie 节点的尺寸行如何开始，以及预设列表。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Region opacity over an image , Region opacity without an image ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image ": {
     "name": "Region Genie 节点",
     "tooltip": "新建 Region Genie 节点的初始设置（图像模式、羽化、分离、网格、区域颜色、标签自动补全、通配符）。\nEdit…：在此页打开 Region Genie 设置。"
   },

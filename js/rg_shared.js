@@ -1890,6 +1890,8 @@ setInterval(() => { for (const f of toggles) f(); }, 2000);      // engines can 
 
 // ---------------------------------------------------------------- Settings > Region Genie
 // Defaults for the nodes of this pack. Most apply when a node is added (nodes in saved workflows keep their values).
+// the snap grid's lines: how white (Settings > Grid lines; the magnet button's menu)
+export const GRID_LINES = { faint: 0.15, normal: 0.3, strong: 0.5 };
 export function getSetting(id, dflt) {
     try {
         const v = app.extensionManager?.setting?.get?.(id) ?? app.ui?.settings?.getSettingValue?.(id);
@@ -1971,6 +1973,8 @@ export const SET = {
     cmGrid: "RegionGenie.Main.Grid",
     cmFillImage: "RegionGenie.Main.FillImage",
     cmFill: "RegionGenie.Main.Fill",
+    cmGridShow: "RegionGenie.Main.GridShow",
+    cmGridLines: "RegionGenie.Main.GridLines",
     regionColors: "RegionGenie.Main.RegionColors",
     bigKey: "RegionGenie.Main.LargeEditorKey",
     shortcuts: "RegionGenie.Shortcuts",              // the user's keys for the editor's commands (rg_keys.js), a JSON text
@@ -2404,8 +2408,10 @@ const SETTINGS = [
         })),
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "Whether snap to grid is on when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
         { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "The grid size when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
+        { id: SET.cmGridShow, name: "Show the grid without snapping", type: "boolean", defaultValue: false, tooltip: "Whether the grid's lines are drawn while snap to grid is off, when a Region Genie node is added or a workflow is opened. On a node: The ▾ of the magnet button.", category: CAT("Region Genie node", "1005 grid show") },
+        { id: SET.cmGridLines, name: "Grid lines", type: "combo", defaultValue: "normal", options: [{ text: "Faint", value: "faint" }, { text: "Normal", value: "normal" }, { text: "Strong", value: "strong" }], tooltip: "How strong the grid's lines are drawn on the canvas of every Region Genie node. Also in the ▾ of the magnet button.", category: CAT("Region Genie node", "1006 grid lines") },
         { id: SET.cmFillImage, name: "Region opacity over an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while a connected image is shown under them, until the slider on the canvas's right edge is moved on a node. Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "101 fill image") },
-        { id: SET.cmFill, name: "Region opacity without an image (%)", type: "number", defaultValue: 100, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while no image is shown under them, until the slider on the canvas's right edge is moved on a node. Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "102 fill") },
+        { id: SET.cmFill, name: "Region opacity without an image (%)", type: "number", defaultValue: 80, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while no image is shown under them, until the slider on the canvas's right edge is moved on a node. Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "102 fill") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
             // the file field: ComfyUI's menu on the model folders (round 23), Browse… with SET.filePickers
             id: SET.control + "." + key, name, type: fileSettingType(MODEL_ROOTS, CONTROL_NONE, SET.control + "." + key, folder), defaultValue: CONTROL_NONE,

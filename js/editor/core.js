@@ -1,6 +1,6 @@
 // The node's widgets, last-run wildcard results, the expand button, and the editor's state variables.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
-import { svgIcon, autocompleteWidgets, getSetting, SET, autoSeparateSettings, editSettings, llmCacheSettings, controlFiles, addExpandButton, textHistory } from "../rg_shared.js";
+import { svgIcon, autocompleteWidgets, getSetting, SET, GRID_LINES, autoSeparateSettings, editSettings, llmCacheSettings, controlFiles, addExpandButton, textHistory } from "../rg_shared.js";
 import { ALL } from "./shared.js";
 import { locale } from "../rg_i18n.js";
 import { emptyState } from "./state.js";
@@ -157,10 +157,11 @@ export function* core(E) {
     // canvas's right edge; kept in the node's properties, the defaults are Settings). Below 100% an edge line
     // in the region's color stays solid (render.js)
     const pct = (v, d) => { const n = +v; return Number.isFinite(n) ? Math.min(1, Math.max(0, n / 100)) : d; };
-    E.fillDefault = (img) => (img ? pct(getSetting(SET.cmFillImage, 50), 0.5) : pct(getSetting(SET.cmFill, 100), 1));
+    E.fillDefault = (img) => (img ? pct(getSetting(SET.cmFillImage, 50), 0.5) : pct(getSetting(SET.cmFill, 80), 0.8));
     E.fillNow = () => { const v = E.node.properties?.[E.backdrop ? "rg_fill_image" : "rg_fill"]; return typeof v === "number" ? Math.min(1, Math.max(0, v)) : E.fillDefault(!!E.backdrop); };
     E.setFill = (v) => { (E.node.properties = E.node.properties || {})[E.backdrop ? "rg_fill_image" : "rg_fill"] = Math.round(Math.min(1, Math.max(0, v)) * 20) / 20; };
-    E.gridAlpha = 0.3;                         // the snap grid's lines (white, this strong)
+    E.showGrid = !!getSetting(SET.cmGridShow, false);     // the grid's lines while snap is off
+    E.gridAlphaNow = () => GRID_LINES[getSetting(SET.cmGridLines, "normal")] || GRID_LINES.normal;
     E.lastDims = [0, 0];
     E.raf = 0;
     E.version = 0;                         // bumped on every saved change (label cache key)

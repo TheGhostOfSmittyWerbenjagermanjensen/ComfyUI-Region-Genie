@@ -371,6 +371,19 @@
     "name": "グリッドサイズ（画像の px）",
     "tooltip": "Region Genie ノードを追加したとき、またはワークフローを開いたときのグリッドサイズ。"
   },
+  "RegionGenie_Main_GridShow": {
+    "name": "スナップなしでグリッドを表示",
+    "tooltip": "Region Genie ノードの追加時やワークフローを開いたとき、グリッドへのスナップがオフでもグリッド線を描くかどうか。ノード上では：磁石ボタンの ▾。"
+  },
+  "RegionGenie_Main_GridLines": {
+    "name": "グリッド線",
+    "tooltip": "すべての Region Genie ノードのキャンバスに描くグリッド線の強さ。磁石ボタンの ▾ にもあります。",
+    "options": {
+      "Faint": "薄い",
+      "Normal": "標準",
+      "Strong": "濃い"
+    }
+  },
   "RegionGenie_Main_FillImage": {
     "name": "画像がある場合の領域の不透明度 (%)",
     "tooltip": "接続した画像を領域の下に表示しているとき、領域の色をどのくらい濃く描くか（ノードでキャンバス右端のスライダーを動かすまでの値）。100% 未満では、各領域の縁の線は不透明のままです。"
@@ -659,7 +672,7 @@
     "name": "画像サイズ",
     "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Region opacity over an image , Region opacity without an image ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image ": {
     "name": "Region Genie ノード",
     "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
   },

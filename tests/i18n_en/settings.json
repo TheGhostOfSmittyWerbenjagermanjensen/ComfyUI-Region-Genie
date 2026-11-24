@@ -26,7 +26,7 @@
     "name": "Image size",
     "tooltip": "How the size row of a new Region Genie node starts, and the list of presets.\nEdit…: Opens the Region Genie settings on this page."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Region opacity over an image , Region opacity without an image ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image ": {
     "name": "Region Genie node",
     "tooltip": "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards).\nEdit…: Opens the Region Genie settings on this page."
   },
@@ -438,6 +438,19 @@
   "RegionGenie_Main_Grid": {
     "name": "Grid size (image px)",
     "tooltip": "The grid size when a Region Genie node is added or a workflow is opened."
+  },
+  "RegionGenie_Main_GridShow": {
+    "name": "Show the grid without snapping",
+    "tooltip": "Whether the grid's lines are drawn while snap to grid is off, when a Region Genie node is added or a workflow is opened. On a node: The ▾ of the magnet button."
+  },
+  "RegionGenie_Main_GridLines": {
+    "name": "Grid lines",
+    "tooltip": "How strong the grid's lines are drawn on the canvas of every Region Genie node. Also in the ▾ of the magnet button.",
+    "options": {
+      "Faint": "Faint",
+      "Normal": "Normal",
+      "Strong": "Strong"
+    }
   },
   "RegionGenie_Main_FillImage": {
     "name": "Region opacity over an image (%)",

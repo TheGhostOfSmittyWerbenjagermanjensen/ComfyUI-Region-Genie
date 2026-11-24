@@ -1,6 +1,6 @@
 // The editor's elements, the tool buttons (with versions), the tool options strip on the canvas, Arrange, opacity and labels.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
-import { svgIcon, setHTML } from "../rg_shared.js";
+import { svgIcon, setHTML, getSetting, setSetting, SET } from "../rg_shared.js";
 import { openMenu } from "../rg_menu.js";
 import { keyed, keyText } from "../rg_keys.js";
 import { LASSO_MODES, TOOL_NUMS, lassoRefreshers, initLassoModes, SHAPES, ALL } from "./shared.js";
@@ -281,12 +281,36 @@ export function* toolbar(E) {
     }
 
     // snap to grid: magnet (on, highlighted) / slashed magnet (off), like the labels eye
-    const snapBtn = iconBtn("magnetOff", "", () => { E.snap = !E.snap; setSnapIcon(); E.requestDraw(); }, "toggle");
+    // Its ▾ (also right-click) opens the grid's menu: snap, the grid shown without snapping, how strong its lines are
+    const snapBtn = E.el("button", "rg-btn icon grp toggle"); snapBtn.type = "button";
+    const snapIc = E.el("span", "rg-grp-ic"), snapDd = E.el("span", "rg-grp-dd");
+    snapDd.innerHTML = '<svg viewBox="0 0 8 16"><path d="M1.5 6.5L4 9.5l2.5-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    snapDd.title = "The grid's options (also right-click)";
+    snapBtn.append(snapIc, snapDd);
+    const toggleSnap = () => { E.snap = !E.snap; setSnapIcon(); E.requestDraw(); };
+    const toggleGrid = () => { E.showGrid = !E.showGrid; setSnapIcon(); E.requestDraw(); };
+    function gridMenu(e) {
+        const lines = getSetting(SET.cmGridLines, "normal"), at = snapBtn.getBoundingClientRect();
+        const line = (value, label, what) => ({ label, tick: lines === value, title: `Grid lines: ${what}. For every Region Genie node (also in Settings).`,
+            fn: async () => { await setSetting(SET.cmGridLines, value); E.requestDraw(); } });
+        openMenu(at.left, at.bottom + 2, [{ head: "Grid" },
+            { label: "Snap to grid", key: keyText("view.snap"), checked: !!E.snap, title: keyed("Snap to grid: Points, shapes and moves snap to the grid (G)."), fn: toggleSnap },
+            { label: "Show the grid without snapping", key: keyText("view.grid"), checked: !!E.showGrid,
+              title: keyed("Show the grid without snapping: The grid's lines are drawn while snap is off too (Shift+G)."), fn: toggleGrid },
+            null, { head: "Grid lines" },
+            line("faint", "Faint", "Barely visible"), line("normal", "Normal", "Clearly visible"), line("strong", "Strong", "Stand out")],
+        { onClose: () => { if (E.wrap.isConnected) focusSink(); } });
+    }
+    snapBtn.addEventListener("pointerdown", (e) => { if (e.button === 2 || e.target.closest(".rg-grp-dd")) e.stopPropagation(); });
+    snapBtn.addEventListener("click", (e) => { e.preventDefault(); if (e.target.closest(".rg-grp-dd")) gridMenu(e); else toggleSnap(); });
+    snapBtn.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); gridMenu(e); });
     function setSnapIcon() {
-        setHTML(snapBtn, svgIcon(E.snap ? "magnet" : "magnetOff"));
+        setHTML(snapIc, svgIcon(E.snap ? "magnet" : "magnetOff"));
         snapBtn.classList.toggle("on", E.snap);
-        snapBtn.title = keyed(E.snap ? "Snap to grid: On. Points, shapes and moves snap to the grid; click to turn it off (G)."
-            : "Snap to grid: Off. Click to snap points, shapes and moves to the grid (G).");
+        snapBtn.title = keyed((E.snap ? "Snap to grid: On. Points, shapes and moves snap to the grid; click to turn it off (G).\n"
+            : "Snap to grid: Off. Click to snap points, shapes and moves to the grid (G).\n")
+            + (E.showGrid && !E.snap ? "The grid is shown without snapping (Shift+G).\n" : "")
+            + "▾ or right-click: Show the grid without snapping, and how strong its lines are.");
     }
     setSnapIcon();
     const gridIn = E.el("input", "rg-num");

@@ -513,6 +513,7 @@ export function* popups(E) {
         else if (is("tool.lassoErase")) E.setTool("lassoErase");
         else if (is("tool.lasso")) E.setTool("lasso");
         else if (shape) { E.shapeKind = shape; E.setTool("shape"); }
+        else if (is("view.grid")) { E.showGrid = !E.showGrid; E.setSnapIcon(); E.requestDraw(); }
         else if (is("view.snap")) { E.snap = !E.snap; E.setSnapIcon(); E.requestDraw(); }
         else if (is("view.help")) E.toggleKeys();
         else if (is("view.fit")) { E.userView = false; E.fitView(); E.requestDraw(); }

@@ -5,11 +5,13 @@ Each round is one request from the owner: what was asked, what was decided (and 
 ## Round 72 (Nov 24): see-through regions over an image, with a solid edge line; stronger grid lines
 - Asked: make the regions translucent while an image is shown under them (low enough to see the image clearly, adjustable), perhaps without an image too; with options and mock-ups. During the work: a thin line along the regions' edges should stay opaque.
 - Decided by the owner from mock-ups made in the real editor: fill plus a solid edge line; 50% over an image; solid without an image; the slider sets the regions only (the image is always at full strength); stronger grid lines.
-- Open (options shown, not decided): how the user changes the grid lines' strength, and a way to show the grid without snapping.
+- Decided next (after pictures of 70 / 80 / 90% without an image): 80% without an image; the grid's options in a menu on the magnet button (line strength; show the grid without snapping). Asked: cheaper drawing; other places for the opacity control (open).
 - Built: `E.fillNow()` / `E.setFill()` (core.js): one value over an image, one without, in the node's properties (`rg_fill_image`, `rg_fill`), defaults from two new Settings. The slider is always shown ("Region opacity").
 - Built: `edgeLines()` (render.js) finds the edge pixels of the composite (a neighbor a line's width away has another color or is empty) and draws them solid; only run below 100%, and only over the image's rectangle.
 - Built: the snap grid's lines are 30% white (were 12%); labels get their dark plate whenever the fill is under 75%.
-- Tests: new `ui_region_opacity.cjs` (pixels of the canvas: mix, edge line, slider, the two values, grid line); stub suite, Python suite, real tooltips / settings / i18n in both modes.
+- Built: the magnet button has a ▾ (and right-click) menu: Snap to grid, Show the grid without snapping (`E.showGrid`, Shift+G, command `view.grid`, also in the canvas's menu), Grid lines Faint / Normal / Strong (a Setting, for every node). Two Settings.
+- Built (speed): the edge lines are found by the graphics card (`EDGE_GL` in render.js, one WebGL program for the page), with the JavaScript version as the fallback; the second composite is only rendered when a "no region" layer is shown.
+- Tests: new `ui_region_opacity.cjs`, run once with WebGL and once without (pixels of the canvas: mix, edge line, slider, the two values, the grid menu and its lines); stub suite, Python suite, real tooltips / settings / i18n in both modes.
 
 ## Round 71 (Nov 23): Settings: 'Preset to edit' fills the row the focus is in too
 - Reported (after the first release, 0.52.1): in Settings > Region Genie > LLM Prompt Enhancer, choosing another preset in 'Preset to edit' didn't put its text into 'Preset: system prompt'. (Also asked: a way to delete a preset. Both places have a Delete button already, off while the preset is a default.)
