@@ -153,8 +153,8 @@ export function* core(E) {
     E.hover = null;                        // display coords of the pointer
     E.spaceDown = false;
     E.backdrop = null; E.backdropKey = "";
-    // how solid the regions' colors are drawn: one value over a connected image, one without (the slider on the
-    // canvas's right edge; kept in the node's properties, the defaults are Settings). Below 100% an edge line
+    // how solid the regions' colors are drawn: one value over a connected image, one without (the opacity button
+    // in the canvas's top right corner; kept in the node's properties, the defaults are Settings). Below 100% an edge line
     // in the region's color stays solid (render.js)
     const pct = (v, d) => { const n = +v; return Number.isFinite(n) ? Math.min(1, Math.max(0, n / 100)) : d; };
     E.fillDefault = (img) => (img ? pct(getSetting(SET.cmFillImage, 50), 0.5) : pct(getSetting(SET.cmFill, 80), 0.8));

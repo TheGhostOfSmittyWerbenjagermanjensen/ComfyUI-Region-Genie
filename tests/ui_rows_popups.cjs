@@ -573,13 +573,22 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     oneRow = true;
     for (const k of ["v", "r", "w", "q"]) { await key(k); const [h, need, w] = await barRows(); if (h > 30 || need > w) oneRow = false; }
     check("toolbar: one row for every tool (image connected)", oneRow);
-    const osl = page.locator(".rg-cv .rg-oslider");
-    check("region opacity: a slider on the canvas's right edge, with a tooltip (50% over an image)", await osl.isVisible() && /^Region opacity: 50%/.test(await osl.getAttribute("title"))
-        && await page.evaluate(() => { const r = document.querySelector(".rg-oslider").getBoundingClientRect(), c = document.querySelector(".rg-cv").getBoundingClientRect(); return c.right - r.right < 20; }));
+    const osl = page.locator(".rg-cv .rg-oslider"), opb = page.locator(".rg-cv .rg-imgmode .rg-opac > button");
+    check("region opacity: a button in the canvas's top right strip, the slider folded away", await opb.isVisible() && await osl.isHidden() && /^Region opacity: 50%/.test(await opb.getAttribute("title")));
+    await opb.hover(); await page.waitForTimeout(80);
+    check("pointing at the button drops the slider down under it", await osl.isVisible() && /^Region opacity: 50%/.test(await osl.getAttribute("title"))
+        && await page.evaluate(() => { const r = document.querySelector(".rg-oslider").getBoundingClientRect(), b = document.querySelector(".rg-opac > button").getBoundingClientRect(); return r.top >= b.bottom && Math.abs((r.left + r.right) / 2 - (b.left + b.right) / 2) < 3; }));
     const ob = await osl.boundingBox();
     await page.mouse.click(ob.x + ob.width / 2, ob.y + ob.height * 0.15);
     await page.waitForTimeout(60);
     check("clicking near the top: about 90-100%", /^Region opacity: (90|95|100)%/.test(await osl.getAttribute("title")));
+    check("the handle's bar is centered on the slider's line", await page.evaluate(() => { const h = document.querySelector(".rg-ohandle").getBoundingClientRect(), l = document.querySelector(".rg-oslider svg rect").getBoundingClientRect(); return Math.abs((h.left + h.right) / 2 - (l.left + l.right) / 2) < 0.6; }));
+    await page.mouse.move(100, 900); await page.waitForTimeout(80);
+    check("away from it the slider folds again", await osl.isHidden());
+    await opb.click(); await page.mouse.move(100, 900); await page.waitForTimeout(80);
+    check("a click on the button keeps it open", await osl.isVisible());
+    await page.mouse.click(300, 400); await page.waitForTimeout(80);
+    check("…until a click elsewhere", await osl.isHidden());
 
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");

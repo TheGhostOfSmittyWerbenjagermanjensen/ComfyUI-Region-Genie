@@ -454,11 +454,11 @@
   },
   "RegionGenie_Main_FillImage": {
     "name": "Region opacity over an image (%)",
-    "tooltip": "How solid the regions' colors are drawn while a connected image is shown under them, until the slider on the canvas's right edge is moved on a node. Below 100% a line along each region's edge stays solid."
+    "tooltip": "How solid the regions' colors are drawn while a connected image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid."
   },
   "RegionGenie_Main_Fill": {
     "name": "Region opacity without an image (%)",
-    "tooltip": "How solid the regions' colors are drawn while no image is shown under them, until the slider on the canvas's right edge is moved on a node. Below 100% a line along each region's edge stays solid."
+    "tooltip": "How solid the regions' colors are drawn while no image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid."
   },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: color / depth control LoRA",

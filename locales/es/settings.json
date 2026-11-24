@@ -386,11 +386,11 @@
   },
   "RegionGenie_Main_FillImage": {
     "name": "Opacidad de las regiones sobre una imagen (%)",
-    "tooltip": "Con qué intensidad se dibujan los colores de las regiones mientras se muestra debajo una imagen conectada, hasta que se mueva en un nodo el deslizador del borde derecho del lienzo. Por debajo del 100 %, una línea a lo largo del borde de cada región permanece opaca."
+    "tooltip": "Con qué intensidad se dibujan los colores de las regiones mientras se muestra debajo una imagen conectada, hasta que se cambie en un nodo (el botón de opacidad de la esquina superior derecha del lienzo). Por debajo del 100 %, una línea a lo largo del borde de cada región permanece opaca."
   },
   "RegionGenie_Main_Fill": {
     "name": "Opacidad de las regiones sin imagen (%)",
-    "tooltip": "Con qué intensidad se dibujan los colores de las regiones mientras no se muestra ninguna imagen debajo, hasta que se mueva en un nodo el deslizador del borde derecho del lienzo. Por debajo del 100 %, una línea a lo largo del borde de cada región permanece opaca."
+    "tooltip": "Con qué intensidad se dibujan los colores de las regiones mientras no se muestra ninguna imagen debajo, hasta que se cambie en un nodo (el botón de opacidad de la esquina superior derecha del lienzo). Por debajo del 100 %, una línea a lo largo del borde de cada región permanece opaca."
   },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: LoRA de control de color / profundidad",

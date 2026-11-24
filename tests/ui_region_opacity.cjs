@@ -22,8 +22,8 @@ async function run(browser, noGL) {
         return [d[0], d[1], d[2]]; }, [cx, cy]); };
     const near = (a, b, tol = 6) => a.every((v, i) => Math.abs(v - b[i]) <= tol);
     const settle = async () => { await page.mouse.move(880, 1090); await page.waitForTimeout(250); };
-    const osl = page.locator(".rg-cv .rg-oslider");
-    const title = () => osl.getAttribute("title");
+    const osl = page.locator(".rg-cv .rg-oslider"), opb = page.locator(".rg-cv .rg-opac > button");
+    const title = () => opb.getAttribute("title");
 
     // one rectangle region, 64..192 in both directions
     await page.locator('button[title^="Add a region with a new color"]').click();
@@ -32,12 +32,12 @@ async function run(browser, noGL) {
     await page.evaluate(() => { window.__node.__rgSetTool("select"); window.__node.__rgSelectLayer(-1); window.__node.properties.rg_labels = false; window.__node.__rgRefresh(); });
     await settle();
     const mixed = await px(128, 128), rim = await px(64.4, 128);
-    check("no image: the slider is shown, at 80%", await osl.isVisible() && /^Region opacity: 80%/.test(await title()));
+    check("no image: the opacity button is shown (its slider folded), at 80%", await opb.isVisible() && await osl.isHidden() && /^Region opacity: 80%/.test(await title()));
     await page.evaluate(() => { window.__node.properties.rg_fill = 1; window.__node.__rgRefresh(); }); await settle();
     const solid = await px(128, 128);
     check("no image, 100%: solid, edge and middle alike", near(await px(66, 128), solid, 2) && solid.some((v) => v > 60) && /^Region opacity: 100%/.test(await title()));
     check("no image, 80%: the middle is 80% of the color on black, the edge line the solid color", near(mixed, solid.map((v) => Math.round(v * 0.8)), 6) && near(rim, solid, 6));
-    check("the tooltip explains the edge line, one item per line", /\n.*edge stays solid\.\nDrag or wheel: Change it\./.test(await title()));
+    check("the tooltip explains the edge line, one item per line", /\n.*edge stays solid\.\nPoint here: The slider drops down\. A click keeps it open\.\nWheel: Change it\./.test(await title()));
     // a white image under it: 50%, the middle is mixed with the image, the edge line is the solid color
     await page.evaluate(async () => {
         const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, 64, 64);
@@ -54,10 +54,11 @@ async function run(browser, noGL) {
     check("the line is thin: 3 image px inside the edge is see-through again", near(await px(67.5, 128), half, 8));
 
     // the slider: a click near the bottom, the wheel; the value belongs to the node and to "with an image"
+    await opb.click(); await page.waitForTimeout(80);
     const ob = await osl.boundingBox();
     await page.mouse.click(ob.x + ob.width / 2, ob.y + ob.height * 0.9); await settle();
     check("clicking the slider's low end: 0%, only the lines remain", /^Region opacity: 0%/.test(await title()) && near(await px(128, 128), [255, 255, 255], 2) && near(await px(64.4, 128), solid, 6));
-    await osl.hover(); await page.mouse.wheel(0, -100); await page.mouse.wheel(0, -100); await settle();
+    await opb.hover(); await page.mouse.wheel(0, -100); await page.mouse.wheel(0, -100); await settle();
     check("the wheel over the slider steps by 5%", /^Region opacity: 10%/.test(await title()));
     check("the value is kept in the node's properties", await page.evaluate(() => window.__node.properties.rg_fill_image === 0.1 && window.__node.properties.rg_fill === 1));
     await page.evaluate(() => { window.__node.inputs = []; window.__node.__rgSetBackdrop(null); }); await settle();

@@ -356,6 +356,6 @@ export function* rows(E) {
     // and contains the focused element (the hidden keyboard field, focused on hover below).
     E.wrap.dataset.captureWheel = "true";        // only here: the nearest marked ancestor must contain the focus
     const cv = E.el("canvas"); E.cv = cv;
-    cvBox.append(cv, E.optStrip, E.bdBox);            // the tool options (top left) and the image opacity (right edge)
+    cvBox.append(cv, E.optStrip);            // the tool options (top left)
     const ctx = cv.getContext("2d"); E.ctx = ctx;
 }

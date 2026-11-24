@@ -323,14 +323,24 @@ export function* toolbar(E) {
     const clearBtn = iconBtn("clear", "Clear all: Remove every layer and region (Undo brings them back)", () => {
         if (E.state.layers.length || E.state.regions.length || E.state.poses?.length || E.state.importSig) E.change(() => { E.state.layers = []; E.state.regions = []; delete E.state.poses; delete E.state.importSig; E.selId = null; E.curRegion = null; E.filter = ALL; });
     }, "danger"); E.clearBtn = clearBtn;
-    // region opacity: a vertical slider over the canvas's right edge (how solid the regions' colors are drawn; one
-    // value with an image under them, one without: E.fillNow / E.setFill in core.js)
+    // region opacity (how solid the regions' colors are drawn; one value with an image under them, one without:
+    // E.fillNow / E.setFill in core.js): a button in the canvas's top right corner (the strip of footer.js's image
+    // mode buttons; canvasUi.js puts it there), and a vertical slider that drops down from it while the pointer is
+    // on either, while it is dragged, or after a click on the button until the next click elsewhere
+    const opBox = E.el("span", "rg-opac"); E.opacBox = opBox;
+    const opBtn = E.el("button", "rg-btn icon"); opBtn.type = "button"; opBtn.innerHTML = svgIcon("opacity");
     const bdBox = E.el("div", "rg-oslider"); E.bdBox = bdBox;
+    opBtn.addEventListener("click", (e) => { e.preventDefault(); opBox.classList.toggle("open"); });
+    const closeOp = (e) => {
+        if (!opBox.isConnected && !E.wrap.isConnected) { document.removeEventListener("pointerdown", closeOp, true); return; }   // the node is gone
+        if (opBox.classList.contains("open") && !opBox.contains(e.target)) opBox.classList.remove("open");
+    };
+    document.addEventListener("pointerdown", closeOp, true);
     bdBox.innerHTML = '<svg viewBox="0 0 26 160" preserveAspectRatio="none"><rect x="11" y="14" width="4" height="132" rx="2" '
         + 'fill="rgba(240,240,240,.45)" stroke="#111" stroke-width="1"/></svg>';
-    const bdIcon = E.el("span", "rg-oslider-ic"); bdIcon.innerHTML = svgIcon("opacity");
     const bdHandle = E.el("div", "rg-bhandle rg-ohandle");
-    bdBox.append(bdIcon, bdHandle);
+    bdBox.append(bdHandle);
+    opBox.append(opBtn, bdBox);
     const O_TOP = 14 / 160, O_BOT = 146 / 160;
     let shownFill = "";
     function syncOpacity() {
@@ -338,10 +348,11 @@ export function* toolbar(E) {
         if (key === shownFill) return;
         shownFill = key;
         bdHandle.style.top = `${(O_BOT - f * (O_BOT - O_TOP)) * 100}%`;
-        bdBox.title = `Region opacity: ${Math.round(f * 100)}%.\n`
+        const what = `Region opacity: ${Math.round(f * 100)}%.\n`
             + (E.backdrop ? "How solid the regions' colors are drawn over the image. Below 100% a line along each region's edge stays solid.\n"
-                : "How solid the regions' colors are drawn. Below 100% a line along each region's edge stays solid.\n")
-            + "Drag or wheel: Change it. With an image connected the canvas keeps its own value.";
+                : "How solid the regions' colors are drawn. Below 100% a line along each region's edge stays solid.\n");
+        bdBox.title = what + "Drag or wheel: Change it. With an image connected the canvas keeps its own value.";
+        opBtn.title = what + "Point here: The slider drops down. A click keeps it open.\nWheel: Change it. With an image connected the canvas keeps its own value.";
     }
     E.syncOpacity = syncOpacity;
     const opacityFromY = (y) => {
@@ -362,7 +373,7 @@ export function* toolbar(E) {
     bdBox.addEventListener("pointerup", endODrag);
     bdBox.addEventListener("pointercancel", endODrag);
     for (const ev of ["mousedown", "mouseup", "click", "dblclick", "contextmenu"]) bdBox.addEventListener(ev, (e) => e.stopPropagation());
-    bdBox.addEventListener("wheel", (e) => {
+    opBox.addEventListener("wheel", (e) => {
         e.preventDefault(); e.stopPropagation();
         E.setFill(E.fillNow() + (e.deltaY < 0 ? 0.05 : -0.05));
         syncOpacity(); E.requestDraw();
