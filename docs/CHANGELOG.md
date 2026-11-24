@@ -13,7 +13,7 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Asked: research tiled diffusion upscaling (the DazzleNodes fork of ComfyUI-TiledDiffusion, Mixture of Diffusers, newer methods, Forge Neo's implementation) and whether it fits in one node with broad model support.
 - Decided by the owner: Mixture of Diffusers, standing alone, in this pack; both an all-in-one node and a MODEL → MODEL node; an optional upscale model; overlap and a blend control whose default is the method as defined. Shelved after research: true positions per tile.
 - Built: `tiled_diffusion.py` (written from the paper, no code from other implementations): several tiles per model call on every model, tiles treated as pictures of their own. Nodes Tiled Upscale (Region Genie) and Tiled Diffusion (Region Genie). Version 0.57.0.
-- A working version: the owner has not tried it on a real model yet. English docs written (docs/tiled-upscale.md, help pages, README).
+- A working version: the owner has not tried it on a real model yet. Docs written (docs/tiled-upscale.md, help pages, README) and the two nodes translated (zh, ja, ko, es).
 - Tests: `tests/test_tiled.py`. Not tested: real models (quality, seams, speed), the upscale model path, the nodes in the browser.
 
 ## Round 74 (Nov 24): Save Image: no_metadata

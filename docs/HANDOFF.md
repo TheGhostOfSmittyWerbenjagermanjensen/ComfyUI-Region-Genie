@@ -302,7 +302,7 @@ The owner's choices on the six items left from the round-33 review (see the chan
 
 ### Tiled Upscale and Tiled Diffusion (rounds 75-76; `tiled_diffusion.py`, `tests/test_tiled.py`)
 
-**State when this was written (Nov 25):** a working version the owner has NOT yet tried on a real model. The owner tests on Anima (and uses Forge Neo's Mixture of Diffusers as the reference for speed and quality). English docs are written; translations of the two nodes may be missing (run `python3 tests/test_i18n.py --todo`). Not done yet: an example workflow, `tests/real_*` for the two nodes, README picture, the owner's confirmation of defaults.
+**State when this was written (Nov 25):** a working version the owner has NOT yet tried on a real model. The owner tests on Anima (and uses Forge Neo's Mixture of Diffusers as the reference for speed and quality). English docs and the four translations of the two nodes are written (`tests/i18n_extract.cjs` leaves the samplers', schedulers' and resize methods' names untranslated). Not done yet: an example workflow, `tests/real_*` for the two nodes, README picture, the owner's confirmation of defaults.
 
 **Branches.**
 - `claude/sharp-tesla-1gt9qf` (the working branch): `no_metadata` (0.56.0, round 74), the two tiled nodes with `tile_blend`, and "step 1" (the regional engine steps aside in tiled runs). No PR open.
@@ -346,7 +346,7 @@ The owner's choices on the six items left from the round-33 review (see the chan
 
 **Known limits (also in docs/tiled-upscale.md).** ControlNet for transformer models is dropped while tiling (their residuals are token sequences; to do it right the control would have to be recomputed per tile, which needs the control object: it isn't passed to `apply_model`). Reference latents go whole to every tile. ComfyUI's memory estimate is for the whole latent. Region Genie's regions: see steps 1 and 2.
 
-**Next, in the owner's order.** (1) The owner tries Tiled Upscale on real models and reports. (2) Fixes from that. (3) Then, per the working agreement on UI changes: translations if still missing, an example workflow if wanted, `tests/real_*` checks for the two nodes, the hardware checklist items, a PR. (4) The owner tries `claude/tile-aware-regions` and decides whether it is merged.
+**Next, in the owner's order.** (1) The owner tries Tiled Upscale on real models and reports. (2) Fixes from that. (3) Then, per the working agreement on UI changes: an example workflow if wanted, `tests/real_*` checks for the two nodes, the hardware checklist items, a PR. (4) The owner tries `claude/tile-aware-regions` and decides whether it is merged.
 
 ## 5. Open items and offered ideas
 
