@@ -26,7 +26,7 @@
     "name": "Image size",
     "tooltip": "How the size row of a new Region Genie node starts, and the list of presets.\nEdit…: Opens the Region Genie settings on this page."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px ": {
     "name": "Region Genie node",
     "tooltip": "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards).\nEdit…: Opens the Region Genie settings on this page."
   },
@@ -459,6 +459,10 @@
   "RegionGenie_Main_Fill": {
     "name": "Region opacity without an image (%)",
     "tooltip": "How solid the regions' colors are drawn while no image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid."
+  },
+  "RegionGenie_Main_EdgeLine": {
+    "name": "Region edge line (px)",
+    "tooltip": "How wide the solid line along each region's edge is while the regions are see-through, on every Region Genie node. A line wider than a shape fills it. 0: No line."
   },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: color / depth control LoRA",

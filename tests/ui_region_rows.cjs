@@ -41,7 +41,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         cnt: !!r.querySelector(".rg-cnt"), eye: !!r.querySelector(".rg-reye"), type: !!r.querySelector("select"),
         w: r.querySelector(".rg-pwrap").getBoundingClientRect().width / r.getBoundingClientRect().width })));
     check("the row keeps show / hide, type, prompt, LLM, the layer count and ＋LoRA", inRow.every((r) => r.eye && r.type && r.llm && r.cnt && r.lora));
-    check("the row no longer holds feather, merge, move or delete", inRow.every((r) => !r.feather && !r.del && !r.move));
+    check("the row holds delete too (round 73), but not feather, merge or move", inRow.every((r) => !r.feather && r.del && !r.move));
     check(`the prompt takes more than half of the row (${inRow.map((r) => Math.round(r.w * 100) + "%").join(", ")})`, inRow.every((r) => r.w > 0.5));
 
     // ---- ▶ opens a region: its options line comes first, also for a region without layers
@@ -54,7 +54,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         words: [...o.querySelectorAll(".rg-word")].map((w) => w.textContent), tips: [...o.querySelectorAll(".rg-word")].every((w) => w.title),
         btns: [...o.querySelectorAll("button")].map((b) => b.dataset.ic).filter(Boolean), feather: !!o.querySelector(".rg-feather input") }; });
     check("the options line sits between the region's row and its Layers header", line.after && line.before);
-    check(`it holds feather, palette, merge, move and delete (${line.words.join(", ")}; ${line.btns.join(" ")})`, line.feather && line.words.join("|") === "feather|palette" && line.tips && ["mergeAll", "up", "down", "close"].every((b) => line.btns.includes(b)));
+    check(`it holds feather, palette, merge and move; delete is on the row (${line.words.join(", ")}; ${line.btns.join(" ")})`, line.feather && line.words.join("|") === "feather|palette" && line.tips && !line.btns.includes("close") && ["mergeAll", "up", "down"].every((b) => line.btns.includes(b)));
 
     // ---- they work from there
     const rid = (await st()).regions[1].id;
@@ -64,10 +64,20 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("palette switched on from the options line; its section shows under it", (await st()).regions.find((r) => r.id === rid).paletteOn === true && await page.locator(".rg-row.sub", { hasText: "Color palette" }).count() === 1);
     await opts.locator('button[data-ic="down"]').click(); await page.waitForTimeout(100);
     check("↓ moves the region down, and it stays open", (await st()).regions[2].id === rid && await opts.count() === 1);
-    await opts.locator('button[data-ic="close"]').click(); await page.waitForTimeout(100);
-    check("✕ deletes the region and its layers", (await st()).regions.length === 2 && !(await st()).regions.some((r) => r.id === rid));
+    await page.locator(".rg-row.region").nth(2).locator(".rg-rdel").click(); await page.waitForTimeout(100);
+    check("the row's delete button deletes the region and its layers", (await st()).regions.length === 2 && !(await st()).regions.some((r) => r.id === rid));
     const [cx, cy] = await toClient(120, 120); await page.mouse.move(cx, cy); await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
     check("Ctrl+Z brings it back", (await st()).regions.length === 3);
+    // right-click on a row: the region's menu (the canvas menu's entries for a region, without the layer ones)
+    await page.locator(".rg-row.region").nth(1).locator(".rg-idx").click({ button: "right" }); await page.waitForTimeout(150);
+    const rm = await page.evaluate(() => [...document.querySelectorAll(".rg-menu .rg-menu-label")].map((x) => x.textContent));
+    check(`right-click on a row opens the region's menu (${rm.slice(1).join(" | ")})`, JSON.stringify(rm.slice(1)) === JSON.stringify(["Edit prompt…", "Hide region", "Move up (in front)", "Move down (behind)", rm[rm.length - 1]]) && /^Delete region/.test(rm[rm.length - 1]));
+    check("…and makes that region the active one", (await st()).regions[1].id === await page.evaluate(() => window.__node.__rgActive()));
+    const ridM = (await st()).regions[1].id;
+    await page.locator(".rg-menu .rg-menu-label", { hasText: /^Delete region/ }).click(); await page.waitForTimeout(120);
+    check("its Delete region deletes the region", !(await st()).regions.some((r) => r.id === ridM));
+    await page.mouse.move(cx, cy); await page.keyboard.press("Control+z"); await page.waitForTimeout(120);
+    check("a right-click on the prompt field keeps the browser's own menu", await page.evaluate(() => { const ta = document.querySelector(".rg-row.region .rg-prompt"); const e = new MouseEvent("contextmenu", { bubbles: true, cancelable: true }); ta.dispatchEvent(e); return !e.defaultPrevented && !document.querySelector(".rg-menu"); }));
 
     // ---- ▼ All opens every region (each has its options line), again closes them
     await all.click(); await page.waitForTimeout(80);

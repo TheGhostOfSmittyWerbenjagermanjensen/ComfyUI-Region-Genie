@@ -20,22 +20,58 @@ function drawLabelMark(ctx, name, x, y, size, color) {
     ctx.restore();
 }
 
-// The edge lines of the see-through regions, found by the graphics card (see edgeLines below). One WebGL canvas for
-// the whole page (browsers allow only a few), made on first use; run() returns null when WebGL can't be used, and
-// the caller then does the same work in JavaScript.
+// The edge lines of the see-through regions (see edgeLines below), drawn by the graphics card. One WebGL canvas for
+// the whole page (browsers allow only a few), made on first use.
+// It gets the regions' own shapes, three to a picture (one in red, one in green, one in blue: renderPlanes), front
+// region first, and for every pixel and region works out: how much of the region is here (m), how much of it is left
+// a line's width around (e, the least of m on up to three rings of twelve points; outside the image there is none),
+// and how much the regions in front leave visible. The line is the region's color where m - e is not zero.
+// So a region is outlined along its own shape only: where another region lies on top of it there is no line (its
+// shape goes on underneath), two regions that only touch both keep theirs, and a line wider than the shape fills it.
+// The shapes' smooth rims give smooth lines. run() returns null when WebGL can't be used.
 const EDGE_GL = (() => {
-    let cv = null, gl = null, prog = null, tex = null, loc = null, dead = false;
+    const MAXT = 8;                                  // textures: 3 regions each (EDGE_MAX_REGIONS)
+    let cv = null, gl = null, prog = null, texs = [], loc = null, dead = false;
     const VS = "attribute vec2 p; varying vec2 uv; void main(){ uv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }";
-    const FS = `precision mediump float; varying vec2 uv; uniform sampler2D t; uniform vec2 size; uniform float k; uniform vec4 box;
-        bool other(vec4 c, vec2 d){ vec4 n = texture2D(t, uv + d / size); if (n.a < 0.5) return true;
-            vec3 e = abs(c.rgb - n.rgb); return e.r + e.g + e.b > 36.0 / 255.0; }
-        void main(){ vec2 px = vec2(uv.x * size.x, (1.0 - uv.y) * size.y) - box.xy;
+    const FS = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+        #else
+        precision mediump float;
+        #endif
+        varying vec2 uv; uniform sampler2D t0, t1, t2, t3, t4, t5, t6, t7;
+        uniform vec2 size; uniform float k; uniform vec4 box; uniform int n; uniform int rings; uniform vec3 col[24];
+        vec3 plane(int ti, vec2 q){
+            if (ti == 0) return texture2D(t0, q).rgb; if (ti == 1) return texture2D(t1, q).rgb; if (ti == 2) return texture2D(t2, q).rgb;
+            if (ti == 3) return texture2D(t3, q).rgb; if (ti == 4) return texture2D(t4, q).rgb; if (ti == 5) return texture2D(t5, q).rgb;
+            if (ti == 6) return texture2D(t6, q).rgb; return texture2D(t7, q).rgb; }
+        float chan(vec3 v, int c){ return c == 0 ? v.r : (c == 1 ? v.g : v.b); }
+        float at(int ti, int c, vec2 px){
+            if (px.x < 0.0 || px.y < 0.0 || px.x >= box.z || px.y >= box.w) return 0.0;
+            return chan(plane(ti, vec2((px.x + box.x) / size.x, 1.0 - (px.y + box.y) / size.y)), c); }
+        void main(){
+            vec2 px = vec2(uv.x * size.x, (1.0 - uv.y) * size.y) - box.xy;
             if (px.x < 0.0 || px.y < 0.0 || px.x >= box.z || px.y >= box.w) { gl_FragColor = vec4(0.0); return; }
-            vec4 c = texture2D(t, uv); if (c.a < 0.5) { gl_FragColor = vec4(0.0); return; }
-            bool edge = px.x < k || px.y < k || px.x >= box.z - k || px.y >= box.w - k
-                || other(c, vec2(k, 0.0)) || other(c, vec2(-k, 0.0)) || other(c, vec2(0.0, k)) || other(c, vec2(0.0, -k))
-                || other(c, vec2(k, k)) || other(c, vec2(-k, k)) || other(c, vec2(k, -k)) || other(c, vec2(-k, -k));
-            gl_FragColor = edge ? vec4(c.rgb, 1.0) : vec4(0.0); }`;
+            float open = 1.0; vec4 acc = vec4(0.0);
+            for (int i = 0; i < 24; i++) {
+                if (i >= n) break;
+                int ti = i / 3; int c = i - ti * 3;
+                float m = chan(plane(ti, uv), c);
+                if (m * open > 0.004) {
+                    float e = m;
+                    for (int r = 0; r < 3; r++) {
+                        if (r >= rings) break;
+                        float rad = k * float(r + 1) / float(rings);
+                        for (int a = 0; a < 12; a++) {
+                            float ang = float(a) * 0.5235988 + float(r) * 0.2617994;
+                            e = min(e, at(ti, c, px + rad * vec2(cos(ang), sin(ang))));
+                            if (e < 0.004) break;
+                        }
+                    }
+                    acc += vec4(col[i], 1.0) * (open * (m - e));
+                }
+                open *= 1.0 - m;
+            }
+            gl_FragColor = clamp(acc, 0.0, 1.0); }`;
     function init() {
         cv = document.createElement("canvas");
         cv.addEventListener("webglcontextlost", (e) => { e.preventDefault(); gl = null; });     // made again at the next run
@@ -48,13 +84,19 @@ const EDGE_GL = (() => {
         gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
         const p = gl.getAttribLocation(prog, "p"); gl.enableVertexAttribArray(p); gl.vertexAttribPointer(p, 2, gl.FLOAT, false, 0, 0);
-        tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
-        for (const [n, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, n, v);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-        loc = { size: gl.getUniformLocation(prog, "size"), k: gl.getUniformLocation(prog, "k"), box: gl.getUniformLocation(prog, "box") };
+        texs = [];
+        for (let j = 0; j < MAXT; j++) {
+            const tex = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + j); gl.bindTexture(gl.TEXTURE_2D, tex);
+            for (const [n, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, n, v);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+            gl.uniform1i(gl.getUniformLocation(prog, "t" + j), j);
+            texs.push(tex);
+        }
+        loc = {}; for (const u of ["size", "k", "box", "n", "rings", "col"]) loc[u] = gl.getUniformLocation(prog, u);
     }
-    return { run(src, w, h, k, box) {
-        if (dead) return null;
+    return { run(planes, colors, w, h, k, box) {
+        if (dead || !planes.length || planes.length > MAXT) return null;
         try {
             if (!gl || gl.isContextLost()) init();
             if (!gl) return null;
@@ -62,14 +104,17 @@ const EDGE_GL = (() => {
             if (w > max || h > max) return null;
             if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
             gl.viewport(0, 0, w, h);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+            planes.forEach((pl, j) => { gl.activeTexture(gl.TEXTURE0 + j); gl.bindTexture(gl.TEXTURE_2D, texs[j]); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, pl); });
+            const col = new Float32Array(72); colors.forEach((c, i) => { col[i * 3] = c[0] / 255; col[i * 3 + 1] = c[1] / 255; col[i * 3 + 2] = c[2] / 255; });
             gl.uniform2f(loc.size, w, h); gl.uniform1f(loc.k, k); gl.uniform4f(loc.box, box[0], box[1], box[2], box[3]);
+            gl.uniform1i(loc.n, colors.length); gl.uniform1i(loc.rings, k <= 3 ? 1 : k <= 10 ? 2 : 3); gl.uniform3fv(loc.col, col);
             gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             return cv;
-        } catch (e) { console.warn("[Region Genie] edge lines: WebGL failed, using JavaScript", e); dead = true; return null; }
+        } catch (e) { console.warn("[Region Genie] edge lines: WebGL failed, using the simple lines", e); dead = true; return null; }
     } };
 })();
+const EDGE_MAX_REGIONS = 24;                         // the front ones get a line; a canvas with more is very rare
 
 export function* render(E) {
     Object.assign(E, {
@@ -169,22 +214,68 @@ export function* render(E) {
             c.drawImage(scr, 0, 0);
         }
     }
-    // The regions' edge lines, drawn solid while their fill is see-through: every pixel of the composite whose
-    // neighbor a line's width away (left, right, up, down or diagonally: the diagonals close the line around the
-    // corner of a region that lies inside another) has another color or is empty keeps its own color, fully opaque. So the line lies inside its region, two regions that touch each get one, and layers of one
-    // region (one color) get none between them. Colors that differ only a little (a fade, the smoothed rim of a
-    // shape) count as the same. The image's own border closes a region that reaches it.
-    // Read from a composite without the hatch of the "no region" layers (E.comp itself when none is shown).
-    // Done by the graphics card (EDGE_GL, one small WebGL program shared by every node: a few ms at most on a 4K
-    // canvas); in plain JavaScript where WebGL isn't available (the same lines, 30-50 ms on a 4K canvas).
+    // The regions' edge lines, drawn solid while their fill is see-through (how: EDGE_GL at the top of this file).
+    // renderPlanes draws what EDGE_GL needs: every shown region's own whole shape (all its layers, also the parts
+    // other regions cover), the front region first, three regions to a canvas: one adds red, one green, one blue,
+    // on black. A layer with erased parts or a fade is drawn by itself first, like in renderComposite.
+    const planes = [], regScr = document.createElement("canvas"), layScr = document.createElement("canvas");
+    let regCtx = null, layCtx = null;
+    const CHANNEL = ["#ff0000", "#00ff00", "#0000ff"];
+    function renderPlanes(w, h) {
+        const pending = E.drag?.mode === "paint" && !E.drag.target ? E.drag.layer : null;
+        let list = E.state.layers;
+        if (pending) { list = [...E.state.layers]; list.splice(E.slotFor(pending.region), 0, pending); }
+        const order = [];                                            // region ids, front first
+        for (let i = list.length - 1; i >= 0; i--) { const L = list[i]; if (E.isShown(L) && E.colorOf(L.region) && !order.includes(L.region)) order.push(L.region); }
+        order.length = Math.min(order.length, EDGE_MAX_REGIONS);
+        const used = Math.ceil(order.length / 3);
+        while (planes.length < used) { const c = document.createElement("canvas"); planes.push({ c, x: c.getContext("2d") }); }
+        for (const c of [regScr, layScr]) if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+        regCtx = regCtx || regScr.getContext("2d"); layCtx = layCtx || layScr.getContext("2d");
+        for (let j = 0; j < used; j++) {
+            const { c, x } = planes[j];
+            if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+            x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "source-over"; x.fillStyle = "#000"; x.fillRect(0, 0, w, h);
+        }
+        const extraOf = (L) => (E.drag?.mode === "paint" && (E.drag.target === L || L === pending) ? E.drag.op : null);
+        const plain = (L) => !L.ops.length && !extraOf(L) && !L.grad;      // a bare shape: nothing in it changes how the canvas adds things up
+        order.forEach((rid, r) => {
+            const x = planes[Math.floor(r / 3)].x, color = CHANNEL[r % 3], lays = list.filter((L) => L.region === rid && E.isShown(L));
+            x.globalCompositeOperation = "lighter";
+            if (lays.every(plain)) { for (const L of lays) drawLayerOn(x, L, null, undefined, color); x.setTransform(1, 0, 0, 1, 0, 0); return; }
+            regCtx.setTransform(1, 0, 0, 1, 0, 0); regCtx.globalCompositeOperation = "source-over"; regCtx.clearRect(0, 0, w, h);
+            for (const L of lays) {
+                const extra = extraOf(L);
+                if (!L.ops.some((o) => o.e) && !extra?.e && !L.grad) { drawLayerOn(regCtx, L, extra, undefined, color); regCtx.globalCompositeOperation = "source-over"; continue; }
+                layCtx.setTransform(1, 0, 0, 1, 0, 0); layCtx.globalCompositeOperation = "source-over"; layCtx.clearRect(0, 0, w, h);
+                drawLayerOn(layCtx, L, extra, undefined, color); fadeLayerOn(layCtx, L);
+                regCtx.setTransform(1, 0, 0, 1, 0, 0); regCtx.drawImage(layScr, 0, 0);
+            }
+            x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(regScr, 0, 0);
+        });
+        return { canvases: planes.slice(0, used).map((p) => p.c), colors: order.map((rid) => hexRgb(E.colorOf(rid))) };
+    }
+    // Without WebGL the lines are simpler (simpleLines): found in the finished picture, so stepped, and a region's line
+    // also follows the edge of a region lying on top of it.
     const edgeCv = document.createElement("canvas"), edgeCtx = edgeCv.getContext("2d");
     const flatCv = document.createElement("canvas"), flatScr = document.createElement("canvas");
     let flatCtx = null, flatSctx = null;
     function edgeLines(w, h, dpr, box) {             // box: the image's rectangle on the canvas (only that part gets lines)
         const x0 = Math.max(0, Math.floor(box[0])), y0 = Math.max(0, Math.floor(box[1]));
         const bw = Math.min(w, Math.ceil(box[0] + box[2])) - x0, bh = Math.min(h, Math.ceil(box[1] + box[3])) - y0;
-        if (bw <= 0 || bh <= 0) return null;
-        const k = Math.max(1, Math.round(1.5 * dpr));
+        const px = E.edgePx();
+        if (bw <= 0 || bh <= 0 || px <= 0) return null;
+        E.edgeBy = "gl";
+        if (!window.__rgNoEdgeGL) {
+            const pl = renderPlanes(w, h);
+            if (!pl.canvases.length) return null;
+            const gl = EDGE_GL.run(pl.canvases, pl.colors, w, h, px * dpr, [box[0], box[1], box[2], box[3]]);
+            if (gl) return gl;
+        }
+        E.edgeBy = "js";
+        return simpleLines(w, h, Math.max(1, Math.round(px * dpr)), x0, y0, bw, bh);
+    }
+    function simpleLines(w, h, k, x0, y0, bw, bh) {
         let flat = E.comp;
         if (E.state.layers.some((L) => L.region === UNSPEC && E.isShown(L)) || (E.drag?.mode === "paint" && E.drag.layer?.region === UNSPEC)) {
             for (const c of [flatCv, flatScr]) if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
@@ -192,10 +283,6 @@ export function* render(E) {
             renderComposite(flatCtx, w, h, flatScr, flatSctx);
             flat = flatCv;
         }
-        E.edgeBy = "gl";
-        const gl = window.__rgNoEdgeGL ? null : EDGE_GL.run(flat, w, h, k, [x0, y0, bw, bh]);
-        if (gl) return gl;
-        E.edgeBy = "js";
         if (edgeCv.width !== w || edgeCv.height !== h) { edgeCv.width = w; edgeCv.height = h; }
         edgeCtx.clearRect(0, 0, w, h);
         edgeCtx.drawImage(flat, x0, y0, bw, bh, x0, y0, bw, bh);
@@ -222,6 +309,8 @@ export function* render(E) {
         edgeCtx.putImageData(out, x0, y0);
         return edgeCv;
     }
+    let edgeSlow = false, lastEdgeAt = 0, edgeLater = 0, linesKey = "", linesOn = false;
+    const linesCv = document.createElement("canvas"), linesCtx = linesCv.getContext("2d");
     function checker(w, h) {
         const s = 10 * E.dprNow();
         E.ctx.fillStyle = "#3a3a3a"; E.ctx.fillRect(0, 0, w, h);
@@ -249,7 +338,27 @@ export function* render(E) {
         E.ctx.beginPath(); E.ctx.rect(ix, iy, iw, ih); E.ctx.clip();
         E.ctx.globalAlpha = fill;
         E.ctx.drawImage(E.comp, 0, 0);
-        if (fill < 1) { const ed = edgeLines(w, h, dpr, [ix, iy, iw, ih]); if (ed) { E.ctx.globalAlpha = 1; E.ctx.drawImage(ed, 0, 0); } }
+        if (fill < 1) {
+            // The lines are kept (linesCv) for as long as nothing they depend on changes: a redraw for another reason
+            // (the pointer, a label) reuses them. Where working them out takes long (no graphics card: WebGL done by
+            // the processor), they are left out while the canvas changes in quick succession (a drag, a zoom) and
+            // drawn once it rests.
+            const t0 = performance.now(), px = E.edgePx();
+            const key = E.drag || E.clickPoly || E.pick ? "" : `${E.version}|${E.view.z}|${E.view.x}|${E.view.y}|${w}|${h}|${dpr}|${px}|${E.state.layers.length}|${E.state.regions.length}`;
+            clearTimeout(edgeLater);
+            if (key && key === linesKey) { if (linesOn) { E.ctx.globalAlpha = 1; E.ctx.drawImage(linesCv, 0, 0); } }
+            else if (edgeSlow && t0 - lastEdgeAt < 140) { linesKey = ""; edgeLater = setTimeout(() => { lastEdgeAt = 0; requestDraw(); }, 170); }
+            else {
+                const ed = edgeLines(w, h, dpr, [ix, iy, iw, ih]);
+                if (linesCv.width !== w || linesCv.height !== h) { linesCv.width = w; linesCv.height = h; }
+                linesCtx.clearRect(0, 0, w, h);
+                if (ed) { linesCtx.drawImage(ed, 0, 0); linesCtx.getImageData(0, 0, 1, 1); E.ctx.globalAlpha = 1; E.ctx.drawImage(linesCv, 0, 0); }   // the read makes the time below the real one
+                linesKey = key; linesOn = !!ed;
+                E.edgeMs = performance.now() - t0;
+                edgeSlow = E.edgeMs > 45 ? true : E.edgeMs < 20 ? false : edgeSlow;
+                lastEdgeAt = performance.now();          // from the end: a slow one must not look like a pause
+            }
+        }
         E.ctx.restore();
         E.ctx.save();
         E.ctx.beginPath(); E.ctx.rect(0, 0, w, h); E.ctx.rect(ix, iy, iw, ih); E.ctx.clip("evenodd");
@@ -659,10 +768,12 @@ export function* render(E) {
         const act = order.findIndex((it) => it.rg.id === E.curRegion);
         if (act >= 0) order.push(order.splice(act, 1)[0]);
         E.labelRects = [];
-        // with an image showing through the regions, or a control map on the canvas, the color under the text is
-        // not the region's own: the text then gets a dark plate. A kept region in Edit Mode always gets one: it is
-        // drawn as an outline over the picture it keeps, so its label lies on that picture
-        const plateAll = E.fillNow() < 0.75 || E.controlShowK >= 0;
+        // A label inside its region is written straight on it, without a box (round 73): white with a dark shadow, or
+        // black with a white glow where what is under it is light. What is under it: the region's color at the
+        // regions' opacity, on black or on the image (taken as a middle gray: its real colors aren't looked at).
+        // A dark plate remains where the text lies on a picture: a control map on the canvas, and a kept region in
+        // Edit Mode, which is only an outline over the picture it keeps.
+        const plateAll = E.controlShowK >= 0, fillNow = E.fillNow();
         for (const it of order) {
             const { rg, lines, num, nw, gap, bw, h: bh, marks, mw } = it;
             const x0 = it.x + nw + gap, y0 = it.y;
@@ -685,14 +796,15 @@ export function* render(E) {
             if (it.inside) {
                 // straight on the region's color, in black or white, whichever reads better on it
                 E.labelRects.push({ rid: rg.id, x0: it.x - pad, y0: y0 - pad, x1: it.x + it.w + pad, y1: y0 + bh + pad, inside: true, marks, plate });
-                const dark = light && !plate;
+                const under = (rr * 0.299 + gg * 0.587 + bb * 0.114) * fillNow + (E.backdrop ? 128 * (1 - fillNow) : 0);
+                const dark = under > 140 && !plate;
                 E.ctx.save();
-                E.ctx.shadowColor = dark ? "rgba(255,255,255,.7)" : "rgba(0,0,0,.75)"; E.ctx.shadowBlur = 2.5 * dpr;
+                E.ctx.shadowColor = dark ? "rgba(255,255,255,.9)" : "rgba(0,0,0,.95)"; E.ctx.shadowBlur = 4 * dpr;
                 E.ctx.fillStyle = dark ? "#000" : "#fff";
                 marks.forEach((m, i) => drawLabelMark(E.ctx, m, x0 + i * MARK_STEP * dpr, y0 + 1 * dpr, MARK_SIZE * dpr, dark ? "#000" : "#fff"));
                 E.ctx.fillStyle = dark ? "#000" : "#fff";
                 E.ctx.globalAlpha = rg.prompt.trim() ? 1 : 0.6;
-                lines.forEach((l, i) => E.ctx.fillText(l, x0 + mw, y0 + 1 * dpr + i * lh));
+                for (let pass = 0; pass < 2; pass++) lines.forEach((l, i) => E.ctx.fillText(l, x0 + mw, y0 + 1 * dpr + i * lh));   // twice: the shadow / glow is strong enough to read on any picture
                 E.ctx.restore();
                 continue;
             }

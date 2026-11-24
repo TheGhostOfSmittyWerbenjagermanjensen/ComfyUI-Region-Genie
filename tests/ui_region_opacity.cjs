@@ -21,7 +21,7 @@ async function run(browser, noGL) {
         const d = cv.getContext("2d").getImageData(Math.round((cx - r.left) * cv.width / r.width), Math.round((cy - r.top) * cv.height / r.height), 1, 1).data;
         return [d[0], d[1], d[2]]; }, [cx, cy]); };
     const near = (a, b, tol = 6) => a.every((v, i) => Math.abs(v - b[i]) <= tol);
-    const settle = async () => { await page.mouse.move(880, 1090); await page.waitForTimeout(250); };
+    const settle = async () => { await page.mouse.move(880, 1090); await page.waitForTimeout(noGL ? 250 : 900); };     // WebGL without a graphics card is slow here: the lines come once the canvas rests
     const osl = page.locator(".rg-cv .rg-oslider"), opb = page.locator(".rg-cv .rg-opac > button");
     const title = () => opb.getAttribute("title");
 
@@ -64,15 +64,36 @@ async function run(browser, noGL) {
     await page.evaluate(() => { window.__node.inputs = []; window.__node.__rgSetBackdrop(null); }); await settle();
     check("without the image again: still 100% and solid", /^Region opacity: 100%/.test(await title()) && near(await px(128, 128), solid, 2));
 
-    // a second region inside the first (100..150): the first one's line goes around its corners without a gap
-    await page.locator('button[title^="Add a region with a new color"]').click();
-    [x, y] = await toClient(100, 100); await page.mouse.move(x, y); await page.mouse.down();
-    [x, y] = await toClient(150, 150); await page.mouse.move(x, y, { steps: 8 }); await page.mouse.up();
-    await page.evaluate(() => { window.__node.__rgSetTool("select"); window.__node.__rgSelectLayer(-1); window.__node.properties.rg_fill = 0.5; window.__node.__rgRefresh(); });
-    await settle();
+    // a second region inside the first (100..150). Each region is outlined along its own shape, so the first one
+    // gets no line around the one lying on it (without WebGL the simple lines still follow it)
+    const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const newRegion = async (a, b) => {
+        await page.locator('button[title^="Add a region with a new color"]').click();
+        [x, y] = await toClient(...a); await page.mouse.move(x, y); await page.mouse.down();
+        [x, y] = await toClient(...b); await page.mouse.move(x, y, { steps: 8 }); await page.mouse.up();
+        await page.evaluate(() => { window.__node.__rgSetTool("select"); window.__node.__rgSelectLayer(-1); });
+        return rgb(await page.evaluate(() => { const s = window.__node.__rgState(); return s.regions.find((r) => r.id === s.layers[s.layers.length - 1].region).color; }));
+    };
+    const edge = async (v) => { await page.evaluate((v) => { window.__settings["RegionGenie.Main.EdgeLine"] = v; window.__node.__rgRefresh(); }, v); await settle(); };
+    const inner = await newRegion([100, 100], [150, 150]);
+    await page.evaluate(() => { window.__node.properties.rg_fill = 0.5; window.__node.__rgRefresh(); }); await settle();
     const dim = solid.map((v) => Math.round(v / 2));
-    check("around a region inside it, the outer region's line runs along the sides", near(await px(99.6, 125), solid, 6) && near(await px(125, 150.4), solid, 6) && near(await px(96, 125), dim, 8));
-    check("…and around its corners without a gap", near(await px(99.6, 99.6), solid, 6) && near(await px(150.4, 150.4), solid, 6) && near(await px(150.4, 99.6), solid, 6));
+    check("the region on top has its line", near(await px(100.5, 125), inner, 8) && near(await px(125, 149.5), inner, 8));
+    if (noGL) check("simple lines: the outer region's line follows the inner one, corners too", near(await px(99.6, 125), solid, 6) && near(await px(99.6, 99.6), solid, 6));
+    else check("the region under it has no line around it (its shape goes on underneath)", near(await px(99.3, 125), dim, 8) && near(await px(99.3, 99.3), dim, 8) && near(await px(125, 150.7), dim, 8));
+    check("…and keeps the line along its own edge", near(await px(64.5, 125), solid, 6));
+    // two regions that only touch (the first one's right edge, x = 192) both keep their lines
+    const side = await newRegion([192, 70], [212, 180]); await settle();
+    check("two regions that touch both keep their lines", near(await px(191.4, 125), solid, 8) && near(await px(192.6, 125), side, 8));
+    if (!noGL) {
+        const half = side.map((v) => Math.round(v / 2));
+        check("the line is 3.5 px wide at first: see-through 3 image px in", near(await px(195.5, 125), half, 8));
+        await edge(30);
+        check("a line wider than the shape fills it (30 px on a 45 px wide region)", near(await px(202, 125), side, 8));
+        await edge(0);
+        check("0: no line", near(await px(192.6, 125), half, 8) && near(await px(64.5, 125), dim, 8));
+        await edge(3.5);
+    }
     await page.evaluate(() => { window.__node.properties.rg_fill = 1; window.__node.__rgRefresh(); }); await settle();
 
     // the grid: the magnet's menu, the grid without snapping, the lines' strength

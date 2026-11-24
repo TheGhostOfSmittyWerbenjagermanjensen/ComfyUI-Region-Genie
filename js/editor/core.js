@@ -160,6 +160,7 @@ export function* core(E) {
     E.fillDefault = (img) => (img ? pct(getSetting(SET.cmFillImage, 50), 0.5) : pct(getSetting(SET.cmFill, 80), 0.8));
     E.fillNow = () => { const v = E.node.properties?.[E.backdrop ? "rg_fill_image" : "rg_fill"]; return typeof v === "number" ? Math.min(1, Math.max(0, v)) : E.fillDefault(!!E.backdrop); };
     E.setFill = (v) => { (E.node.properties = E.node.properties || {})[E.backdrop ? "rg_fill_image" : "rg_fill"] = Math.round(Math.min(1, Math.max(0, v)) * 20) / 20; };
+    E.edgePx = () => { const n = +getSetting(SET.cmEdge, 3.5); return Number.isFinite(n) ? Math.min(30, Math.max(0, n)) : 3.5; };   // the regions' edge line, px
     E.showGrid = !!getSetting(SET.cmGridShow, false);     // the grid's lines while snap is off
     E.gridAlphaNow = () => GRID_LINES[getSetting(SET.cmGridLines, "normal")] || GRID_LINES.normal;
     E.lastDims = [0, 0];

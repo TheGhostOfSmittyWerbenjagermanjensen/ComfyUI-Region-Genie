@@ -220,6 +220,8 @@ The row at the top of the node sets the size of the picture. Three buttons on th
   - Its row is dimmed and its number shows "–".
   - Its layers keep their own show / hide settings, so showing it again brings it back exactly as it was.
   - Drawing into a hidden region (or adding a selection to it) shows it again.
+- **Delete a region:** the ✕ at the end of its row deletes it with its layers (Ctrl+Z brings it back).
+- **Right-click a region's row** (not in a text field): Edit prompt, Hide region, Move up / down, Delete region.
 
 ### Opening a region
 
@@ -227,7 +229,7 @@ The row at the top of the node sets the size of the picture. Three buttons on th
   - First comes its **options line**:
     - **feather** (the value, the chain that links it and the dashed square for edges on the image border).
     - **palette** (on / off).
-    - Then on the right: merge its layers (two lines joining into one), ↑ ↓ move the region, and ✕ delete it with its layers (Ctrl+Z brings it back).
+    - Then on the right: merge its layers (two lines joining into one) and ↑ ↓ move the region.
   - Under it are its subsections: **Layers**, **LoRAs** and **Color palette** (only the ones it has). Each subsection has its own ▶ and starts closed; closing the region hides all of them.
   - The *Whole image* row opens with a click anywhere on it (except its sparkle and ＋LoRA buttons) and shows its LoRAs, or a hint when it has none.
   - The ▼ buttons above the list (▼ + layers icon, ▼ LoRAs, ▼ + palette icon) open or close that subsection in every region at once (LoRAs includes *Whole image*), and "▼ All" opens or closes everything.
@@ -444,7 +446,8 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - A small filled **person** before the prompt marks a *character* region, and in Edit Mode a filled **lock** marks a region kept as it is; both are in the text's own color.
   - In Edit Mode the label of a kept region lies on a dark plate (the region is only an outline over the picture it keeps, so the text would otherwise sit on the picture itself).
   - The text goes into the largest upright rectangle that lies inside the part of the region you can see (so it never runs over a neighbour or a region drawn on top), with a margin, centred; zooming in gives it more room.
-  - It is black or white, whichever reads better on the region's color; while an image shows through the regions, or a control map is on the canvas, it gets a dark plate.
+  - It is white with a dark shadow, or black with a white glow where the region is light enough at its present opacity. There is no box behind it.
+  - While a control map is on the canvas it gets a dark plate.
   - A region too small for a line of text keeps a compact label next to it (its index and up to three lines). Clicking and dragging on the text still acts on the layer under it.
   - Double-click the text to open the **region editor**, all live:
     - Object / Character / Text buttons (the current type is highlighted).
@@ -459,7 +462,10 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - The image is shown at full strength, and the regions over it are see-through: 50% at first.
   - The **region opacity** button in the canvas's top right corner sets how solid the regions' colors are.
   - Point at it and its slider drops down (a click keeps it open); drag the slider, or use the mouse wheel over the button.
-  - Below 100% a thin line along each region's edge keeps the solid color, so the shapes stay exact. At 0% only the lines remain.
+  - Below 100% a line along each region's edge keeps the solid color, so the shapes stay exact. At 0% only the lines remain.
+    - Each region is outlined along its own shape: where another region lies on top of it, only the one on top has a line there.
+    - Two regions that only touch both keep their lines.
+    - Its width is a setting (*Region edge line*, 3.5 px at first; 0 turns it off). A line wider than a shape fills the shape.
   - Without an image the regions start at 80%, on black. The button is there too, and the canvas keeps one value for each case.
   - A directly connected Load Image shows right away; anything else shows after a run.
 - **`image` input, "use as color map":** the image's flat colors become regions under all layers, and they appear in the region list after a run so you can give them prompts.
@@ -611,6 +617,7 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
   - image_mode, feather, separation / until, keep all regions separate, share the background, snap and grid size.
   - Region opacity over an image (50%) and without one (80%): what the opacity button on the canvas starts at.
   - Show the grid without snapping, and Grid lines (Faint, Normal, Strong).
+  - Region edge line (px): the width of the solid line along see-through regions.
   - Regional LoRAs' feather, lora_masking, region_separation, separation_until, separate_all_regions and share_background.
 - Some settings apply to every node at its next run instead:
   - **Plain-text prompts: keep all regions separate automatically** (on by default) and one per model, see *Which format `prompt` uses*.

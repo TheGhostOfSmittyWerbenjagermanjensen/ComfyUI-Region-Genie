@@ -1973,6 +1973,7 @@ export const SET = {
     cmGrid: "RegionGenie.Main.Grid",
     cmFillImage: "RegionGenie.Main.FillImage",
     cmFill: "RegionGenie.Main.Fill",
+    cmEdge: "RegionGenie.Main.EdgeLine",
     cmGridShow: "RegionGenie.Main.GridShow",
     cmGridLines: "RegionGenie.Main.GridLines",
     regionColors: "RegionGenie.Main.RegionColors",
@@ -2412,6 +2413,7 @@ const SETTINGS = [
         { id: SET.cmGridLines, name: "Grid lines", type: "combo", defaultValue: "normal", options: [{ text: "Faint", value: "faint" }, { text: "Normal", value: "normal" }, { text: "Strong", value: "strong" }], tooltip: "How strong the grid's lines are drawn on the canvas of every Region Genie node. Also in the ▾ of the magnet button.", category: CAT("Region Genie node", "1006 grid lines") },
         { id: SET.cmFillImage, name: "Region opacity over an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while a connected image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "101 fill image") },
         { id: SET.cmFill, name: "Region opacity without an image (%)", type: "number", defaultValue: 80, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while no image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "102 fill") },
+        { id: SET.cmEdge, name: "Region edge line (px)", type: "number", defaultValue: 3.5, attrs: { min: 0, max: 30, step: 0.5 }, tooltip: "How wide the solid line along each region's edge is while the regions are see-through, on every Region Genie node. A line wider than a shape fills it. 0: No line.", category: CAT("Region Genie node", "103 edge") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
             // the file field: ComfyUI's menu on the model folders (round 23), Browse… with SET.filePickers
             id: SET.control + "." + key, name, type: fileSettingType(MODEL_ROOTS, CONTROL_NONE, SET.control + "." + key, folder), defaultValue: CONTROL_NONE,
