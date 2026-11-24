@@ -106,7 +106,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await kb.click(); await page.waitForTimeout(120);
     let sh = await sheet();
     check(`the button opens the shortcut list on the page, inside the window (${sh?.groups.join(", ")}; ${sh?.rows.length} rows)`, !!sh && sh.onPage && sh.in && sh.groups.join("|") === "Tools|While drawing|Layers and regions|View|Text" && sh.rows.length > 40);
-    check("keys that can be changed are buttons; mouse gestures and held keys are listed but fixed", !!sh && sh.rows.filter((r) => !r.fixed).length === 41 && sh.rows.filter((r) => r.fixed).length >= 11
+    check("keys that can be changed are buttons; mouse gestures and held keys are listed but fixed", !!sh && sh.rows.filter((r) => !r.fixed).length === 42 && sh.rows.filter((r) => r.fixed).length >= 11
         && rowOf(sh, "edit.redo").keys.join("|") === "Ctrl+Shift+Z|Ctrl+Y" && sh.rows.some((r) => r.fixed && r.keys[0] === "Ctrl+Click" && /Take a spot out of the selection/.test(r.what)));
     check("nothing changed yet: 'Reset all' is greyed", !!sh && sh.resetOff && !sh.rows.some((r) => r.changed));
     check("the button is lit while the list is open", await kb.evaluate((b) => b.classList.contains("on")));
@@ -248,7 +248,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.keyboard.press("Escape"); await page.waitForTimeout(60);
     check("Esc closes the menu", !(await menu()));
     await page.mouse.click(bx + 30, by + 30, { button: "right" }); await page.waitForTimeout(100);
-    await page.mouse.click(bx + 300, by + 30); await page.waitForTimeout(80);
+    await page.mouse.click(bx + 520, by + 30); await page.waitForTimeout(80);
     check("a click elsewhere closes it", !(await menu()));
     // on a region (where only the first one is)
     await page.mouse.click(bx + 80, by + 80, { button: "right" }); await page.waitForTimeout(120);

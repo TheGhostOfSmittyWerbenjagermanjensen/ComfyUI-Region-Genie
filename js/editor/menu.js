@@ -49,6 +49,7 @@ export function* menu(E) {
             { label: "Fit the image in view", icon: "fit", key: key1("view.fit"), fn: () => { E.userView = false; E.fitView(); E.requestDraw(); } },
             { label: "Labels on the canvas", checked: E.node.properties?.rg_labels !== false, fn: () => E.labBtn.click() },
             { label: "Snap to grid", key: key1("view.snap"), checked: !!E.snap, fn: () => { E.snap = !E.snap; E.setSnapIcon(); E.requestDraw(); } },
+            { label: "Show the grid without snapping", key: key1("view.grid"), checked: !!E.showGrid, fn: () => { E.showGrid = !E.showGrid; E.setSnapIcon(); E.requestDraw(); } },
             null,
             { label: E.big ? "Back into the node" : "Large editor", icon: "expand", key: key1("view.big"), fn: () => E.toggleBig() },
             { label: "Shortcuts", icon: "keyboard", key: key1("view.help"), fn: () => E.toggleKeys() },

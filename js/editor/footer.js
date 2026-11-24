@@ -62,7 +62,7 @@ export function* footer(E) {
     });
     // on the canvas, in its top right corner (round 48; in the tool bar until then: at 580 px the bar had no room for
     // them, and it took a second row whenever an image was connected)
-    const imgBox = E.el("span", "rg-imgmode"); imgBox.style.display = "none";
+    const imgBox = E.el("span", "rg-imgmode");
     imgBox.append(imgSeg.box, minIn);
     for (const t of ["pointerdown", "mousedown", "dblclick", "wheel"]) imgBox.addEventListener(t, (e) => e.stopPropagation());
     E.imgBox = imgBox;                          // canvasUi.js puts it on the canvas box (made after this part runs)
@@ -166,8 +166,8 @@ export function* footer(E) {
         imgSeg.set(E.modeW?.value === "use as color map" ? "use as color map" : "backdrop (trace over)");
         const ed = E.isEdit();
         const show = (n, on) => { const d = on ? "" : "none"; if (n.style.display !== d) n.style.display = d; };
-        show(imgBox, !ed && imgLinked());
-        show(minIn, E.modeW?.value === "use as color map");
+        show(imgSeg.box, !ed && imgLinked());           // the strip itself stays: it also holds the region opacity button
+        show(minIn, !ed && imgLinked() && E.modeW?.value === "use as color map");
         if (document.activeElement !== minIn && +minIn.value !== minPixelsNow()) minIn.value = String(minPixelsNow());
         E.syncEditMaskBox();
     }; E.syncSettings = syncSettings;

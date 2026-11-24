@@ -92,7 +92,8 @@ export function* canvasUi(E) {
     tipsBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
     tipsBtn.addEventListener("click", (e) => { e.preventDefault(); Promise.resolve(setSetting(SET.toolHints, getSetting(SET.toolHints, true) === false)).then(() => { for (const f of hintsListeners) f(); }); E.focusSink?.(); });
     E.cvBox.appendChild(tipsBtn);
-    if (E.imgBox) E.cvBox.appendChild(E.imgBox);          // the image-mode buttons (footer.js): the canvas's top right corner
+    // the canvas's top right corner: the image-mode buttons (footer.js, with an image connected) and the region opacity (toolbar.js)
+    if (E.imgBox) { if (E.opacBox) E.imgBox.appendChild(E.opacBox); E.cvBox.appendChild(E.imgBox); }
     E.cv.addEventListener("pointerdown", () => E.cvBox.classList.add("held"));
     E.tipsRelease = () => E.cvBox.classList.remove("held");
     for (const ev of ["pointerup", "pointercancel"]) window.addEventListener(ev, E.tipsRelease, true);      // capture: the canvas keeps its own events from bubbling

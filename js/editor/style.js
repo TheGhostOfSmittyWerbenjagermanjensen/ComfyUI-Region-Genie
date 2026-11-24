@@ -171,13 +171,15 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-bslider { position:absolute; left:8px; top:50%; transform:translateY(-50%); width:30px; height:190px; opacity:.45;
   transition:opacity .12s; z-index:3; touch-action:none; cursor:ns-resize; }
 .rg-bslider:hover, .rg-bslider.drag { opacity:1; }
-.rg-oslider { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:26px; height:160px; opacity:.45;
-  transition:opacity .12s; z-index:3; touch-action:none; cursor:ns-resize; }
-.rg-oslider:hover, .rg-oslider.drag { opacity:1; }
+/* region opacity: a button in the top right strip; its slider drops down while pointed at, dragged or clicked open */
+.rg-opac { position:relative; display:inline-flex; }
+.rg-oslider { position:absolute; left:calc(50% - 13px); top:calc(100% + 6px); width:26px; height:140px; display:none; border-radius:5px;
+  background:rgba(20,20,20,.72); z-index:4; touch-action:none; cursor:ns-resize; }
+.rg-opac:hover .rg-oslider, .rg-opac.open .rg-oslider, .rg-oslider.drag { display:block; }
+.rg-oslider::before { content:""; position:absolute; left:0; right:0; top:-9px; height:9px; }   /* no gap under the button for the pointer to fall into */
 .rg-oslider svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-.rg-oslider-ic { position:absolute; left:5px; top:-18px; line-height:0; color:#f2f2f2; filter:drop-shadow(0 0 2px #000); pointer-events:none; }
-.rg-oslider-ic svg { position:static; width:16px; height:16px; }
-.rg-ohandle { left:0; width:24px; }
+.rg-opac.open .rg-btn.icon { background:rgba(91,143,208,.35); }
+.rg-oslider .rg-ohandle { left:50%; width:20px; box-sizing:border-box; transform:translateX(-50%); }   /* centered on the line (.rg-bhandle, below, sets the brush slider's) */
 .rg-bslider svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 .rg-bhandle { position:absolute; left:1px; width:28px; height:5px; margin-top:-2.5px; background:#f2f2f2; border:1px solid #111;
   border-radius:2px; box-shadow:0 0 3px rgba(0,0,0,.7); pointer-events:none; }

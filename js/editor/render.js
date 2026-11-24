@@ -20,6 +20,57 @@ function drawLabelMark(ctx, name, x, y, size, color) {
     ctx.restore();
 }
 
+// The edge lines of the see-through regions, found by the graphics card (see edgeLines below). One WebGL canvas for
+// the whole page (browsers allow only a few), made on first use; run() returns null when WebGL can't be used, and
+// the caller then does the same work in JavaScript.
+const EDGE_GL = (() => {
+    let cv = null, gl = null, prog = null, tex = null, loc = null, dead = false;
+    const VS = "attribute vec2 p; varying vec2 uv; void main(){ uv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }";
+    const FS = `precision mediump float; varying vec2 uv; uniform sampler2D t; uniform vec2 size; uniform float k; uniform vec4 box;
+        bool other(vec4 c, vec2 d){ vec4 n = texture2D(t, uv + d / size); if (n.a < 0.5) return true;
+            vec3 e = abs(c.rgb - n.rgb); return e.r + e.g + e.b > 36.0 / 255.0; }
+        void main(){ vec2 px = vec2(uv.x * size.x, (1.0 - uv.y) * size.y) - box.xy;
+            if (px.x < 0.0 || px.y < 0.0 || px.x >= box.z || px.y >= box.w) { gl_FragColor = vec4(0.0); return; }
+            vec4 c = texture2D(t, uv); if (c.a < 0.5) { gl_FragColor = vec4(0.0); return; }
+            bool edge = px.x < k || px.y < k || px.x >= box.z - k || px.y >= box.w - k
+                || other(c, vec2(k, 0.0)) || other(c, vec2(-k, 0.0)) || other(c, vec2(0.0, k)) || other(c, vec2(0.0, -k))
+                || other(c, vec2(k, k)) || other(c, vec2(-k, k)) || other(c, vec2(k, -k)) || other(c, vec2(-k, -k));
+            gl_FragColor = edge ? vec4(c.rgb, 1.0) : vec4(0.0); }`;
+    function init() {
+        cv = document.createElement("canvas");
+        cv.addEventListener("webglcontextlost", (e) => { e.preventDefault(); gl = null; });     // made again at the next run
+        gl = cv.getContext("webgl", { premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
+        if (!gl) { dead = true; return; }
+        const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+        prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+        gl.useProgram(prog);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+        const p = gl.getAttribLocation(prog, "p"); gl.enableVertexAttribArray(p); gl.vertexAttribPointer(p, 2, gl.FLOAT, false, 0, 0);
+        tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+        for (const [n, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, n, v);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+        loc = { size: gl.getUniformLocation(prog, "size"), k: gl.getUniformLocation(prog, "k"), box: gl.getUniformLocation(prog, "box") };
+    }
+    return { run(src, w, h, k, box) {
+        if (dead) return null;
+        try {
+            if (!gl || gl.isContextLost()) init();
+            if (!gl) return null;
+            const max = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+            if (w > max || h > max) return null;
+            if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+            gl.viewport(0, 0, w, h);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+            gl.uniform2f(loc.size, w, h); gl.uniform1f(loc.k, k); gl.uniform4f(loc.box, box[0], box[1], box[2], box[3]);
+            gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            return cv;
+        } catch (e) { console.warn("[Region Genie] edge lines: WebGL failed, using JavaScript", e); dead = true; return null; }
+    } };
+})();
+
 export function* render(E) {
     Object.assign(E, {
         paintLocal, drawLayerOn, renderComposite, requestDraw, handles, hitLayer, hitLayers, insideBox, outputIndexMap, updateRegionIndices,
@@ -118,6 +169,59 @@ export function* render(E) {
             c.drawImage(scr, 0, 0);
         }
     }
+    // The regions' edge lines, drawn solid while their fill is see-through: every pixel of the composite whose
+    // neighbor a line's width away (left, right, up, down or diagonally: the diagonals close the line around the
+    // corner of a region that lies inside another) has another color or is empty keeps its own color, fully opaque. So the line lies inside its region, two regions that touch each get one, and layers of one
+    // region (one color) get none between them. Colors that differ only a little (a fade, the smoothed rim of a
+    // shape) count as the same. The image's own border closes a region that reaches it.
+    // Read from a composite without the hatch of the "no region" layers (E.comp itself when none is shown).
+    // Done by the graphics card (EDGE_GL, one small WebGL program shared by every node: a few ms at most on a 4K
+    // canvas); in plain JavaScript where WebGL isn't available (the same lines, 30-50 ms on a 4K canvas).
+    const edgeCv = document.createElement("canvas"), edgeCtx = edgeCv.getContext("2d");
+    const flatCv = document.createElement("canvas"), flatScr = document.createElement("canvas");
+    let flatCtx = null, flatSctx = null;
+    function edgeLines(w, h, dpr, box) {             // box: the image's rectangle on the canvas (only that part gets lines)
+        const x0 = Math.max(0, Math.floor(box[0])), y0 = Math.max(0, Math.floor(box[1]));
+        const bw = Math.min(w, Math.ceil(box[0] + box[2])) - x0, bh = Math.min(h, Math.ceil(box[1] + box[3])) - y0;
+        if (bw <= 0 || bh <= 0) return null;
+        const k = Math.max(1, Math.round(1.5 * dpr));
+        let flat = E.comp;
+        if (E.state.layers.some((L) => L.region === UNSPEC && E.isShown(L)) || (E.drag?.mode === "paint" && E.drag.layer?.region === UNSPEC)) {
+            for (const c of [flatCv, flatScr]) if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+            flatCtx = flatCtx || flatCv.getContext("2d"); flatSctx = flatSctx || flatScr.getContext("2d");
+            renderComposite(flatCtx, w, h, flatScr, flatSctx);
+            flat = flatCv;
+        }
+        E.edgeBy = "gl";
+        const gl = window.__rgNoEdgeGL ? null : EDGE_GL.run(flat, w, h, k, [x0, y0, bw, bh]);
+        if (gl) return gl;
+        E.edgeBy = "js";
+        if (edgeCv.width !== w || edgeCv.height !== h) { edgeCv.width = w; edgeCv.height = h; }
+        edgeCtx.clearRect(0, 0, w, h);
+        edgeCtx.drawImage(flat, x0, y0, bw, bh, x0, y0, bw, bh);
+        const src = edgeCtx.getImageData(x0, y0, bw, bh), s = src.data, s32 = new Uint32Array(s.buffer);
+        const out = edgeCtx.createImageData(bw, bh), o32 = new Uint32Array(out.data.buffer);
+        const other = (i, j) => {                    // i is drawn (alpha >= 128): is j another color, or empty?
+            const a = i * 4, b = j * 4;
+            if (s[b + 3] < 128) return true;
+            return Math.abs(s[a] - s[b]) + Math.abs(s[a + 1] - s[b + 1]) + Math.abs(s[a + 2] - s[b + 2]) > 36;
+        };
+        const kw = k * bw;
+        for (let y = 0; y < bh; y++) {
+            const row = y * bw, up = y >= k, down = y < bh - k;
+            for (let x = 0; x < bw; x++) {
+                const i = row + x, p = s32[i];
+                if ((p >>> 24) < 128) continue;
+                if (x < k || x >= bw - k || !up || !down || (s32[i - k] !== p && other(i, i - k)) || (s32[i + k] !== p && other(i, i + k))
+                    || (s32[i - kw] !== p && other(i, i - kw)) || (s32[i + kw] !== p && other(i, i + kw))
+                    || (s32[i - kw - k] !== p && other(i, i - kw - k)) || (s32[i - kw + k] !== p && other(i, i - kw + k))
+                    || (s32[i + kw - k] !== p && other(i, i + kw - k)) || (s32[i + kw + k] !== p && other(i, i + kw + k))) o32[i] = p | 0xff000000;
+            }
+        }
+        edgeCtx.clearRect(0, 0, w, h);
+        edgeCtx.putImageData(out, x0, y0);
+        return edgeCv;
+    }
     function checker(w, h) {
         const s = 10 * E.dprNow();
         E.ctx.fillStyle = "#3a3a3a"; E.ctx.fillRect(0, 0, w, h);
@@ -137,15 +241,15 @@ export function* render(E) {
         const [ix, iy] = E.toScr(0, 0), iw = W * E.view.z, ih = H * E.view.z;
         E.ctx.fillStyle = "#000"; E.ctx.fillRect(ix, iy, iw, ih);
         if (E.backdrop) {
-            E.ctx.globalAlpha = E.backdropOpacity;
             E.ctx.drawImage(E.backdrop, ix, iy, iw, ih);
-            E.ctx.globalAlpha = 1;
         }
+        const fill = E.fillNow();
         renderComposite(E.cctx, w, h, E.scratch, E.sctx, undefined, true);
         E.ctx.save();
         E.ctx.beginPath(); E.ctx.rect(ix, iy, iw, ih); E.ctx.clip();
-        E.ctx.globalAlpha = E.backdrop ? Math.max(0.35, 1 - E.backdropOpacity * 0.6) : 1;
+        E.ctx.globalAlpha = fill;
         E.ctx.drawImage(E.comp, 0, 0);
+        if (fill < 1) { const ed = edgeLines(w, h, dpr, [ix, iy, iw, ih]); if (ed) { E.ctx.globalAlpha = 1; E.ctx.drawImage(ed, 0, 0); } }
         E.ctx.restore();
         E.ctx.save();
         E.ctx.beginPath(); E.ctx.rect(0, 0, w, h); E.ctx.rect(ix, iy, iw, ih); E.ctx.clip("evenodd");
@@ -162,10 +266,10 @@ export function* render(E) {
             E.ctx.drawImage(keepHatch(w, h), 0, 0);
             E.ctx.restore();
         }
-        if (E.snap && E.grid * E.view.z >= 6) {
+        if ((E.snap || E.showGrid) && E.grid * E.view.z >= 6) {
             E.ctx.save();
             E.ctx.beginPath(); E.ctx.rect(ix, iy, iw, ih); E.ctx.clip();
-            E.ctx.strokeStyle = "rgba(255,255,255,.12)"; E.ctx.lineWidth = 1;
+            E.ctx.strokeStyle = `rgba(255,255,255,${E.gridAlphaNow()})`; E.ctx.lineWidth = 1;
             E.ctx.beginPath();
             for (let gx = 0; gx <= W; gx += E.grid) { const x = Math.round(ix + gx * E.view.z) + 0.5; E.ctx.moveTo(x, iy); E.ctx.lineTo(x, iy + ih); }
             for (let gy = 0; gy <= H; gy += E.grid) { const y = Math.round(iy + gy * E.view.z) + 0.5; E.ctx.moveTo(ix, y); E.ctx.lineTo(ix + iw, y); }
@@ -243,7 +347,7 @@ export function* render(E) {
         E.arrangeBtn.disabled = !E.selLayer();
         if (E.arrangeBtn.disabled && E.arrangePop) E.closeArrange();
         E.clearBtn.disabled = !E.state.layers.length && !E.state.regions.length;
-        E.bdBox.style.display = E.backdrop ? "" : "none";
+        E.syncOpacity();
     }
     // the visible pixels of the kept regions (their layers, minus every other layer above them), hatched;
     // cached until the layout or the view changes
@@ -558,7 +662,7 @@ export function* render(E) {
         // with an image showing through the regions, or a control map on the canvas, the color under the text is
         // not the region's own: the text then gets a dark plate. A kept region in Edit Mode always gets one: it is
         // drawn as an outline over the picture it keeps, so its label lies on that picture
-        const plateAll = (E.backdrop && E.backdropOpacity > 0.25) || E.controlShowK >= 0;
+        const plateAll = E.fillNow() < 0.75 || E.controlShowK >= 0;
         for (const it of order) {
             const { rg, lines, num, nw, gap, bw, h: bh, marks, mw } = it;
             const x0 = it.x + nw + gap, y0 = it.y;

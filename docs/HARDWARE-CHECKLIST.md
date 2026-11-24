@@ -41,6 +41,9 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] The divider between canvas and region list, the folded tool strip, the brush-size slider on the canvas edge
 - [ ] The size row: presets pop-up, the chain button, the seed control
 - [ ] The message bar under the canvas: selecting text, right-click, Copy link
+- [ ] Region opacity (round 72): with an image connected the regions are see-through with a solid edge line; the opacity button in the canvas's top right corner (its slider drops down) changes it
+- [ ] The same in the large editor on the 4K screen: dragging and zooming stay smooth below 100% (the edge lines are drawn by the graphics card per frame), in Firefox too
+- [ ] Snap to grid on: the grid lines are clearly visible on regions and on the empty canvas; the magnet's ▾ menu (Faint / Normal / Strong, show without snapping, Shift+G)
 
 - [ ] Manual size mode at the default node width, both node modes: the ± step box fits in the row; clicking the small arrows of W / H with the mouse changes the value by the step; many fast clicks (up, down, mixed) on W, H, ±, MP and × all count, none snaps back (reported in Firefox 160 on Windows, legacy mode, very fast clicks; fixed and checked in Firefox on Linux with the focus kept out of the field: please confirm on Windows)
 

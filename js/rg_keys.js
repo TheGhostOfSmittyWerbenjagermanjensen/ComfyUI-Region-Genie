@@ -59,6 +59,7 @@ export const COMMANDS = [
     { id: "view.pan", group: "View", hold: true, what: "Hold and drag: Pan the canvas", keys: ["Space"] },
     { id: "view.fit", group: "View", what: "Fit the image in view", keys: ["Home"] },
     { id: "view.snap", group: "View", what: "Snap to grid on / off", keys: ["G"] },
+    { id: "view.grid", group: "View", what: "Show the grid without snapping: On / off", keys: ["Shift+G"] },
     { id: "view.big", group: "View", what: "Large editor: Open / close", keys: ["Alt+Enter"], setting: "RegionGenie.Main.LargeEditorKey" },
     { id: "view.help", group: "View", what: "This list", keys: ["?"] },
     { id: "text.prev", group: "Text", ctx: "text", what: "Pop-up editor: The previous text field", keys: ["PageUp"], setting: "RegionGenie.Popup.PrevKey" },

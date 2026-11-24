@@ -1,6 +1,6 @@
 // The editor's elements, the tool buttons (with versions), the tool options strip on the canvas, Arrange, opacity and labels.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
-import { svgIcon, setHTML } from "../rg_shared.js";
+import { svgIcon, setHTML, getSetting, setSetting, SET } from "../rg_shared.js";
 import { openMenu } from "../rg_menu.js";
 import { keyed, keyText } from "../rg_keys.js";
 import { LASSO_MODES, TOOL_NUMS, lassoRefreshers, initLassoModes, SHAPES, ALL } from "./shared.js";
@@ -281,12 +281,36 @@ export function* toolbar(E) {
     }
 
     // snap to grid: magnet (on, highlighted) / slashed magnet (off), like the labels eye
-    const snapBtn = iconBtn("magnetOff", "", () => { E.snap = !E.snap; setSnapIcon(); E.requestDraw(); }, "toggle");
+    // Its ▾ (also right-click) opens the grid's menu: snap, the grid shown without snapping, how strong its lines are
+    const snapBtn = E.el("button", "rg-btn icon grp toggle"); snapBtn.type = "button";
+    const snapIc = E.el("span", "rg-grp-ic"), snapDd = E.el("span", "rg-grp-dd");
+    snapDd.innerHTML = '<svg viewBox="0 0 8 16"><path d="M1.5 6.5L4 9.5l2.5-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    snapDd.title = "The grid's options (also right-click)";
+    snapBtn.append(snapIc, snapDd);
+    const toggleSnap = () => { E.snap = !E.snap; setSnapIcon(); E.requestDraw(); };
+    const toggleGrid = () => { E.showGrid = !E.showGrid; setSnapIcon(); E.requestDraw(); };
+    function gridMenu(e) {
+        const lines = getSetting(SET.cmGridLines, "normal"), at = snapBtn.getBoundingClientRect();
+        const line = (value, label, what) => ({ label, tick: lines === value, title: `Grid lines: ${what}. For every Region Genie node (also in Settings).`,
+            fn: async () => { await setSetting(SET.cmGridLines, value); E.requestDraw(); } });
+        openMenu(at.left, at.bottom + 2, [{ head: "Grid" },
+            { label: "Snap to grid", key: keyText("view.snap"), checked: !!E.snap, title: keyed("Snap to grid: Points, shapes and moves snap to the grid (G)."), fn: toggleSnap },
+            { label: "Show the grid without snapping", key: keyText("view.grid"), checked: !!E.showGrid,
+              title: keyed("Show the grid without snapping: The grid's lines are drawn while snap is off too (Shift+G)."), fn: toggleGrid },
+            null, { head: "Grid lines" },
+            line("faint", "Faint", "Barely visible"), line("normal", "Normal", "Clearly visible"), line("strong", "Strong", "Stand out")],
+        { onClose: () => { if (E.wrap.isConnected) focusSink(); } });
+    }
+    snapBtn.addEventListener("pointerdown", (e) => { if (e.button === 2 || e.target.closest(".rg-grp-dd")) e.stopPropagation(); });
+    snapBtn.addEventListener("click", (e) => { e.preventDefault(); if (e.target.closest(".rg-grp-dd")) gridMenu(e); else toggleSnap(); });
+    snapBtn.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); gridMenu(e); });
     function setSnapIcon() {
-        setHTML(snapBtn, svgIcon(E.snap ? "magnet" : "magnetOff"));
+        setHTML(snapIc, svgIcon(E.snap ? "magnet" : "magnetOff"));
         snapBtn.classList.toggle("on", E.snap);
-        snapBtn.title = keyed(E.snap ? "Snap to grid: On. Points, shapes and moves snap to the grid; click to turn it off (G)."
-            : "Snap to grid: Off. Click to snap points, shapes and moves to the grid (G).");
+        snapBtn.title = keyed((E.snap ? "Snap to grid: On. Points, shapes and moves snap to the grid; click to turn it off (G).\n"
+            : "Snap to grid: Off. Click to snap points, shapes and moves to the grid (G).\n")
+            + (E.showGrid && !E.snap ? "The grid is shown without snapping (Shift+G).\n" : "")
+            + "▾ or right-click: Show the grid without snapping, and how strong its lines are.");
     }
     setSnapIcon();
     const gridIn = E.el("input", "rg-num");
@@ -299,22 +323,41 @@ export function* toolbar(E) {
     const clearBtn = iconBtn("clear", "Clear all: Remove every layer and region (Undo brings them back)", () => {
         if (E.state.layers.length || E.state.regions.length || E.state.poses?.length || E.state.importSig) E.change(() => { E.state.layers = []; E.state.regions = []; delete E.state.poses; delete E.state.importSig; E.selId = null; E.curRegion = null; E.filter = ALL; });
     }, "danger"); E.clearBtn = clearBtn;
-    // image opacity: a vertical slider over the canvas's right edge while an image is shown under the regions
-    const bdBox = E.el("div", "rg-oslider"); E.bdBox = bdBox; bdBox.style.display = "none";
+    // region opacity (how solid the regions' colors are drawn; one value with an image under them, one without:
+    // E.fillNow / E.setFill in core.js): a button in the canvas's top right corner (the strip of footer.js's image
+    // mode buttons; canvasUi.js puts it there), and a vertical slider that drops down from it while the pointer is
+    // on either, while it is dragged, or after a click on the button until the next click elsewhere
+    const opBox = E.el("span", "rg-opac"); E.opacBox = opBox;
+    const opBtn = E.el("button", "rg-btn icon"); opBtn.type = "button"; opBtn.innerHTML = svgIcon("opacity");
+    const bdBox = E.el("div", "rg-oslider"); E.bdBox = bdBox;
+    opBtn.addEventListener("click", (e) => { e.preventDefault(); opBox.classList.toggle("open"); });
+    const closeOp = (e) => {
+        if (!opBox.isConnected && !E.wrap.isConnected) { document.removeEventListener("pointerdown", closeOp, true); return; }   // the node is gone
+        if (opBox.classList.contains("open") && !opBox.contains(e.target)) opBox.classList.remove("open");
+    };
+    document.addEventListener("pointerdown", closeOp, true);
     bdBox.innerHTML = '<svg viewBox="0 0 26 160" preserveAspectRatio="none"><rect x="11" y="14" width="4" height="132" rx="2" '
         + 'fill="rgba(240,240,240,.45)" stroke="#111" stroke-width="1"/></svg>';
-    const bdIcon = E.el("span", "rg-oslider-ic"); bdIcon.innerHTML = svgIcon("opacity");
     const bdHandle = E.el("div", "rg-bhandle rg-ohandle");
-    bdBox.append(bdIcon, bdHandle);
+    bdBox.append(bdHandle);
+    opBox.append(opBtn, bdBox);
     const O_TOP = 14 / 160, O_BOT = 146 / 160;
+    let shownFill = "";
     function syncOpacity() {
-        bdHandle.style.top = `${(O_BOT - E.backdropOpacity * (O_BOT - O_TOP)) * 100}%`;
-        bdBox.title = `Image opacity: ${Math.round(E.backdropOpacity * 100)}%.\n`
-            + "How strongly the image under the canvas shows through the regions.\nDrag or wheel: Change it.";
+        const f = E.fillNow(), key = `${f}|${E.backdrop ? 1 : 0}`;
+        if (key === shownFill) return;
+        shownFill = key;
+        bdHandle.style.top = `${(O_BOT - f * (O_BOT - O_TOP)) * 100}%`;
+        const what = `Region opacity: ${Math.round(f * 100)}%.\n`
+            + (E.backdrop ? "How solid the regions' colors are drawn over the image. Below 100% a line along each region's edge stays solid.\n"
+                : "How solid the regions' colors are drawn. Below 100% a line along each region's edge stays solid.\n");
+        bdBox.title = what + "Drag or wheel: Change it. With an image connected the canvas keeps its own value.";
+        opBtn.title = what + "Point here: The slider drops down. A click keeps it open.\nWheel: Change it. With an image connected the canvas keeps its own value.";
     }
+    E.syncOpacity = syncOpacity;
     const opacityFromY = (y) => {
         const r = bdBox.getBoundingClientRect(), f = (y - r.top) / Math.max(1, r.height);
-        E.backdropOpacity = Math.round(Math.min(1, Math.max(0, (O_BOT - f) / (O_BOT - O_TOP))) * 20) / 20;
+        E.setFill((O_BOT - f) / (O_BOT - O_TOP));
         syncOpacity(); E.requestDraw();
     };
     let oDrag = false;
@@ -330,9 +373,9 @@ export function* toolbar(E) {
     bdBox.addEventListener("pointerup", endODrag);
     bdBox.addEventListener("pointercancel", endODrag);
     for (const ev of ["mousedown", "mouseup", "click", "dblclick", "contextmenu"]) bdBox.addEventListener(ev, (e) => e.stopPropagation());
-    bdBox.addEventListener("wheel", (e) => {
+    opBox.addEventListener("wheel", (e) => {
         e.preventDefault(); e.stopPropagation();
-        E.backdropOpacity = Math.round(Math.min(1, Math.max(0, E.backdropOpacity + (e.deltaY < 0 ? 0.05 : -0.05))) * 20) / 20;
+        E.setFill(E.fillNow() + (e.deltaY < 0 ? 0.05 : -0.05));
         syncOpacity(); E.requestDraw();
     }, { passive: false });
     syncOpacity();
