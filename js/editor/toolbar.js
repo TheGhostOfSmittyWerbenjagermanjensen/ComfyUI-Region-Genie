@@ -299,22 +299,30 @@ export function* toolbar(E) {
     const clearBtn = iconBtn("clear", "Clear all: Remove every layer and region (Undo brings them back)", () => {
         if (E.state.layers.length || E.state.regions.length || E.state.poses?.length || E.state.importSig) E.change(() => { E.state.layers = []; E.state.regions = []; delete E.state.poses; delete E.state.importSig; E.selId = null; E.curRegion = null; E.filter = ALL; });
     }, "danger"); E.clearBtn = clearBtn;
-    // image opacity: a vertical slider over the canvas's right edge while an image is shown under the regions
-    const bdBox = E.el("div", "rg-oslider"); E.bdBox = bdBox; bdBox.style.display = "none";
+    // region opacity: a vertical slider over the canvas's right edge (how solid the regions' colors are drawn; one
+    // value with an image under them, one without: E.fillNow / E.setFill in core.js)
+    const bdBox = E.el("div", "rg-oslider"); E.bdBox = bdBox;
     bdBox.innerHTML = '<svg viewBox="0 0 26 160" preserveAspectRatio="none"><rect x="11" y="14" width="4" height="132" rx="2" '
         + 'fill="rgba(240,240,240,.45)" stroke="#111" stroke-width="1"/></svg>';
     const bdIcon = E.el("span", "rg-oslider-ic"); bdIcon.innerHTML = svgIcon("opacity");
     const bdHandle = E.el("div", "rg-bhandle rg-ohandle");
     bdBox.append(bdIcon, bdHandle);
     const O_TOP = 14 / 160, O_BOT = 146 / 160;
+    let shownFill = "";
     function syncOpacity() {
-        bdHandle.style.top = `${(O_BOT - E.backdropOpacity * (O_BOT - O_TOP)) * 100}%`;
-        bdBox.title = `Image opacity: ${Math.round(E.backdropOpacity * 100)}%.\n`
-            + "How strongly the image under the canvas shows through the regions.\nDrag or wheel: Change it.";
+        const f = E.fillNow(), key = `${f}|${E.backdrop ? 1 : 0}`;
+        if (key === shownFill) return;
+        shownFill = key;
+        bdHandle.style.top = `${(O_BOT - f * (O_BOT - O_TOP)) * 100}%`;
+        bdBox.title = `Region opacity: ${Math.round(f * 100)}%.\n`
+            + (E.backdrop ? "How solid the regions' colors are drawn over the image. Below 100% a line along each region's edge stays solid.\n"
+                : "How solid the regions' colors are drawn. Below 100% a line along each region's edge stays solid.\n")
+            + "Drag or wheel: Change it. With an image connected the canvas keeps its own value.";
     }
+    E.syncOpacity = syncOpacity;
     const opacityFromY = (y) => {
         const r = bdBox.getBoundingClientRect(), f = (y - r.top) / Math.max(1, r.height);
-        E.backdropOpacity = Math.round(Math.min(1, Math.max(0, (O_BOT - f) / (O_BOT - O_TOP))) * 20) / 20;
+        E.setFill((O_BOT - f) / (O_BOT - O_TOP));
         syncOpacity(); E.requestDraw();
     };
     let oDrag = false;
@@ -332,7 +340,7 @@ export function* toolbar(E) {
     for (const ev of ["mousedown", "mouseup", "click", "dblclick", "contextmenu"]) bdBox.addEventListener(ev, (e) => e.stopPropagation());
     bdBox.addEventListener("wheel", (e) => {
         e.preventDefault(); e.stopPropagation();
-        E.backdropOpacity = Math.round(Math.min(1, Math.max(0, E.backdropOpacity + (e.deltaY < 0 ? 0.05 : -0.05))) * 20) / 20;
+        E.setFill(E.fillNow() + (e.deltaY < 0 ? 0.05 : -0.05));
         syncOpacity(); E.requestDraw();
     }, { passive: false });
     syncOpacity();

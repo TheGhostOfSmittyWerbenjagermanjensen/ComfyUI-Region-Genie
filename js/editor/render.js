@@ -118,6 +118,43 @@ export function* render(E) {
             c.drawImage(scr, 0, 0);
         }
     }
+    // The regions' edge lines, drawn solid while their fill is see-through: every pixel of the composite whose
+    // neighbor a line's width away (left, right, up or down) has another color or is empty keeps its own color,
+    // fully opaque. So the line lies inside its region, two regions that touch each get one, and layers of one
+    // region (one color) get none between them. Colors that differ only a little (a fade, the smoothed rim of a
+    // shape) count as the same. Read from a composite without the hatch of the "no region" layers.
+    const edgeCv = document.createElement("canvas"), edgeCtx = edgeCv.getContext("2d");
+    const flatCv = document.createElement("canvas"), flatCtx = flatCv.getContext("2d", { willReadFrequently: true });
+    const flatScr = document.createElement("canvas"), flatSctx = flatScr.getContext("2d");
+    function edgeLines(w, h, dpr, box) {             // box: the image's rectangle on the canvas (only that part is read)
+        const x0 = Math.max(0, Math.floor(box[0])), y0 = Math.max(0, Math.floor(box[1]));
+        const bw = Math.min(w, Math.ceil(box[0] + box[2])) - x0, bh = Math.min(h, Math.ceil(box[1] + box[3])) - y0;
+        if (bw <= 0 || bh <= 0) return null;
+        for (const c of [edgeCv, flatCv, flatScr]) if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+        renderComposite(flatCtx, w, h, flatScr, flatSctx);
+        const k = Math.max(1, Math.round(1.5 * dpr));
+        const src = flatCtx.getImageData(x0, y0, bw, bh), s = src.data, s32 = new Uint32Array(s.buffer);
+        const out = edgeCtx.createImageData(bw, bh), o32 = new Uint32Array(out.data.buffer);
+        const other = (i, j) => {                    // i is drawn (alpha >= 128): is j another color, or empty?
+            const a = i * 4, b = j * 4;
+            if (s[b + 3] < 128) return true;
+            return Math.abs(s[a] - s[b]) + Math.abs(s[a + 1] - s[b + 1]) + Math.abs(s[a + 2] - s[b + 2]) > 36;
+        };
+        const kw = k * bw;
+        for (let y = 0; y < bh; y++) {
+            const row = y * bw, up = y >= k, down = y < bh - k;
+            for (let x = 0; x < bw; x++) {
+                const i = row + x, p = s32[i];
+                if ((p >>> 24) < 128) continue;
+                // the image's own border counts as an edge too (a region that reaches it is closed there)
+                if (x < k || x >= bw - k || !up || !down || (s32[i - k] !== p && other(i, i - k)) || (s32[i + k] !== p && other(i, i + k))
+                    || (s32[i - kw] !== p && other(i, i - kw)) || (s32[i + kw] !== p && other(i, i + kw))) o32[i] = p | 0xff000000;
+            }
+        }
+        edgeCtx.clearRect(0, 0, w, h);
+        edgeCtx.putImageData(out, x0, y0);
+        return edgeCv;
+    }
     function checker(w, h) {
         const s = 10 * E.dprNow();
         E.ctx.fillStyle = "#3a3a3a"; E.ctx.fillRect(0, 0, w, h);
@@ -137,15 +174,15 @@ export function* render(E) {
         const [ix, iy] = E.toScr(0, 0), iw = W * E.view.z, ih = H * E.view.z;
         E.ctx.fillStyle = "#000"; E.ctx.fillRect(ix, iy, iw, ih);
         if (E.backdrop) {
-            E.ctx.globalAlpha = E.backdropOpacity;
             E.ctx.drawImage(E.backdrop, ix, iy, iw, ih);
-            E.ctx.globalAlpha = 1;
         }
+        const fill = E.fillNow();
         renderComposite(E.cctx, w, h, E.scratch, E.sctx, undefined, true);
         E.ctx.save();
         E.ctx.beginPath(); E.ctx.rect(ix, iy, iw, ih); E.ctx.clip();
-        E.ctx.globalAlpha = E.backdrop ? Math.max(0.35, 1 - E.backdropOpacity * 0.6) : 1;
+        E.ctx.globalAlpha = fill;
         E.ctx.drawImage(E.comp, 0, 0);
+        if (fill < 1) { const ed = edgeLines(w, h, dpr, [ix, iy, iw, ih]); if (ed) { E.ctx.globalAlpha = 1; E.ctx.drawImage(ed, 0, 0); } }
         E.ctx.restore();
         E.ctx.save();
         E.ctx.beginPath(); E.ctx.rect(0, 0, w, h); E.ctx.rect(ix, iy, iw, ih); E.ctx.clip("evenodd");
@@ -165,7 +202,7 @@ export function* render(E) {
         if (E.snap && E.grid * E.view.z >= 6) {
             E.ctx.save();
             E.ctx.beginPath(); E.ctx.rect(ix, iy, iw, ih); E.ctx.clip();
-            E.ctx.strokeStyle = "rgba(255,255,255,.12)"; E.ctx.lineWidth = 1;
+            E.ctx.strokeStyle = `rgba(255,255,255,${E.gridAlpha})`; E.ctx.lineWidth = 1;
             E.ctx.beginPath();
             for (let gx = 0; gx <= W; gx += E.grid) { const x = Math.round(ix + gx * E.view.z) + 0.5; E.ctx.moveTo(x, iy); E.ctx.lineTo(x, iy + ih); }
             for (let gy = 0; gy <= H; gy += E.grid) { const y = Math.round(iy + gy * E.view.z) + 0.5; E.ctx.moveTo(ix, y); E.ctx.lineTo(ix + iw, y); }
@@ -243,7 +280,7 @@ export function* render(E) {
         E.arrangeBtn.disabled = !E.selLayer();
         if (E.arrangeBtn.disabled && E.arrangePop) E.closeArrange();
         E.clearBtn.disabled = !E.state.layers.length && !E.state.regions.length;
-        E.bdBox.style.display = E.backdrop ? "" : "none";
+        E.syncOpacity();
     }
     // the visible pixels of the kept regions (their layers, minus every other layer above them), hatched;
     // cached until the layout or the view changes
@@ -558,7 +595,7 @@ export function* render(E) {
         // with an image showing through the regions, or a control map on the canvas, the color under the text is
         // not the region's own: the text then gets a dark plate. A kept region in Edit Mode always gets one: it is
         // drawn as an outline over the picture it keeps, so its label lies on that picture
-        const plateAll = (E.backdrop && E.backdropOpacity > 0.25) || E.controlShowK >= 0;
+        const plateAll = E.fillNow() < 0.75 || E.controlShowK >= 0;
         for (const it of order) {
             const { rg, lines, num, nw, gap, bw, h: bh, marks, mw } = it;
             const x0 = it.x + nw + gap, y0 = it.y;

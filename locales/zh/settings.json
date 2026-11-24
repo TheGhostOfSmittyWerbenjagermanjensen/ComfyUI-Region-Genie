@@ -371,6 +371,14 @@
     "name": "网格大小（图像 px）",
     "tooltip": "添加 Region Genie 节点或打开工作流时的网格大小。"
   },
+  "RegionGenie_Main_FillImage": {
+    "name": "有图像时的区域不透明度 (%)",
+    "tooltip": "在区域下方显示已连接的图像时，区域颜色绘制的浓度（在节点上移动画布右侧的滑块之前使用此值）。低于 100% 时，每个区域边缘的一条线保持不透明。"
+  },
+  "RegionGenie_Main_Fill": {
+    "name": "无图像时的区域不透明度 (%)",
+    "tooltip": "区域下方没有显示图像时，区域颜色绘制的浓度（在节点上移动画布右侧的滑块之前使用此值）。低于 100% 时，每个区域边缘的一条线保持不透明。"
+  },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image：颜色 / 深度控制 LoRA",
     "tooltip": "MOSS-Image 的颜色 / 深度控制适配器（一个 LoRA）。它读取区域的颜色图和 / 或深度图，这些图经 VAE 编码后与图像并列（需要“vae”）。\n节点的 Control 行对 MOSS-Image 模型使用它（作为模型上的 LoRA）。\n将 moss_image_color_depth_control.safetensors 放入 ComfyUI/models/loras：https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
@@ -651,7 +659,7 @@
     "name": "图像尺寸",
     "tooltip": "新建 Region Genie 节点的尺寸行如何开始，以及预设列表。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Region opacity over an image , Region opacity without an image ": {
     "name": "Region Genie 节点",
     "tooltip": "新建 Region Genie 节点的初始设置（图像模式、羽化、分离、网格、区域颜色、标签自动补全、通配符）。\nEdit…：在此页打开 Region Genie 设置。"
   },

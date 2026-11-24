@@ -1969,6 +1969,8 @@ export const SET = {
     cmUntil: "RegionGenie.Main.SeparationUntil",
     cmSnap: "RegionGenie.Main.Snap",
     cmGrid: "RegionGenie.Main.Grid",
+    cmFillImage: "RegionGenie.Main.FillImage",
+    cmFill: "RegionGenie.Main.Fill",
     regionColors: "RegionGenie.Main.RegionColors",
     bigKey: "RegionGenie.Main.LargeEditorKey",
     shortcuts: "RegionGenie.Shortcuts",              // the user's keys for the editor's commands (rg_keys.js), a JSON text
@@ -2402,6 +2404,8 @@ const SETTINGS = [
         })),
         { id: SET.cmSnap, name: "Snap to grid on", type: "boolean", defaultValue: false, tooltip: "Whether snap to grid is on when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "09 snap") },
         { id: SET.cmGrid, name: "Grid size (image px)", type: "number", defaultValue: 64, attrs: { min: 2, max: 4096, step: 1 }, tooltip: "The grid size when a Region Genie node is added or a workflow is opened.", category: CAT("Region Genie node", "10 grid") },
+        { id: SET.cmFillImage, name: "Region opacity over an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while a connected image is shown under them, until the slider on the canvas's right edge is moved on a node. Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "101 fill image") },
+        { id: SET.cmFill, name: "Region opacity without an image (%)", type: "number", defaultValue: 100, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while no image is shown under them, until the slider on the canvas's right edge is moved on a node. Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "102 fill") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
             // the file field: ComfyUI's menu on the model folders (round 23), Browse… with SET.filePickers
             id: SET.control + "." + key, name, type: fileSettingType(MODEL_ROOTS, CONTROL_NONE, SET.control + "." + key, folder), defaultValue: CONTROL_NONE,

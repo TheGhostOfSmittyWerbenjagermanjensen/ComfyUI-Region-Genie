@@ -371,6 +371,14 @@
     "name": "Tamaño de la cuadrícula (px de imagen)",
     "tooltip": "El tamaño de la cuadrícula cuando se añade un nodo Region Genie o se abre un flujo de trabajo."
   },
+  "RegionGenie_Main_FillImage": {
+    "name": "Opacidad de las regiones sobre una imagen (%)",
+    "tooltip": "Con qué intensidad se dibujan los colores de las regiones mientras se muestra debajo una imagen conectada, hasta que se mueva en un nodo el deslizador del borde derecho del lienzo. Por debajo del 100 %, una línea a lo largo del borde de cada región permanece opaca."
+  },
+  "RegionGenie_Main_Fill": {
+    "name": "Opacidad de las regiones sin imagen (%)",
+    "tooltip": "Con qué intensidad se dibujan los colores de las regiones mientras no se muestra ninguna imagen debajo, hasta que se mueva en un nodo el deslizador del borde derecho del lienzo. Por debajo del 100 %, una línea a lo largo del borde de cada región permanece opaca."
+  },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: LoRA de control de color / profundidad",
     "tooltip": "El adaptador de control de color / profundidad de MOSS-Image (una LoRA). Lee el mapa de color de las regiones y / o un mapa de profundidad, codificados con el VAE junto a la imagen (necesita 'vae').\nLa fila Control de un nodo lo usa (como LoRA sobre el modelo) con los modelos MOSS-Image.\nDescarga moss_image_color_depth_control.safetensors en ComfyUI/models/loras: https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\nO guarda el archivo en cualquier lugar: Con 'Browse… para archivos de modelo' activado (Archivos de modelo), un botón de carpeta lo selecciona allí donde esté. Es igual para todos los nodos Region Genie."
@@ -651,7 +659,7 @@
     "name": "Tamaño de imagen",
     "tooltip": "Cómo empieza la fila de tamaño de un nodo Region Genie nuevo, y la lista de preajustes.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Region opacity over an image , Region opacity without an image ": {
     "name": "Nodo Region Genie",
     "tooltip": "Con qué empieza un nodo Region Genie nuevo (modo de imagen, difuminado, separación, cuadrícula, colores de región, autocompletado de etiquetas, comodines).\nEdit…: Abre los ajustes de Region Genie en esta página."
   },

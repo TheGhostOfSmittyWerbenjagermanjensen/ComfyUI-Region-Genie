@@ -574,12 +574,12 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     for (const k of ["v", "r", "w", "q"]) { await key(k); const [h, need, w] = await barRows(); if (h > 30 || need > w) oneRow = false; }
     check("toolbar: one row for every tool (image connected)", oneRow);
     const osl = page.locator(".rg-cv .rg-oslider");
-    check("image opacity: a slider on the canvas's right edge, with a tooltip", await osl.isVisible() && /^Image opacity: 50%/.test(await osl.getAttribute("title"))
+    check("region opacity: a slider on the canvas's right edge, with a tooltip (50% over an image)", await osl.isVisible() && /^Region opacity: 50%/.test(await osl.getAttribute("title"))
         && await page.evaluate(() => { const r = document.querySelector(".rg-oslider").getBoundingClientRect(), c = document.querySelector(".rg-cv").getBoundingClientRect(); return c.right - r.right < 20; }));
     const ob = await osl.boundingBox();
     await page.mouse.click(ob.x + ob.width / 2, ob.y + ob.height * 0.15);
     await page.waitForTimeout(60);
-    check("clicking near the top: about 90-100%", /^Image opacity: (90|95|100)%/.test(await osl.getAttribute("title")));
+    check("clicking near the top: about 90-100%", /^Region opacity: (90|95|100)%/.test(await osl.getAttribute("title")));
 
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");

@@ -2,6 +2,15 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 72 (Nov 24): see-through regions over an image, with a solid edge line; stronger grid lines
+- Asked: make the regions translucent while an image is shown under them (low enough to see the image clearly, adjustable), perhaps without an image too; with options and mock-ups. During the work: a thin line along the regions' edges should stay opaque.
+- Decided by the owner from mock-ups made in the real editor: fill plus a solid edge line; 50% over an image; solid without an image; the slider sets the regions only (the image is always at full strength); stronger grid lines.
+- Open (options shown, not decided): how the user changes the grid lines' strength, and a way to show the grid without snapping.
+- Built: `E.fillNow()` / `E.setFill()` (core.js): one value over an image, one without, in the node's properties (`rg_fill_image`, `rg_fill`), defaults from two new Settings. The slider is always shown ("Region opacity").
+- Built: `edgeLines()` (render.js) finds the edge pixels of the composite (a neighbor a line's width away has another color or is empty) and draws them solid; only run below 100%, and only over the image's rectangle.
+- Built: the snap grid's lines are 30% white (were 12%); labels get their dark plate whenever the fill is under 75%.
+- Tests: new `ui_region_opacity.cjs` (pixels of the canvas: mix, edge line, slider, the two values, grid line); stub suite, Python suite, real tooltips / settings / i18n in both modes.
+
 ## Round 71 (Nov 23): Settings: 'Preset to edit' fills the row the focus is in too
 - Reported (after the first release, 0.52.1): in Settings > Region Genie > LLM Prompt Enhancer, choosing another preset in 'Preset to edit' didn't put its text into 'Preset: system prompt'. (Also asked: a way to delete a preset. Both places have a Delete button already, off while the preset is a default.)
 - Found: the rows skip the one the keyboard focus is in, so that typing isn't interrupted when the library is saved. With the focus still in the system prompt box when the choice changed (Firefox on Windows, the owner's browser), that box kept the previous preset's text. Chromium moves the focus to the dropdown, so it never showed here.

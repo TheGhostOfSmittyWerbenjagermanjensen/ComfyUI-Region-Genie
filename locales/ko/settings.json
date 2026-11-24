@@ -371,6 +371,14 @@
     "name": "그리드 크기 (이미지 px)",
     "tooltip": "Region Genie 노드를 추가하거나 워크플로를 열 때의 그리드 크기입니다."
   },
+  "RegionGenie_Main_FillImage": {
+    "name": "이미지가 있을 때 영역 불투명도 (%)",
+    "tooltip": "연결된 이미지를 영역 아래에 표시할 때 영역 색을 얼마나 진하게 그릴지 정합니다(노드에서 캔버스 오른쪽 가장자리의 슬라이더를 움직이기 전까지의 값). 100% 미만에서는 각 영역 가장자리의 선이 불투명하게 유지됩니다."
+  },
+  "RegionGenie_Main_Fill": {
+    "name": "이미지가 없을 때 영역 불투명도 (%)",
+    "tooltip": "영역 아래에 이미지를 표시하지 않을 때 영역 색을 얼마나 진하게 그릴지 정합니다(노드에서 캔버스 오른쪽 가장자리의 슬라이더를 움직이기 전까지의 값). 100% 미만에서는 각 영역 가장자리의 선이 불투명하게 유지됩니다."
+  },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: 색상 / 깊이 컨트롤 LoRA",
     "tooltip": "MOSS-Image의 색상 / 깊이 컨트롤 어댑터(LoRA)입니다. 영역의 색상 맵 및 / 또는 깊이 맵을 읽으며, 맵은 이미지와 나란히 VAE로 인코딩됩니다('vae' 필요).\n노드의 Control 행이 MOSS-Image 모델에서 이를 사용합니다(모델에 LoRA로 적용).\nmoss_image_color_depth_control.safetensors 파일을 ComfyUI/models/loras에 넣으세요: https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
@@ -651,7 +659,7 @@
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Region opacity over an image , Region opacity without an image ": {
     "name": "Region Genie 노드",
     "tooltip": "새 Region Genie 노드의 초기 설정(이미지 모드, 페더, 분리, 그리드, 영역 색상, 태그 자동 완성, 와일드카드).\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },

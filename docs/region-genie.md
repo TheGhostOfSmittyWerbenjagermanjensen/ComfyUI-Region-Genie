@@ -454,7 +454,10 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 
 - **Image mode** (a small strip in the canvas's top right corner, only while an image is connected and not in Edit Mode): two buttons, **backdrop** (trace over) and **color map**. With color map, a field next to them sets the **min region pixels**.
 - **`image` input, "backdrop (trace over)":** the image is shown under the canvas to trace over.
-  - The **image opacity** slider on the canvas's right edge sets how strongly. It is only shown with an image connected; drag it or use the mouse wheel over it.
+  - The image is shown at full strength, and the regions over it are see-through: 50% at first.
+  - The **region opacity** slider on the canvas's right edge sets how solid the regions' colors are; drag it or use the mouse wheel over it.
+  - Below 100% a thin line along each region's edge keeps the solid color, so the shapes stay exact. At 0% only the lines remain.
+  - Without an image the regions are solid (100%). The slider is there too, and the canvas keeps one value for each case.
   - A directly connected Load Image shows right away; anything else shows after a run.
 - **`image` input, "use as color map":** the image's flat colors become regions under all layers, and they appear in the region list after a run so you can give them prompts.
 - **min region pixels** and **what import_json does when the canvas isn't empty** are settings for all nodes: **Settings > Region Genie > Region Genie node** (*Color map: min region pixels*, *import_json when the canvas isn't empty*).
@@ -603,6 +606,7 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
   - Tag autocomplete, what the LLM sees, whether new regions start with the LLM on.
   - The Region Genie node's image size (mode, aspect ratio, megapixels, multiple, manual width / height / step size; the presets list is shared by every node).
   - image_mode, feather, separation / until, keep all regions separate, share the background, snap and grid size.
+  - Region opacity over an image (50%) and without one (100%): what the slider on the canvas starts at.
   - Regional LoRAs' feather, lora_masking, region_separation, separation_until, separate_all_regions and share_background.
 - Some settings apply to every node at its next run instead:
   - **Plain-text prompts: keep all regions separate automatically** (on by default) and one per model, see *Which format `prompt` uses*.
