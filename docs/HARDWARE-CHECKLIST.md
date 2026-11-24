@@ -43,6 +43,10 @@ Check once in legacy mode and once in Nodes 2.0.
 - [ ] The message bar under the canvas: selecting text, right-click, Copy link
 - [ ] Region opacity (round 72): with an image connected the regions are see-through with a solid edge line; the opacity button in the canvas's top right corner (its slider drops down) changes it
 - [ ] The same in the large editor on the 4K screen: dragging and zooming stay smooth below 100% (the edge lines are drawn by the graphics card per frame), in Firefox too
+- [ ] Edge lines (round 73): smooth on tilted layers; a region under another has no line around it; two touching regions both have one; no blinking of the lines while dragging or zooming
+- [ ] Labels without a box (round 73): readable over a real photo at 50%, and over light region colors at 100% (black text, white glow)
+- [ ] Labels: text size 8 / 11 / 20 in Settings; zooming in enlarges the text, zooming out keeps it at the set size; shadow size and strength at their ends
+- [ ] Settings > Region edge line: 1, 3.5, 10 and 0 look right; the canvas stays smooth with ten or more regions
 - [ ] Snap to grid on: the grid lines are clearly visible on regions and on the empty canvas; the magnet's ▾ menu (Faint / Normal / Strong, show without snapping, Shift+G)
 
 - [ ] Manual size mode at the default node width, both node modes: the ± step box fits in the row; clicking the small arrows of W / H with the mouse changes the value by the step; many fast clicks (up, down, mixed) on W, H, ±, MP and × all count, none snaps back (reported in Firefox 160 on Windows, legacy mode, very fast clicks; fixed and checked in Firefox on Linux with the focus kept out of the field: please confirm on Windows)

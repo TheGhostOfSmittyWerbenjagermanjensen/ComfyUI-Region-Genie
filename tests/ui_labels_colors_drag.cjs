@@ -159,6 +159,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // round 42: a kept region is an outline over the picture it keeps, so its label (number and prompt) gets a dark plate
     const corner = (rid) => page.evaluate((rid) => { const l = window.__node.__rgLabels().find((x) => x.rid === rid), g = document.querySelector(".rg-cv canvas").getContext("2d");
         const d = g.getImageData(Math.round(l.x0 + 1), Math.round(l.y0 + 1), 1, 1).data; return d[0] + d[1] + d[2]; }, rid);
+    // (with the regions solid: at the 50% they start with, a region's own color is darker than the plate)
+    await page.evaluate(() => { window.__node.properties.rg_fill = 1; window.__node.properties.rg_fill_image = 1; window.__node.__rgRefresh(); }); await page.waitForTimeout(250);
     const litKept = await corner(cliff.id);
     await setReg(cliff.id, { keep: false });
     const l3 = await raw(cliff.id), litPlain = await corner(cliff.id);

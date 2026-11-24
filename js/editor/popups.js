@@ -14,7 +14,7 @@ export function* popups(E) {
     yield;
 
     // ---- pop-up editors: on top of the page (dragged anywhere on the screen), one at a time. The size: every node (a
-    // hidden Setting); the text size: Settings > Region Genie > Text size, per kind of field (A− / A+ don't change the
+    // hidden Setting); the text size: Settings > Region Genie > Text, per kind of field (A− / A+ don't change the
     // pop-up's size). They stay open until Esc, the close button, another pop-up, or the node leaving the canvas (another
     // workflow tab, a subgraph); a click elsewhere doesn't close them. They always keep their text: Enter is a new line,
     // and a change is taken back with the pop-up's own Undo / Redo (textHistory(): the steps of every field are kept
@@ -88,8 +88,8 @@ export function* popups(E) {
             b.addEventListener("click", (e) => { e.preventDefault(); fn(); });
             return b;
         };
-        const fm = mkB("A−", "Smaller text in the box you're typing in (Settings > Region Genie > Text size). The pop-up keeps its size", () => font(-1), "rg-pop-font");
-        const fp = mkB("A+", "Larger text in the box you're typing in (Settings > Region Genie > Text size). The pop-up keeps its size", () => font(1), "rg-pop-font");
+        const fm = mkB("A−", "Smaller text in the box you're typing in (Settings > Region Genie > Text). The pop-up keeps its size", () => font(-1), "rg-pop-font");
+        const fp = mkB("A+", "Larger text in the box you're typing in (Settings > Region Genie > Text). The pop-up keeps its size", () => font(1), "rg-pop-font");
         const prev = mkB("◀", popNavTip(-1, "scene prompts, then each region's prompt"), () => popStep(-1), "rg-nav prev");
         const next = mkB("▶", popNavTip(1, "scene prompts, then each region's prompt"), () => popStep(1), "rg-nav");
         const x = head.querySelector(".rg-x");
@@ -153,7 +153,7 @@ export function* popups(E) {
         return [ed.acCtl.el, wcPick];
     };
     const flexGap = () => { const g = E.el("span", "rg-pop-gap"); return g; };
-    // text size of the node's own fields (Settings > Region Genie > Text size; 0 = as before)
+    // text size of the node's own fields (Settings > Region Genie > Text; 0 = as before)
     function applyFieldFonts() {
         const fs = (id) => clampN(Math.round(+recentSetting(id, 0)) || 0, 0, 40);
         const a = fs(SET.fsNodeScene), b = fs(SET.fsNodeRegion), c = fs(SET.fsNodeText);

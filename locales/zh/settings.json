@@ -392,6 +392,10 @@
     "name": "无图像时的区域不透明度 (%)",
     "tooltip": "区域下方没有显示图像时，区域颜色绘制的浓度（在节点上更改之前使用此值：画布右上角的不透明度按钮）。低于 100% 时，每个区域边缘的一条线保持不透明。"
   },
+  "RegionGenie_Main_EdgeLine": {
+    "name": "区域边缘线 (px)",
+    "tooltip": "区域半透明时，沿每个区域边缘的实线宽度，适用于每个 Region Genie 节点。线宽超过形状时会填满该形状。0：不画线。"
+  },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image：颜色 / 深度控制 LoRA",
     "tooltip": "MOSS-Image 的颜色 / 深度控制适配器（一个 LoRA）。它读取区域的颜色图和 / 或深度图，这些图经 VAE 编码后与图像并列（需要“vae”）。\n节点的 Control 行对 MOSS-Image 模型使用它（作为模型上的 LoRA）。\n将 moss_image_color_depth_control.safetensors 放入 ComfyUI/models/loras：https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\n也可以把文件放在任意位置：开启“模型文件”中的“浏览…选取模型文件”后，可用文件夹按钮在其所在位置选取。所有 Region Genie 节点共用。"
@@ -672,7 +676,7 @@
     "name": "图像尺寸",
     "tooltip": "新建 Region Genie 节点的尺寸行如何开始，以及预设列表。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px ": {
     "name": "Region Genie 节点",
     "tooltip": "新建 Region Genie 节点的初始设置（图像模式、羽化、分离、网格、区域颜色、标签自动补全、通配符）。\nEdit…：在此页打开 Region Genie 设置。"
   },
@@ -680,9 +684,9 @@
     "name": "画布工具",
     "tooltip": "套索、魔棒和填充按钮初始使用哪个版本，魔棒容差、填充间隙大小、画布上的提示。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render": {
-    "name": "文字大小",
-    "tooltip": "提示词框的文字大小，包括节点上和弹出编辑器中。\nEdit…：在此页打开 Region Genie 设置。"
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength ": {
+    "name": "文字",
+    "tooltip": "提示词框的文字大小（节点上和弹出编辑器中），以及画布上区域标签的大小和阴影。\nEdit…：在此页打开 Region Genie 设置。"
   },
   "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "控制",
@@ -711,5 +715,21 @@
   "RegionGenie_Page_save: format, PNG compression, WebP lossless, WebP quality, JPEG quality, JPEG extension, JPEG workflow, AVIF quality, EXR bit depth, EXR color space": {
     "name": "保存图像",
     "tooltip": "新建 Save Image (Region Genie) 节点初始使用的格式，以及每种格式的设置。\nEdit…：在此页打开 Region Genie 设置。"
+  },
+  "RegionGenie_Main_LabelSize": {
+    "name": "画布上：区域标签",
+    "tooltip": "画布上所写区域提示词的文字大小（px），指整幅图像都在视图中时的大小。放大时文字随图像一起变大，直到下面的大小；缩小时不会小于此大小。适用于所有节点。"
+  },
+  "RegionGenie_Main_LabelMax": {
+    "name": "画布上：区域标签，放大时的最大值",
+    "tooltip": "放大时画布上区域提示词最多增大到的文字大小（px）。小于上面大小的值按上面的大小计算：此时文字不会变大。适用于所有节点。"
+  },
+  "RegionGenie_Main_LabelShadow": {
+    "name": "画布上：标签阴影大小 (px)",
+    "tooltip": "画布上区域提示词周围深色阴影的扩散范围（浅色区域上的深色文字则为白色光晕）。0：无。"
+  },
+  "RegionGenie_Main_LabelShadowStrength": {
+    "name": "画布上：标签阴影强度 (%)",
+    "tooltip": "画布上区域提示词周围阴影或光晕的浓度。0：无。"
   }
 }

@@ -331,22 +331,22 @@ export function* llm(E) {
             const down = E.ico("@down", "Move down: Later in the output order, and its layers behind", () => E.change(() => {
                 [E.state.regions[i + 1], E.state.regions[i]] = [E.state.regions[i], E.state.regions[i + 1]]; E.sortLayersByRegions(); }));
             down.disabled = i === E.state.regions.length - 1;
-            const del = E.ico("@close", "Delete region and its layers", () => E.change(() => {
-                E.state.regions.splice(i, 1);
-                E.state.layers = E.state.layers.filter((l) => l.region !== r.id);
-                if (E.state.poses) { E.state.poses = E.state.poses.filter((p) => p.region !== r.id); if (!E.state.poses.length) delete E.state.poses; }
-                if (E.curRegion === r.id) E.curRegion = E.state.regions[0]?.id ?? null;
-                if (!E.selLayer()) E.selId = null;
-            }));
+            // on the row itself (round 73; on the opened region's options line until then), and in the row's right-click menu
+            const del = E.ico("@close", "Delete region and its layers. Undo brings them back.\nRight-click the row: More for this region.", () => E.deleteRegion(r));
+            del.classList.add("rg-rdel");
+            row.addEventListener("contextmenu", (e) => {
+                if (e.target.closest?.("textarea, input, select, .rg-llm-btn")) return;      // a field keeps the browser's menu, the LLM button its own
+                e.preventDefault(); e.stopPropagation(); E.rowMenu(r, e);
+            });
             // the row itself keeps what is used all the time, so the prompt gets the room (round 34); the rest is on
             // the options line of the opened region
-            row.append(llmButton(r.id), ...(E.isEdit() ? [E.keepToggle(r)] : []), ...(E.controls().length ? [E.controlToggle(r)] : []), cnt, addL);
+            row.append(llmButton(r.id), ...(E.isEdit() ? [E.keepToggle(r)] : []), ...(E.controls().length ? [E.controlToggle(r)] : []), cnt, addL, del);
             E.regList.appendChild(row);
             if (E.expanded.has(r.id)) {
                 const opts = E.el("div", "rg-row opts"), gap = E.el("span"); gap.style.flex = "1 1 auto";
                 const fBox = E.featherBox(r), pal = E.paletteToggle(r);
                 const word = (text, forEl) => { const w = E.el("span", "rg-hint rg-word"); w.textContent = text; w.title = forEl.title || forEl.querySelector?.("[title]")?.title || ""; return w; };
-                opts.append(word("feather", fBox), fBox, word("palette", pal), pal, gap, mergeAll, up, down, del);
+                opts.append(word("feather", fBox), fBox, word("palette", pal), pal, gap, mergeAll, up, down);
                 opts.addEventListener("pointerdown", (e) => { if (e.target === opts || e.target === gap) pick(); });
                 E.regList.appendChild(opts);
                 for (const k of kinds) {

@@ -157,9 +157,15 @@ export function* core(E) {
     // in the canvas's top right corner; kept in the node's properties, the defaults are Settings). Below 100% an edge line
     // in the region's color stays solid (render.js)
     const pct = (v, d) => { const n = +v; return Number.isFinite(n) ? Math.min(1, Math.max(0, n / 100)) : d; };
-    E.fillDefault = (img) => (img ? pct(getSetting(SET.cmFillImage, 50), 0.5) : pct(getSetting(SET.cmFill, 80), 0.8));
+    E.fillDefault = (img) => (img ? pct(getSetting(SET.cmFillImage, 50), 0.5) : pct(getSetting(SET.cmFill, 50), 0.5));
     E.fillNow = () => { const v = E.node.properties?.[E.backdrop ? "rg_fill_image" : "rg_fill"]; return typeof v === "number" ? Math.min(1, Math.max(0, v)) : E.fillDefault(!!E.backdrop); };
     E.setFill = (v) => { (E.node.properties = E.node.properties || {})[E.backdrop ? "rg_fill_image" : "rg_fill"] = Math.round(Math.min(1, Math.max(0, v)) * 20) / 20; };
+    E.edgePx = () => { const n = +getSetting(SET.cmEdge, 3.5); return Number.isFinite(n) ? Math.min(10, Math.max(0, n)) : 3.5; };   // the regions' edge line, px
+    const num = (id, d, lo, hi) => { const n = +getSetting(id, d); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+    E.labelPx = () => num(SET.cmLabelSize, 11, 8, 32);                    // the prompts on the canvas: text size with the image fitted in view,
+    E.labelShadow = () => num(SET.cmLabelShadow, 4, 0, 12);               // their shadow / glow: how far it spreads (px)
+    E.labelMaxPx = () => Math.max(E.labelPx(), num(SET.cmLabelMax, 16, 8, 64));   // …and the most they grow to when zooming in (never under their size)
+    E.labelShadowStrength = () => num(SET.cmLabelShadowStrength, 200, 0, 300) / 100;   // and how dense (1 = 100%)
     E.showGrid = !!getSetting(SET.cmGridShow, false);     // the grid's lines while snap is off
     E.gridAlphaNow = () => GRID_LINES[getSetting(SET.cmGridLines, "normal")] || GRID_LINES.normal;
     E.lastDims = [0, 0];

@@ -9,7 +9,7 @@ import { openMenu, closeMenu } from "../rg_menu.js";
 import { UNSPEC, CLIPBOARD } from "./shared.js";
 
 export function* menu(E) {
-    Object.assign(E, { canvasMenu });
+    Object.assign(E, { canvasMenu, deleteRegion, rowMenu });
     yield;
 
     const short = (r) => { const p = (r.prompt || "").trim().replace(/\s+/g, " "); return p ? (p.length > 34 ? p.slice(0, 33) + "…" : p) : "(no prompt)"; };
@@ -28,15 +28,9 @@ export function* menu(E) {
             { label: "Move up (in front)", icon: "up", disabled: i <= 0, fn: () => move(-1) },
             { label: "Move down (behind)", icon: "down", disabled: i >= n - 1, fn: () => move(1) },
             null,
-            { label: "Duplicate this layer", icon: "copy", key: keyText("edit.duplicate").split(" / ")[0] || undefined, fn: () => E.duplicate(L) },
-            { label: "Delete this layer", icon: "clear", key: keyText("edit.delete").split(" / ")[0] || undefined, fn: () => E.deleteSelected(L) },
-            { label: lays.length > 1 ? `Delete region and its ${lays.length} layers` : "Delete region", icon: "close", danger: true, fn: () => E.change(() => {
-                E.state.regions.splice(E.state.regions.indexOf(r), 1);
-                E.state.layers = E.state.layers.filter((l) => l.region !== r.id);
-                if (E.state.poses) { E.state.poses = E.state.poses.filter((p) => p.region !== r.id); if (!E.state.poses.length) delete E.state.poses; }
-                if (E.curRegion === r.id) E.curRegion = E.state.regions[0]?.id ?? null;
-                if (!E.selLayer()) E.selId = null;
-            }) },
+            ...(L ? [{ label: "Duplicate this layer", icon: "copy", key: keyText("edit.duplicate").split(" / ")[0] || undefined, fn: () => E.duplicate(L) },
+                { label: "Delete this layer", icon: "clear", key: keyText("edit.delete").split(" / ")[0] || undefined, fn: () => E.deleteSelected(L) }] : []),
+            { label: lays.length > 1 ? `Delete region and its ${lays.length} layers` : "Delete region", icon: "close", danger: true, fn: () => deleteRegion(r) },
             ...(others.length ? [null, { head: "Also here" }, ...others.map((o) => ({ label: title(o.r), swatch: o.r.color, fn: () => { pickRegion(o.r, o.L); } }))] : []),
         ];
     }
@@ -54,6 +48,23 @@ export function* menu(E) {
             { label: E.big ? "Back into the node" : "Large editor", icon: "expand", key: key1("view.big"), fn: () => E.toggleBig() },
             { label: "Shortcuts", icon: "keyboard", key: key1("view.help"), fn: () => E.toggleKeys() },
         ];
+    }
+    // a region goes with its layers and pose figures (Undo brings them back); the first region becomes the active one
+    function deleteRegion(r) {
+        E.change(() => {
+            const i = E.state.regions.indexOf(r);
+            if (i < 0) return;
+            E.state.regions.splice(i, 1);
+            E.state.layers = E.state.layers.filter((l) => l.region !== r.id);
+            if (E.state.poses) { E.state.poses = E.state.poses.filter((p) => p.region !== r.id); if (!E.state.poses.length) delete E.state.poses; }
+            if (E.curRegion === r.id) E.curRegion = E.state.regions[0]?.id ?? null;
+            if (!E.selLayer()) E.selId = null;
+        });
+    }
+    // right-click on a region's row in the list: the region's part of the canvas menu (no layer is under the pointer)
+    function rowMenu(r, e) {
+        E.curRegion = r.id; E.markRegionRows(); E.requestDraw();
+        openMenu(e.clientX, e.clientY, regionItems(r, null, []), { onClose: () => { if (E.wrap.isConnected) E.focusSink(); } });
     }
     // the region becomes the active one and its layer the selected one, as a click with the Select tool does
     function pickRegion(r, L) {

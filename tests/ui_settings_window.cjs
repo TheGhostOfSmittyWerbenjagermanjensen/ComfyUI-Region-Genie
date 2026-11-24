@@ -37,7 +37,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         return { in: d.contains(w), covers: Math.abs(a.left - b.left) < 2 && Math.abs(a.top - b.top) < 2 && Math.abs(a.width - b.width) < 2 && Math.abs(a.height - b.height) < 2,
             nav: [...w.querySelectorAll(".rg-setwin-nav button")].map((x) => x.firstChild.textContent), rows: w.querySelectorAll(".rg-setwin-row").length }; });
     check(`Edit… opens the window inside the dialog, covering it, on its page (${geo.rows} rows; pages: ${geo.nav.join(" | ")})`, geo.in && geo.covers && geo.rows === 7 && geo.nav.length === 11
-        && geo.nav.join("|") === "Image size|Region Genie node|Canvas tools|Text size|Control|Edit Mode|LLM Prompt Enhancer|Keeping regions separate, per model|Select object|Regional LoRAs|Save Image");
+        && geo.nav.join("|") === "Image size|Region Genie node|Canvas tools|Text|Control|Edit Mode|LLM Prompt Enhancer|Keeping regions separate, per model|Select object|Regional LoRAs|Save Image");
     check("every row has a name with a tooltip and a control", await page.evaluate(() => [...document.querySelectorAll(".rg-setwin-row")].every((r) => r.querySelector("label").textContent && r.querySelector("label").title.length > 10 && r.querySelector(".rg-setwin-ctl").childElementCount > 0)));
     await rowOf("Hints on the canvas").locator(".rg-setwin-sw").click(); await page.waitForTimeout(80);
     await rowOf("Lasso: default").locator("select").selectOption("magnetic"); await page.waitForTimeout(80);

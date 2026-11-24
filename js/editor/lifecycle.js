@@ -305,6 +305,7 @@ export function* lifecycle(E) {
     E.node.__rgActive = () => E.curRegion;
     E.node.__rgSetTool = (t) => E.setTool(t);
     E.node.__rgTool = () => E.tool;
+    E.node.__rgEdgeMs = () => E.edgeMs;               // tests: how long the edge lines took at the last draw
     E.node.__rgEdgeBy = () => E.edgeBy;               // tests: who drew the edge lines last ("gl" / "js")
     E.node.__rgDims = () => E.dims();                 // the canvas size (the size row shows the same)
     E.node.__rgSelectLayer = (id) => E.selectLayer(E.state.layers.find((l) => l.id === id) || null);    // tests

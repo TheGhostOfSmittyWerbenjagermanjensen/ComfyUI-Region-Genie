@@ -26,7 +26,7 @@
     "name": "Image size",
     "tooltip": "How the size row of a new Region Genie node starts, and the list of presets.\nEdit…: Opens the Region Genie settings on this page."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px ": {
     "name": "Region Genie node",
     "tooltip": "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards).\nEdit…: Opens the Region Genie settings on this page."
   },
@@ -34,9 +34,9 @@
     "name": "Canvas tools",
     "tooltip": "Which version the lasso, magic wand and fill buttons start as, the wand tolerance, the fill gap size, the hints on the canvas.\nEdit…: Opens the Region Genie settings on this page."
   },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render": {
-    "name": "Text size",
-    "tooltip": "The text size of the prompt boxes, on the node and in the pop-up editors.\nEdit…: Opens the Region Genie settings on this page."
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength ": {
+    "name": "Text",
+    "tooltip": "The text size of the prompt boxes, on the node and in the pop-up editors, and the size and shadow of the region labels on the canvas.\nEdit…: Opens the Region Genie settings on this page."
   },
   "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "Control",
@@ -270,6 +270,22 @@
     "name": "Pop-up editor: text to render",
     "tooltip": "Text size in px for the Text box of the region pop-up editor (A− / A+ in its header, with the Text box in use). Applies to every node."
   },
+  "RegionGenie_Main_LabelSize": {
+    "name": "On the canvas: region labels",
+    "tooltip": "Text size in px for the region prompts written on the canvas, while the whole image is in view. Zooming in enlarges them with the image, up to the size below; zooming out never makes them smaller than this. Applies to every node."
+  },
+  "RegionGenie_Main_LabelMax": {
+    "name": "On the canvas: region labels, largest when zoomed in",
+    "tooltip": "Text size in px the region prompts on the canvas grow to at most when zooming in. A value under the size above counts as that size: The text then doesn't grow. Applies to every node."
+  },
+  "RegionGenie_Main_LabelShadow": {
+    "name": "On the canvas: label shadow size (px)",
+    "tooltip": "How far the dark shadow around the region prompts on the canvas spreads (a white glow around dark text on a light region). 0: None."
+  },
+  "RegionGenie_Main_LabelShadowStrength": {
+    "name": "On the canvas: label shadow strength (%)",
+    "tooltip": "How dense the shadow or glow around the region prompts on the canvas is. 0: None."
+  },
   "RegionGenie_Wildcards_PerField": {
     "name": "A seed per field",
     "tooltip": "Off: Every prompt field of a node uses the node's wildcard seed as it is (like Impact Pack nodes sharing one seed), so the same wildcard in two fields usually picks the same value.\nOn: Each field gets its own seed, derived from the wildcard seed and the field, so they pick independently (still the same result for the same seed)."
@@ -459,6 +475,10 @@
   "RegionGenie_Main_Fill": {
     "name": "Region opacity without an image (%)",
     "tooltip": "How solid the regions' colors are drawn while no image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid."
+  },
+  "RegionGenie_Main_EdgeLine": {
+    "name": "Region edge line (px)",
+    "tooltip": "How wide the solid line along each region's edge is while the regions are see-through, on every Region Genie node. A line wider than a shape fills it. 0: No line."
   },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: color / depth control LoRA",

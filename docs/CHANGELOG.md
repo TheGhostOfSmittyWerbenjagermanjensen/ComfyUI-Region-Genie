@@ -2,6 +2,23 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 73 (Nov 24): smooth, wider edge lines along each region's own shape; delete on the region's row
+- Asked: is smoothing the regions' jagged edges expensive; deleting regions is clunky; a mock-up of thicker lines, and of a lower region's line not following the region on top of it.
+- Found: the fills were already smooth; the steps came from round 72's edge line, which a pixel either had or not.
+- Decided by the owner from mock-ups: smooth the lines; 3.5 px wide, a free number in Settings (a line wider than a shape fills it); the lower region's line doesn't wrap, but two regions that only touch keep both lines.
+- Decided: a delete button on every region row, always visible, and a right-click menu on the row.
+- Built: the lines come from each region's own whole shape now, not from the finished picture: `renderPlanes()` draws the shapes (three regions to a canvas, in red, green and blue), `EDGE_GL` works out the line per region and what the regions in front leave visible.
+- Built: Setting *Region edge line (px)* (0 to 30, 3.5). The finished lines are kept until something they depend on changes; where they take over 45 ms (WebGL without a graphics card) they are left out during quick redraws and drawn when the canvas rests.
+- Built: `.rg-rdel` on the row (it left the options line), `E.deleteRegion()`, `E.rowMenu()` (the canvas menu's region entries without the layer ones). Version 0.55.0.
+- After the owner tried it: the line width stops at 10 px (was 30); regions start at 50% without an image too (was 80%).
+- Asked for legibility over pictures, and built: Setting *Label text size (px)* (8 to 32, 11); the labels grow with the zoom above the fitted view and never go under the set size (one factor on `dpr` in `drawLabels`); Settings *Label shadow size (px)* (0 to 12, 4) and *Label shadow strength (%)* (0 to 300, 100).
+- After trying the zoom: the text stops growing at a largest size (Setting, 16 px; a value under the text size counts as the text size); shadow strength 200% at first.
+- The four label Settings are on the page *Text* of the settings window, which was *Text size* (section `"Text"` in rg_shared.js; the Settings keep their ids). No other Setting changes the look of text.
+- New working agreement (CLAUDE.md): a UI change is settled with the owner before the docs, pictures, translations and long tests are done.
+- Without WebGL the old lines remain (`simpleLines`): stepped, and following the region on top.
+- Then asked and decided (mock-up at 50% with and without an image): no dark box behind a label inside its region; white text with a shadow, or black text with a white glow where the region is light at its present opacity. Built: `under` in the label loop of render.js; the plate stays for a control map and for kept regions in Edit Mode.
+- Tests: `ui_region_opacity.cjs` (no line around a region on top, both lines where two touch, the width, a wide line fills, 0 = none; both paths), `ui_region_rows.cjs` (row delete, row menu); stub suite, real tooltips / settings / i18n / layering.
+
 ## Round 72 (Nov 24): see-through regions over an image, with a solid edge line; stronger grid lines
 - Asked: make the regions translucent while an image is shown under them (low enough to see the image clearly, adjustable), perhaps without an image too; with options and mock-ups. During the work: a thin line along the regions' edges should stay opaque.
 - Decided by the owner from mock-ups made in the real editor: fill plus a solid edge line; 50% over an image; solid without an image; the slider sets the regions only (the image is always at full strength); stronger grid lines.

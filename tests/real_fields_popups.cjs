@@ -433,7 +433,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: ◀ / ▶ stay in one place in the header while stepping (${seen.map((g) => g.nav).join(", ")})`, seen.every((g) => g.nav === seen[0].nav));
     const back = await step("◀");
     check(`${M}: ◀ from the first goes to the last`, back.ta === "a green dog");
-    // hotkeys: Page Down / Page Up (Settings > Region Genie > Text size), typing in the field
+    // hotkeys: Page Down / Page Up (Settings > Region Genie > Text), typing in the field
     const keyStep = async (key) => { await page.locator(".rg-pop textarea").first().focus(); await page.keyboard.press(key); await sleep(250); return geo(); };
     const k1 = await keyStep("PageDown"), k2 = await keyStep("PageDown"), k3 = await keyStep("PageUp");
     check(`${M}: Page Down / Page Up step to the next / previous field (${[k1, k2, k3].map((g) => g?.ta || g?.title.slice(0, 12)).join(" | ")})`,
