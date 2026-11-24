@@ -713,7 +713,12 @@ export function* render(E) {
     }
     function drawLabels() {
         if (E.node.properties?.rg_labels === false) return;
-        const dpr = E.dprNow();
+        // Everything a label is made of is measured in "dpr" here, so one factor sizes it all: the screen's pixel
+        // ratio, the text size from Settings (11 px is 1), and the zoom. With the image fitted in view (fitView's
+        // zoom) the text has its set size; zoomed in it grows with the image, zoomed out it stays at that size.
+        const [fw, fh] = E.dims(), zFit = Math.min((E.cv.width || 1) / (fw * 1.2), (E.cv.height || 1) / (fh * 1.2));
+        const dpr = E.dprNow() * (E.labelPx() / 11) * Math.max(1, E.view.z / zFit);
+        const shadowPx = E.labelShadow(), shadowUnits = E.labelShadowStrength() * 2;       // at 100% the text is drawn twice with its shadow
         E.ctx.save();
         E.ctx.font = `${11 * dpr}px sans-serif`;
         E.ctx.textBaseline = "top";
@@ -799,12 +804,18 @@ export function* render(E) {
                 const under = (rr * 0.299 + gg * 0.587 + bb * 0.114) * fillNow + (E.backdrop ? 128 * (1 - fillNow) : 0);
                 const dark = under > 140 && !plate;
                 E.ctx.save();
-                E.ctx.shadowColor = dark ? "rgba(255,255,255,.9)" : "rgba(0,0,0,.95)"; E.ctx.shadowBlur = 4 * dpr;
+                E.ctx.shadowBlur = shadowPx * dpr;
+                E.ctx.shadowColor = shadowPx > 0 && shadowUnits > 0 ? (dark ? "rgba(255,255,255,.9)" : "rgba(0,0,0,.95)") : "rgba(0,0,0,0)";
                 E.ctx.fillStyle = dark ? "#000" : "#fff";
                 marks.forEach((m, i) => drawLabelMark(E.ctx, m, x0 + i * MARK_STEP * dpr, y0 + 1 * dpr, MARK_SIZE * dpr, dark ? "#000" : "#fff"));
                 E.ctx.fillStyle = dark ? "#000" : "#fff";
                 E.ctx.globalAlpha = rg.prompt.trim() ? 1 : 0.6;
-                for (let pass = 0; pass < 2; pass++) lines.forEach((l, i) => E.ctx.fillText(l, x0 + mw, y0 + 1 * dpr + i * lh));   // twice: the shadow / glow is strong enough to read on any picture
+                // the text once for each unit of shadow strength (a last one for the rest): shadows add up
+                for (let left = shadowPx > 0 ? shadowUnits : 0, first = true; first || left > 0; left -= 1, first = false) {
+                    const a = Math.max(0, Math.min(1, left));
+                    E.ctx.shadowColor = dark ? `rgba(255,255,255,${0.9 * a})` : `rgba(0,0,0,${0.95 * a})`;
+                    lines.forEach((l, i) => E.ctx.fillText(l, x0 + mw, y0 + 1 * dpr + i * lh));
+                }
                 E.ctx.restore();
                 continue;
             }

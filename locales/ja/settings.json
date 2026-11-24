@@ -396,6 +396,18 @@
     "name": "領域の縁の線 (px)",
     "tooltip": "領域が半透明のとき、各領域の縁に沿う不透明な線の幅。すべての Region Genie ノードに適用されます。形より太い線はその形を塗りつぶします。0：線なし。"
   },
+  "RegionGenie_Main_LabelSize": {
+    "name": "ラベルの文字サイズ (px)",
+    "tooltip": "画像全体が表示されているとき、キャンバスに書かれる領域プロンプトの大きさ。すべての Region Genie ノードに適用されます。拡大すると画像とともに大きくなり、縮小してもこれより小さくはなりません。"
+  },
+  "RegionGenie_Main_LabelShadow": {
+    "name": "ラベルの影のサイズ (px)",
+    "tooltip": "キャンバス上の領域プロンプトの周りの暗い影が広がる範囲（明るい領域の暗い文字では白い光彩）。0：なし。"
+  },
+  "RegionGenie_Main_LabelShadowStrength": {
+    "name": "ラベルの影の強さ (%)",
+    "tooltip": "キャンバス上の領域プロンプトの周りの影や光彩の濃さ。0：なし。"
+  },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: カラー / 深度コントロール LoRA",
     "tooltip": "MOSS-Image のカラー / 深度コントロールアダプター（LoRA）。領域のカラーマップと深度マップの一方または両方を読み取ります。マップは画像と並べて VAE エンコードされます（「vae」が必要）。\nノードの Control 行が、MOSS-Image モデルに対して（モデルへの LoRA として）使います。\nmoss_image_color_depth_control.safetensors を ComfyUI/models/loras に入れてください: https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
@@ -676,7 +688,7 @@
     "name": "画像サイズ",
     "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px , Label text size px , Label shadow size px , Label shadow strength ": {
     "name": "Region Genie ノード",
     "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
   },

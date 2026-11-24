@@ -1974,6 +1974,9 @@ export const SET = {
     cmFillImage: "RegionGenie.Main.FillImage",
     cmFill: "RegionGenie.Main.Fill",
     cmEdge: "RegionGenie.Main.EdgeLine",
+    cmLabelSize: "RegionGenie.Main.LabelSize",
+    cmLabelShadow: "RegionGenie.Main.LabelShadow",
+    cmLabelShadowStrength: "RegionGenie.Main.LabelShadowStrength",
     cmGridShow: "RegionGenie.Main.GridShow",
     cmGridLines: "RegionGenie.Main.GridLines",
     regionColors: "RegionGenie.Main.RegionColors",
@@ -2412,8 +2415,11 @@ const SETTINGS = [
         { id: SET.cmGridShow, name: "Show the grid without snapping", type: "boolean", defaultValue: false, tooltip: "Whether the grid's lines are drawn while snap to grid is off, when a Region Genie node is added or a workflow is opened. On a node: The ▾ of the magnet button.", category: CAT("Region Genie node", "1005 grid show") },
         { id: SET.cmGridLines, name: "Grid lines", type: "combo", defaultValue: "normal", options: [{ text: "Faint", value: "faint" }, { text: "Normal", value: "normal" }, { text: "Strong", value: "strong" }], tooltip: "How strong the grid's lines are drawn on the canvas of every Region Genie node. Also in the ▾ of the magnet button.", category: CAT("Region Genie node", "1006 grid lines") },
         { id: SET.cmFillImage, name: "Region opacity over an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while a connected image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "101 fill image") },
-        { id: SET.cmFill, name: "Region opacity without an image (%)", type: "number", defaultValue: 80, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while no image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "102 fill") },
-        { id: SET.cmEdge, name: "Region edge line (px)", type: "number", defaultValue: 3.5, attrs: { min: 0, max: 30, step: 0.5 }, tooltip: "How wide the solid line along each region's edge is while the regions are see-through, on every Region Genie node. A line wider than a shape fills it. 0: No line.", category: CAT("Region Genie node", "103 edge") },
+        { id: SET.cmFill, name: "Region opacity without an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while no image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "102 fill") },
+        { id: SET.cmEdge, name: "Region edge line (px)", type: "number", defaultValue: 3.5, attrs: { min: 0, max: 10, step: 0.5 }, tooltip: "How wide the solid line along each region's edge is while the regions are see-through, on every Region Genie node. A line wider than a shape fills it. 0: No line.", category: CAT("Region Genie node", "103 edge") },
+        { id: SET.cmLabelSize, name: "Label text size (px)", type: "number", defaultValue: 11, attrs: { min: 8, max: 32, step: 1 }, tooltip: "The size of the region prompts written on the canvas while the whole image is in view, on every Region Genie node. Zooming in enlarges them with the image; zooming out never makes them smaller than this.", category: CAT("Region Genie node", "104 label size") },
+        { id: SET.cmLabelShadow, name: "Label shadow size (px)", type: "number", defaultValue: 4, attrs: { min: 0, max: 12, step: 0.5 }, tooltip: "How far the dark shadow around the region prompts on the canvas spreads (a white glow around dark text on a light region). 0: None.", category: CAT("Region Genie node", "105 label shadow") },
+        { id: SET.cmLabelShadowStrength, name: "Label shadow strength (%)", type: "number", defaultValue: 100, attrs: { min: 0, max: 300, step: 10 }, tooltip: "How dense the shadow or glow around the region prompts on the canvas is. 0: None.", category: CAT("Region Genie node", "106 label shadow strength") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
             // the file field: ComfyUI's menu on the model folders (round 23), Browse… with SET.filePickers
             id: SET.control + "." + key, name, type: fileSettingType(MODEL_ROOTS, CONTROL_NONE, SET.control + "." + key, folder), defaultValue: CONTROL_NONE,

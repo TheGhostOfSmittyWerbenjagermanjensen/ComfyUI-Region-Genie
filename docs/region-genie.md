@@ -447,6 +447,8 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - In Edit Mode the label of a kept region lies on a dark plate (the region is only an outline over the picture it keeps, so the text would otherwise sit on the picture itself).
   - The text goes into the largest upright rectangle that lies inside the part of the region you can see (so it never runs over a neighbour or a region drawn on top), with a margin, centred; zooming in gives it more room.
   - It is white with a dark shadow, or black with a white glow where the region is light enough at its present opacity. There is no box behind it.
+  - Its size is a setting (*Label text size*, 11 px at first): that is its size with the whole image in view. Zooming in enlarges it with the image; zooming out never makes it smaller.
+  - The shadow or glow has two settings: *Label shadow size* (how far it spreads) and *Label shadow strength* (how dense it is).
   - While a control map is on the canvas it gets a dark plate.
   - A region too small for a line of text keeps a compact label next to it (its index and up to three lines). Clicking and dragging on the text still acts on the layer under it.
   - Double-click the text to open the **region editor**, all live:
@@ -465,8 +467,8 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - Below 100% a line along each region's edge keeps the solid color, so the shapes stay exact. At 0% only the lines remain.
     - Each region is outlined along its own shape: where another region lies on top of it, only the one on top has a line there.
     - Two regions that only touch both keep their lines.
-    - Its width is a setting (*Region edge line*, 3.5 px at first; 0 turns it off). A line wider than a shape fills the shape.
-  - Without an image the regions start at 80%, on black. The button is there too, and the canvas keeps one value for each case.
+    - Its width is a setting (*Region edge line*, 0 to 10 px, 3.5 at first; 0 turns it off). A line wider than a shape fills the shape.
+  - Without an image the regions start at 50% too, on black. The button is there too, and the canvas keeps one value for each case.
   - A directly connected Load Image shows right away; anything else shows after a run.
 - **`image` input, "use as color map":** the image's flat colors become regions under all layers, and they appear in the region list after a run so you can give them prompts.
 - **min region pixels** and **what import_json does when the canvas isn't empty** are settings for all nodes: **Settings > Region Genie > Region Genie node** (*Color map: min region pixels*, *import_json when the canvas isn't empty*).
@@ -615,9 +617,10 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
   - Tag autocomplete, what the LLM sees, whether new regions start with the LLM on.
   - The Region Genie node's image size (mode, aspect ratio, megapixels, multiple, manual width / height / step size; the presets list is shared by every node).
   - image_mode, feather, separation / until, keep all regions separate, share the background, snap and grid size.
-  - Region opacity over an image (50%) and without one (80%): what the opacity button on the canvas starts at.
+  - Region opacity over an image and without one (50% each): what the opacity button on the canvas starts at.
   - Show the grid without snapping, and Grid lines (Faint, Normal, Strong).
   - Region edge line (px): the width of the solid line along see-through regions.
+  - Label text size (px), Label shadow size (px) and Label shadow strength (%): the prompts written on the canvas.
   - Regional LoRAs' feather, lora_masking, region_separation, separation_until, separate_all_regions and share_background.
 - Some settings apply to every node at its next run instead:
   - **Plain-text prompts: keep all regions separate automatically** (on by default) and one per model, see *Which format `prompt` uses*.
