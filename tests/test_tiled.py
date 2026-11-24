@@ -37,11 +37,26 @@ check(f"tiles cover the axis, start at 0, end at the edge, even positions ({s})"
 check("no overlap asked: tiles side by side", td.tile_starts(128, 64, 0) == [0, 64])
 g = td.TileGrid(48, 80, 32, 32, 8, "cpu")
 check(f"grid: {len(g.boxes)} tiles of {g.th} x {g.tw}, every cell covered", g.total.min().item() > 0 and len(g.boxes) == len(td.tile_starts(48, 32, 8)) * len(td.tile_starts(80, 32, 8)))
-wt = td.gaussian_weights(32, 32, "cpu")
+wt = td.gaussian_weights(32, 32)
 check("weights: highest in the middle, almost nothing at the edge, the same in both directions", wt[15, 15] > 100 * wt[0, 15]
       and torch.allclose(wt, wt.T) and torch.allclose(wt, wt.flip(0)) and torch.allclose(wt, wt.flip(1)))
-tall = td.gaussian_weights(64, 32, "cpu")
+tall = td.gaussian_weights(64, 32)
 check("weights of a tile that isn't square follow each side's own length (a quarter in from the edge: the same share on both)", abs((tall[16, 16] / tall[32, 16]) / (tall[32, 8] / tall[32, 16]) - 1) < 0.25)
+
+# tile_blend: 1 is the paper's Gaussian (variance 0.01 on a tile of length 1, as the other implementations have it)
+import math  # noqa: E402
+xs = torch.arange(32, dtype=torch.float64)
+ref = torch.exp(-((xs - 15.5) ** 2) / (32 * 32) / (2 * 0.01)) / math.sqrt(2 * math.pi * 0.01)
+check("blend 1: exactly the paper's weights", torch.allclose(wt, torch.outer(ref, ref)))
+wide, narrow = td.gaussian_weights(32, 32, 2.0), td.gaussian_weights(32, 32, 0.5)
+edge = lambda m_: (m_[15, 0] / m_[15, 15]).item()          # noqa: E731
+check(f"a higher blend gives the tile's edge more say, a lower one less ({edge(narrow):.1e} < {edge(wt):.1e} < {edge(wide):.1e})", edge(narrow) < edge(wt) < edge(wide))
+for bl in (0.25, 4.0):
+    gg = td.TileGrid(48, 80, 32, 32, 8, "cpu", bl)
+    tot = torch.zeros(48, 80)
+    for (yy, xx), sh in zip(gg.boxes, gg.share):
+        tot[yy:yy + 32, xx:xx + 32] += sh
+    check(f"blend {bl}: the tiles' shares are finite and add up to 1 at every cell", bool(torch.isfinite(tot).all()) and torch.allclose(tot, torch.ones_like(tot), atol=1e-4))
 
 # ---- the wrapper with a stand-in model
 calls = []
@@ -150,6 +165,7 @@ check("applying it twice replaces the first (one wrapper on the model)", len(m2.
 
 # ---- the nodes
 it = td.TiledUpscaleRG.INPUT_TYPES()
+check("tile_overlap and tile_blend are inputs of both nodes; blend 1 at first", all("tile_overlap" in n_.INPUT_TYPES()["required"] and n_.INPUT_TYPES()["required"]["tile_blend"][1]["default"] == 1.0 for n_ in (td.TiledUpscaleRG, td.TiledDiffusionRG)))
 tips = [k_ for grp in ("required", "optional") for k_, v in it[grp].items() if not (len(v) > 1 and v[1].get("tooltip"))]
 check("Tiled Upscale: every input has a tooltip" + (": missing " + ", ".join(tips) if tips else ""), not tips and "upscale_model" in it["optional"])
 img = torch.rand(1, 50, 70, 3)
@@ -166,7 +182,7 @@ class FakeVAE:
 
 
 node = td.TiledUpscaleRG()
-im, la = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.5, 128, 128, 32, 4)
+im, la = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.5, 128, 128, 32, 4, 1.0)
 check(f"Tiled Upscale end to end: image {tuple(im.shape)} and latent {tuple(la['samples'].shape)}", im.shape == (1, 192, 320, 3) and la["samples"].shape == (1, 4, 24, 40))
 im0, _ = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.0, 128, 128, 32, 4)
 check("denoise 0: only the enlarged image", im0.shape == (1, 192, 320, 3))

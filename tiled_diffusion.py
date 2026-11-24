@@ -53,29 +53,36 @@ def tile_starts(size, tile, overlap):
     return sorted(set(out))
 
 
-def gaussian_weights(h, w, device, dtype=torch.float32):
-    """The tile's weights (h x w): the product of a Gaussian along each axis, centred on the tile."""
+def gaussian_weights(h, w, blend=1.0):
+    """The tile's weights (h x w, float64): the product of a Gaussian along each axis, centred on the tile.
+    `blend` widens (above 1) or narrows (below 1) the Gaussian; 1 is the paper's (a tenth of the tile's length as
+    its standard deviation), as the other implementations have it."""
+    var = GAUSS_VAR * float(blend) ** 2
+
     def axis(n):
         x = torch.arange(n, dtype=torch.float64)
         mid = (n - 1) / 2
-        return torch.exp(-((x - mid) ** 2) / (n * n) / (2 * GAUSS_VAR)) / math.sqrt(2 * math.pi * GAUSS_VAR)
-    return torch.outer(axis(h), axis(w)).to(device=device, dtype=dtype)
+        return torch.exp(-((x - mid) ** 2) / (n * n) / (2 * var)) / math.sqrt(2 * math.pi * var)
+    return torch.outer(axis(h), axis(w))
 
 
 class TileGrid:
     """The tiles of one latent size, their weights and what the weights add up to at every cell."""
 
-    def __init__(self, h, w, tile_h, tile_w, overlap, device):
+    def __init__(self, h, w, tile_h, tile_w, overlap, device, blend=1.0):
         self.h, self.w = h, w
         even = lambda v: max(2, int(v) // 2 * 2)                       # noqa: E731
         self.th, self.tw = min(even(tile_h), h), min(even(tile_w), w)
         ov_y, ov_x = min(int(overlap), self.th - 2), min(int(overlap), self.tw - 2)
         self.boxes = [(y, x) for y in tile_starts(h, self.th, max(0, ov_y)) for x in tile_starts(w, self.tw, max(0, ov_x))]
-        self.weight = gaussian_weights(self.th, self.tw, device)
-        total = torch.zeros((h, w), device=device, dtype=torch.float32)
+        # every tile's share of each of its cells: its weight over the sum of all tiles' weights there. Worked out
+        # in float64 (a narrow Gaussian's edge is far below what float32 holds), kept as float32
+        weight = gaussian_weights(self.th, self.tw, blend)
+        total = torch.zeros((h, w), dtype=torch.float64)
         for y, x in self.boxes:
-            total[y:y + self.th, x:x + self.tw] += self.weight
+            total[y:y + self.th, x:x + self.tw] += weight
         self.total = total
+        self.share = [(weight / total[y:y + self.th, x:x + self.tw]).to(device=device, dtype=torch.float32) for y, x in self.boxes]
 
     def cut(self, t, y, x, scale_y=1.0, scale_x=1.0):
         """The tile's part of a tensor whose last two sizes are the latent's (or the latent's times a scale)."""
@@ -92,10 +99,11 @@ def _is_image_of(t, h, w):
 class TiledModel:
     """The APPLY_MODEL wrapper: `tile` and `overlap` in latent cells are worked out per call from pixels."""
 
-    def __init__(self, tile_w, tile_h, overlap, batch, px_per_cell):
+    def __init__(self, tile_w, tile_h, overlap, batch, px_per_cell, blend=1.0):
         self.tile_w, self.tile_h, self.overlap = int(tile_w), int(tile_h), int(overlap)
         self.batch = max(1, int(batch))
         self.px = max(1, int(px_per_cell))
+        self.blend = min(4.0, max(0.25, float(blend)))
         self.grids = {}
         self.warned = set()
         self.calls = 0                                  # model calls made (tests, and the node's note)
@@ -106,7 +114,7 @@ class TiledModel:
         g = self.grids.get(key)
         if g is None:
             g = TileGrid(h, w, max(2, round(self.tile_h / self.px)), max(2, round(self.tile_w / self.px)),
-                         max(0, round(self.overlap / self.px)), device)
+                         max(0, round(self.overlap / self.px)), device, self.blend)
             self.grids = {key: g}                        # one size at a time is all a run needs
         return g
 
@@ -184,11 +192,9 @@ class TiledModel:
             self.calls += 1
             if out is None:
                 out = torch.zeros((rows, *res.shape[1:-2], h, w), device=res.device, dtype=res.dtype)
-                weight = g.weight.to(device=res.device, dtype=res.dtype)
-                total = g.total.to(device=res.device, dtype=res.dtype)
             res = res.unflatten(0, (rows, n))
             for j, (y, x0) in enumerate(tiles):
-                out[..., y:y + g.th, x0:x0 + g.tw] += res[:, j] * (weight / total[y:y + g.th, x0:x0 + g.tw])
+                out[..., y:y + g.th, x0:x0 + g.tw] += res[:, j] * g.share[i + j].to(device=res.device, dtype=res.dtype)
         return out
 
 
@@ -201,10 +207,10 @@ def px_per_cell(model):
         return 8
 
 
-def tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size):
+def tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend=1.0):
     """A clone of `model` that samples in tiles (Mixture of Diffusers)."""
     m = model.clone()
-    wrapper = TiledModel(tile_width, tile_height, tile_overlap, tile_batch_size, px_per_cell(model))
+    wrapper = TiledModel(tile_width, tile_height, tile_overlap, tile_batch_size, px_per_cell(model), tile_blend)
     m.remove_wrappers_with_key(comfy.patcher_extension.WrappersMP.APPLY_MODEL, WRAPPER_KEY)
     m.add_wrapper_with_key(comfy.patcher_extension.WrappersMP.APPLY_MODEL, WRAPPER_KEY, wrapper)
     return m, wrapper
@@ -222,6 +228,11 @@ _TILE = {
     "tile_batch_size": ("INT", {"default": 2, "min": 1, "max": 64, "step": 1, "tooltip": (
         "How many tiles go through the model in one call. More is faster while they fit in memory; 1 needs the "
         "least memory.")}),
+    "tile_blend": ("FLOAT", {"default": 1.0, "min": 0.25, "max": 4.0, "step": 0.05, "tooltip": (
+        "How widely a tile's say spreads from its middle where tiles overlap.\n"
+        "1: As Mixture of Diffusers defines it (the usual).\n"
+        "Higher: The tiles are mixed over a wider band, towards a plain average; softer, and it can smear detail.\n"
+        "Lower: Each pixel follows the tile it is deepest in more strictly; crisper, and a seam can show sooner.")}),
 }
 
 
@@ -241,8 +252,8 @@ class TiledDiffusionRG:
                    "for pictures larger than the model or the memory allows at once. For your own sampler; Tiled "
                    "Upscale (Region Genie) does the whole upscale in one node.")
 
-    def run(self, model, tile_width, tile_height, tile_overlap, tile_batch_size):
-        return (tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size)[0],)
+    def run(self, model, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend=1.0):
+        return (tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend)[0],)
 
 
 def upscale_pixels(image, upscale_by, upscale_model, method, multiple):
@@ -313,14 +324,14 @@ class TiledUpscaleRG:
                    "several tiles per model call.")
 
     def run(self, image, model, positive, negative, vae, upscale_by, resize_method, seed, steps, cfg, sampler_name,
-            scheduler, denoise, tile_width, tile_height, tile_overlap, tile_batch_size, upscale_model=None):
+            scheduler, denoise, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend=1.0, upscale_model=None):
         import nodes
         px = px_per_cell(model)
         pixels = upscale_pixels(image, float(upscale_by), upscale_model, resize_method if resize_method in RESIZE else "lanczos", px * 2)
         latent = {"samples": vae.encode(pixels[:, :, :, :3])}
         if denoise <= 0:
             return (pixels, latent)
-        m, _ = tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size)
+        m, _ = tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend)
         out = nodes.common_ksampler(m, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, denoise=denoise)[0]
         images = vae.decode(out["samples"])
         if images.ndim == 5:                              # a video VAE's frames: the pictures one after another
