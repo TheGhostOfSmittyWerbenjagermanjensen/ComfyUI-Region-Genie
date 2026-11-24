@@ -532,5 +532,133 @@
         "tooltip": "Las mismas imágenes, sin modificar."
       }
     }
+  },
+  "Region-Genie_TiledUpscale": {
+    "display_name": "Escalado en teselas (Region Genie) ✨",
+    "description": "Escala una imagen en un solo nodo: la amplía (con un modelo de escalado si hay uno conectado) y luego la redibuja con tu modelo en teselas solapadas que se mezclan en cada paso (Mixture of Diffusers), varias teselas por llamada al modelo.",
+    "inputs": {
+      "image": {
+        "name": "imagen",
+        "tooltip": "La imagen que se va a escalar."
+      },
+      "model": {
+        "name": "modelo",
+        "tooltip": "El modelo que redibuja la imagen ampliada (con sus LoRAs aplicados)."
+      },
+      "positive": {
+        "name": "positivo",
+        "tooltip": "El prompt: lo que muestra la imagen. Cada tesela lo recibe."
+      },
+      "negative": {
+        "name": "negativo",
+        "tooltip": "El prompt negativo."
+      },
+      "vae": {
+        "name": "vae",
+        "tooltip": "El VAE del modelo."
+      },
+      "upscale_by": {
+        "name": "escalar_por",
+        "tooltip": "Cuántas veces más grande es el resultado, por lado. 1: Solo redibuja la imagen a su tamaño."
+      },
+      "resize_method": {
+        "name": "método_de_redimensionado",
+        "tooltip": "Cómo se redimensiona la imagen a su nuevo tamaño: por sí solo sin modelo de escalado, o después del modelo de escalado cuando su factor es otro."
+      },
+      "seed": {
+        "name": "semilla",
+        "tooltip": "La semilla del ruido que se añade antes de redibujar."
+      },
+      "steps": {
+        "name": "pasos",
+        "tooltip": "Los pasos de una ejecución completa; con un denoise menor que 1 solo se hace la última parte."
+      },
+      "cfg": {
+        "name": "cfg",
+        "tooltip": "El cfg, como en un sampler. 1 para modelos destilados."
+      },
+      "sampler_name": {
+        "name": "nombre_del_muestreador",
+        "tooltip": "El sampler."
+      },
+      "scheduler": {
+        "name": "programador",
+        "tooltip": "El planificador."
+      },
+      "denoise": {
+        "name": "reducción_de_ruido",
+        "tooltip": "Cuánto de la imagen ampliada se redibuja. Alrededor de 0.05: Solo pulido. Alrededor de 0.2: Detalle fino. 0.3-0.4: Más invención. Más alto: Las teselas empiezan a olvidar la imagen."
+      },
+      "tile_width": {
+        "name": "ancho_de_tesela",
+        "tooltip": "El ancho de una tesela en píxeles. Usa un tamaño en el que el modelo dibuje bien (más o menos aquel con el que se entrenó). Las teselas más pequeñas necesitan menos memoria y más llamadas al modelo."
+      },
+      "tile_height": {
+        "name": "alto_de_tesela",
+        "tooltip": "El alto de una tesela en píxeles."
+      },
+      "tile_overlap": {
+        "name": "solape_de_teselas",
+        "tooltip": "Cuántos píxeles comparten como mínimo las teselas vecinas. Más solape oculta mejor las costuras y requiere más teselas; lo habitual es entre un octavo y un cuarto de la tesela."
+      },
+      "tile_batch_size": {
+        "name": "tamaño_de_lote_de_teselas",
+        "tooltip": "Cuántas teselas pasan por el modelo en una llamada. Más es más rápido mientras quepan en memoria; 1 es lo que menos memoria necesita."
+      },
+      "tile_blend": {
+        "name": "mezcla_de_teselas",
+        "tooltip": "Cuánto se extiende la influencia de una tesela desde su centro donde las teselas se solapan.\n1: Como lo define Mixture of Diffusers (lo habitual).\nMás alto: Las teselas se mezclan en una banda más ancha, hacia un promedio simple; más suave, y puede emborronar el detalle.\nMás bajo: Cada píxel sigue de forma más estricta a la tesela en la que está más adentro; más nítido, y una costura puede notarse antes."
+      },
+      "upscale_model": {
+        "name": "modelo_de_escalado",
+        "tooltip": "Opcional. Un modelo de escalado (ESRGAN y similares) para la ampliación; más nítido que un simple redimensionado. Sin él, la imagen se redimensiona con método_de_redimensionado."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "imagen",
+        "tooltip": "La imagen escalada."
+      },
+      "1": {
+        "name": "latente",
+        "tooltip": "Lo mismo como latente, antes de decodificar."
+      }
+    }
+  },
+  "Region-Genie_TiledDiffusion": {
+    "display_name": "Difusión en teselas (Region Genie) ✨",
+    "description": "Hace que un modelo muestree en teselas solapadas que se mezclan en cada paso (Mixture of Diffusers), para imágenes más grandes de lo que el modelo o la memoria permiten de una vez. Para tu propio sampler; Escalado en teselas (Region Genie) hace todo el escalado en un nodo.",
+    "inputs": {
+      "model": {
+        "name": "modelo",
+        "tooltip": "El modelo con el que muestrear en teselas."
+      },
+      "tile_width": {
+        "name": "ancho_de_tesela",
+        "tooltip": "El ancho de una tesela en píxeles. Usa un tamaño en el que el modelo dibuje bien (más o menos aquel con el que se entrenó). Las teselas más pequeñas necesitan menos memoria y más llamadas al modelo."
+      },
+      "tile_height": {
+        "name": "alto_de_tesela",
+        "tooltip": "El alto de una tesela en píxeles."
+      },
+      "tile_overlap": {
+        "name": "solape_de_teselas",
+        "tooltip": "Cuántos píxeles comparten como mínimo las teselas vecinas. Más solape oculta mejor las costuras y requiere más teselas; lo habitual es entre un octavo y un cuarto de la tesela."
+      },
+      "tile_batch_size": {
+        "name": "tamaño_de_lote_de_teselas",
+        "tooltip": "Cuántas teselas pasan por el modelo en una llamada. Más es más rápido mientras quepan en memoria; 1 es lo que menos memoria necesita."
+      },
+      "tile_blend": {
+        "name": "mezcla_de_teselas",
+        "tooltip": "Cuánto se extiende la influencia de una tesela desde su centro donde las teselas se solapan.\n1: Como lo define Mixture of Diffusers (lo habitual).\nMás alto: Las teselas se mezclan en una banda más ancha, hacia un promedio simple; más suave, y puede emborronar el detalle.\nMás bajo: Cada píxel sigue de forma más estricta a la tesela en la que está más adentro; más nítido, y una costura puede notarse antes."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "modelo",
+        "tooltip": "El modelo, muestreando en teselas: conéctalo a un sampler."
+      }
+    }
   }
 }

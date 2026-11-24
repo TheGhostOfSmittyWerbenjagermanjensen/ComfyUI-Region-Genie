@@ -2,6 +2,20 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 76 (Nov 25): tiled sampling and Region Genie's regions
+- Asked: would regional prompts in tiled upscaling be worth it; then: read the engine, come back with a sized plan; then: fix the engine's wrong behaviour in tiles now (step 1) and build regions per tile on a branch of its own (step 2).
+- Found: together they were wrong in both wiring orders (regions off inside tiles on transformer models; the whole layout squeezed onto a tile on UNets).
+- Built, step 1 (working branch): the tiling is the outermost wrapper and names its tiles (`rg_tiles`); the regional engine leaves regions out of a tiled run, with a log line.
+- Built, step 2 (branch `claude/tile-aware-regions`): each tile of a batch gets its own cut of every region: LoRA masks and the attention separation per tile, no extra model calls. docs/HANDOFF.md has the details.
+- Tests: `tests/test_tiled.py` (CPU: stand-ins, and ComfyUI's sampler with a tiny random UNet). Not tested: any real model.
+
+## Round 75 (Nov 24-25): Tiled Upscale and Tiled Diffusion (Mixture of Diffusers)
+- Asked: research tiled diffusion upscaling (the DazzleNodes fork of ComfyUI-TiledDiffusion, Mixture of Diffusers, newer methods, Forge Neo's implementation) and whether it fits in one node with broad model support.
+- Decided by the owner: Mixture of Diffusers, standing alone, in this pack; both an all-in-one node and a MODEL → MODEL node; an optional upscale model; overlap and a blend control whose default is the method as defined. Shelved after research: true positions per tile.
+- Built: `tiled_diffusion.py` (written from the paper, no code from other implementations): several tiles per model call on every model, tiles treated as pictures of their own. Nodes Tiled Upscale (Region Genie) and Tiled Diffusion (Region Genie). Version 0.57.0.
+- A working version: the owner has not tried it on a real model yet. Docs written (docs/tiled-upscale.md, help pages, README) and the two nodes translated (zh, ja, ko, es).
+- Tests: `tests/test_tiled.py`. Not tested: real models (quality, seams, speed), the upscale model path, the nodes in the browser.
+
 ## Round 74 (Nov 24): Save Image: no_metadata
 - Asked: an option on Save Image (Region Genie) for a file with truly no metadata (no workflow either), which switches `a1111_metadata` off, and the other way round.
 - Built: optional input `no_metadata` (BOOLEAN, off; last in the list, so saved workflows keep their values). On: `run()` drops the prompt, the workflow and the settings text and writes no JPEG sidecar; an EXR keeps only its `chromaticities`.

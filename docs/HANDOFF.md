@@ -37,6 +37,8 @@ The pack used to be called **Regional Mask Kit** (renamed Nov 10, 2026). The com
 | `Region-Genie_RegionalLoRAs` | Regional LoRAs ✨ | `RegionalLoRAs` | Regional LoRAs from a masks batch, rows editor |
 | `Region-Genie_CreateHookLoRA` | Create Hook LoRA (Quantized) ✨ | `CreateHookLoRAQuantized` | Single hook LoRA for int8/fp8 models |
 | `Region-Genie_SaveImage` | Save Image (Region Genie) ✨ | `SaveImageRG` (`save_image.py`, `js/save_image.js`) | PNG 0-9 / 8-16-bit, WebP, JPEG, AVIF; mask transparency; size readout |
+| `Region-Genie_TiledUpscale` | Tiled Upscale (Region Genie) ✨ | `TiledUpscaleRG` (`tiled_diffusion.py`) | Image → upscaled image: enlarge, encode, sample in tiles, decode |
+| `Region-Genie_TiledDiffusion` | Tiled Diffusion (Region Genie) ✨ | `TiledDiffusionRG` (`tiled_diffusion.py`) | MODEL → MODEL sampling in tiles (Mixture of Diffusers) |
 
 - Category "Region Genie"; display names end in " ✨". ID lengths (17, 23, 24, 26, 27) set the search order. `SEARCH_ALIASES` now also include SAM, SAM 3, segment anything, select object, magic wand.
 - **Comfy Registry (published since 0.52.1):** the `pyproject.toml` `name` is permanent and lowercase.
@@ -297,6 +299,54 @@ The owner's choices on the six items left from the round-33 review (see the chan
   - Size: `E.sizeFromKind()` (view.js) says whether an image or a latent feeds the size input; the size row's readout and the canvas both use `E.dims()`.
   - Test hooks: `__rgSockets()`, `__rgShowAll()` (every socket; used by tests that need sockets a new node hides), `__rgSetOutputs(names, on)`, `__rgSetInput("size" | "import", on)`, `__rgDims()`.
 - **Rows (round 40).** No size label in the tool bar (`E.barGap` is the spacer that keeps Clear all at the right end). `E.wcRefresh()` shows the wildcard seed group only while a prompt has a wildcard (`hideIdle`; called from `save()` and on input in the scene prompts). In Edit Mode `editAreaRow()` (rows.js) is the first line under Whole image: the `edit_area` control (`E.areaLab`, made in footer.js) and the mask fields (`E.editMaskBox`, made in canvasUi.js) are put into it at every list rebuild; it has no ✕. A message in the list header (`E.hint`) stays on the header's line, cut with "…" (the full text is its tooltip); Select object's standing instructions (`stickyHint`) get a line of their own (`.rg-status.wide`).
+
+### Tiled Upscale and Tiled Diffusion (rounds 75-76; `tiled_diffusion.py`, `tests/test_tiled.py`)
+
+**State when this was written (Nov 25):** a working version the owner has NOT yet tried on a real model. The owner tests on Anima (and uses Forge Neo's Mixture of Diffusers as the reference for speed and quality). English docs and the four translations of the two nodes are written (`tests/i18n_extract.cjs` leaves the samplers', schedulers' and resize methods' names untranslated). Not done yet: an example workflow, `tests/real_*` for the two nodes, README picture, the owner's confirmation of defaults.
+
+**Branches.**
+- `claude/sharp-tesla-1gt9qf` (the working branch): `no_metadata` (0.56.0, round 74), the two tiled nodes with `tile_blend`, and "step 1" (the regional engine steps aside in tiled runs). No PR open.
+- `claude/tile-aware-regions`: everything above plus "step 2" (regions cut per tile). The owner asked for it on its own branch because of its risk and uncertain benefit. It is merged into the working branch only when the owner says so, after trying it. Keep it up to date by merging the working branch into it.
+
+**What the owner decided.**
+- Mixture of Diffusers (their experience: best quality for the speed; small tiles fit small cards; no extra model to install). It stands alone (no dependency on other packs) and lives in this pack.
+- Both nodes: the all-in-one Tiled Upscale, and the MODEL → MODEL Tiled Diffusion.
+- An optional `upscale_model` input; `tile_overlap` is the seam control they meant; `tile_blend` added, 1 = the paper's blend.
+- Shelved: giving each tile its true position in the picture (below). Not wanted: per-tile layout prompts for MOSS-Image / Ideogram 4.
+
+**How it works.**
+- Written from the paper (https://arxiv.org/abs/2302.02412). No code from other implementations: shiimizu's ComfyUI-TiledDiffusion, the DazzleNodes fork and Forge Neo's copy all descend from the A1111 extension, whose tiling code is CC BY-NC-SA. Never copy from them.
+- `TiledModel` is an `APPLY_MODEL` wrapper (`comfy.patcher_extension.WrappersMP.APPLY_MODEL`, key `region_genie_tiled`). It gets x in sigma space with cond and uncond already in one batch, and returns the denoised latent; blending denoised tiles equals the paper's blend of noise predictions.
+- `TileGrid`: tiles of even size at even positions, spread evenly, the last ending at the edge (`tile_starts`). Pixels become latent cells with `latent_format.spacial_downscale_ratio` (`px_per_cell`: 8, or 16 for the Flux.2 latent).
+- Weights: `gaussian_weights(h, w, blend)`, variance 0.01 x blend² on a tile of length 1, each axis with its own length (the original and Forge use the width for both; the Dazzle fork corrected that, and so do we). `TileGrid.share` holds weight / sum of weights per tile, worked out in float64 (a narrow Gaussian's edge underflows float32).
+- Batch layout: sample-major, [sample 0: tile a, tile b …, sample 1: tile a …], so chunking the batch by `cond_or_uncond` still gives the cond / uncond halves. Batches are evened out (`per_call`).
+- Per tile: `c_concat`, `denoise_mask` and anything else whose last two sizes are the latent's are cut; tensors with a row per sample are repeated (`repeat_interleave`); lists element by element; the rest is passed as it is. `_control` cuts ControlNet residuals that are 4-D images at a whole-number scale (UNets); otherwise the control is dropped with one warning.
+- Not tiled (plain call): a latent that isn't 4-D / 5-D, `latent_shapes` in the conds (packed latents), or one tile.
+- 5-D latents (Anima, Qwen: a frame axis of 1) are cut on the last two axes. Only tested with a stand-in.
+- `tiled_model()` puts its key FIRST in `model.wrappers[APPLY_MODEL]` (ComfyUI runs wrappers in key order, the first outermost) and passes `transformer_options["rg_tiles"] = {"canvas": (H, W), "boxes": [(y, x, h, w) …], "rows": B}` (latent cells, the boxes of that call) to everything inside.
+- `TiledUpscaleRG.run`: `upscale_pixels` (upscale model via `comfy_extras.nodes_upscale_model.ImageUpscaleWithModel`, then `comfy.utils.common_upscale` to a multiple of 2 cells) → `vae.encode` → `tiled_model` → `nodes.common_ksampler` → `vae.decode` (ComfyUI falls back to tiled VAE by itself when memory runs out).
+
+**Step 1 (working branch): with the regional engine.** `_ActivateRegionalLoRAsWrapper.__call__` (regional_lora.py) returns `executor(*args, **kwargs)` when it sees `rg_tiles`: regional LoRAs and separation are left out of a tiled run, with one log line. Before, they were wrong inside tiles: off on transformer models (the tile's sequence length doesn't fit `_layout`), and on UNets the whole layout was squeezed onto a tile when a tile was half the canvas per side.
+
+**Step 2 (branch `claude/tile-aware-regions`): regions cut per tile.**
+- `_state.tiles` / `_tiles()` = (canvas, boxes, rows); row r of the batch is tile r % len(boxes).
+- `TokenRegion.grid_mask(h, w, src, tile)`: the mask resized to the whole latent (cached, key `("c", H, W)`), the box cut out, then as before. `weights(…, tiles)` gives (B, L, 1), `spatial(…, tiles)` (B, 1, h, w); a sequence without image tokens stays (1, L, 1). The forward hook skips a layer whose batch isn't 1 or B (a thrown error would set `p.broken` for good).
+- `RegionSeparation.labels(…, tile)` per box; `tile_bias()` builds (B, 1, nq, nk) on the device from label vectors, cached only while that batch of tiles is in the model (`_tile_key`); `override(…, tiles)` uses it. Text-only layers use the ordinary `bias()`.
+- Effect for the plain-text families (Krea 2, Flux, Flux 3, Anima, SDXL / SD1.5): a region that isn't in a tile has no image tokens there, so its caption reaches nothing in that tile: each tile hears only the regions it shows. MOSS-Image and Ideogram 4: regional LoRAs become per tile, but the layout prompt still describes the whole picture to every tile.
+- A batch that doesn't fit `rg_tiles` (rows x boxes, tile size) runs without regions and logs a warning.
+- No extra model calls. Cost: the non-fused attention path while separation is on (as in any run with separation) and one (B, 1, L, L) bias per call.
+- Tested on the CPU only: the cuts, batch layout, per-tile separation for a Flux-style joint layout and a UNet, both wiring orders through ComfyUI's sampler with a tiny random UNet. NOT tested: any real model, a real LoRA through the per-tile masks, the layouts of Anima / Krea 2 / MOSS-Image / Flux 3 in tiles, memory and speed.
+
+**Research results worth keeping (Nov 24-25; scripts under the session scratchpad are gone after the session).**
+- Forge Neo (`Haoming02/sd-webui-forge-classic`, branch `neo`, `extensions-builtin/sd_forge_multidiffusion`): a slimmed copy of shiimizu's code. No speed trick, no position handling for any model, img2img only, tile batch 1 by default (slider to 8). It is fast because it only cuts, calls the model once per batch and adds.
+- DazzleNodes fork: default tile batch 4; it forces batch 1 only when its per-tile position fix is on (Flux, Flux.2, Qwen-Image; not Anima, which it doesn't detect). Its docs give the denoise ladder used in our tooltips (0.025 polish, 0.18 detail, 0.28-0.42 invention, above 0.6 tiles forget the picture).
+- The owner's Forge vs ComfyUI speed comparison was on Anima, where the fork batches too: batching doesn't explain that difference (unknown: backend, settings).
+- **True positions per tile (shelved by the owner).** Measured with tiny random models on the CPU: several tiles with different position offsets in ONE batched call work for Flux.1 / Flux.2 / Krea 2 / Qwen-Image (a `post_input` patch that adds the offset to `img_ids`, offsets passed in `transformer_options`), MOSS-Image (object-patch `diffusion_model.rope`), Z-Image (`rope_embedder`), Chroma (`pe_embedder`); results equal single runs to float noise. The effect comes only through the text tokens' positions (shifting the text ids the same way undoes it). On Anima a shift changes nothing at all. So it matters for reference-latent tiling and high denoise, hardly for low-denoise upscaling, and a 4x canvas puts positions at 4x the 1024 px range. If it is ever wanted: start with the four `post_input` families, behind a switch that is off.
+- Other upscaling routes looked at and not pursued: Ultimate SD Upscale (tile by tile, low denoise only), ControlNet Tile, reference-latent tile upscalers, SeedVR2, SUPIR, NVIDIA PiD (in core ComfyUI), DyPE. Core ComfyUI has no per-step tiled sampler (a request was closed as not planned).
+
+**Known limits (also in docs/tiled-upscale.md).** ControlNet for transformer models is dropped while tiling (their residuals are token sequences; to do it right the control would have to be recomputed per tile, which needs the control object: it isn't passed to `apply_model`). Reference latents go whole to every tile. ComfyUI's memory estimate is for the whole latent. Region Genie's regions: see steps 1 and 2.
+
+**Next, in the owner's order.** (1) The owner tries Tiled Upscale on real models and reports. (2) Fixes from that. (3) Then, per the working agreement on UI changes: an example workflow if wanted, `tests/real_*` checks for the two nodes, the hardware checklist items, a PR. (4) The owner tries `claude/tile-aware-regions` and decides whether it is merged.
 
 ## 5. Open items and offered ideas
 

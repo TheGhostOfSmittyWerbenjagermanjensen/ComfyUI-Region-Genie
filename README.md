@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.56.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.57.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -33,6 +33,7 @@
   - [Shortcuts and Settings](#shortcuts-and-settings)
   - [Export and import](#export-and-import)
   - [Save Image](#save-image)
+  - [Tiled upscale](#tiled-upscale)
 - [The nodes](#-the-nodes)
 - [Manual](#-manual)
 - [Languages](#-languages)
@@ -52,6 +53,7 @@
 - **Edit existing pictures.** Paint over a photo and change only the regions you mark.
 - **Let an LLM write for you.** A local LLM can expand short region prompts when the workflow runs.
 - **Save smaller files.** A Save Image node with WebP, JPEG, AVIF and PNG settings, and settings text other tools can read.
+- **Upscale in tiles.** One node enlarges an image and redraws it with your model in blended tiles, on any model.
 
 ## ✨ Supported models
 
@@ -325,6 +327,12 @@ Saves as PNG, WebP, JPEG or AVIF with the quality you pick, and shows the file s
 
 → [Save Image (Region Genie)](docs/save-image.md)
 
+### Tiled upscale
+
+One node upscales an image with the model that made it: it enlarges the image, then redraws it in overlapping tiles that are blended at every step, several tiles per model call. Small tiles fit a small card; no extra model is needed.
+
+→ [Tiled Upscale and Tiled Diffusion](docs/tiled-upscale.md)
+
 ## ✨ The nodes
 
 All nodes are in the **Region Genie** category, and their names end in ✨.
@@ -337,6 +345,8 @@ All nodes are in the **Region Genie** category, and their names end in ✨.
 | **BBoxes to Masks** | Turns layout boxes from other nodes into masks |
 | **Create Hook LoRA (Quantized)** | ComfyUI's "Create Hook LoRA" for int8 / fp8 models |
 | **Save Image (Region Genie)** | Saves in smaller formats, with settings text for other tools |
+| **Tiled Upscale (Region Genie)** | Upscales an image in one node, redrawing it in blended tiles |
+| **Tiled Diffusion (Region Genie)** | Makes a model sample in blended tiles, for your own sampler |
 
 ## ✨ Manual
 
@@ -350,6 +360,7 @@ All nodes are in the **Region Genie** category, and their names end in ✨.
 | [Wildcards](docs/wildcards.md) | Impact Pack wildcards in every prompt field |
 | [BBoxes to Masks and Mask Picker](docs/mask-nodes.md) | The two small mask nodes |
 | [Save Image (Region Genie)](docs/save-image.md) | Formats, quality, transparency, settings text for other tools |
+| [Tiled Upscale and Tiled Diffusion](docs/tiled-upscale.md) | Upscaling in tiles: the two nodes, tile settings, denoise, what works with it |
 | [Setup notes](docs/setup-notes.md) | Finding the nodes, tag autocomplete, coming from Regional Mask Kit |
 
 Inside ComfyUI, select a node and press **Node Info** for a short guide to it.

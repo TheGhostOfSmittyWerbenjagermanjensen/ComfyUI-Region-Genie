@@ -256,7 +256,7 @@ class TiledDiffusionRG:
 
     RETURN_TYPES = ("MODEL",)
     RETURN_NAMES = ("model",)
-    OUTPUT_TOOLTIPS = ("The model, sampling in tiles: connect it to a sampler.",)
+    OUTPUT_TOOLTIPS = ("The model, sampling in tiles. Connect it to a sampler.",)
     FUNCTION = "run"
     CATEGORY = "Region Genie"
     DESCRIPTION = ("Makes a model sample in overlapping tiles that are blended at every step (Mixture of Diffusers), "
@@ -297,13 +297,13 @@ class TiledUpscaleRG:
             "required": {
                 "image": ("IMAGE", {"tooltip": "The image to upscale."}),
                 "model": ("MODEL", {"tooltip": "The model that redraws the enlarged image (with its LoRAs applied)."}),
-                "positive": ("CONDITIONING", {"tooltip": "The prompt: what the image shows. Every tile gets it."}),
+                "positive": ("CONDITIONING", {"tooltip": "The prompt: What the image shows. Every tile gets it."}),
                 "negative": ("CONDITIONING", {"tooltip": "The negative prompt."}),
                 "vae": ("VAE", {"tooltip": "The model's VAE."}),
                 "upscale_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 8.0, "step": 0.05, "tooltip": (
                     "How many times larger the result is, per side. 1: Only redraws the image at its size.")}),
                 "resize_method": (RESIZE, {"default": "lanczos", "tooltip": (
-                    "How the image is resized to its new size: by itself without an upscale model, or after the "
+                    "How the image is resized to its new size. Used by itself without an upscale model, or after the "
                     "upscale model when its factor is another one.")}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": True,
                                  "tooltip": "The seed of the noise that is added before redrawing."}),
@@ -330,8 +330,8 @@ class TiledUpscaleRG:
     OUTPUT_TOOLTIPS = ("The upscaled image.", "The same as a latent, before decoding.")
     FUNCTION = "run"
     CATEGORY = "Region Genie"
-    DESCRIPTION = ("Upscales an image in one node: enlarges it (with an upscale model when one is connected), then "
-                   "redraws it with your model in overlapping tiles blended at every step (Mixture of Diffusers), "
+    DESCRIPTION = ("Upscales an image in one node. It enlarges the image (with an upscale model when one is connected), "
+                   "then redraws it with your model in overlapping tiles blended at every step (Mixture of Diffusers), "
                    "several tiles per model call.")
 
     def run(self, image, model, positive, negative, vae, upscale_by, resize_method, seed, steps, cfg, sampler_name,

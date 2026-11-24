@@ -31,7 +31,8 @@ async function collect(page) {
                     if (Array.isArray(spec?.[0])) {
                         const list = spec[0].filter((v) => typeof v === "string");
                         const files = list.some((v) => /\.(safetensors|sft|ckpt|pt|pth|bin|gguf|onnx)$/i.test(v)) || /lora_name|^lora_\d+$/.test(name);
-                        if (!files) e.choices = list.filter((v) => !/^[\d.]+$/.test(v));
+                        // (not the samplers', schedulers' and resize methods' names: ComfyUI's own, the same in every language)
+                        if (!files && !["sampler_name", "scheduler", "resize_method"].includes(name)) e.choices = list.filter((v) => !/^[\d.]+$/.test(v));
                     }
                     inputs[name] = e;
                 }

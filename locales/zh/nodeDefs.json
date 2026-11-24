@@ -532,5 +532,133 @@
         "tooltip": "相同的图像，原样传出。"
       }
     }
+  },
+  "Region-Genie_TiledUpscale": {
+    "display_name": "分块放大（Region Genie） ✨",
+    "description": "在一个节点内放大图像：先放大图像（连接了放大模型时使用它），然后用你的模型以重叠的分块重绘，并在每一步混合这些分块（Mixture of Diffusers），每次模型调用处理多个分块。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "要放大的图像。"
+      },
+      "model": {
+        "name": "模型",
+        "tooltip": "重绘放大后图像的模型（已应用其 LoRA）。"
+      },
+      "positive": {
+        "name": "正面条件",
+        "tooltip": "提示词：图像显示的内容。每个分块都会得到它。"
+      },
+      "negative": {
+        "name": "负面条件",
+        "tooltip": "负面提示词。"
+      },
+      "vae": {
+        "name": "vae",
+        "tooltip": "模型的 VAE。"
+      },
+      "upscale_by": {
+        "name": "放大倍数",
+        "tooltip": "结果每边放大多少倍。1：只按原尺寸重绘图像。"
+      },
+      "resize_method": {
+        "name": "缩放方法",
+        "tooltip": "图像如何调整到新尺寸：没有放大模型时单独使用，或在放大模型的倍数不同时用于其之后。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "重绘前所加噪声的种子。"
+      },
+      "steps": {
+        "name": "步数",
+        "tooltip": "完整运行的步数；降噪低于 1 时只执行其中最后一部分。"
+      },
+      "cfg": {
+        "name": "cfg",
+        "tooltip": "cfg，与采样器上的相同。蒸馏模型用 1。"
+      },
+      "sampler_name": {
+        "name": "采样器名称",
+        "tooltip": "采样器。"
+      },
+      "scheduler": {
+        "name": "调度器",
+        "tooltip": "调度器。"
+      },
+      "denoise": {
+        "name": "降噪",
+        "tooltip": "放大后的图像重绘多少。约 0.05：只做润色。约 0.2：精细细节。0.3-0.4：更多发挥。更高：分块开始忘记原图。"
+      },
+      "tile_width": {
+        "name": "分块宽度",
+        "tooltip": "一个分块的宽度（像素）。使用模型擅长绘制的尺寸（大约是它训练时的尺寸）。分块越小占用内存越少，但模型调用次数越多。"
+      },
+      "tile_height": {
+        "name": "分块高度",
+        "tooltip": "一个分块的高度（像素）。"
+      },
+      "tile_overlap": {
+        "name": "分块重叠",
+        "tooltip": "相邻分块至少共享多少像素。重叠越多越能隐藏接缝，但需要更多分块；通常为分块的八分之一到四分之一。"
+      },
+      "tile_batch_size": {
+        "name": "分块批次大小",
+        "tooltip": "一次模型调用处理多少个分块。只要内存放得下，越多越快；1 占用内存最少。"
+      },
+      "tile_blend": {
+        "name": "分块混合",
+        "tooltip": "在分块重叠处，一个分块的影响从其中心向外扩散多宽。\n1：按 Mixture of Diffusers 的定义（通常用法）。\n更高：分块在更宽的范围内混合，趋近于简单平均；更柔和，可能使细节模糊。\n更低：每个像素更严格地跟随它所处最深的分块；更清晰，接缝可能更早显现。"
+      },
+      "upscale_model": {
+        "name": "放大模型",
+        "tooltip": "可选。用于放大的放大模型（ESRGAN 等）；比单纯缩放更清晰。没有它时用“缩放方法”调整图像大小。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "放大后的图像。"
+      },
+      "1": {
+        "name": "Latent",
+        "tooltip": "同一结果的 latent，解码之前。"
+      }
+    }
+  },
+  "Region-Genie_TiledDiffusion": {
+    "display_name": "分块扩散（Region Genie） ✨",
+    "description": "让模型以重叠的分块采样，并在每一步混合这些分块（Mixture of Diffusers），用于大于模型或显存一次所能处理的图像。配合你自己的采样器使用；“分块放大（Region Genie）”在一个节点内完成整个放大。",
+    "inputs": {
+      "model": {
+        "name": "模型",
+        "tooltip": "要以分块方式采样的模型。"
+      },
+      "tile_width": {
+        "name": "分块宽度",
+        "tooltip": "一个分块的宽度（像素）。使用模型擅长绘制的尺寸（大约是它训练时的尺寸）。分块越小占用内存越少，但模型调用次数越多。"
+      },
+      "tile_height": {
+        "name": "分块高度",
+        "tooltip": "一个分块的高度（像素）。"
+      },
+      "tile_overlap": {
+        "name": "分块重叠",
+        "tooltip": "相邻分块至少共享多少像素。重叠越多越能隐藏接缝，但需要更多分块；通常为分块的八分之一到四分之一。"
+      },
+      "tile_batch_size": {
+        "name": "分块批次大小",
+        "tooltip": "一次模型调用处理多少个分块。只要内存放得下，越多越快；1 占用内存最少。"
+      },
+      "tile_blend": {
+        "name": "分块混合",
+        "tooltip": "在分块重叠处，一个分块的影响从其中心向外扩散多宽。\n1：按 Mixture of Diffusers 的定义（通常用法）。\n更高：分块在更宽的范围内混合，趋近于简单平均；更柔和，可能使细节模糊。\n更低：每个像素更严格地跟随它所处最深的分块；更清晰，接缝可能更早显现。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "模型",
+        "tooltip": "以分块方式采样的模型：把它连接到采样器。"
+      }
+    }
   }
 }

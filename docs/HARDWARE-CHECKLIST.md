@@ -276,3 +276,18 @@ Tested in a stub page by the layers' pixels; worth a look on the real canvas at 
 - Pick a preset, switch to manual and type another size, switch back to presets: the preset is the size again, and the dropdown offers "＋ Add" for the manual size.
 - A workflow saved before this round that was in presets mode with a size "not in the list" still opens with that size.
 - Your saved settings for keeping regions separate (the main switch and the per-model choices) are unchanged after the update.
+
+## Tiled Upscale and Tiled Diffusion (rounds 75-76)
+
+Nothing here has run on a real model yet.
+
+- [ ] Tiled Upscale on Anima at 2x, denoise 0.2, tiles 1024 / overlap 128: no seams, detail added; speed next to Forge Neo's Mixture of Diffusers
+- [ ] The same on SDXL, Flux, Krea 2, MOSS-Image, Qwen-Image, Z-Image: runs, no seams
+- [ ] `tile_batch_size` 1, 2, 4: the same picture, faster with more while it fits in memory
+- [ ] `tile_blend` 0.5, 1, 2: crisper to softer; `tile_overlap` 0 shows seams, 128 doesn't
+- [ ] With an upscale model connected (4x model, `upscale_by` 2): the image is resized down to 2x after it
+- [ ] A small card: small tiles at batch 1 fit; ComfyUI doesn't offload more than without tiling
+- [ ] ControlNet with SDXL in a tiled run; the warning for a transformer model's ControlNet
+- [ ] Region Genie's model into Tiled Upscale: the log line that regions are left out (working branch)
+- [ ] Branch `claude/tile-aware-regions`: regional LoRAs stay in their regions in the upscale; at denoise 0.4+ tiles don't draw other regions' prompts; Anima, SDXL, Flux, Krea 2
+
