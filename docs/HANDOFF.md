@@ -16,6 +16,7 @@ The pack used to be called **Regional Mask Kit** (renamed Nov 10, 2026). The com
 - **Breaking workflows is acceptable**, but keep saved workflows loading where it's cheap: `keepWidgetValuesByName`; new inputs added *after* existing ones; `remapOutputs`; legacy-data conversions.
 - **Delivery each round:** commits on a working branch, a pull request when the owner asks, and a report of what was and wasn't tested. Update this handoff, `docs/CHANGELOG.md` and the manual (`README.md`, `docs/*.md`) every round.
 - **Process preferences:**
+  - UI and visual changes are settled with the owner first (round 73, CLAUDE.md has the rule): a working version, quick checks and pictures while details are open; docs, pictures, translations, version and the long suites only after the owner confirms.
   - Before decisions that change the outcome a lot (UI placement, behavior, design), present options as multiple choice with mock-ups and let the user choose.
   - Answer the user's questions before building.
   - "Look into whether X could be added": build it unless it's an extreme rewrite.

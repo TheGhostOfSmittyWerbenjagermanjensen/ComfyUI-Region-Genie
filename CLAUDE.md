@@ -14,6 +14,10 @@ Read `docs/HANDOFF.md` before larger changes: it explains the code layout, the d
 ## Working agreements with the owner
 
 - Before a decision that changes the outcome a lot (UI placement, behavior, design), present the options as multiple choice, with mock-ups where it helps, and let the owner choose. Answer their questions before building.
+- A UI or visual change is settled with the owner before the full round is spent on it. While its details are still open (sizes, defaults, placement, look), stop at a working version: the code, the quick checks that show it works (syntax, the stub tests it touches), and pictures for the owner.
+  - Only once the owner has confirmed the details: the manual and README, their pictures (`tests/shot_readme.cjs`), translations, the changelog and handoff, the version, and the long suites (the real-ComfyUI tests).
+  - The reason: an early version of an idea is often revised, and that work would be done twice.
+  - Say in the report what was left for after the confirmation. When it isn't clear whether a change is settled, ask the owner how they want to proceed.
 - Must work in ComfyUI's legacy node mode **and** Nodes 2.0, on a 4K high-DPR display.
 - Breaking saved workflows is acceptable, but keep them loading where it's cheap: `keepWidgetValuesByName`, add new inputs after existing ones, remap outputs by name, convert old data.
 - UI: compact header controls; icons with tooltips over words, except these words the owner kept: "▼ LoRAs", "▼ All", "Separate" (the keep-separate button), and every "LoRA"/"＋LoRA" label ("separation" and "until" became icons in round 48). Reuse existing icons; a button is never labelled with a character (✕, ↑ …): take a general-purpose icon from Lucide into `LUCIDE`, draw a pack-specific one into `ICONS`.
