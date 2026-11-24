@@ -2,7 +2,7 @@
 # The pack's id in the Comfy Registry: it can't be changed after the first publish. (The repository keeps its name.)
 name = "region-genie"
 description = "Regional prompting and regional LoRAs for ComfyUI: paint regions on a layered canvas and get masks, bboxes, layout prompts and per-region LoRAs (MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)."
-version = "0.55.0"
+version = "0.56.0"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"

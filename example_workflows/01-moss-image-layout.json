@@ -1,5 +1,5 @@
 {
-  "id": "dc0034b8-9c08-4553-bd62-360a45c08b6d",
+  "id": "d1c313f8-1938-4579-ad76-1a05214f4cf6",
   "revision": 0,
   "last_node_id": 9,
   "last_link_id": 11,
@@ -447,7 +447,7 @@
       ],
       "size": [
         300.2428802490234,
-        206
+        230
       ],
       "flags": {},
       "order": 8,
@@ -488,7 +488,8 @@
           "exr_bit_depth": "16-bit float",
           "exr_color_space": "sRGB",
           "invert_mask": false,
-          "a1111_metadata": true
+          "a1111_metadata": true,
+          "no_metadata": false
         }
       },
       "widgets_values": [
@@ -505,7 +506,8 @@
         "16-bit float",
         "sRGB",
         false,
-        true
+        true,
+        false
       ],
       "widgets_values_named": {
         "filename_prefix": "RegionGenie/moss-image-layout",
@@ -521,7 +523,8 @@
         "exr_bit_depth": "16-bit float",
         "exr_color_space": "sRGB",
         "invert_mask": false,
-        "a1111_metadata": true
+        "a1111_metadata": true,
+        "no_metadata": false
       }
     },
     {

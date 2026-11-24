@@ -91,6 +91,11 @@ Saves images to ComfyUI's output folder like ComfyUI's Save Image (Advanced), wi
     - The inputs are hidden until ticked; a connected one always stays.
   - **To see what was written**, hover the node's status line after a run: the text is at the end of its tooltip.
   - `--disable-metadata` (ComfyUI's start option) writes none of it, and saves no workflow anywhere (no `.json` either). Turn `a1111_metadata` off for ComfyUI's own data only.
+- **Nothing but the picture (`no_metadata`, off by default):** on, the file holds no workflow, no prompt and no settings text, and a JPEG gets no `.json` next to it.
+  - For a picture you publish as it is (an icon, a sample) without what made it.
+  - Turning it on turns `a1111_metadata` off, and turning that on turns `no_metadata` off. `jpeg_workflow` is hidden while it is on.
+  - An EXR still says in its header which colors its numbers mean; a program needs that to show it right.
+  - The saved files' line under the node ends with "no metadata".
 - **Size limits:** WebP images can be at most 16383 px wide or tall and JPEG 65535 px; a bigger image stops the run with a message saying so (PNG and AVIF have no such limit here).
 - The `images` output passes the images through.
 - **Settings > Region Genie > Save Image:** how new nodes start (format, PNG compression, EXR bit depth / color space, WebP lossless / quality, JPEG quality / extension / workflow, AVIF quality). Nodes already in a workflow keep their own values.

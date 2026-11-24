@@ -313,7 +313,7 @@ def _core_exr():
         raise ExrUnavailable(EXR_MISSING) from e
 
 
-def encode_exr(rgb, alpha, depth, space, prompt, extra):
+def encode_exr(rgb, alpha, depth, space, prompt, extra, colors_only=False):
     """Scene-linear EXR (16 / 32-bit float) as core writes it: the input converted from `space` to linear light (not
     clipped: HDR values above 1 stay), the alpha as it is, the workflow and color space in the header."""
     to_linear, encode, inject = _core_exr()
@@ -322,7 +322,9 @@ def encode_exr(rgb, alpha, depth, space, prompt, extra):
     if alpha is not None:
         t = torch.cat([t, torch.from_numpy(np.ascontiguousarray(alpha, dtype=np.float32))[..., None]], -1)
     data = encode(t, "exr", depth if depth in EXR_DEPTHS else EXR_DEPTHS[0], "linear")
-    if not metadata_disabled() and (prompt is not None or extra):
+    if colors_only:                                # no_metadata: only which colors the numbers mean (chromaticities)
+        data = inject(data, None, None, space)
+    elif not metadata_disabled() and (prompt is not None or extra):
         data = inject(data, prompt, extra, space)
     return data
 JPEG_WORKFLOW = ("sidecar .json", "none", "inside the JPEG (EXIF)")
@@ -442,7 +444,8 @@ class SaveImageRG:
                     "the file as text, the way A1111 and Forge do, so other interfaces and sites can read it. The values "
                     "are read from the workflow that ran; ComfyUI's own workflow data stays in the file as before. Not "
                     "for EXR.\n"
-                    "Off: Only ComfyUI's own workflow data.")}),
+                    "Off: Only ComfyUI's own workflow data.\n"
+                    "Turning it on turns no_metadata off.")}),
                 # round 44: values for that text when the workflow doesn't say them (another node computes them). The
                 # node hides these inputs until they are ticked in its inputs list (js/save_image.js)
                 "positive_prompt": ("STRING", {"forceInput": True, "tooltip": (
@@ -469,6 +472,12 @@ class SaveImageRG:
                 "model_name": (ANY, {"forceInput": True, "tooltip": (
                     "Optional. The model's name to write into the settings text, in place of the one read from the "
                     "workflow.")}),
+                # round 74: a file with nothing in it but the picture (last here: a saved workflow's values keep their places)
+                "no_metadata": ("BOOLEAN", {"default": False, "tooltip": (
+                    "On: The file holds nothing about how the image was made. No workflow, no prompt, no settings text, "
+                    "and no .json next to a JPEG. Turning it on turns a1111_metadata off.\n"
+                    "Off: The usual (ComfyUI's workflow data; the settings text with a1111_metadata).\n"
+                    "EXR: Its header still says which colors the numbers mean (needed to show it right).")}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO", "unique_id": "UNIQUE_ID"},
         }
@@ -487,9 +496,14 @@ class SaveImageRG:
             jpeg_quality, jpeg_extension, jpeg_workflow, avif_quality, exr_bit_depth="16-bit float",
             exr_color_space="sRGB", mask=None, invert_mask=False, prompt=None, extra_pnginfo=None,
             a1111_metadata=True, positive_prompt=None, negative_prompt=None, seed=None, steps=None, cfg=None, sampler_name=None,
-            scheduler=None, denoise=None, model_name=None, unique_id=None):
+            scheduler=None, denoise=None, model_name=None, unique_id=None, no_metadata=False):
         import folder_paths
         fmt = format if format in FORMATS else "png"
+        plain = bool(no_metadata)
+        if plain:                                  # nothing but the picture: no workflow, prompt, settings text or sidecar
+            prompt = extra_pnginfo = None
+            a1111_metadata = False
+            jpeg_workflow = JPEG_WORKFLOW[1]
         if fmt == "exr":
             _core_exr()                            # stops with a clear message before anything is written
         arr = images.cpu().numpy() if hasattr(images, "cpu") else np.asarray(images)
@@ -545,7 +559,7 @@ class SaveImageRG:
             elif fmt == "webp":
                 data = encode_webp(rgb, alpha, bool(webp_lossless), int(webp_quality), comfy_exif(prompt, extra_pnginfo, params))
             elif fmt == "exr":
-                data = encode_exr(rgb, alpha, exr_bit_depth, exr_color_space, prompt, extra_pnginfo)
+                data = encode_exr(rgb, alpha, exr_bit_depth, exr_color_space, prompt, extra_pnginfo, colors_only=plain)
             elif fmt == "avif":
                 if alpha is not None and not features.check("avif"):
                     note(NOTE_AVIF_ALPHA)
@@ -586,6 +600,6 @@ class SaveImageRG:
                 if preview is not None:
                     entry["asset_preview"] = preview
             results.append(entry)
-        summary = {"label": _label(fmt, a), "files": saved, "total": sum(f["bytes"] for f in saved), "notes": notes,
+        summary = {"label": _label(fmt, a) + (", no metadata" if plain else ""), "files": saved, "total": sum(f["bytes"] for f in saved), "notes": notes,
                    "settings": (params or "")[:6000]}       # the node shows it in its status line's tooltip
         return {"ui": {"images": results, "rg_saved": [summary]}, "result": (images,)}

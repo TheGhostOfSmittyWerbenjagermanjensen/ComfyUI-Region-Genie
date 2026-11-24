@@ -55,7 +55,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         if (vue) {
             const box = document.querySelector(`[data-node-id="${sv.id}"]`);
             const txt = box?.innerText || "";
-            dom = ["png_compression", "png_bit_depth", "webp_lossless", "webp_quality", "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality", "exr_bit_depth", "exr_color_space", "invert_mask", "a1111_metadata"]
+            dom = ["png_compression", "png_bit_depth", "webp_lossless", "webp_quality", "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality", "exr_bit_depth", "exr_color_space", "invert_mask", "a1111_metadata", "no_metadata"]
                 .filter((n) => txt.includes(n));
         }
         return { names, dom };
@@ -63,11 +63,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const setW = (k, v) => page.evaluate(([k, v]) => { const w = window.__sv.widgets.find((x) => x.name === k); w.value = v; w.callback?.(v); }, [k, v]);
     const expect = {
         // (round 44: a1111_metadata, the switch for the settings text, with every format but EXR)
-        png: ["filename_prefix", "format", "png_compression", "png_bit_depth", "a1111_metadata"],
-        webp: ["filename_prefix", "format", "webp_lossless", "webp_quality", "a1111_metadata"],
-        jpeg: ["filename_prefix", "format", "jpeg_quality", "jpeg_extension", "jpeg_workflow", "a1111_metadata"],
-        avif: ["filename_prefix", "format", "avif_quality", "a1111_metadata"],
-        exr: ["filename_prefix", "format", "exr_bit_depth", "exr_color_space"],
+        png: ["filename_prefix", "format", "png_compression", "png_bit_depth", "a1111_metadata", "no_metadata"],
+        webp: ["filename_prefix", "format", "webp_lossless", "webp_quality", "a1111_metadata", "no_metadata"],
+        jpeg: ["filename_prefix", "format", "jpeg_quality", "jpeg_extension", "jpeg_workflow", "a1111_metadata", "no_metadata"],
+        avif: ["filename_prefix", "format", "avif_quality", "a1111_metadata", "no_metadata"],
+        exr: ["filename_prefix", "format", "exr_bit_depth", "exr_color_space", "no_metadata"],
     };
     for (const f of ["png", "webp", "jpeg", "avif", "exr"]) {
         await setW("format", f); await sleep(300);
@@ -361,6 +361,25 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     info = file ? chunks(path.join(OUT, run, file)) : {};
     check(`${M}: with the switch off: no settings text, only ComfyUI's own data`, !("parameters" in info) && !!info.workflow && !/Settings text written/.test(r.tip));
     await setW("a1111_metadata", true);
+    // round 74: no_metadata. Turning it on turns a1111_metadata off (and the other way round); the file holds only the picture
+    const val = (k) => page.evaluate((k) => window.__sv.widgets.find((x) => x.name === k).value, k);
+    await setW("no_metadata", true); await sleep(200);
+    check(`${M}: no_metadata on turns a1111_metadata off`, await val("no_metadata") === true && await val("a1111_metadata") === false);
+    r = await queue("png");
+    file = ls("png").pop();
+    info = file ? chunks(path.join(OUT, run, file)) : { x: 1 };
+    const raw = file ? fs.readFileSync(path.join(OUT, run, file)) : Buffer.from("workflow");
+    check(`${M}: a PNG saved with no_metadata holds no workflow, prompt or settings text (${Object.keys(info).join(", ") || "no text chunks"})`, !Object.keys(info).length && !raw.includes("workflow") && !raw.includes("tEXt") && /no metadata/.test(r.text + " " + r.tip));
+    const nJson = ls("jpeg").filter((f) => f.endsWith(".json")).length;
+    await setW("format", "jpeg"); await sleep(300);
+    check(`${M}: with no_metadata on, jpeg_workflow is hidden`, !(await shown()).names.includes("jpeg_workflow"));
+    r = await queue("jpeg");
+    file = ls("jpeg").filter((f) => !f.endsWith(".json")).pop();
+    const jr = file ? fs.readFileSync(path.join(OUT, run, file)) : Buffer.from("Exif");
+    check(`${M}: a JPEG saved with no_metadata has no EXIF and no .json next to it`, !jr.includes("Exif") && !jr.includes("workflow") && ls("jpeg").filter((f) => f.endsWith(".json")).length === nJson);
+    await setW("a1111_metadata", true); await sleep(200);
+    check(`${M}: a1111_metadata on turns no_metadata off, and jpeg_workflow shows again`, await val("no_metadata") === false && await val("a1111_metadata") === true && (await shown()).names.includes("jpeg_workflow"));
+    await setW("format", "png"); await sleep(200);
 
     // a Region Genie node before the save node: the text holds the prompt as that node put it out (its 'prompt' output),
     // after a real run on the server (no sampler here: there is no model in a test run)

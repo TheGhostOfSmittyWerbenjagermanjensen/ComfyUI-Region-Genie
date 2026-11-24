@@ -483,7 +483,7 @@
       },
       "a1111_metadata": {
         "name": "metadatos_a1111",
-        "tooltip": "Activado: También escribe en el archivo, como texto, con qué se hizo la imagen (prompt, semilla, pasos, muestreador, cfg, modelo, LoRAs), tal como lo hacen A1111 y Forge, para que otras interfaces y sitios puedan leerlo. Los valores se leen del flujo de trabajo que se ejecutó; los datos de flujo de trabajo propios de ComfyUI siguen en el archivo como antes. No se aplica a EXR.\nDesactivado: Solo los datos de flujo de trabajo propios de ComfyUI."
+        "tooltip": "Activado: También escribe en el archivo, como texto, con qué se hizo la imagen (prompt, semilla, pasos, muestreador, cfg, modelo, LoRAs), tal como lo hacen A1111 y Forge, para que otras interfaces y sitios puedan leerlo. Los valores se leen del flujo de trabajo que se ejecutó; los datos de flujo de trabajo propios de ComfyUI siguen en el archivo como antes. No se aplica a EXR.\nDesactivado: Solo los datos de flujo de trabajo propios de ComfyUI.\nAl activarlo se desactiva sin_metadatos."
       },
       "positive_prompt": {
         "name": "prompt_positivo",
@@ -520,6 +520,10 @@
       "model_name": {
         "name": "nombre_del_modelo",
         "tooltip": "Opcional. El nombre del modelo que se escribe en el texto de ajustes, en lugar del leído del flujo de trabajo."
+      },
+      "no_metadata": {
+        "name": "sin_metadatos",
+        "tooltip": "Activado: No se guarda en el archivo nada sobre cómo se hizo la imagen: ni flujo de trabajo, ni prompt, ni texto de ajustes, ni un .json junto a un JPEG. Al activarlo se desactiva metadatos_a1111.\nDesactivado: Lo habitual (los datos de flujo de trabajo propios de ComfyUI; el texto de ajustes con metadatos_a1111).\nEXR: Su cabecera sigue indicando qué colores representan los números (necesario para mostrarlo bien)."
       }
     },
     "outputs": {

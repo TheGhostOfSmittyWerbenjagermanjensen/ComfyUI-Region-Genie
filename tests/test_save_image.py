@@ -209,6 +209,20 @@ check("jpeg none: no .json, no EXIF workflow", files("j")[-1] == "b_00001.jpg"
 save(images=IMGS[:1], filename_prefix="j/c", format="jpeg", jpeg_workflow="inside the JPEG (EXIF)", prompt=PROMPT, extra_pnginfo=EXTRA)
 check("jpeg EXIF option: the workflow inside, no .json", not os.path.exists(os.path.join(OUT, "j", "c_00001.json"))
       and Image.open(os.path.join(OUT, "j", "c_00001.jpg")).getexif()[0x010F] == "workflow:" + json.dumps(WF))
+# round 74: no_metadata: nothing in the file but the picture, whatever else is set
+for f, kw in (("png", {}), ("webp", {}), ("jpeg", {"jpeg_workflow": "inside the JPEG (EXIF)"}), ("jpeg", {})) + ((("avif", {}),) if AVIF else ()):
+    o = save(images=IMGS[:1], filename_prefix=f"nm/{f}{len(kw)}", format=f, prompt=PROMPT, extra_pnginfo=EXTRA, no_metadata=True, a1111_metadata=True, **kw)
+    got = [x["name"] for x in o["ui"]["rg_saved"][0]["files"]]
+    data = open(os.path.join(OUT, "nm", got[0]), "rb").read()
+    im = Image.open(os.path.join(OUT, "nm", got[0]))
+    clean = len(got) == 1 and not im.getexif() and not getattr(im, "text", None) and b"workflow" not in data and b"prompt" not in data \
+        and not [k for k in im.info if k in ("exif", "xmp", "comment", "parameters", "icc_profile")]
+    if f == "png":
+        clean = clean and [k for k, _ in png_chunks(data)][0] == b"IHDR" and {k for k, _ in png_chunks(data)} == {b"IHDR", b"IDAT", b"IEND"}
+    check(f"no_metadata: a {f} with only the picture ({', '.join(got)}; {sorted(im.info)})", clean and o["ui"]["rg_saved"][0]["settings"] == "")
+check("no_metadata: the summary says so", save(images=IMGS[:1], filename_prefix="nm/s", no_metadata=True)["ui"]["rg_saved"][0]["label"].endswith(", no metadata"))
+o = save(images=IMGS[:1], filename_prefix="nm/off", prompt=PROMPT, extra_pnginfo=EXTRA)
+check("no_metadata off (the default): the workflow is in the file as before", json.loads(Image.open(os.path.join(OUT, "nm", "off_00001.png")).text["workflow"]) == WF)
 BIGWF = {"workflow": {"nodes": [{"id": i, "widgets_values": ["x" * 100]} for i in range(1000)]}}
 o = save(images=IMGS[:1], filename_prefix="j/d", format="jpeg", jpeg_workflow="inside the JPEG (EXIF)", prompt=PROMPT, extra_pnginfo=BIGWF)
 check("jpeg EXIF fallback: too big -> sidecar and a note", os.path.exists(os.path.join(OUT, "j", "d_00001.json"))
@@ -250,7 +264,7 @@ check("sidecar counted in the summary", [f["name"] for f in o["ui"]["rg_saved"][
 it = si.SaveImageRG.INPUT_TYPES()
 order = ["images", "filename_prefix", "format", "png_compression", "png_bit_depth", "webp_lossless", "webp_quality",
          "jpeg_quality", "jpeg_extension", "jpeg_workflow", "avif_quality", "exr_bit_depth", "exr_color_space"]
-check("INPUT_TYPES order", list(it["required"]) == order and list(it["optional"]) == ["mask", "invert_mask", "a1111_metadata", "positive_prompt", "negative_prompt", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise", "model_name"]
+check("INPUT_TYPES order", list(it["required"]) == order and list(it["optional"]) == ["mask", "invert_mask", "a1111_metadata", "positive_prompt", "negative_prompt", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise", "model_name", "no_metadata"]
       and it["hidden"] == {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO", "unique_id": "UNIQUE_ID"})
 tips = [k for g in ("required", "optional") for k, v in it[g].items() if not (len(v) > 1 and v[1].get("tooltip"))]
 check("every input has a tooltip" + (": missing " + ", ".join(tips) if tips else ""), not tips)

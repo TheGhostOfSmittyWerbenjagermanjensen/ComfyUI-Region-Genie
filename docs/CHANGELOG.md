@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 74 (Nov 24): Save Image: no_metadata
+- Asked: an option on Save Image (Region Genie) for a file with truly no metadata (no workflow either), which switches `a1111_metadata` off, and the other way round.
+- Built: optional input `no_metadata` (BOOLEAN, off; last in the list, so saved workflows keep their values). On: `run()` drops the prompt, the workflow and the settings text and writes no JPEG sidecar; an EXR keeps only its `chromaticities`.
+- Built: js/save_image.js turns the other switch off when one is turned on, and hides `jpeg_workflow` while `no_metadata` is on. The summary's label ends with ", no metadata". Version 0.56.0.
+- Tests: `test_save_image.py` reads the saved PNG, WebP, JPEG and AVIF for any text, EXIF or sidecar; `real_save_image.cjs` in both modes (the two switches, a PNG and a JPEG from a real run).
+
 ## Round 73 (Nov 24): smooth, wider edge lines along each region's own shape; delete on the region's row
 - Asked: is smoothing the regions' jagged edges expensive; deleting regions is clunky; a mock-up of thicker lines, and of a lower region's line not following the region on top of it.
 - Found: the fills were already smooth; the steps came from round 72's edge line, which a pixel either had or not.

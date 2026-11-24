@@ -1,5 +1,5 @@
 {
-  "id": "e972515d-55ed-4330-b5e0-821d46e24062",
+  "id": "e01b3a3f-f3f0-4418-a5b8-19f0a5b167d0",
   "revision": 0,
   "last_node_id": 8,
   "last_link_id": 10,
@@ -394,7 +394,7 @@
       ],
       "size": [
         300.2428802490234,
-        206
+        230
       ],
       "flags": {},
       "order": 7,
@@ -435,7 +435,8 @@
           "exr_bit_depth": "16-bit float",
           "exr_color_space": "sRGB",
           "invert_mask": false,
-          "a1111_metadata": true
+          "a1111_metadata": true,
+          "no_metadata": false
         }
       },
       "widgets_values": [
@@ -452,7 +453,8 @@
         "16-bit float",
         "sRGB",
         false,
-        true
+        true,
+        false
       ],
       "widgets_values_named": {
         "filename_prefix": "RegionGenie/anima",
@@ -468,7 +470,8 @@
         "exr_bit_depth": "16-bit float",
         "exr_color_space": "sRGB",
         "invert_mask": false,
-        "a1111_metadata": true
+        "a1111_metadata": true,
+        "no_metadata": false
       }
     },
     {

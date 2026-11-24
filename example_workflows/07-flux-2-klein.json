@@ -1,5 +1,5 @@
 {
-  "id": "e00c5c2f-d9ae-43f5-ae34-a5eb24b7bd5f",
+  "id": "72fd48e7-2aae-4750-9220-f88890836deb",
   "revision": 0,
   "last_node_id": 12,
   "last_link_id": 16,
@@ -582,7 +582,7 @@
       ],
       "size": [
         300.2428802490234,
-        206
+        230
       ],
       "flags": {},
       "order": 11,
@@ -623,7 +623,8 @@
           "exr_bit_depth": "16-bit float",
           "exr_color_space": "sRGB",
           "invert_mask": false,
-          "a1111_metadata": true
+          "a1111_metadata": true,
+          "no_metadata": false
         }
       },
       "widgets_values": [
@@ -640,7 +641,8 @@
         "16-bit float",
         "sRGB",
         false,
-        true
+        true,
+        false
       ],
       "widgets_values_named": {
         "filename_prefix": "RegionGenie/flux-2-klein",
@@ -656,7 +658,8 @@
         "exr_bit_depth": "16-bit float",
         "exr_color_space": "sRGB",
         "invert_mask": false,
-        "a1111_metadata": true
+        "a1111_metadata": true,
+        "no_metadata": false
       }
     },
     {

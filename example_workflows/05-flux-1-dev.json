@@ -1,5 +1,5 @@
 {
-  "id": "4a44d036-0e03-4858-9f51-fc8109bcf714",
+  "id": "9112b6b8-9f8c-4849-8351-bc811b66851b",
   "revision": 0,
   "last_node_id": 8,
   "last_link_id": 10,
@@ -408,7 +408,7 @@
       ],
       "size": [
         300.2428802490234,
-        206
+        230
       ],
       "flags": {},
       "order": 7,
@@ -449,7 +449,8 @@
           "exr_bit_depth": "16-bit float",
           "exr_color_space": "sRGB",
           "invert_mask": false,
-          "a1111_metadata": true
+          "a1111_metadata": true,
+          "no_metadata": false
         }
       },
       "widgets_values": [
@@ -466,7 +467,8 @@
         "16-bit float",
         "sRGB",
         false,
-        true
+        true,
+        false
       ],
       "widgets_values_named": {
         "filename_prefix": "RegionGenie/flux-1-dev",
@@ -482,7 +484,8 @@
         "exr_bit_depth": "16-bit float",
         "exr_color_space": "sRGB",
         "invert_mask": false,
-        "a1111_metadata": true
+        "a1111_metadata": true,
+        "no_metadata": false
       }
     },
     {

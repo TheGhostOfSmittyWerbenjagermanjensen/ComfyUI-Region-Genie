@@ -1,5 +1,5 @@
 {
-  "id": "f6a4b6ac-67b1-47a9-bcbe-58e25481e61e",
+  "id": "a3d7c6b7-ca78-44a4-8103-f7e77c115a6a",
   "revision": 0,
   "last_node_id": 15,
   "last_link_id": 19,
@@ -713,7 +713,7 @@
       ],
       "size": [
         300.2428802490234,
-        206
+        230
       ],
       "flags": {},
       "order": 14,
@@ -754,7 +754,8 @@
           "exr_bit_depth": "16-bit float",
           "exr_color_space": "sRGB",
           "invert_mask": false,
-          "a1111_metadata": true
+          "a1111_metadata": true,
+          "no_metadata": false
         }
       },
       "widgets_values": [
@@ -771,7 +772,8 @@
         "16-bit float",
         "sRGB",
         false,
-        true
+        true,
+        false
       ],
       "widgets_values_named": {
         "filename_prefix": "RegionGenie/ideogram-4",
@@ -787,7 +789,8 @@
         "exr_bit_depth": "16-bit float",
         "exr_color_space": "sRGB",
         "invert_mask": false,
-        "a1111_metadata": true
+        "a1111_metadata": true,
+        "no_metadata": false
       }
     },
     {

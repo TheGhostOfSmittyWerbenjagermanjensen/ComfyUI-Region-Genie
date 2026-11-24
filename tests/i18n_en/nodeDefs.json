@@ -483,7 +483,7 @@
       },
       "a1111_metadata": {
         "name": "a1111_metadata",
-        "tooltip": "On: Also writes what the image was made with (prompt, seed, steps, sampler, cfg, model, LoRAs) into the file as text, the way A1111 and Forge do, so other interfaces and sites can read it. The values are read from the workflow that ran; ComfyUI's own workflow data stays in the file as before. Not for EXR.\nOff: Only ComfyUI's own workflow data."
+        "tooltip": "On: Also writes what the image was made with (prompt, seed, steps, sampler, cfg, model, LoRAs) into the file as text, the way A1111 and Forge do, so other interfaces and sites can read it. The values are read from the workflow that ran; ComfyUI's own workflow data stays in the file as before. Not for EXR.\nOff: Only ComfyUI's own workflow data.\nTurning it on turns no_metadata off."
       },
       "positive_prompt": {
         "name": "positive_prompt",
@@ -520,6 +520,10 @@
       "model_name": {
         "name": "model_name",
         "tooltip": "Optional. The model's name to write into the settings text, in place of the one read from the workflow."
+      },
+      "no_metadata": {
+        "name": "no_metadata",
+        "tooltip": "On: The file holds nothing about how the image was made. No workflow, no prompt, no settings text, and no .json next to a JPEG. Turning it on turns a1111_metadata off.\nOff: The usual (ComfyUI's workflow data; the settings text with a1111_metadata).\nEXR: Its header still says which colors the numbers mean (needed to show it right)."
       }
     },
     "outputs": {
