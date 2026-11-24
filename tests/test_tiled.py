@@ -185,11 +185,6 @@ check(f"transformer_options['{td.TILES_KEY}'] per call: canvas, rows and the box
 seen.clear()
 W3(spy, torch.zeros(1, 4, 16, 16), torch.tensor([1.0]), None, None, None, {})
 check("a call that isn't tiled announces nothing", seen == [None])
-reg = rl.regional_lora_model(patcher, (), "test regions")
-both = td.tiled_model(reg, 128, 128, 32, 4)[0]
-check("Region Genie's model -> tiled: the tiling is the outermost wrapper", list(both.wrappers[KIND])[0] == td.WRAPPER_KEY and len(both.wrappers[KIND]) == 2)
-other = rl.regional_lora_model(td.tiled_model(patcher, 128, 128, 32, 4)[0], (), "test regions")
-check("tiled -> Region Genie's model: the tiling is the outermost wrapper too", list(other.wrappers[KIND])[0] == td.WRAPPER_KEY and len(other.wrappers[KIND]) == 2)
 
 
 class Exec:                                   # what ComfyUI hands a wrapper: the rest of the call, and the model
@@ -203,14 +198,101 @@ class Exec:                                   # what ComfyUI hands a wrapper: th
         return "out"
 
 
-wrap = rl._ActivateRegionalLoRAsWrapper((), "test regions", None, rl.model_arch(patcher))
-ex = Exec()
-topt = {td.TILES_KEY: {"canvas": (48, 80), "boxes": [(0, 0, 32, 32)], "rows": 1}, "sample_sigmas": torch.ones(3)}
-r = wrap(ex, torch.zeros(1, 4, 32, 32), torch.tensor([1.0]), None, torch.zeros(1, 5, 24), None, topt)
-check("the regional wrapper steps aside for a batch of tiles: the call goes on unchanged, nothing regional is switched on",
-      r == "out" and ex.got[0][5] is topt and "optimized_attention_override" not in topt and not rl._active())
-res2 = nodes.common_ksampler(both, 3, 3, 4.0, "euler", "simple", pos, neg, lat, denoise=0.5)[0]["samples"]
-check("a sampling run with both on the model finishes and gives the tiled result", torch.allclose(res2, res, atol=1e-5))
+# ---- tile-aware regions: every tile of a batch gets the part of each region that lies in it
+# a canvas of 48 x 80 latent cells; region A is its left half, with a caption at text tokens 2..4 of 7
+maskA = torch.zeros(96, 160); maskA[:, :80] = 1
+maskB = torch.zeros(96, 160); maskB[:, 80:] = 1
+A = rl.TokenRegion(maskA, [(2, 4)], 7)
+B = rl.TokenRegion(maskB, [(4, 6)], 7)
+canvas = (48, 80)
+boxL, boxM, boxR = (0, 0, 32, 32), (0, 24, 32, 32), (16, 48, 32, 32)       # left of the middle, across it, right of it
+flux = rl.ModelArch("Flux.1", patch=2, order="txt_img", token_key="t5xxl", family="Flux")
+gridT = flux.grid(32, 32)                                               # a tile's token grid: 16 x 16
+gm = lambda r, b: r.grid_mask(16, 16, gridT[2], (canvas, b)).reshape(16, 16)   # noqa: E731
+check("a tile inside a region: the region everywhere; outside it: nowhere; across its edge: the part that lies in the tile",
+      bool((gm(A, boxL) == 1).all()) and bool((gm(A, boxR) == 0).all()) and bool((gm(A, boxM)[:, :8] == 1).all()) and bool((gm(A, boxM)[:, 8:] == 0).all()))
+full = A.grid_mask(24, 40, (48, 80, 2)).reshape(24, 40)
+check("a tile's part of a region is the whole picture's token mask cut to the tile", torch.equal(gm(A, boxM), full[0:16, 12:28]) and torch.equal(gm(B, boxR), B.grid_mask(24, 40, (48, 80, 2)).reshape(24, 40)[8:24, 24:40]))
+tiles3 = (canvas, (boxL, boxM, boxR), 2)
+L = 7 + 256                                                             # text, then image
+wA = A.weights(L, gridT, "cpu", torch.float32, 7, flux, tiles3)
+check(f"LoRA weights for a batch of tiles: a row per tile, sample by sample {tuple(wA.shape)}; the caption's tokens on in every row",
+      wA.shape == (6, L, 1) and torch.equal(wA[0], wA[3]) and torch.equal(wA[2], wA[5]) and bool((wA[:, 2:4] == 1).all()) and bool((wA[:, :2] == 0).all())
+      and wA[0, 7:].mean().item() == 1 and wA[2, 7:].mean().item() == 0 and abs(wA[1, 7:].mean().item() - 0.5) < 1e-6)
+check("the same call without tiles is unchanged: one row, the whole mask on the grid", A.weights(L, gridT, "cpu", torch.float32, 7, flux).shape == (1, L, 1))
+unet = rl.model_arch(patcher)
+gridU = unet.grid(32, 32)
+sA = A.spatial(16, 16, gridU, "cpu", torch.float32, unet, tiles3)
+check(f"a UNet's conv layers at half size: a row per tile too {tuple(sA.shape)}", sA.shape == (6, 1, 16, 16) and sA[0].mean().item() == 1 and sA[2].mean().item() == 0 and torch.equal(sA[1], sA[4]))
+
+sepn = rl.RegionSeparation([A, B], 1.0, 0.1)
+bt = sepn.tile_bias(L, L, gridT, "cpu", torch.float32, 7, True, flux, tiles3, 6)
+img = slice(7, L)
+capA, capB = slice(2, 4), slice(4, 6)
+blocked = lambda row, q, k: bool((bt[row, 0, q, k] < -1000).all())      # noqa: E731
+free = lambda row, q, k: bool((bt[row, 0, q, k] == 0).all())            # noqa: E731
+check(f"separation for a batch of tiles: a row per tile {tuple(bt.shape)}", bt.shape == (6, 1, L, L) and torch.equal(bt[0], bt[3]))
+check("a tile that shows only region A: A's caption reaches its image, B's caption reaches nothing in it",
+      free(0, img, capA) and blocked(0, img, capB) and free(0, img, img))
+check("a tile that shows only region B: the other way round", blocked(2, img, capA) and free(2, img, capB))
+tok = lambda r, c: 7 + r * 16 + c                                        # noqa: E731
+check("a tile across the edge: each side hears its own caption, and the two sides are kept apart early on",
+      bt[1, 0, tok(3, 2), 2].item() == 0 and bt[1, 0, tok(3, 2), 4].item() < -1000 and bt[1, 0, tok(3, 12), 4].item() == 0
+      and bt[1, 0, tok(3, 12), 2].item() < -1000 and bt[1, 0, tok(3, 2), tok(3, 12)].item() < -1000 and bt[1, 0, tok(3, 2), tok(5, 3)].item() == 0)
+late = sepn.tile_bias(L, L, gridT, "cpu", torch.float32, 7, False, flux, tiles3, 6)
+check("after 'until': image tokens are open to each other again, captions still only reach their own region",
+      late[1, 0, tok(3, 2), tok(3, 12)].item() == 0 and late[1, 0, tok(3, 12), 2].item() < -1000)
+check("a batch that isn't the tiles' is left alone", sepn.tile_bias(L, L, gridT, "cpu", torch.float32, 7, True, flux, tiles3, 5) is None)
+one = sepn.bias(L, L, gridT, "cpu", torch.float32, 7, True, flux)
+whole = (canvas, ((0, 0, 48, 80),), 1)
+gridC = flux.grid(48, 80)
+Lc = 7 + 24 * 40
+check("one tile that is the whole picture gives exactly the untiled separation",
+      torch.equal(sepn.tile_bias(Lc, Lc, gridC, "cpu", torch.float32, 7, True, flux, whole, 1), sepn.bias(Lc, Lc, gridC, "cpu", torch.float32, 7, True, flux)) and one is not None)
+# a UNet (cross-attention): image self-attention and image -> text, per tile
+bs = sepn.tile_bias(1024, 1024, gridU, "cpu", torch.float32, 7, True, unet, tiles3, 6)
+bx = sepn.tile_bias(1024, 7, gridU, "cpu", torch.float32, 7, True, unet, tiles3, 6)
+check("UNet: a tile inside one region has nothing to keep apart in it; across the edge the two sides are; each row reads only its regions' captions",
+      bs.shape == (6, 1, 1024, 1024) and float(bs[0].abs().sum()) == 0 and float(bs[1].abs().sum()) > 0
+      and bx.shape == (6, 1, 1024, 7) and bool((bx[0, 0, :, 4:6] < -1000).all()) and bool((bx[0, 0, :, 2:4] == 0).all()) and bool((bx[2, 0, :, 2:4] < -1000).all()))
+
+# the wrapper: tiles in the batch -> state for the hooks and a per-tile attention override; a batch that doesn't fit -> no regions
+wrap = rl._ActivateRegionalLoRAsWrapper((), "test regions", sepn, unet)
+got = {}
+
+
+class Exec2(Exec):
+    def __call__(self, *a, **k):
+        got["tiles"] = rl._tiles()
+        got["override"] = a[5].get("optimized_attention_override")
+        return "out"
+
+
+sig = torch.tensor([10.0, 5.0, 0.0])
+topt = {td.TILES_KEY: {"canvas": canvas, "boxes": [boxL, boxM, boxR], "rows": 2}, "sample_sigmas": sig, "sigmas": torch.tensor([10.0])}
+r = wrap(Exec2(), torch.zeros(6, 4, 32, 32), torch.tensor([1.0] * 6), None, torch.zeros(6, 7, 24), None, topt)
+check("the regional wrapper takes the tiles: the hooks see them, the attention override is set, and they are gone after the call",
+      r == "out" and got["tiles"] == tiles3 and callable(got["override"]) and rl._tiles() is None)
+bad = {td.TILES_KEY: {"canvas": canvas, "boxes": [boxL, boxM, boxR], "rows": 2}, "sample_sigmas": sig}
+ex = Exec2()
+got.clear()
+r = wrap(ex, torch.zeros(4, 4, 32, 32), torch.tensor([1.0] * 4), None, torch.zeros(4, 7, 24), None, bad)
+check("a batch that doesn't fit the tiles: the call goes on without regions (never the whole layout on a tile)", r == "out" and got["tiles"] is None and got["override"] is None)
+
+# through ComfyUI's sampler: Region Genie's model (separation on) -> tiled
+regsep = rl.regional_lora_model(patcher, (), "test regions", sepn)
+both = td.tiled_model(regsep, 128, 128, 32, 4)[0]
+check("Region Genie's model -> tiled: the tiling is the outermost wrapper", list(both.wrappers[KIND])[0] == td.WRAPPER_KEY and len(both.wrappers[KIND]) == 2)
+other = rl.regional_lora_model(td.tiled_model(patcher, 128, 128, 32, 4)[0], (), "test regions", sepn)
+check("tiled -> Region Genie's model: the tiling is the outermost wrapper too", list(other.wrappers[KIND])[0] == td.WRAPPER_KEY and len(other.wrappers[KIND]) == 2)
+pos7 = [[torch.randn(1, 7, 24), {}]]
+neg7 = [[torch.randn(1, 7, 24), {}]]
+plain = nodes.common_ksampler(td.tiled_model(patcher, 128, 128, 32, 4)[0], 3, 3, 4.0, "euler", "simple", pos7, neg7, lat, denoise=0.5)[0]["samples"]
+res2 = nodes.common_ksampler(both, 3, 3, 4.0, "euler", "simple", pos7, neg7, lat, denoise=0.5)[0]["samples"]
+check("a real sampling run with regions kept apart per tile finishes, and differs from the run without regions",
+      res2.shape == plain.shape and bool(torch.isfinite(res2).all()) and not torch.allclose(res2, plain, atol=1e-6))
+res3 = nodes.common_ksampler(other, 3, 3, 4.0, "euler", "simple", pos7, neg7, lat, denoise=0.5)[0]["samples"]
+check("the two wiring orders give the same result", torch.allclose(res2, res3, atol=1e-6))
 
 # ---- the nodes
 it = td.TiledUpscaleRG.INPUT_TYPES()

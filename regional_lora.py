@@ -66,6 +66,13 @@ def _active():
     return getattr(_state, "active", ())
 
 
+def _tiles():
+    """Tiled sampling (tiled_diffusion.py): the current model call's batch is tiles of a larger latent. (canvas,
+    boxes, rows): the whole latent's (H, W); each tile's (y, x, h, w) in latent cells; how many samples. The batch
+    is laid out sample by sample, so row r of the batch is tile r % len(boxes). None: an ordinary call."""
+    return getattr(_state, "tiles", None)
+
+
 def _grid():
     """Token grid of the current model call: (h, w, (H, W, patch)) - h x w image tokens made from the H x W
     latent in patch x patch pieces (MOSS-Image and Ideogram 4: one token per latent pixel)."""
@@ -247,11 +254,21 @@ class TokenRegion:
     def coverage(self):
         return float(self.mask.mean())
 
-    def grid_mask(self, h, w, src=None):
+    def grid_mask(self, h, w, src=None, tile=None):
         """The mask on the h x w token grid (flattened). src = (H, W, patch): tokens are patch x patch pieces of
         an H x W latent; when H or W isn't a multiple of patch the model pads the latent at the bottom/right
-        (circular), so the mask is padded the same way before it is pooled."""
+        (circular), so the mask is padded the same way before it is pooled.
+        tile = (canvas, box): the grid is that of one tile of a larger latent (tiled sampling): the mask is brought
+        to the whole latent's size and the tile's rectangle cut out of it, then treated as the mask of that tile."""
         m = self.mask[None, None]
+        if tile is not None:
+            (Hc, Wc), (y, x, th, tw) = tile
+            key = ("c", Hc, Wc)
+            full = self._cache.get(key)
+            if full is None:
+                full = _resize(m, Hc, Wc)
+                self._remember(key, full)
+            m = full[:, :, y:y + th, x:x + tw]
         if src is not None and src[2] > 1 and (h * src[2], w * src[2]) != (src[0], src[1]):
             H, W, p = src
             m = _resize(m, H, W)
@@ -259,42 +276,55 @@ class TokenRegion:
             return torch.nn.functional.avg_pool2d(m, p).reshape(-1).clamp(0, 1)
         return _resize(m, h, w).reshape(-1).clamp(0, 1)
 
-    def weights(self, L, grid, device, dtype, text_len=None, arch=None):
-        """(1, L, 1) weights for a sequence of L tokens, or None when this LoRA doesn't act on it."""
+    def weights(self, L, grid, device, dtype, text_len=None, arch=None, tiles=None):
+        """(1, L, 1) weights for a sequence of L tokens, or None when this LoRA doesn't act on it.
+        tiles (see _tiles): (B, L, 1), each row of the batch with its own tile's part of the mask; a sequence
+        without image tokens is the same for every row and stays (1, L, 1)."""
         spans = self.text_spans if (self.text_spans and text_len is not None and text_len == self.text_len) else ()
         lay = _layout(L, grid, text_len, arch)
         if lay is None or (lay.img0 is None and not spans):
             return None
-        key = ("w", L, lay.h, lay.w, lay.src, str(device), dtype, text_len, lay.img0, lay.txt0)
+        if lay.img0 is None:
+            tiles = None
+        key = ("w", L, lay.h, lay.w, lay.src, str(device), dtype, text_len, lay.img0, lay.txt0, tiles)
         t = self._cache.get(key)
         if t is None:
-            t = torch.zeros(L, dtype=torch.float32)
+            boxes = [None] if tiles is None else [(tiles[0], b) for b in tiles[1]]
+            t = torch.zeros(len(boxes), L, dtype=torch.float32)
             if lay.img0 is not None:
-                t[lay.img0:lay.img0 + lay.n] = self.grid_mask(lay.h, lay.w, lay.src)
+                for i, tile in enumerate(boxes):
+                    t[i, lay.img0:lay.img0 + lay.n] = self.grid_mask(lay.h, lay.w, lay.src, tile)
             if lay.txt0 is not None:
                 for a, b in spans:
                     a, b = max(0, int(a)), min(int(b), L - lay.txt0)
                     if b > a:
-                        t[lay.txt0 + a:lay.txt0 + b] = 1.0
-            t = t.to(device=device, dtype=dtype).reshape(1, L, 1)
+                        t[:, lay.txt0 + a:lay.txt0 + b] = 1.0
+            if tiles is not None:
+                t = t.repeat(tiles[2], 1)                 # sample by sample: row r is tile r % len(boxes)
+            t = t.to(device=device, dtype=dtype).reshape(-1, L, 1)
             self._remember(key, t)
         return t
 
-    def spatial(self, hh, ww, grid, device, dtype, arch=None):
+    def spatial(self, hh, ww, grid, device, dtype, arch=None, tiles=None):
         """(1, 1, hh, ww) weights for a conv layer's output (channels first), or None when (hh, ww) isn't one of
-        the model's token grids."""
+        the model's token grids. tiles (see _tiles): (B, 1, hh, ww), a row per tile of the batch."""
         for h, w, src in _levels(grid, arch):
             if (h, w) == (hh, ww):
-                key = ("s", h, w, src, str(device), dtype)
+                key = ("s", h, w, src, str(device), dtype, tiles)
                 t = self._cache.get(key)
                 if t is None:
-                    t = self.grid_mask(h, w, src).to(device=device, dtype=dtype).reshape(1, 1, h, w)
+                    if tiles is None:
+                        t = self.grid_mask(h, w, src).reshape(1, 1, h, w)
+                    else:
+                        t = torch.stack([self.grid_mask(h, w, src, (tiles[0], b)) for b in tiles[1]]).reshape(-1, 1, h, w)
+                        t = t.repeat(tiles[2], 1, 1, 1)
+                    t = t.to(device=device, dtype=dtype)
                     self._remember(key, t)
                 return t
         return None
 
     def _remember(self, key, t):
-        if len(self._cache) > 32:
+        if len(self._cache) > 256:                       # (tiled sampling keeps one entry per batch of tiles)
             self._cache.clear()
         self._cache[key] = t
 
@@ -637,17 +667,20 @@ class RegionSeparation:
         self.until = float(until)
         self.share_bg = bool(share_bg)
         self._labels, self._bias = {}, {}
+        self._tile_key, self._tile_bias = None, {}       # tiled sampling: the biases of the batch of tiles in the model
 
     def bias_value(self):
         return -1.0e4 if self.strength >= 0.9999 else float(math.log(1.0 - self.strength))
 
-    def labels(self, h, w, src=None):
-        key = (h, w, src)
+    def labels(self, h, w, src=None, tile=None):
+        key = (h, w, src, tile)
         lab = self._labels.get(key)
         if lab is None:
-            M = torch.stack([r.grid_mask(h, w, src) for r in self.regions])     # (R, h*w)
+            M = torch.stack([r.grid_mask(h, w, src) if tile is None else r.grid_mask(h, w, src, tile) for r in self.regions])     # (R, h*w)
             mx, am = M.max(dim=0)
             lab = torch.where(mx >= 0.5, am + 1, torch.zeros_like(am))         # 0 = outside every region
+            if len(self._labels) > 2048:
+                self._labels.clear()
             self._labels[key] = lab
         return lab
 
@@ -725,12 +758,78 @@ class RegionSeparation:
         self._bias[key] = b
         return b
 
-    def override(self, prev, grid, early=True, arch=None):
+    def tile_bias(self, nq, nk, grid, device, dtype, text_len, early, arch, tiles, batch):
+        """bias() for a batch of tiles (see _tiles): (B, 1, nq, nk), each row with the regions as they lie in its
+        own tile. A region that isn't in a tile has no image tokens there, so its caption reaches nothing in that
+        tile: each tile hears only the captions of the regions it shows. Worked out on `device` (a row is nq x nk)
+        and kept only while this batch of tiles is in the model. None: nothing to keep apart, or the batch isn't
+        the tiles' (then the call is left alone)."""
+        canvas, boxes, rows = tiles
+        n = len(boxes)
+        if batch != n * rows:
+            return None
+        if self._tile_key != tiles:
+            self._tile_key, self._tile_bias = tiles, {}
+        key = (nq, nk, grid, str(device), dtype, text_len, early, arch.name if arch else None)
+        if key in self._tile_bias:
+            return self._tile_bias[key]
+        txt = self._text_labels(text_len)
+        txt = txt.to(device) if txt is not None else None
+        pen = None
+
+        def img_labels(lay):
+            return torch.stack([self.labels(lay.h, lay.w, lay.src, (canvas, b)) for b in boxes]).to(device)     # (n, h*w)
+        if arch is not None and arch.cross:
+            lq = _layout(nq, grid, text_len, arch)
+            if lq is not None and lq.img0 is not None:
+                labq = img_labels(lq)
+                if nk == nq:
+                    if early:
+                        pen = labq[:, :, None] != labq[:, None, :]
+                        if self.share_bg:
+                            pen = pen & (labq[:, :, None] != 0) & (labq[:, None, :] != 0)
+                elif txt is not None and nk == text_len:
+                    pen = (txt[None, None, :] >= 0) & (txt[None, None, :] != labq[:, :, None])
+        else:
+            L = max(nq, nk)
+            lay = _layout(L, grid, text_len, arch)
+            if lay is not None and lay.img0 is not None:
+                lab = torch.full((n, L), -1, dtype=torch.long, device=device)
+                kind = torch.full((L,), 2, dtype=torch.long, device=device)
+                lab[:, lay.img0:lay.img0 + lay.n] = img_labels(lay)
+                kind[lay.img0:lay.img0 + lay.n] = 0
+                if txt is not None and lay.txt0 is not None and lay.txt0 + text_len <= L:
+                    sl = slice(lay.txt0, lay.txt0 + text_len)
+                    cap = txt >= 0
+                    lab[:, sl] = torch.where(cap[None], txt[None], lab[:, sl])
+                    kind[sl] = torch.where(cap, torch.ones_like(txt), kind[sl])
+                diff = lab[:, :, None] != lab[:, None, :]
+                ki, kj = kind[:, None], kind[None, :]
+                both_img = ((ki == 0) & (kj == 0))[None]
+                if self.share_bg:
+                    both_img = both_img & (lab[:, :, None] != 0) & (lab[:, None, :] != 0)
+                caption = (((ki == 1) & (kj != 2)) | ((kj == 1) & (ki != 2)))[None]
+                pen = (diff & (caption | (both_img & early)))[:, :nq, :nk]
+            else:                                                 # text-only layers: the same for every tile
+                b = self.bias(nq, nk, grid, device, dtype, text_len, early, arch)
+                self._tile_bias[key] = b
+                return b
+        if pen is None or not bool(pen.any()):
+            b = None
+        else:
+            b = torch.where(pen, self.bias_value(), 0.0).to(dtype=dtype)[:, None].repeat(rows, 1, 1, 1)
+        self._tile_bias[key] = b
+        return b
+
+    def override(self, prev, grid, early=True, arch=None, tiles=None):
         def fn(func, *args, **kwargs):
             q, k = args[0], args[1]
             seq = 2 if kwargs.get("skip_reshape") else 1
             nq, nk = q.shape[seq], k.shape[seq]
-            m = self.bias(nq, nk, grid, q.device, q.dtype, getattr(_state, "text_len", None), early, arch)
+            if tiles is not None:
+                m = self.tile_bias(nq, nk, grid, q.device, q.dtype, getattr(_state, "text_len", None), early, arch, tiles, int(q.shape[0]))
+            else:
+                m = self.bias(nq, nk, grid, q.device, q.dtype, getattr(_state, "text_len", None), early, arch)
             if m is None:
                 return prev(func, *args, **kwargs) if prev is not None else func(*args, **kwargs)
             if len(args) > 4:                         # mask passed by position (Ideogram 4)
@@ -770,16 +869,19 @@ def _make_forward_hook(module_name):
                 grid = _grid()
                 if grid is None or out.dim() < 3:
                     continue
+                tiles = _tiles()
                 if out.dim() == 4 and getattr(module, "kernel_size", None) is not None:     # conv: (B, C, h, w)
-                    tw = region.spatial(out.shape[-2], out.shape[-1], grid, out.device, out.dtype, _arch())
+                    tw = region.spatial(out.shape[-2], out.shape[-1], grid, out.device, out.dtype, _arch(), tiles)
                 else:                                     # (B, L, C), or (B, T, h, w, C) (Anima): tokens in between
                     L = 1
                     for d_ in out.shape[1:-1]:
                         L *= int(d_)
-                    tw = region.weights(L, grid, out.device, out.dtype, getattr(_state, "text_len", None), _arch())
+                    tw = region.weights(L, grid, out.device, out.dtype, getattr(_state, "text_len", None), _arch(), tiles)
                     if tw is not None and out.dim() > 3:
-                        tw = tw.reshape((1,) + tuple(out.shape[1:-1]) + (1,))
+                        tw = tw.reshape((tw.shape[0],) + tuple(out.shape[1:-1]) + (1,))
                 if tw is None:
+                    continue
+                if tw.shape[0] not in (1, out.shape[0]):   # tiled: a layer whose batch isn't the tiles' is left alone
                     continue
             for p in lora.modules.get(module_name, ()):
                 if p.broken:
@@ -915,16 +1017,29 @@ class _ActivateRegionalLoRAsWrapper:
             topts = kwargs["transformer_options"]
         elif len(args) > 5:
             topts = args[5]
-        if isinstance(topts, dict) and topts.get("rg_tiles"):
-            # Tiled sampling (tiled_diffusion.py): x is a batch of tiles, and the regions are laid out on the whole
-            # picture. Until the regions are cut per tile, they are left out of a tiled run: mapping the whole
-            # layout onto each tile would put every region in every tile.
-            sigmas = topts.get("sample_sigmas")
-            if sigmas is not None and id(sigmas) != self._tiled_run:
-                self._tiled_run = id(sigmas)
-                _log(f"{LOG} tiled sampling: the regional LoRAs and the region separation are left out of this run "
-                     f"(regions aren't cut per tile): {self.label}")
-            return executor(*args, **kwargs)
+        # Tiled sampling (tiled_diffusion.py): x is a batch of tiles of a larger latent, and the regions are laid out
+        # on the whole picture. Each row of the batch then gets the part of every region that lies in its own tile
+        # (TokenRegion.weights / spatial, RegionSeparation.tile_bias). A batch that doesn't fit what the tiling says
+        # is left without regions: the whole layout must never be put onto one tile.
+        tiles = None
+        info = topts.get("rg_tiles") if isinstance(topts, dict) else None
+        if info:
+            try:
+                canvas = (int(info["canvas"][0]), int(info["canvas"][1]))
+                boxes = tuple((int(a), int(b), int(c), int(d)) for a, b, c, d in info["boxes"])
+                rows = int(info["rows"])
+                ok = (isinstance(x, torch.Tensor) and x.dim() >= 4 and boxes and x.shape[0] == rows * len(boxes)
+                      and all((c, d) == (int(x.shape[-2]), int(x.shape[-1])) for _, _, c, d in boxes))
+            except Exception:
+                ok = False
+            if not ok:
+                sigmas = topts.get("sample_sigmas")
+                if sigmas is not None and id(sigmas) != self._tiled_run:
+                    self._tiled_run = id(sigmas)
+                    _log(f"{LOG} tiled sampling: the tiles don't fit the batch, so the regional LoRAs and the region "
+                         f"separation are left out of this run: {self.label}", logging.WARNING)
+                return executor(*args, **kwargs)
+            tiles = (canvas, boxes, rows)
         first = self._announce(topts)
         grid = self.arch.grid(int(x.shape[-2]), int(x.shape[-1])) if isinstance(x, torch.Tensor) and x.dim() >= 4 else None
         sep_on = False
@@ -934,13 +1049,15 @@ class _ActivateRegionalLoRAsWrapper:
             if early or self.separation.has_captions():
                 t2 = dict(topts)
                 t2["optimized_attention_override"] = self.separation.override(topts.get("optimized_attention_override"),
-                                                                              grid, early, self.arch)
+                                                                              grid, early, self.arch, tiles)
                 if "transformer_options" in kwargs:
                     kwargs["transformer_options"] = t2
                 else:
                     args[5] = t2
                 sep_on = True
         prev, prev_grid, prev_tl, prev_arch = _active(), _grid(), getattr(_state, "text_len", None), _arch()
+        prev_tiles = _tiles()
+        _state.tiles = tiles
         ctx = args[3] if len(args) > 3 else kwargs.get("c_crossattn")
         if self.arch.text_from == "txt_states" or ctx is None:
             ctx = kwargs.get("txt_states", ctx)
@@ -964,6 +1081,7 @@ class _ActivateRegionalLoRAsWrapper:
             _state.grid = prev_grid
             _state.text_len = prev_tl
             _state.arch = prev_arch
+            _state.tiles = prev_tiles
             if first:
                 counts, _state.counts = getattr(_state, "counts", None) or {}, None
                 parts = []
