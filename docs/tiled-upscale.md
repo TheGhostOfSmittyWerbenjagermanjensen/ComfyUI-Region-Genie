@@ -73,5 +73,9 @@ Two nodes that redraw a large picture in overlapping tiles, so a model can upsca
 - **LoRAs:** as usual, applied to the model before the node.
 - **ControlNet:** works for models whose ControlNet output is image-shaped (SD1.5, SDXL). For the newer transformer models it is left out while tiling, with a warning in ComfyUI's console.
 - **Reference images** (edit models): each tile gets the whole reference, not its part of it.
-- **Regions from Region Genie:** regional LoRAs and keeping regions separate are left out of a tiled run, with a line in the console saying so. The prompt still applies to every tile.
+- **Regions from Region Genie:** connect Region Genie's `model`, `positive` and `negative` as for a normal run. Each tile then gets the part of every region that lies in it.
+  - Regional LoRAs act only where their region falls inside a tile.
+  - Regions are kept separate per tile, and a region that isn't in a tile leaves its part of the prompt out of that tile. So a tile hears only the regions it shows, which helps at a higher denoise.
+  - This holds for the models whose regions are placed by keeping them separate (Krea 2, Flux, Anima, SDXL / SD1.5). For MOSS-Image and Ideogram 4 the regional LoRAs follow the tiles, but the layout in the prompt still describes the whole picture to every tile.
+  - It adds no model calls.
 - **Memory:** ComfyUI still reserves memory as if the whole picture went through at once, so on a small card it may move more of the model off the card than needed.

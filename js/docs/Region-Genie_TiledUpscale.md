@@ -15,5 +15,6 @@ are blended at every step (Mixture of Diffusers), several tiles per model call.
 - `tile_blend`: 1 is the usual blend; higher mixes tiles more softly, lower more crisply.
 - Outputs: `image`, and `latent` (before decoding).
 
-Regional LoRAs and region separation from Region Genie are left out of a tiled run. ControlNet works with SD1.5
+With Region Genie's `model`, `positive` and `negative` connected, regional LoRAs and region separation apply per
+tile: each tile gets the part of every region that lies in it. ControlNet works with SD1.5
 and SDXL; for other models it is left out while tiling.

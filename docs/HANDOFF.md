@@ -302,6 +302,8 @@ The owner's choices on the six items left from the round-33 review (see the chan
 
 ### Tiled Upscale and Tiled Diffusion (rounds 75-76; `tiled_diffusion.py`, `tests/test_tiled.py`)
 
+**This file is the `claude/tile-aware-regions` version: step 2 below is IN this branch's code (the working branch's copy of this section describes step 1 as the current state).**
+
 **State when this was written (Nov 25):** a working version the owner has NOT yet tried on a real model. The owner tests on Anima (and uses Forge Neo's Mixture of Diffusers as the reference for speed and quality). English docs and the four translations of the two nodes are written (`tests/i18n_extract.cjs` leaves the samplers', schedulers' and resize methods' names untranslated). Not done yet: an example workflow, `tests/real_*` for the two nodes, README picture, the owner's confirmation of defaults.
 
 **Branches.**

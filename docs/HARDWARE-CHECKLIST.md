@@ -288,6 +288,5 @@ Nothing here has run on a real model yet.
 - [ ] With an upscale model connected (4x model, `upscale_by` 2): the image is resized down to 2x after it
 - [ ] A small card: small tiles at batch 1 fit; ComfyUI doesn't offload more than without tiling
 - [ ] ControlNet with SDXL in a tiled run; the warning for a transformer model's ControlNet
-- [ ] Region Genie's model into Tiled Upscale: the log line that regions are left out (working branch)
 - [ ] Branch `claude/tile-aware-regions`: regional LoRAs stay in their regions in the upscale; at denoise 0.4+ tiles don't draw other regions' prompts; Anima, SDXL, Flux, Krea 2
 
