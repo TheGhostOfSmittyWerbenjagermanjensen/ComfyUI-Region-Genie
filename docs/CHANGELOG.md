@@ -12,6 +12,9 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Built: `.rg-rdel` on the row (it left the options line), `E.deleteRegion()`, `E.rowMenu()` (the canvas menu's region entries without the layer ones). Version 0.55.0.
 - After the owner tried it: the line width stops at 10 px (was 30); regions start at 50% without an image too (was 80%).
 - Asked for legibility over pictures, and built: Setting *Label text size (px)* (8 to 32, 11); the labels grow with the zoom above the fitted view and never go under the set size (one factor on `dpr` in `drawLabels`); Settings *Label shadow size (px)* (0 to 12, 4) and *Label shadow strength (%)* (0 to 300, 100).
+- After trying the zoom: the text stops growing at a largest size (Setting, 16 px; a value under the text size counts as the text size); shadow strength 200% at first.
+- The four label Settings are on the page *Text* of the settings window, which was *Text size* (section `"Text"` in rg_shared.js; the Settings keep their ids). No other Setting changes the look of text.
+- New working agreement (CLAUDE.md): a UI change is settled with the owner before the docs, pictures, translations and long tests are done.
 - Without WebGL the old lines remain (`simpleLines`): stepped, and following the region on top.
 - Then asked and decided (mock-up at 50% with and without an image): no dark box behind a label inside its region; white text with a shadow, or black text with a white glow where the region is light at its present opacity. Built: `under` in the label loop of render.js; the plate stays for a control map and for kept regions in Edit Mode.
 - Tests: `ui_region_opacity.cjs` (no line around a region on top, both lines where two touch, the width, a wide line fills, 0 = none; both paths), `ui_region_rows.cjs` (row delete, row menu); stub suite, real tooltips / settings / i18n / layering.

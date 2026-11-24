@@ -396,18 +396,6 @@
     "name": "領域の縁の線 (px)",
     "tooltip": "領域が半透明のとき、各領域の縁に沿う不透明な線の幅。すべての Region Genie ノードに適用されます。形より太い線はその形を塗りつぶします。0：線なし。"
   },
-  "RegionGenie_Main_LabelSize": {
-    "name": "ラベルの文字サイズ (px)",
-    "tooltip": "画像全体が表示されているとき、キャンバスに書かれる領域プロンプトの大きさ。すべての Region Genie ノードに適用されます。拡大すると画像とともに大きくなり、縮小してもこれより小さくはなりません。"
-  },
-  "RegionGenie_Main_LabelShadow": {
-    "name": "ラベルの影のサイズ (px)",
-    "tooltip": "キャンバス上の領域プロンプトの周りの暗い影が広がる範囲（明るい領域の暗い文字では白い光彩）。0：なし。"
-  },
-  "RegionGenie_Main_LabelShadowStrength": {
-    "name": "ラベルの影の強さ (%)",
-    "tooltip": "キャンバス上の領域プロンプトの周りの影や光彩の濃さ。0：なし。"
-  },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: カラー / 深度コントロール LoRA",
     "tooltip": "MOSS-Image のカラー / 深度コントロールアダプター（LoRA）。領域のカラーマップと深度マップの一方または両方を読み取ります。マップは画像と並べて VAE エンコードされます（「vae」が必要）。\nノードの Control 行が、MOSS-Image モデルに対して（モデルへの LoRA として）使います。\nmoss_image_color_depth_control.safetensors を ComfyUI/models/loras に入れてください: https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\nファイルを別の場所に置いたまま使うこともできます: 「モデルファイルの Browse…」をオン（モデルファイル）にすると、フォルダーボタンでその場所から選択できます。すべての Region Genie ノードで共通です。"
@@ -688,7 +676,7 @@
     "name": "画像サイズ",
     "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px , Label text size px , Label shadow size px , Label shadow strength ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px ": {
     "name": "Region Genie ノード",
     "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
   },
@@ -696,9 +684,9 @@
     "name": "キャンバスツール",
     "tooltip": "投げ縄、マジックワンド、塗りつぶしの各ボタンが最初に使うバージョン、ワンドの許容値、塗りつぶしの隙間サイズ、キャンバス上のヒント。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render": {
-    "name": "文字サイズ",
-    "tooltip": "ノード上とポップアップエディターでの、プロンプト欄の文字サイズ。\nEdit…: このページで Region Genie の設定を開きます。"
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength ": {
+    "name": "テキスト",
+    "tooltip": "ノード上とポップアップエディターでのプロンプト欄の文字サイズと、キャンバス上の領域ラベルのサイズと影。\nEdit…: このページで Region Genie の設定を開きます。"
   },
   "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "コントロール",
@@ -727,5 +715,21 @@
   "RegionGenie_Page_save: format, PNG compression, WebP lossless, WebP quality, JPEG quality, JPEG extension, JPEG workflow, AVIF quality, EXR bit depth, EXR color space": {
     "name": "画像を保存",
     "tooltip": "新しい Save Image (Region Genie) ノードが最初に使う形式と、各形式の設定。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Main_LabelSize": {
+    "name": "キャンバス上：領域ラベル",
+    "tooltip": "キャンバスに書かれる領域プロンプトの文字サイズ (px)。画像全体が表示されているときの大きさです。拡大すると画像とともに下のサイズまで大きくなり、縮小してもこれより小さくはなりません。すべてのノードに適用されます。"
+  },
+  "RegionGenie_Main_LabelMax": {
+    "name": "キャンバス上：領域ラベル、拡大時の最大",
+    "tooltip": "拡大したときにキャンバス上の領域プロンプトが大きくなる上限の文字サイズ (px)。上のサイズより小さい値は上のサイズとして扱われ、文字は大きくなりません。すべてのノードに適用されます。"
+  },
+  "RegionGenie_Main_LabelShadow": {
+    "name": "キャンバス上：ラベルの影のサイズ (px)",
+    "tooltip": "キャンバス上の領域プロンプトの周りの暗い影が広がる範囲（明るい領域の暗い文字では白い光彩）。0：なし。"
+  },
+  "RegionGenie_Main_LabelShadowStrength": {
+    "name": "キャンバス上：ラベルの影の強さ (%)",
+    "tooltip": "キャンバス上の領域プロンプトの周りの影や光彩の濃さ。0：なし。"
   }
 }

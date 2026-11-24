@@ -424,7 +424,7 @@ function setup(node) {
         set("share_background", !!getSetting(SET.hlShareBg, false));
         node.setDirtyCanvas?.(true, true);
     }
-    // Settings > Region Genie > Text size: positive / negative as 'scene prompts', the rows' words as 'region prompts'
+    // Settings > Region Genie > Text: positive / negative as 'scene prompts', the rows' words as 'region prompts'
     function applyFonts() {
         const fs = (id) => Math.max(0, Math.min(40, Math.round(+getSetting(id, 0)) || 0));
         const a = fs(SET.fsNodeScene), b = fs(SET.fsNodeRegion);

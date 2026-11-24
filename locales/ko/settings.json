@@ -396,18 +396,6 @@
     "name": "영역 가장자리 선 (px)",
     "tooltip": "영역이 반투명할 때 각 영역 가장자리를 따라 그리는 불투명한 선의 너비입니다. 모든 Region Genie 노드에 적용됩니다. 도형보다 넓은 선은 도형을 채웁니다. 0: 선 없음."
   },
-  "RegionGenie_Main_LabelSize": {
-    "name": "라벨 글자 크기 (px)",
-    "tooltip": "이미지 전체가 보일 때 캔버스에 쓰이는 영역 프롬프트의 크기입니다. 모든 Region Genie 노드에 적용됩니다. 확대하면 이미지와 함께 커지고, 축소해도 이보다 작아지지 않습니다."
-  },
-  "RegionGenie_Main_LabelShadow": {
-    "name": "라벨 그림자 크기 (px)",
-    "tooltip": "캔버스의 영역 프롬프트 주위 어두운 그림자가 퍼지는 범위입니다(밝은 영역의 어두운 글자에는 흰색 광채). 0: 없음."
-  },
-  "RegionGenie_Main_LabelShadowStrength": {
-    "name": "라벨 그림자 강도 (%)",
-    "tooltip": "캔버스의 영역 프롬프트 주위 그림자나 광채의 진하기입니다. 0: 없음."
-  },
   "RegionGenie_Control_MOSS": {
     "name": "MOSS-Image: 색상 / 깊이 컨트롤 LoRA",
     "tooltip": "MOSS-Image의 색상 / 깊이 컨트롤 어댑터(LoRA)입니다. 영역의 색상 맵 및 / 또는 깊이 맵을 읽으며, 맵은 이미지와 나란히 VAE로 인코딩됩니다('vae' 필요).\n노드의 Control 행이 MOSS-Image 모델에서 이를 사용합니다(모델에 LoRA로 적용).\nmoss_image_color_depth_control.safetensors 파일을 ComfyUI/models/loras에 넣으세요: https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors\n또는 파일을 아무 곳에나 두어도 됩니다. '모델 파일 찾아보기 (Browse…)'를 켜면(모델 파일) 폴더 버튼으로 파일이 있는 위치에서 고를 수 있습니다. 모든 Region Genie 노드에 동일하게 적용됩니다."
@@ -688,7 +676,7 @@
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px , Label text size px , Label shadow size px , Label shadow strength ": {
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px ": {
     "name": "Region Genie 노드",
     "tooltip": "새 Region Genie 노드의 초기 설정(이미지 모드, 페더, 분리, 그리드, 영역 색상, 태그 자동 완성, 와일드카드).\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
@@ -696,9 +684,9 @@
     "name": "캔버스 도구",
     "tooltip": "올가미, 마술봉, 채우기 버튼이 처음에 사용하는 버전, 마술봉 허용 오차, 채우기 틈 크기, 캔버스의 힌트.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render": {
-    "name": "텍스트 크기",
-    "tooltip": "노드와 팝업 편집기에서 프롬프트 상자의 글자 크기.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength ": {
+    "name": "텍스트",
+    "tooltip": "노드와 팝업 편집기에서 프롬프트 상자의 글자 크기, 그리고 캔버스의 영역 라벨 크기와 그림자.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
   "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "컨트롤",
@@ -727,5 +715,21 @@
   "RegionGenie_Page_save: format, PNG compression, WebP lossless, WebP quality, JPEG quality, JPEG extension, JPEG workflow, AVIF quality, EXR bit depth, EXR color space": {
     "name": "이미지 저장",
     "tooltip": "새 Save Image (Region Genie) 노드가 처음에 사용하는 형식과 각 형식의 설정.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
+  },
+  "RegionGenie_Main_LabelSize": {
+    "name": "캔버스: 영역 라벨",
+    "tooltip": "캔버스에 쓰이는 영역 프롬프트의 글자 크기(px)로, 이미지 전체가 보일 때의 크기입니다. 확대하면 이미지와 함께 아래 크기까지 커지고, 축소해도 이보다 작아지지 않습니다. 모든 노드에 적용됩니다."
+  },
+  "RegionGenie_Main_LabelMax": {
+    "name": "캔버스: 영역 라벨, 확대 시 최대",
+    "tooltip": "확대할 때 캔버스의 영역 프롬프트가 커질 수 있는 최대 글자 크기(px)입니다. 위 크기보다 작은 값은 위 크기로 취급되며, 이때 글자는 커지지 않습니다. 모든 노드에 적용됩니다."
+  },
+  "RegionGenie_Main_LabelShadow": {
+    "name": "캔버스: 라벨 그림자 크기 (px)",
+    "tooltip": "캔버스의 영역 프롬프트 주위 어두운 그림자가 퍼지는 범위입니다(밝은 영역의 어두운 글자에는 흰색 광채). 0: 없음."
+  },
+  "RegionGenie_Main_LabelShadowStrength": {
+    "name": "캔버스: 라벨 그림자 강도 (%)",
+    "tooltip": "캔버스의 영역 프롬프트 주위 그림자나 광채의 진하기입니다. 0: 없음."
   }
 }

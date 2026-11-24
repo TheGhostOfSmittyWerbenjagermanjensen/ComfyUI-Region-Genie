@@ -447,8 +447,9 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - In Edit Mode the label of a kept region lies on a dark plate (the region is only an outline over the picture it keeps, so the text would otherwise sit on the picture itself).
   - The text goes into the largest upright rectangle that lies inside the part of the region you can see (so it never runs over a neighbour or a region drawn on top), with a margin, centred; zooming in gives it more room.
   - It is white with a dark shadow, or black with a white glow where the region is light enough at its present opacity. There is no box behind it.
-  - Its size is a setting (*Label text size*, 11 px at first): that is its size with the whole image in view. Zooming in enlarges it with the image; zooming out never makes it smaller.
-  - The shadow or glow has two settings: *Label shadow size* (how far it spreads) and *Label shadow strength* (how dense it is).
+  - Its size is a setting (Settings > Region Genie > Text, *On the canvas: region labels*, 11 px at first): its size with the whole image in view.
+    - Zooming in enlarges it with the image, up to *region labels, largest when zoomed in* (16 px at first; a value under the text size counts as the text size). Zooming out never makes it smaller.
+  - The shadow or glow has two settings on the same page: *label shadow size* (how far it spreads, 4 px) and *label shadow strength* (how dense it is, 200%). Either at 0 removes it.
   - While a control map is on the canvas it gets a dark plate.
   - A region too small for a line of text keeps a compact label next to it (its index and up to three lines). Clicking and dragging on the text still acts on the layer under it.
   - Double-click the text to open the **region editor**, all live:
@@ -546,7 +547,7 @@ The details:
   - This is ComfyUI's own feature, and it works in every text box of the pack: on the node, in the list, in the pop-up editors, in the large editor, and in the Regional LoRAs node (its prompts and each row's words).
   - A weight of 1 removes the brackets again. The step (0.05) is ComfyUI's setting *Ctrl+up/down precision*.
   - Each change is one step of the field's Undo.
-- **Text size** (Settings > Region Genie > Text size): one size per kind of field (scene prompts, region prompts, text to render), set separately for the pop-up editors and for the node's own fields (0 = as before).
+- **Text size** (Settings > Region Genie > Text): one size per kind of field (scene prompts, region prompts, text to render), set separately for the pop-up editors and for the node's own fields (0 = as before).
 
 ## Undo and redo
 
@@ -591,7 +592,7 @@ The details:
 
 **Where the settings are.** ComfyUI's **Settings > Region Genie** is a short list in three sections:
 
-- **Basics:** the switches used most, **Shortcuts**, and the pages *Region Genie node*, *Image size*, *Canvas tools* and *Text size*.
+- **Basics:** the switches used most, **Shortcuts**, and the pages *Region Genie node*, *Image size*, *Canvas tools* and *Text*.
   - The switches: hints on the canvas, snap to grid, tag autocomplete in new nodes, new regions start with the LLM on, keep all regions separate automatically.
 - **Models and files:** the pages *Control*, *Edit Mode*, *LLM Prompt Enhancer*, *Keeping regions separate, per model* and *Select object*, then **Browse… for model files** and **Check model files**.
 - **Other nodes:** the pages *Regional LoRAs* and *Save Image*.
@@ -620,7 +621,6 @@ So "Settings > Region Genie > Edit Mode" in a tooltip or in this manual means: t
   - Region opacity over an image and without one (50% each): what the opacity button on the canvas starts at.
   - Show the grid without snapping, and Grid lines (Faint, Normal, Strong).
   - Region edge line (px): the width of the solid line along see-through regions.
-  - Label text size (px), Label shadow size (px) and Label shadow strength (%): the prompts written on the canvas.
   - Regional LoRAs' feather, lora_masking, region_separation, separation_until, separate_all_regions and share_background.
 - Some settings apply to every node at its next run instead:
   - **Plain-text prompts: keep all regions separate automatically** (on by default) and one per model, see *Which format `prompt` uses*.
