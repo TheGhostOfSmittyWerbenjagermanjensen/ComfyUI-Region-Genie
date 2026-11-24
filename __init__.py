@@ -5,6 +5,7 @@ Region Genie
   BBoxes to Masks                 bbox layouts -> masks + per-box prompts
   Regional LoRAs                  several regional LoRAs + their conditioning in one node
   Create Hook LoRA (Quantized)    hook LoRA that works on int8/fp8 models
+  Tiled Upscale / Tiled Diffusion upscaling in blended tiles (Mixture of Diffusers)
 """
 from .bbox_masks import BBoxesToMasks, MaskPicker
 from .region_genie import RegionGenie
