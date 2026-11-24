@@ -64,6 +64,17 @@ async function run(browser, noGL) {
     await page.evaluate(() => { window.__node.inputs = []; window.__node.__rgSetBackdrop(null); }); await settle();
     check("without the image again: still 100% and solid", /^Region opacity: 100%/.test(await title()) && near(await px(128, 128), solid, 2));
 
+    // a second region inside the first (100..150): the first one's line goes around its corners without a gap
+    await page.locator('button[title^="Add a region with a new color"]').click();
+    [x, y] = await toClient(100, 100); await page.mouse.move(x, y); await page.mouse.down();
+    [x, y] = await toClient(150, 150); await page.mouse.move(x, y, { steps: 8 }); await page.mouse.up();
+    await page.evaluate(() => { window.__node.__rgSetTool("select"); window.__node.__rgSelectLayer(-1); window.__node.properties.rg_fill = 0.5; window.__node.__rgRefresh(); });
+    await settle();
+    const dim = solid.map((v) => Math.round(v / 2));
+    check("around a region inside it, the outer region's line runs along the sides", near(await px(99.6, 125), solid, 6) && near(await px(125, 150.4), solid, 6) && near(await px(96, 125), dim, 8));
+    check("…and around its corners without a gap", near(await px(99.6, 99.6), solid, 6) && near(await px(150.4, 150.4), solid, 6) && near(await px(150.4, 99.6), solid, 6));
+    await page.evaluate(() => { window.__node.properties.rg_fill = 1; window.__node.__rgRefresh(); }); await settle();
+
     // the grid: the magnet's menu, the grid without snapping, the lines' strength
     const rowMax = () => page.evaluate(async () => {            // the brightest pixel of one row across the empty top of the canvas
         const cv = document.querySelector(".rg-cv canvas"), [cx, cy] = window.__node.__rgToClient(0, 20), [dx] = window.__node.__rgToClient(256, 20), r = cv.getBoundingClientRect();

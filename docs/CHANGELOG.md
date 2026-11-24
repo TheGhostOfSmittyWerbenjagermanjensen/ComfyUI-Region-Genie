@@ -11,6 +11,7 @@ Each round is one request from the owner: what was asked, what was decided (and 
 - Built: the snap grid's lines are 30% white (were 12%); labels get their dark plate whenever the fill is under 75%.
 - Built: the magnet button has a ▾ (and right-click) menu: Snap to grid, Show the grid without snapping (`E.showGrid`, Shift+G, command `view.grid`, also in the canvas's menu), Grid lines Faint / Normal / Strong (a Setting, for every node). Two Settings.
 - Built (speed): the edge lines are found by the graphics card (`EDGE_GL` in render.js, one WebGL program for the page), with the JavaScript version as the fallback; the second composite is only rendered when a "no region" layer is shown.
+- Then reported (from the retaken picture): the line of a region around a smaller region inside it had gaps at the corners. Fixed: the edge test also looks at the four diagonal neighbors (both the WebGL and the JavaScript version); a check that fails without it.
 - Tests: new `ui_region_opacity.cjs`, run once with WebGL and once without (pixels of the canvas: mix, edge line, slider, the two values, the grid menu and its lines); stub suite, Python suite, real tooltips / settings / i18n in both modes.
 
 ## Round 71 (Nov 23): Settings: 'Preset to edit' fills the row the focus is in too

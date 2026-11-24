@@ -33,7 +33,8 @@ const EDGE_GL = (() => {
             if (px.x < 0.0 || px.y < 0.0 || px.x >= box.z || px.y >= box.w) { gl_FragColor = vec4(0.0); return; }
             vec4 c = texture2D(t, uv); if (c.a < 0.5) { gl_FragColor = vec4(0.0); return; }
             bool edge = px.x < k || px.y < k || px.x >= box.z - k || px.y >= box.w - k
-                || other(c, vec2(k, 0.0)) || other(c, vec2(-k, 0.0)) || other(c, vec2(0.0, k)) || other(c, vec2(0.0, -k));
+                || other(c, vec2(k, 0.0)) || other(c, vec2(-k, 0.0)) || other(c, vec2(0.0, k)) || other(c, vec2(0.0, -k))
+                || other(c, vec2(k, k)) || other(c, vec2(-k, k)) || other(c, vec2(k, -k)) || other(c, vec2(-k, -k));
             gl_FragColor = edge ? vec4(c.rgb, 1.0) : vec4(0.0); }`;
     function init() {
         cv = document.createElement("canvas");
@@ -169,8 +170,8 @@ export function* render(E) {
         }
     }
     // The regions' edge lines, drawn solid while their fill is see-through: every pixel of the composite whose
-    // neighbor a line's width away (left, right, up or down) has another color or is empty keeps its own color,
-    // fully opaque. So the line lies inside its region, two regions that touch each get one, and layers of one
+    // neighbor a line's width away (left, right, up, down or diagonally: the diagonals close the line around the
+    // corner of a region that lies inside another) has another color or is empty keeps its own color, fully opaque. So the line lies inside its region, two regions that touch each get one, and layers of one
     // region (one color) get none between them. Colors that differ only a little (a fade, the smoothed rim of a
     // shape) count as the same. The image's own border closes a region that reaches it.
     // Read from a composite without the hatch of the "no region" layers (E.comp itself when none is shown).
@@ -212,7 +213,9 @@ export function* render(E) {
                 const i = row + x, p = s32[i];
                 if ((p >>> 24) < 128) continue;
                 if (x < k || x >= bw - k || !up || !down || (s32[i - k] !== p && other(i, i - k)) || (s32[i + k] !== p && other(i, i + k))
-                    || (s32[i - kw] !== p && other(i, i - kw)) || (s32[i + kw] !== p && other(i, i + kw))) o32[i] = p | 0xff000000;
+                    || (s32[i - kw] !== p && other(i, i - kw)) || (s32[i + kw] !== p && other(i, i + kw))
+                    || (s32[i - kw - k] !== p && other(i, i - kw - k)) || (s32[i - kw + k] !== p && other(i, i - kw + k))
+                    || (s32[i + kw - k] !== p && other(i, i + kw - k)) || (s32[i + kw + k] !== p && other(i, i + kw + k))) o32[i] = p | 0xff000000;
             }
         }
         edgeCtx.clearRect(0, 0, w, h);
