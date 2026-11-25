@@ -25,6 +25,7 @@ Tile sizes are given in pixels and turned into latent cells with the model's own
 """
 import logging
 import math
+import time
 
 import torch
 
@@ -285,6 +286,61 @@ def upscale_pixels(image, upscale_by, upscale_model, method, multiple):
 
 
 RESIZE = ["lanczos", "bicubic", "bilinear", "area", "nearest-exact"]
+NO_MODEL = "none"
+_loaded = {}                      # the upscale model last used: {name: model}, so a run doesn't read the file again
+
+
+def upscale_model_names():
+    try:
+        import folder_paths
+        return [NO_MODEL] + list(folder_paths.get_filename_list("upscale_models"))
+    except Exception:
+        return [NO_MODEL]
+
+
+def load_upscale_model(name):
+    """The upscale model of that file name (as the Load Upscale Model node loads it), or None for "none"."""
+    if not isinstance(name, str) or not name or name == NO_MODEL:
+        return None
+    if name not in _loaded:
+        from comfy_extras.nodes_upscale_model import UpscaleModelLoader
+        fn = getattr(UpscaleModelLoader, "execute", None)
+        out = fn(name) if fn is not None else UpscaleModelLoader().load_model(name)
+        _loaded.clear()
+        _loaded[name] = getattr(out, "result", out)[0]
+    return _loaded[name]
+
+
+COLOR_SIGMA = 8.0                 # px of the original image: colors are matched at this scale and coarser
+
+
+def match_colors(image, reference, sigma=COLOR_SIGMA):
+    """`image` (B, H, W, 3) with the colors and brightness of `reference` (the original picture, any size): the
+    coarse part of their difference is added, the fine detail of `image` stays. Worked out at the reference's size
+    (the image shrunk to it, the difference blurred with a Gaussian of `sigma` px), then enlarged, so it costs little."""
+    if reference is None or image.ndim != 4 or reference.ndim != 4 or reference.shape[0] not in (1, image.shape[0]):
+        return image
+    img = image[..., :3].movedim(-1, 1).float()
+    ref = reference[..., :3].movedim(-1, 1).to(img.device).float()
+    rh, rw = ref.shape[-2:]
+    if (rh, rw) != tuple(img.shape[-2:]):
+        small = torch.nn.functional.interpolate(img, size=(rh, rw), mode="area") if rh <= img.shape[-2] and rw <= img.shape[-1] \
+            else torch.nn.functional.interpolate(img, size=(rh, rw), mode="bilinear", align_corners=False)
+    else:
+        small = img
+    diff = ref - small
+    r = max(1, int(math.ceil(sigma * 3)))
+    r = min(r, rh - 1, rw - 1)
+    if r >= 1:
+        k = torch.exp(-(torch.arange(-r, r + 1, dtype=torch.float32, device=diff.device) ** 2) / (2 * sigma * sigma))
+        k = k / k.sum()
+        c = diff.shape[1]
+        diff = torch.nn.functional.pad(diff, (r, r, r, r), mode="reflect")
+        diff = torch.nn.functional.conv2d(diff, k.view(1, 1, 1, -1).repeat(c, 1, 1, 1), groups=c)
+        diff = torch.nn.functional.conv2d(diff, k.view(1, 1, -1, 1).repeat(c, 1, 1, 1), groups=c)
+    if tuple(diff.shape[-2:]) != tuple(img.shape[-2:]):
+        diff = torch.nn.functional.interpolate(diff, size=img.shape[-2:], mode="bicubic", align_corners=False)
+    return (img + diff).clamp(0, 1).movedim(1, -1).to(image.dtype)
 
 
 def redraw_start(steps, denoise):
@@ -307,6 +363,9 @@ class TiledUpscaleRG:
                 "positive": ("CONDITIONING", {"tooltip": "The prompt: What the image shows. Every tile gets it."}),
                 "negative": ("CONDITIONING", {"tooltip": "The negative prompt."}),
                 "vae": ("VAE", {"tooltip": "The model's VAE."}),
+                "upscale_model": (upscale_model_names(), {"default": NO_MODEL, "tooltip": (
+                    "An upscale model (ESRGAN and the like) for the enlarging; sharper than a plain resize.\n"
+                    "none: The image is resized with resize_method only.")}),
                 "upscale_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 8.0, "step": 0.05, "tooltip": (
                     "How many times larger the result is, per side. 1: Only redraws the image at its size.")}),
                 "resize_method": (RESIZE, {"default": "lanczos", "tooltip": (
@@ -325,39 +384,59 @@ class TiledUpscaleRG:
                     "How much of the enlarged image is redrawn. About 0.05: Only polish. About 0.2: Fine detail. "
                     "0.3-0.4: More invention. Higher: The tiles start to forget the picture.")}),
                 **_TILE,
-            },
-            "optional": {
-                "upscale_model": ("UPSCALE_MODEL", {"tooltip": (
-                    "Optional. An upscale model (ESRGAN and the like) for the enlarging; sharper than a plain "
-                    "resize. Without it the image is resized with resize_method.")}),
+                "color_fix": ("BOOLEAN", {"default": True, "tooltip": (
+                    "Keeps the colors and the brightness of the original image, which an upscale model or the redrawing "
+                    "can shift. Only the coarse colors are matched; the new fine detail stays.")}),
             },
         }
 
     RETURN_TYPES = ("IMAGE", "LATENT")
     RETURN_NAMES = ("image", "latent")
-    OUTPUT_TOOLTIPS = ("The upscaled image.", "The same as a latent, before decoding.")
+    OUTPUT_TOOLTIPS = ("The upscaled image.", "The same as a latent, before decoding and before the last color fix.")
     FUNCTION = "run"
     CATEGORY = "Region Genie"
-    DESCRIPTION = ("Upscales an image in one node. It enlarges the image (with an upscale model when one is connected), "
+    DESCRIPTION = ("Upscales an image in one node. It enlarges the image (with an upscale model when one is chosen), "
                    "then redraws it with your model in overlapping tiles blended at every step (Mixture of Diffusers), "
                    "several tiles per model call.")
 
-    def run(self, image, model, positive, negative, vae, upscale_by, resize_method, seed, steps, cfg, sampler_name,
-            scheduler, denoise, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend=1.0, upscale_model=None):
+    def run(self, image, model, positive, negative, vae, upscale_model, upscale_by, resize_method, seed, steps, cfg,
+            sampler_name, scheduler, denoise, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend=1.0,
+            color_fix=True):
         import nodes
+        times, t0 = [], time.perf_counter()
+
+        def lap(name):
+            nonlocal t0
+            now = time.perf_counter()
+            times.append(f"{name} {now - t0:.1f} s")
+            t0 = now
+
+        def fixed(img):
+            return match_colors(img, image) if color_fix else img
+
         px = px_per_cell(model)
-        pixels = upscale_pixels(image, float(upscale_by), upscale_model, resize_method if resize_method in RESIZE else "lanczos", px * 2)
-        latent = {"samples": vae.encode(pixels[:, :, :, :3])}
+        up = upscale_model if not isinstance(upscale_model, str) else load_upscale_model(upscale_model)   # a name, or a loaded model
+        pixels = upscale_pixels(image, float(upscale_by), up, resize_method if resize_method in RESIZE else "lanczos", px * 2)
+        pixels = fixed(pixels[:, :, :, :3])                # before redrawing too: the model then starts from the right colors
+        lap("enlarge")
+        latent = {"samples": vae.encode(pixels)}
+        lap("encode")
         if denoise <= 0:
             return (pixels, latent)
-        m, _ = tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend)
+        m, tiler = tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend)
         # Only the last part of the steps is run, as KSampler (Advanced) does with start_at_step: at denoise 0.2 and 20
         # steps, the last 4. (A sampler's own `denoise` runs all 20 steps on the last fifth of a 100-step schedule:
         # five times the model calls for the same amount of redrawing.)
         start = redraw_start(steps, denoise)
         out = nodes.common_ksampler(m, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, denoise=1.0,
                                     start_step=start, last_step=steps, force_full_denoise=True)[0]
+        lap("sample")
         images = vae.decode(out["samples"])
         if images.ndim == 5:                              # a video VAE's frames: the pictures one after another
             images = images.reshape(-1, images.shape[-3], images.shape[-2], images.shape[-1])
+        images = fixed(images)
+        lap("decode")
+        logging.info(f"[Region Genie] Tiled Upscale: {pixels.shape[2]} x {pixels.shape[1]} px, {tiler.last_tiles} tile(s), "
+                     f"{steps - start} of {steps} steps, {tiler.calls} model calls. " + ", ".join(times)
+                     + " (the first of them includes loading models)")
         return (images, out)
