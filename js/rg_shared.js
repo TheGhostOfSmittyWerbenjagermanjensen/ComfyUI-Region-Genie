@@ -119,6 +119,8 @@ export const LUCIDE = {
     download: '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>',   // download
     up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',   // arrow-up
     down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',   // arrow-down
+    chevronRight: '<path d="m9 18 6-6-6-6"/>',   // chevron-right
+    chevronDown: '<path d="m6 9 6 6 6-6"/>',   // chevron-down
     copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',   // copy
     scissors: '<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>',   // scissors
     mergeDown: '<path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/>',   // arrow-down-to-line

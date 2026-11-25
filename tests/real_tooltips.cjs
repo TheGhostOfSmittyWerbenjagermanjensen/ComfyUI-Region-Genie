@@ -24,7 +24,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const add = (where, list) => { for (const t of list) if (t && !tips.has(t)) tips.set(t, where); };
     // every title shown in the pack's own elements (and the tooltips of hidden ones in these containers)
     const harvest = async (where) => add(where, await page.evaluate(() => {
-        const roots = document.querySelectorAll(".rg-wrap, .rg-size, .rg-pop, .rg-fpop, .rg-presets, .rg-rl-wrap, .rg-llm-pop, .rg-cp, .rg-save-out, .rg-save-top, .rg-toolopts");
+        const roots = document.querySelectorAll(".rg-wrap, .rg-size, .rg-pop, .rg-fpop, .rg-presets, .rg-rl-wrap, .rg-llm-pop, .rg-cp, .rg-save-out, .rg-save-top, .rg-toolopts, .rg-tu-more");
         const out = new Set();
         // not the prompt fields' own text (a field's title can be what's typed in it)
         const own = (e) => (e.tagName === "TEXTAREA" || e.tagName === "INPUT") && e.value && e.title.startsWith(e.value);
