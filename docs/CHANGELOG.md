@@ -2,6 +2,11 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 81 (Nov 25): Tiled Upscale: the upscale model's pieces as ComfyUI cuts them
+- Asked: the owner doubts 368 px pieces are better (models may do worse on small pieces), and sent timings: 512 → 12.7 s, 1024 → 9.5 s, 1024 at half precision (bf16) → 9.5 s.
+- Decided (session): back to ComfyUI's own cut, so 512 gives the standard node's picture; the size setting and the half precision switch stay. The console splits the upscale model's time into getting it into memory and running it.
+- Tested: `tests/test_tiled.py`, tooltips and translations on real ComfyUI.
+
 ## Round 80 (Nov 25): Tiled Upscale: a faster upscale-model step
 - Asked: the upscale model (4x-UltraSharpV2) takes 12.6 s of a 21 s run; can it be faster without another model? The owner chose both offered ways and wants their timings in the console.
 - Built: `run_upscale_model()`: even pieces (`upscale_model_tile_size`, 512 at first) and `upscale_model_half_precision` (off at first; fp16 or bf16 by what the model supports). The console line says the pieces and the precision used and times the upscale model and the resize apart. New inputs after the existing ones.

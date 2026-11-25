@@ -272,21 +272,9 @@ class TiledDiffusionRG:
 UP_OVERLAP = 32                   # px that neighbouring pieces of the upscale model's input share
 
 
-def even_piece(size, most, overlap=UP_OVERLAP):
-    """The piece length (px) to cut `size` px into pieces of at most `most` px that share `overlap` px, all the same
-    length and spread evenly. Cutting at `most` itself leaves a sliver at the end (ComfyUI's tiled_scale cuts 1024 px
-    in pieces of 512 into 512, 512 and a last one of 64 px): the same amount to compute, but a model sees very
-    little of the picture in a sliver. In even pieces they are three of about 368."""
-    if most <= 0 or size <= most:
-        return size
-    most = max(most, overlap * 4)
-    n = math.ceil((size - overlap) / (most - overlap))
-    return min(most, math.ceil((size + (n - 1) * overlap) / n / 16) * 16)
-
-
 def run_upscale_model(upscale_model, image, piece=512, reduced=False, note=None):
     """`image` (B, H, W, C) through an upscale model, as ComfyUI's Upscale Image (using Model) node does it, but in
-    even pieces of at most `piece` px (0: the whole image at once) and, with `reduced`, at half precision where the
+    pieces of `piece` px (0: the whole image at once; 512 is that node's own cut, with the same picture) and, with `reduced`, at half precision where the
     model allows it (fp16, or bf16 for models that only take that). When the memory runs out, the pieces are halved.
     `note`: a list that gets what was done, for the console."""
     import comfy.model_management as mm
@@ -310,17 +298,22 @@ def run_upscale_model(upscale_model, image, piece=512, reduced=False, note=None)
             return upscale_model(a.float()).float()
 
     while True:
-        ty, tx = even_piece(h, most), even_piece(w, most)
+        ty, tx = min(h, most), min(w, most)
         need = (ty * tx * 3) * image.element_size() * scale * 384.0 * (0.5 if dtype is not None else 1.0)   # ComfyUI's estimate, per piece
         need += image.nelement() * image.element_size()
         try:
+            t0 = time.perf_counter()
             if patcher is not None:
                 mm.load_models_gpu([patcher], memory_required=need, force_full_load=True)
             else:
                 upscale_model.to(device)
+            t1 = time.perf_counter()
             steps = in_img.shape[0] * comfy.utils.get_tiled_scale_steps(w, h, tile_x=tx, tile_y=ty, overlap=UP_OVERLAP)
             out = comfy.utils.tiled_scale(in_img, call, tile_x=tx, tile_y=ty, overlap=UP_OVERLAP, upscale_amount=scale,
                                           pbar=comfy.utils.ProgressBar(steps), output_device=out_dev)
+            if getattr(device, "type", "") == "cuda":
+                torch.cuda.synchronize()
+            t2 = time.perf_counter()
             if dtype is not None and not bool(torch.isfinite(out).all()):
                 logging.warning("[Region Genie] Tiled Upscale: the upscale model gave a broken picture at half precision; "
                                 "run again at full precision")
@@ -340,7 +333,8 @@ def run_upscale_model(upscale_model, image, piece=512, reduced=False, note=None)
         upscale_model.to("cpu")
     if note is not None:
         prec = {None: "full precision", torch.float16: "fp16", torch.bfloat16: "bf16"}[dtype]
-        note.append(f"upscale model: {steps} piece(s) of {tx} x {ty} px, {prec}")
+        note.append(f"upscale model: {steps} piece(s) of up to {tx} x {ty} px, {prec}, {t1 - t0:.1f} s to get it into memory "
+                    f"and {t2 - t1:.1f} s to run")
     return out.movedim(-3, -1).clamp(0, 1).to(mm.intermediate_dtype())
 
 
@@ -517,8 +511,8 @@ class TiledUpscaleRG:
                 "preview": ("BOOLEAN", {"default": True, "tooltip": (
                     "Shows the picture on the node while it is redrawn, as a sampler does. Off: No preview picture.")}),
                 "upscale_model_tile_size": ("INT", {"default": 512, "min": 0, "max": 8192, "step": 64, "tooltip": (
-                    "The upscale model works on pieces of the image of at most this size in pixels, all the same size. "
-                    "Larger pieces are faster and need more memory; when it runs out, they are halved.\n"
+                    "The upscale model works on pieces of the image of this size in pixels. Larger pieces are faster "
+                    "and need more memory; when it runs out, they are halved. 512 is what ComfyUI's own node uses.\n"
                     "0: The whole image at once.")}),
                 "upscale_model_half_precision": ("BOOLEAN", {"default": False, "tooltip": (
                     "Runs the upscale model at half precision where it allows it, which is faster and needs less "

@@ -631,7 +631,7 @@
       },
       "upscale_model_tile_size": {
         "name": "upscale_model_tile_size",
-        "tooltip": "The upscale model works on pieces of the image of at most this size in pixels, all the same size. Larger pieces are faster and need more memory; when it runs out, they are halved.\n0: The whole image at once."
+        "tooltip": "The upscale model works on pieces of the image of this size in pixels. Larger pieces are faster and need more memory; when it runs out, they are halved. 512 is what ComfyUI's own node uses.\n0: The whole image at once."
       },
       "upscale_model_half_precision": {
         "name": "upscale_model_half_precision",
