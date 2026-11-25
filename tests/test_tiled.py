@@ -399,6 +399,44 @@ check("VAE tile size 0: in one piece", tv2.seen == [])
 check(f"preview off: the sampler makes no preview picture in that run, and the setting is back afterwards ({[str(m_) for m_ in methods]})",
       methods == [LatentPreviewMethod.NoPreviews, LatentPreviewMethod.Latent2RGB] and cargs.preview_method == LatentPreviewMethod.Latent2RGB)
 
+# ---- the upscale model in even pieces
+check(f"even pieces: 1024 px at most 512 is three of 368 a side, not 512, 512 and a sliver of 64; a size that fits is one piece ({td.even_piece(1024, 512)}, {td.even_piece(1024, 1024)}, {td.even_piece(1024, 0)}, {td.even_piece(3000, 512)})",
+      (td.even_piece(1024, 512), td.even_piece(1024, 1024), td.even_piece(1024, 0)) == (368, 1024, 1024) and td.even_piece(3000, 512) <= 512)
+for size, most in ((1024, 512), (3000, 512), (1500, 1024), (777, 256)):
+    t_ = td.even_piece(size, most)
+    check(f"even pieces of {size} px at most {most}: {t_} px, as many pieces as before",
+          t_ <= most and comfy.utils.get_tiled_scale_steps(size, size, tile_x=t_, tile_y=t_, overlap=32) <= comfy.utils.get_tiled_scale_steps(size, size, tile_x=most, tile_y=most, overlap=32))
+
+
+class FakeUp:
+    scale, supports_half, supports_bfloat16 = 4, False, True
+
+    def __init__(self):
+        self.sizes = []
+
+    def to(self, *_a):
+        return self
+
+    def __call__(self, a):
+        self.sizes.append(tuple(a.shape[-2:]))
+        return torch.nn.functional.interpolate(a, scale_factor=4, mode="nearest")
+
+
+fu, said = FakeUp(), []
+pic = torch.rand(1, 1024, 1024, 3)
+big_ = td.run_upscale_model(fu, pic, 512, True, said)
+want = torch.nn.functional.interpolate(pic.movedim(-1, 1), scale_factor=4, mode="nearest").movedim(1, -1)
+check(f"the upscale model gets 9 pieces of at most 368 px and the picture is put together right ({said})",
+      len(fu.sizes) == 9 and all(352 <= v <= 368 for sz in fu.sizes for v in sz) and  # no slivers
+       big_.shape == (1, 4096, 4096, 3) and torch.allclose(big_, want, atol=1e-5)
+      and "9 piece(s) of 368 x 368 px, full precision" in said[0])
+fu = FakeUp()
+td.run_upscale_model(fu, pic, 0)
+check("piece size 0: the whole image in one call", fu.sizes == [(1024, 1024)])
+laps = []
+up2 = td.upscale_pixels(torch.rand(1, 64, 64, 3), 2.0, FakeUp(), "lanczos", 16, 512, False, [], laps.append)
+check(f"a 4x model at upscale_by 2: resized down to 2x; the model and the resize are timed apart ({laps})", up2.shape == (1, 128, 128, 3) and laps == ["upscale model", "resize"])
+
 # ---- the upscale model by name
 check("upscale_model none (or nothing): no model", td.load_upscale_model("none") is None and td.load_upscale_model("") is None)
 import comfy_extras.nodes_upscale_model as um

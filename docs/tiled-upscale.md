@@ -41,6 +41,7 @@ With `color_fix` on, the colors are brought back to the original image's after s
 | `tile_width`, `tile_height`, `tile_overlap`, `tile_batch_size`, `tile_blend` | The tile settings; see below |
 | `color_fix` | Keeps the colors and brightness of the original image (on at first); see below |
 | `vae_encode_tile_size`, `vae_decode_tile_size` | The VAE works in tiles of this size in pixels; 0 (at first) is in one piece; see below |
+| `upscale_model_tile_size`, `upscale_model_half_precision` | How the upscale model is run; see below |
 | `preview` | Shows the picture on the node while it is redrawn (on at first). Off: no preview picture |
 
 - **Outputs:** `image`, and `latent` (the same picture before decoding).
@@ -48,7 +49,10 @@ With `color_fix` on, the colors are brought back to the original image's after s
 - With `denoise` 0 it only enlarges.
 - **`color_fix`:** an upscale model, the VAE or the redrawing can shift the colors, often towards brighter. With it on, the coarse colors of the result are matched to the original image's (areas of about 8 px of the original and larger); the new fine detail is kept. The `latent` output is the picture before the last of the two fixes.
 - **VAE tile sizes:** the tiles above only limit what the model needs. The VAE still encodes and decodes the whole enlarged image, which is what runs out of memory first on a small card at large sizes. ComfyUI switches to tiles by itself when that happens, after the failed try; a size set here skips the failed try and lets you choose the size (512 or 1024 are usual). In one piece is fastest while it fits.
-- **The console shows where the time went:** one line per run with the size, the number of tiles, the steps run and the seconds for loading the upscale model, enlarging, the color fix, encoding, sampling and decoding.
+- **The upscale model's speed:** a heavy upscale model can take longer than the redrawing.
+  - `upscale_model_tile_size` (512 at first): the model works on pieces of the image of at most this size. The pieces are all about the same size and spread evenly (a 1024 px image is 3 x 3 pieces of about 368 px; ComfyUI's own Upscale Image (using Model) node cuts it into 512, 512 and a sliver of 64 px per side). Larger pieces are somewhat faster and need more memory (1024 takes a 1024 px image in one piece, about a tenth less to compute); 0 is the whole image at once. When the memory runs out, the pieces are halved.
+  - `upscale_model_half_precision` (off at first): runs the model at half precision where it allows it (fp16, or bf16 for models that only take that, such as DAT ones). Faster and lighter; compare the picture once with it on and off.
+- **The console shows where the time went:** one line per run with the size, the number of tiles, the steps run, how the upscale model was run (pieces, precision), and the seconds for loading the upscale model, the upscale model itself, the resize, the color fix, encoding, sampling and decoding.
 - Every tile gets the whole prompt. Describe the picture as you did when making it.
 
 ## Tiled Diffusion: for your own sampler

@@ -628,6 +628,14 @@
       "preview": {
         "name": "vista_previa",
         "tooltip": "Muestra la imagen en el nodo mientras se redibuja, como hace un sampler. Desactivado: Sin imagen de vista previa."
+      },
+      "upscale_model_tile_size": {
+        "name": "tamaño_de_tesela_del_modelo_de_escalado",
+        "tooltip": "El modelo de escalado trabaja con trozos de la imagen de este tamaño en píxeles como máximo, todos del mismo tamaño. Los trozos más grandes son más rápidos y necesitan más memoria; cuando se agota, se reducen a la mitad.\n0: Toda la imagen de una vez."
+      },
+      "upscale_model_half_precision": {
+        "name": "media_precisión_del_modelo_de_escalado",
+        "tooltip": "Ejecuta el modelo de escalado en media precisión cuando lo permite, lo que es más rápido y necesita menos memoria. Algunos modelos dan una imagen ligeramente distinta. La consola indica qué se usó."
       }
     },
     "outputs": {

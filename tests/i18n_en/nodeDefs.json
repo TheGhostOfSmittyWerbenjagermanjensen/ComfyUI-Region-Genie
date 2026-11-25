@@ -628,6 +628,14 @@
       "preview": {
         "name": "preview",
         "tooltip": "Shows the picture on the node while it is redrawn, as a sampler does. Off: No preview picture."
+      },
+      "upscale_model_tile_size": {
+        "name": "upscale_model_tile_size",
+        "tooltip": "The upscale model works on pieces of the image of at most this size in pixels, all the same size. Larger pieces are faster and need more memory; when it runs out, they are halved.\n0: The whole image at once."
+      },
+      "upscale_model_half_precision": {
+        "name": "upscale_model_half_precision",
+        "tooltip": "Runs the upscale model at half precision where it allows it, which is faster and needs less memory. A few models give a slightly different picture with it. The console says what was used."
       }
     },
     "outputs": {
