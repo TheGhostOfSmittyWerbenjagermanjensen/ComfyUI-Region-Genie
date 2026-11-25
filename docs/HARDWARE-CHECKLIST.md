@@ -276,3 +276,24 @@ Tested in a stub page by the layers' pixels; worth a look on the real canvas at 
 - Pick a preset, switch to manual and type another size, switch back to presets: the preset is the size again, and the dropdown offers "＋ Add" for the manual size.
 - A workflow saved before this round that was in presets mode with a size "not in the list" still opens with that size.
 - Your saved settings for keeping regions separate (the main switch and the per-model choices) are unchanged after the update.
+
+## Tiled Upscale and Tiled Diffusion (rounds 75-76)
+
+Nothing here has run on a real model yet.
+
+- [ ] Tiled Upscale on Anima at 2x, denoise 0.2, tiles 1024 / overlap 128: no seams, detail added; speed next to Forge Neo's Mixture of Diffusers
+- [ ] The same on SDXL, Flux, Krea 2, MOSS-Image, Qwen-Image, Z-Image: runs, no seams
+- [ ] `tile_batch_size` 1, 2, 4: the same picture, faster with more while it fits in memory
+- [ ] `tile_blend` 0.5, 1, 2: crisper to softer; `tile_overlap` 0 shows seams, 128 doesn't
+- [ ] With an upscale model chosen in `upscale_model` (4x model, `upscale_by` 2): the image is resized down to 2x after it; `none` only resizes
+- [ ] `color_fix` on / off with 4x-UltraSharpV2: on, the result has the original's brightness and colours, with no halos at strong edges and no loss of fine detail
+- [ ] `vae_encode_tile_size` / `vae_decode_tile_size` 512 and 1024: the same picture with no seams from the VAE; less memory at large sizes
+- [ ] `preview` off: no preview picture on the node during the run, in both node modes; other samplers in the same workflow still show theirs
+- [ ] `upscale_model_tile_size` 512 / 1024 / 0 with 4x-UltraSharpV2 on a 1024 px image: time of "upscale model" in the console (before: about 12.6 s for all of enlarging), the same picture, no joins; whether 1024 or 0 pushes the diffusion model out of memory (a longer "sample")
+- [ ] `upscale_model_half_precision` on: the console says bf16 for UltraSharpV2 (a DAT model), fp16 for an ESRGAN one; the picture next to full precision; time
+- [ ] The console's timing line (enlarge, encode, sample, decode): which part takes the time next to the other pack's tiled upscale
+- [ ] A small card: small tiles at batch 1 fit; ComfyUI doesn't offload more than without tiling
+- [ ] ControlNet with SDXL in a tiled run; the warning for a transformer model's ControlNet
+- [ ] The "More settings" line on the 4K display, both node modes, and in Firefox: folds and shows the six settings, the node's height follows, "N changed" is readable
+- [ ] Regions in a tiled upscale (round 76's step 2): regional LoRAs stay in their regions in the upscale; at denoise 0.4+ tiles don't draw other regions' prompts; Anima, SDXL, Flux, Krea 2
+

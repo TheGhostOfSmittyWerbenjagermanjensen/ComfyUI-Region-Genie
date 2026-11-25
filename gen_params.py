@@ -249,9 +249,11 @@ def _upscaler(graph, n):
     factor = next((f for f in (_num(_value(graph, ins.get(k))) for k in ("upscale_by", "scale_by", "upscale_factor", "scale_factor", "scale"))
                    if f is not None and f > 0), None)
     link = next((ins[k] for k in ("upscale_model", "upscale_model_opt") if _is_link(ins.get(k))), None)
-    if link is not None:
-        ln = _node(graph, link[0])
-        name = _value(graph, ln["inputs"].get("model_name")) if ln is not None else None
+    own = ins.get("upscale_model")                              # a file name on the node itself (Tiled Upscale (Region Genie))
+    own = own if isinstance(own, str) and own and own.lower() != "none" else None
+    if link is not None or own is not None:
+        ln = _node(graph, link[0]) if link is not None else None
+        name = own if link is None else (_value(graph, ln["inputs"].get("model_name")) if ln is not None else None)
         name = _stem(name) if isinstance(name, str) and name else "Upscale model"
         if factor is None:                                     # the model's own factor is in its name: 4x-UltraSharp, RealESRGAN_x2
             m = re.search(r"(?<![0-9a-z])([2-8])x|x([2-8])(?![0-9a-z])", name, re.I)

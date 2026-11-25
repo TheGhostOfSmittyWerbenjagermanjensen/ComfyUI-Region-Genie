@@ -11,6 +11,8 @@ quality settings, to keep generated images smaller on disk.
   LoRAs) as text the way A1111 and Forge do, so other interfaces and sites can read it. It is read from the workflow
   that ran; nothing has to be connected. When another node computes a value (a seed, say), the node says so after the
   run: the **cable button** above `filename_prefix`, on the right, lists optional inputs to connect such values to.
+- `no_metadata` (off by default): on, the file holds only the picture: no workflow, no prompt, no settings text,
+  and no `.json` next to a JPEG. It turns `a1111_metadata` off.
 - The defaults for new nodes are in **Settings > Region Genie > Save Image**.
 
 The full manual: [Save Image (Region Genie)](https://github.com/TheGhostOfSmittyWerbenjagermanjensen/ComfyUI-Region-Genie/blob/main/docs/save-image.md).

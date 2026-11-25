@@ -16,7 +16,7 @@ const FIELDS = {
     avif: ["avif_quality"],
     exr: ["exr_bit_depth", "exr_color_space"],
 };
-const ALL = ["filename_prefix", "format", ...Object.values(FIELDS).flat(), "invert_mask", "a1111_metadata"];
+const ALL = ["filename_prefix", "format", ...Object.values(FIELDS).flat(), "invert_mask", "a1111_metadata", "no_metadata"];
 // the optional inputs for the settings text: [name, type, what the list says about it]
 const META = [
     ["positive_prompt", "STRING", "The prompt, in place of the one read from the workflow."],
@@ -107,6 +107,8 @@ app.registerExtension({
                 const masked = node.inputs?.some((i) => i.name === "mask" && i.link != null);
                 const want = new Set(["filename_prefix", "format", ...FIELDS[fmt]]);
                 if (fmt !== "exr") want.add("a1111_metadata");       // (EXR has no place for the settings text)
+                want.add("no_metadata");                             // round 74: nothing but the picture in the file
+                if (W("no_metadata")?.value) want.delete("jpeg_workflow");     // …so where the workflow goes doesn't apply
                 if (fmt === "webp" && W("webp_lossless")?.value) want.delete("webp_quality");
                 if (masked && fmt !== "jpeg") want.add("invert_mask");
                 let changed = false;
@@ -142,7 +144,15 @@ app.registerExtension({
                 const w = W(n);
                 if (!w) continue;
                 const cb = w.callback;
-                w.callback = function () { const x = cb?.apply(this, arguments); markStale(); if (n === "format" || n === "webp_lossless") sync(); return x; };
+                w.callback = function () {
+                    const x = cb?.apply(this, arguments);
+                    // no_metadata and a1111_metadata can't both be on: turning one on turns the other off
+                    const other = n === "no_metadata" ? W("a1111_metadata") : n === "a1111_metadata" ? W("no_metadata") : null;
+                    if (other && w.value && other.value) other.value = false;
+                    markStale();
+                    if (n === "format" || n === "webp_lossless" || n === "no_metadata" || n === "a1111_metadata") sync();
+                    return x;
+                };
             }
             const onConn = node.onConnectionsChange;
             node.onConnectionsChange = function () { const x = onConn?.apply(this, arguments); setTimeout(sync, 0); return x; };

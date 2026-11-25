@@ -457,6 +457,18 @@ check("the optional inputs are declared, and an 'any' input takes every kind of 
       all(k in si.SaveImageRG.INPUT_TYPES()["optional"] for k in ("a1111_metadata", "positive_prompt", "negative_prompt", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise", "model_name"))
       and not (si.ANY != "COMBO") and not (si.ANY != "STRING"))
 
+# Tiled Upscale (Region Genie): the upscale model is a file name on the node itself
+OWN = json.loads(json.dumps(PLAIN))
+OWN["41"] = N("Region-Genie_TiledUpscale", image=["7", 0], model=["2", 0], positive=["3", 0], negative=["4", 0], vae=["1", 2],
+              upscale_model="ESRGAN/4x-UltraSharp.pth", upscale_by=2.0, seed=77, steps=20, cfg=6.5, sampler_name="euler",
+              scheduler="normal", denoise=0.2, tile_width=1024, tile_height=1024)
+OWN["9"]["inputs"]["images"] = ["41", 0]
+texto, _ = gp.build(gp.trace(OWN, "9"), (2048, 1536))
+check(f"an upscale model named on the upscaling node itself is the hi-res upscaler ({texto.splitlines()[-1][-150:]!r})", "Hires upscaler: 4x-UltraSharp" in texto)
+OWN["41"]["inputs"]["upscale_model"] = "none"
+texto, _ = gp.build(gp.trace(OWN, "9"), (2048, 1536))
+check("…and 'none' is no upscale model", "4x-UltraSharp" not in texto)
+
 if __name__ == "__main__":
     print("\nall passed" if not fails else f"\n{len(fails)} failed")
     sys.exit(1 if fails else 0)

@@ -483,7 +483,7 @@
       },
       "a1111_metadata": {
         "name": "metadatos_a1111",
-        "tooltip": "Activado: También escribe en el archivo, como texto, con qué se hizo la imagen (prompt, semilla, pasos, muestreador, cfg, modelo, LoRAs), tal como lo hacen A1111 y Forge, para que otras interfaces y sitios puedan leerlo. Los valores se leen del flujo de trabajo que se ejecutó; los datos de flujo de trabajo propios de ComfyUI siguen en el archivo como antes. No se aplica a EXR.\nDesactivado: Solo los datos de flujo de trabajo propios de ComfyUI."
+        "tooltip": "Activado: También escribe en el archivo, como texto, con qué se hizo la imagen (prompt, semilla, pasos, muestreador, cfg, modelo, LoRAs), tal como lo hacen A1111 y Forge, para que otras interfaces y sitios puedan leerlo. Los valores se leen del flujo de trabajo que se ejecutó; los datos de flujo de trabajo propios de ComfyUI siguen en el archivo como antes. No se aplica a EXR.\nDesactivado: Solo los datos de flujo de trabajo propios de ComfyUI.\nAl activarlo se desactiva sin_metadatos."
       },
       "positive_prompt": {
         "name": "prompt_positivo",
@@ -520,12 +520,168 @@
       "model_name": {
         "name": "nombre_del_modelo",
         "tooltip": "Opcional. El nombre del modelo que se escribe en el texto de ajustes, en lugar del leído del flujo de trabajo."
+      },
+      "no_metadata": {
+        "name": "sin_metadatos",
+        "tooltip": "Activado: No se guarda en el archivo nada sobre cómo se hizo la imagen: ni flujo de trabajo, ni prompt, ni texto de ajustes, ni un .json junto a un JPEG. Al activarlo se desactiva metadatos_a1111.\nDesactivado: Lo habitual (los datos de flujo de trabajo propios de ComfyUI; el texto de ajustes con metadatos_a1111).\nEXR: Su cabecera sigue indicando qué colores representan los números (necesario para mostrarlo bien)."
       }
     },
     "outputs": {
       "0": {
         "name": "imágenes",
         "tooltip": "Las mismas imágenes, sin modificar."
+      }
+    }
+  },
+  "Region-Genie_TiledUpscale": {
+    "display_name": "Escalado en teselas (Region Genie) ✨",
+    "description": "Escala una imagen en un solo nodo: la amplía (con un modelo de escalado si se ha elegido uno) y luego la redibuja con tu modelo en teselas solapadas que se mezclan en cada paso (Mixture of Diffusers), varias teselas por llamada al modelo.",
+    "inputs": {
+      "image": {
+        "name": "imagen",
+        "tooltip": "La imagen que se va a escalar."
+      },
+      "model": {
+        "name": "modelo",
+        "tooltip": "El modelo que redibuja la imagen ampliada (con sus LoRAs aplicados)."
+      },
+      "positive": {
+        "name": "positivo",
+        "tooltip": "El prompt: lo que muestra la imagen. Cada tesela lo recibe."
+      },
+      "negative": {
+        "name": "negativo",
+        "tooltip": "El prompt negativo."
+      },
+      "vae": {
+        "name": "vae",
+        "tooltip": "El VAE del modelo."
+      },
+      "upscale_by": {
+        "name": "escalar_por",
+        "tooltip": "Cuántas veces más grande es el resultado, por lado. 1: Solo redibuja la imagen a su tamaño."
+      },
+      "resize_method": {
+        "name": "método_de_redimensionado",
+        "tooltip": "Cómo se redimensiona la imagen a su nuevo tamaño: por sí solo sin modelo de escalado, o después del modelo de escalado cuando su factor es otro."
+      },
+      "seed": {
+        "name": "semilla",
+        "tooltip": "La semilla del ruido que se añade antes de redibujar."
+      },
+      "steps": {
+        "name": "pasos",
+        "tooltip": "Los pasos de una ejecución completa. Solo se ejecuta la última parte: pasos x denoise, es decir, 4 de 20 con un denoise de 0.2 (como hace KSampler (Advanced) cuando empieza en un paso posterior)."
+      },
+      "cfg": {
+        "name": "cfg",
+        "tooltip": "El cfg, como en un sampler. 1 para modelos destilados."
+      },
+      "sampler_name": {
+        "name": "nombre_del_muestreador",
+        "tooltip": "El sampler."
+      },
+      "scheduler": {
+        "name": "programador",
+        "tooltip": "El planificador."
+      },
+      "denoise": {
+        "name": "reducción_de_ruido",
+        "tooltip": "Cuánto de la imagen ampliada se redibuja. Alrededor de 0.05: Solo pulido. Alrededor de 0.2: Detalle fino. 0.3-0.4: Más invención. Más alto: Las teselas empiezan a olvidar la imagen."
+      },
+      "tile_width": {
+        "name": "ancho_de_tesela",
+        "tooltip": "El ancho de una tesela en píxeles. Usa un tamaño en el que el modelo dibuje bien (más o menos aquel con el que se entrenó). Las teselas más pequeñas necesitan menos memoria y más llamadas al modelo."
+      },
+      "tile_height": {
+        "name": "alto_de_tesela",
+        "tooltip": "El alto de una tesela en píxeles."
+      },
+      "tile_overlap": {
+        "name": "solape_de_teselas",
+        "tooltip": "Cuántos píxeles comparten como mínimo las teselas vecinas. Más solape oculta mejor las costuras y requiere más teselas; lo habitual es entre un octavo y un cuarto de la tesela."
+      },
+      "tile_batch_size": {
+        "name": "tamaño_de_lote_de_teselas",
+        "tooltip": "Cuántas teselas pasan por el modelo en una llamada. Más es más rápido mientras quepan en memoria; 1 es lo que menos memoria necesita."
+      },
+      "tile_blend": {
+        "name": "mezcla_de_teselas",
+        "tooltip": "Cuánto se extiende la influencia de una tesela desde su centro donde las teselas se solapan.\n1: Como lo define Mixture of Diffusers (lo habitual).\nMás alto: Las teselas se mezclan en una banda más ancha, hacia un promedio simple; más suave, y puede emborronar el detalle.\nMás bajo: Cada píxel sigue de forma más estricta a la tesela en la que está más adentro; más nítido, y una costura puede notarse antes."
+      },
+      "upscale_model": {
+        "name": "modelo_de_escalado",
+        "tooltip": "Un modelo de escalado (ESRGAN y similares) para la ampliación; más nítido que un simple redimensionado.\nnone: La imagen solo se redimensiona con método_de_redimensionado."
+      },
+      "color_fix": {
+        "name": "corrección_de_color",
+        "tooltip": "Mantiene los colores y el brillo de la imagen original: un modelo de escalado o el redibujado pueden desplazarlos. Solo se igualan los colores a gran escala; el nuevo detalle fino se conserva."
+      },
+      "vae_encode_tile_size": {
+        "name": "tamaño_de_tesela_de_codificación_vae",
+        "tooltip": "El VAE codifica la imagen ampliada en teselas de este tamaño en píxeles, lo que necesita menos memoria con una imagen grande.\n0: De una pieza. ComfyUI cambia igualmente a teselas por sí mismo cuando se agota la memoria."
+      },
+      "vae_decode_tile_size": {
+        "name": "tamaño_de_tesela_de_decodificación_vae",
+        "tooltip": "El VAE decodifica el resultado en teselas de este tamaño en píxeles, lo que necesita menos memoria con una imagen grande.\n0: De una pieza. ComfyUI cambia igualmente a teselas por sí mismo cuando se agota la memoria."
+      },
+      "preview": {
+        "name": "vista_previa",
+        "tooltip": "Muestra la imagen en el nodo mientras se redibuja, como hace un sampler. Desactivado: Sin imagen de vista previa."
+      },
+      "upscale_model_tile_size": {
+        "name": "tamaño_de_tesela_del_modelo_de_escalado",
+        "tooltip": "El modelo de escalado trabaja con trozos de la imagen de este tamaño en píxeles. Los trozos más grandes son más rápidos y necesitan más memoria; cuando se agota, se reducen a la mitad. 512 es lo que usa el nodo propio de ComfyUI.\n0: Toda la imagen de una vez."
+      },
+      "upscale_model_half_precision": {
+        "name": "media_precisión_del_modelo_de_escalado",
+        "tooltip": "Ejecuta el modelo de escalado en media precisión cuando lo permite, lo que es más rápido y necesita menos memoria. Algunos modelos dan una imagen ligeramente distinta. La consola indica qué se usó."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "imagen",
+        "tooltip": "La imagen escalada."
+      },
+      "1": {
+        "name": "latente",
+        "tooltip": "Lo mismo como latente, antes de decodificar y antes de la última corrección de color."
+      }
+    }
+  },
+  "Region-Genie_TiledDiffusion": {
+    "display_name": "Difusión en teselas (Region Genie) ✨",
+    "description": "Hace que un modelo muestree en teselas solapadas que se mezclan en cada paso (Mixture of Diffusers), para imágenes más grandes de lo que el modelo o la memoria permiten de una vez. Para tu propio sampler; Escalado en teselas (Region Genie) hace todo el escalado en un nodo.",
+    "inputs": {
+      "model": {
+        "name": "modelo",
+        "tooltip": "El modelo con el que muestrear en teselas."
+      },
+      "tile_width": {
+        "name": "ancho_de_tesela",
+        "tooltip": "El ancho de una tesela en píxeles. Usa un tamaño en el que el modelo dibuje bien (más o menos aquel con el que se entrenó). Las teselas más pequeñas necesitan menos memoria y más llamadas al modelo."
+      },
+      "tile_height": {
+        "name": "alto_de_tesela",
+        "tooltip": "El alto de una tesela en píxeles."
+      },
+      "tile_overlap": {
+        "name": "solape_de_teselas",
+        "tooltip": "Cuántos píxeles comparten como mínimo las teselas vecinas. Más solape oculta mejor las costuras y requiere más teselas; lo habitual es entre un octavo y un cuarto de la tesela."
+      },
+      "tile_batch_size": {
+        "name": "tamaño_de_lote_de_teselas",
+        "tooltip": "Cuántas teselas pasan por el modelo en una llamada. Más es más rápido mientras quepan en memoria; 1 es lo que menos memoria necesita."
+      },
+      "tile_blend": {
+        "name": "mezcla_de_teselas",
+        "tooltip": "Cuánto se extiende la influencia de una tesela desde su centro donde las teselas se solapan.\n1: Como lo define Mixture of Diffusers (lo habitual).\nMás alto: Las teselas se mezclan en una banda más ancha, hacia un promedio simple; más suave, y puede emborronar el detalle.\nMás bajo: Cada píxel sigue de forma más estricta a la tesela en la que está más adentro; más nítido, y una costura puede notarse antes."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "modelo",
+        "tooltip": "El modelo, muestreando en teselas: conéctalo a un sampler."
       }
     }
   }

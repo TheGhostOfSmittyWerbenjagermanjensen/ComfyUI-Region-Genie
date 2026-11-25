@@ -1,0 +1,456 @@
+"""Tiled diffusion (tiled_diffusion.py) against real ComfyUI code on the CPU, with stand-in models: the tile grid, the
+weights, tiles batched into one model call in the order ComfyUI's cond / uncond split expects, what is cut per tile,
+and a real sampling run through ComfyUI's sampler with a tiny random UNet.
+  COMFY_DIR=<a ComfyUI checkout> python3 tests/test_tiled.py
+"""
+import os
+import sys
+
+COMFY = os.environ.get("COMFY_DIR") or "/tmp/comfy_src"
+sys.path.insert(0, COMFY)
+import comfy.cli_args  # noqa: E402
+comfy.cli_args.args.cpu = True
+import torch  # noqa: E402
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+PACK = os.path.dirname(HERE)
+sys.path.insert(0, os.path.dirname(PACK))
+import importlib.util  # noqa: E402
+spec = importlib.util.spec_from_file_location("rg_tiled", os.path.join(PACK, "tiled_diffusion.py"))
+td = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(td)
+
+fails = []
+
+
+def check(name, ok):
+    print(("PASS " if ok else "FAIL ") + name)
+    if not ok:
+        fails.append(name)
+
+
+# ---- the grid
+check("one tile when the tile covers the axis", td.tile_starts(64, 64, 16) == [0] and td.tile_starts(40, 64, 16) == [0])
+s = td.tile_starts(160, 64, 16)
+check(f"tiles cover the axis, start at 0, end at the edge, even positions ({s})", s[0] == 0 and s[-1] == 160 - 64 and all(p % 2 == 0 for p in s)
+      and all(b - a <= 64 - 16 for a, b in zip(s, s[1:])))
+check("no overlap asked: tiles side by side", td.tile_starts(128, 64, 0) == [0, 64])
+g = td.TileGrid(48, 80, 32, 32, 8, "cpu")
+check(f"grid: {len(g.boxes)} tiles of {g.th} x {g.tw}, every cell covered", g.total.min().item() > 0 and len(g.boxes) == len(td.tile_starts(48, 32, 8)) * len(td.tile_starts(80, 32, 8)))
+wt = td.gaussian_weights(32, 32)
+check("weights: highest in the middle, almost nothing at the edge, the same in both directions", wt[15, 15] > 100 * wt[0, 15]
+      and torch.allclose(wt, wt.T) and torch.allclose(wt, wt.flip(0)) and torch.allclose(wt, wt.flip(1)))
+tall = td.gaussian_weights(64, 32)
+check("weights of a tile that isn't square follow each side's own length (a quarter in from the edge: the same share on both)", abs((tall[16, 16] / tall[32, 16]) / (tall[32, 8] / tall[32, 16]) - 1) < 0.25)
+
+# tile_blend: 1 is the paper's Gaussian (variance 0.01 on a tile of length 1, as the other implementations have it)
+import math  # noqa: E402
+xs = torch.arange(32, dtype=torch.float64)
+ref = torch.exp(-((xs - 15.5) ** 2) / (32 * 32) / (2 * 0.01)) / math.sqrt(2 * math.pi * 0.01)
+check("blend 1: exactly the paper's weights", torch.allclose(wt, torch.outer(ref, ref)))
+wide, narrow = td.gaussian_weights(32, 32, 2.0), td.gaussian_weights(32, 32, 0.5)
+edge = lambda m_: (m_[15, 0] / m_[15, 15]).item()          # noqa: E731
+check(f"a higher blend gives the tile's edge more say, a lower one less ({edge(narrow):.1e} < {edge(wt):.1e} < {edge(wide):.1e})", edge(narrow) < edge(wt) < edge(wide))
+for bl in (0.25, 4.0):
+    gg = td.TileGrid(48, 80, 32, 32, 8, "cpu", bl)
+    tot = torch.zeros(48, 80)
+    for (yy, xx), sh in zip(gg.boxes, gg.share):
+        tot[yy:yy + 32, xx:xx + 32] += sh
+    check(f"blend {bl}: the tiles' shares are finite and add up to 1 at every cell", bool(torch.isfinite(tot).all()) and torch.allclose(tot, torch.ones_like(tot), atol=1e-4))
+
+# ---- the wrapper with a stand-in model
+calls = []
+
+
+def fake(x, t, c_concat, c_crossattn, control, transformer_options, **kw):
+    calls.append(dict(x=x, t=t, c_concat=c_concat, c_crossattn=c_crossattn, control=control, kw=kw))
+    return x * 2.0
+
+
+W = td.TiledModel(32 * 8, 32 * 8, 8 * 8, 3, 8)
+x = torch.randn(2, 4, 48, 80)
+t = torch.tensor([0.5, 0.7])
+ctx = torch.randn(2, 7, 16)
+concat = torch.randn(2, 5, 48, 80)
+y = torch.randn(2, 12)
+guid = torch.tensor([3.5])
+mask = torch.rand(1, 1, 48, 80)
+out = W(fake, x, t, concat, ctx, None, {"cond_or_uncond": [0, 1]}, y=y, guidance=guid, denoise_mask=mask, refs=[torch.randn(2, 4, 10, 10)])
+n = len(W.grid(48, 80, "cpu").boxes)
+check(f"a model that doubles its input: the blended result is the doubled picture ({n} tiles)", torch.allclose(out, x * 2, atol=1e-4))
+check(f"tiles are batched: {len(calls)} model calls for {n} tiles at 3 per call, in even batches", len(calls) == -(-n // 3) and W.calls == len(calls)
+      and max(c["x"].shape[0] for c in calls) - min(c["x"].shape[0] for c in calls) <= 2)
+c0 = calls[0]
+k = c0["x"].shape[0] // 2
+gr = W.grid(48, 80, "cpu")
+(y0, x0), (y1, x1) = gr.boxes[0], gr.boxes[1]
+check("batch order: sample by sample (sample 0's tiles, then sample 1's), so the cond / uncond halves stay halves",
+      torch.equal(c0["x"][0], x[0, :, y0:y0 + 32, x0:x0 + 32]) and torch.equal(c0["x"][1], x[0, :, y1:y1 + 32, x1:x1 + 32])
+      and torch.equal(c0["x"][k], x[1, :, y0:y0 + 32, x0:x0 + 32]))
+check("the timestep and the prompt are repeated per tile, in that order", torch.equal(c0["t"], t.repeat_interleave(k)) and torch.equal(c0["c_crossattn"][k], ctx[1])
+      and torch.equal(c0["c_crossattn"][0], ctx[0]) and c0["c_crossattn"].shape[0] == 2 * k)
+check("what has the picture's shape is cut per tile (c_concat, denoise_mask)", torch.equal(c0["c_concat"][1], concat[0, :, y1:y1 + 32, x1:x1 + 32])
+      and c0["kw"]["denoise_mask"].shape == (2 * k, 1, 32, 32) and torch.equal(c0["kw"]["denoise_mask"][k + 1], mask[0, :, y1:y1 + 32, x1:x1 + 32]))
+check("other conds: repeated when they have a row per sample, passed as they are otherwise, lists element by element",
+      c0["kw"]["y"].shape == (2 * k, 12) and torch.equal(c0["kw"]["y"][k], y[1]) and c0["kw"]["guidance"] is guid and c0["kw"]["refs"][0].shape[0] == 2 * k)
+
+# a model whose answer depends on the tile: the blend follows the weights
+calls.clear()
+W1 = td.TiledModel(32 * 8, 32 * 8, 16 * 8, 8, 8)
+ids = []
+
+
+def marks(x, t, c_concat, c_crossattn, control, transformer_options, **kw):
+    r = torch.zeros_like(x)
+    for i in range(x.shape[0]):
+        r[i] = float(len(ids)); ids.append(1)
+    return r
+
+
+o = W1(marks, torch.zeros(1, 4, 32, 48), torch.tensor([1.0]), None, None, None, {})
+check("two tiles that disagree: each side keeps its tile's answer, the overlap goes smoothly from one to the other",
+      abs(o[0, 0, 16, 0].item() - 0) < 1e-3 and abs(o[0, 0, 16, 47].item() - 1) < 1e-3 and 0.4 < o[0, 0, 16, 23:25].mean().item() < 0.6
+      and bool((o[0, 0, 16, 1:] - o[0, 0, 16, :-1] >= -1e-6).all()))
+
+# ControlNet residuals worked out on the whole latent are cut to the tiles
+calls.clear()
+ctrl = {"input": [torch.randn(2, 8, 48, 80), torch.randn(2, 8, 24, 40), None], "middle": [torch.randn(2, 8, 6, 10)], "output": []}
+W2 = td.TiledModel(32 * 8, 32 * 8, 8 * 8, 2, 8)
+W2(fake, x, t, None, ctx, ctrl, {})
+cc = calls[0]["control"]
+check("ControlNet residuals that are pictures are cut per tile at their own scale", cc["input"][0].shape[-2:] == (32, 32) and cc["input"][1].shape[-2:] == (16, 16)
+      and cc["input"][2] is None and cc["middle"][0].shape[-2:] == (4, 4) and torch.equal(cc["input"][1][1], ctrl["input"][1][0, :, y1 // 2:y1 // 2 + 16, x1 // 2:x1 // 2 + 16]))
+calls.clear()
+W2(fake, x, t, None, ctx, {"input": [torch.randn(2, 100, 64)]}, {})
+check("a ControlNet whose output can't be cut is left out (with a warning), nothing crashes", calls[0]["control"] is None and len(W2.warned) == 1)
+calls.clear()
+W(fake, torch.randn(1, 4, 16, 16), torch.tensor([1.0]), None, None, None, {})
+check("a latent no larger than one tile: one plain model call", len(calls) == 1 and calls[0]["x"].shape == (1, 4, 16, 16))
+calls.clear()
+o5 = W(fake, torch.randn(1, 16, 1, 48, 80), torch.tensor([1.0]), None, None, None, {})
+check("a latent with a frame axis (Wan-type image models) is tiled the same way", o5.shape == (1, 16, 1, 48, 80) and calls[0]["x"].shape[-3:] == (1, 32, 32))
+
+# ---- through ComfyUI's own sampler, with a tiny random UNet
+import comfy.supported_models  # noqa: E402
+import comfy.model_patcher  # noqa: E402
+import nodes  # noqa: E402
+
+cfg = dict(image_size=32, in_channels=4, out_channels=4, model_channels=32, num_res_blocks=[1, 1], channel_mult=[1, 2],
+           transformer_depth=[1, 1], transformer_depth_middle=1, transformer_depth_output=[1, 1, 1, 1], context_dim=24, num_heads=2,
+           use_spatial_transformer=True, use_linear_in_transformer=False, adm_in_channels=None, use_temporal_attention=False,
+           num_head_channels=-1, dtype=torch.float32)
+mc = comfy.supported_models.SD15(cfg)
+base = mc.get_model({}, device="cpu")
+torch.manual_seed(1)
+for p_ in base.parameters():
+    torch.nn.init.normal_(p_, std=0.02)
+patcher = comfy.model_patcher.ModelPatcher(base, load_device=torch.device("cpu"), offload_device=torch.device("cpu"))
+pos = [[torch.randn(1, 5, 24), {}]]
+neg = [[torch.randn(1, 5, 24), {}]]
+lat = {"samples": torch.randn(1, 4, 24, 40) * 0.1}
+check("px per latent cell read from the model (8 for SD1.5)", td.px_per_cell(patcher) == 8)
+m, wr = td.tiled_model(patcher, 128, 128, 32, 4)
+res = nodes.common_ksampler(m, 3, 3, 4.0, "euler", "simple", pos, neg, lat, denoise=0.5)[0]["samples"]
+tiles = wr.last_tiles
+check(f"a real sampling run in tiles finishes: {tiles} tiles, {wr.calls} model calls for 3 steps at cfg 4 (cond + uncond in one batch)",
+      res.shape == (1, 4, 24, 40) and bool(torch.isfinite(res).all()) and tiles == 6 and wr.calls == 3 * -(-tiles // 4))
+m1, w1 = td.tiled_model(patcher, 1024, 1024, 32, 4)
+a = nodes.common_ksampler(m1, 3, 3, 4.0, "euler", "simple", pos, neg, lat, denoise=0.5)[0]["samples"]
+b = nodes.common_ksampler(patcher, 3, 3, 4.0, "euler", "simple", pos, neg, lat, denoise=0.5)[0]["samples"]
+check("with one tile the result is the untiled one", torch.allclose(a, b, atol=1e-5))
+check("the tiled result differs from the untiled one, a little (the same picture, tile by tile)", not torch.allclose(res, b, atol=1e-5) and (res - b).abs().mean().item() < (b.abs().mean().item() + 1e-6) * 2)
+m2, _ = td.tiled_model(m, 128, 128, 32, 1)
+import comfy.patcher_extension  # noqa: E402
+check("applying it twice replaces the first (one wrapper on the model)", len(m2.wrappers[comfy.patcher_extension.WrappersMP.APPLY_MODEL][td.WRAPPER_KEY]) == 1)
+
+# ---- with the regional LoRAs' wrapper (regional_lora.py) on the same model
+sys.path.insert(0, PACK)
+spec2 = importlib.util.spec_from_file_location("rg_regional", os.path.join(PACK, "regional_lora.py"))
+rl = importlib.util.module_from_spec(spec2)
+spec2.loader.exec_module(rl)
+KIND = comfy.patcher_extension.WrappersMP.APPLY_MODEL
+seen = []
+
+
+def spy(x, t, c_concat, c_crossattn, control, transformer_options, **kw):
+    seen.append(transformer_options.get(td.TILES_KEY))
+    return x
+
+
+W3 = td.TiledModel(32 * 8, 32 * 8, 8 * 8, 3, 8)
+W3(spy, torch.zeros(2, 4, 48, 80), torch.tensor([1.0, 1.0]), None, None, None, {"sample_sigmas": torch.ones(3)})
+g3 = W3.grid(48, 80, "cpu")
+check(f"transformer_options['{td.TILES_KEY}'] per call: canvas, rows and the boxes of that call ({seen[0]})", seen[0]["canvas"] == (48, 80) and seen[0]["rows"] == 2
+      and seen[0]["boxes"] == [(y_, x_, 32, 32) for y_, x_ in g3.boxes[:3]] and seen[1]["boxes"] == [(y_, x_, 32, 32) for y_, x_ in g3.boxes[3:]])
+seen.clear()
+W3(spy, torch.zeros(1, 4, 16, 16), torch.tensor([1.0]), None, None, None, {})
+check("a call that isn't tiled announces nothing", seen == [None])
+
+
+class Exec:                                   # what ComfyUI hands a wrapper: the rest of the call, and the model
+    class_obj = base
+
+    def __init__(self):
+        self.got = None
+
+    def __call__(self, *a, **k):
+        self.got = (a, k)
+        return "out"
+
+
+# ---- tile-aware regions: every tile of a batch gets the part of each region that lies in it
+# a canvas of 48 x 80 latent cells; region A is its left half, with a caption at text tokens 2..4 of 7
+maskA = torch.zeros(96, 160); maskA[:, :80] = 1
+maskB = torch.zeros(96, 160); maskB[:, 80:] = 1
+A = rl.TokenRegion(maskA, [(2, 4)], 7)
+B = rl.TokenRegion(maskB, [(4, 6)], 7)
+canvas = (48, 80)
+boxL, boxM, boxR = (0, 0, 32, 32), (0, 24, 32, 32), (16, 48, 32, 32)       # left of the middle, across it, right of it
+flux = rl.ModelArch("Flux.1", patch=2, order="txt_img", token_key="t5xxl", family="Flux")
+gridT = flux.grid(32, 32)                                               # a tile's token grid: 16 x 16
+gm = lambda r, b: r.grid_mask(16, 16, gridT[2], (canvas, b)).reshape(16, 16)   # noqa: E731
+check("a tile inside a region: the region everywhere; outside it: nowhere; across its edge: the part that lies in the tile",
+      bool((gm(A, boxL) == 1).all()) and bool((gm(A, boxR) == 0).all()) and bool((gm(A, boxM)[:, :8] == 1).all()) and bool((gm(A, boxM)[:, 8:] == 0).all()))
+full = A.grid_mask(24, 40, (48, 80, 2)).reshape(24, 40)
+check("a tile's part of a region is the whole picture's token mask cut to the tile", torch.equal(gm(A, boxM), full[0:16, 12:28]) and torch.equal(gm(B, boxR), B.grid_mask(24, 40, (48, 80, 2)).reshape(24, 40)[8:24, 24:40]))
+tiles3 = (canvas, (boxL, boxM, boxR), 2)
+L = 7 + 256                                                             # text, then image
+wA = A.weights(L, gridT, "cpu", torch.float32, 7, flux, tiles3)
+check(f"LoRA weights for a batch of tiles: a row per tile, sample by sample {tuple(wA.shape)}; the caption's tokens on in every row",
+      wA.shape == (6, L, 1) and torch.equal(wA[0], wA[3]) and torch.equal(wA[2], wA[5]) and bool((wA[:, 2:4] == 1).all()) and bool((wA[:, :2] == 0).all())
+      and wA[0, 7:].mean().item() == 1 and wA[2, 7:].mean().item() == 0 and abs(wA[1, 7:].mean().item() - 0.5) < 1e-6)
+check("the same call without tiles is unchanged: one row, the whole mask on the grid", A.weights(L, gridT, "cpu", torch.float32, 7, flux).shape == (1, L, 1))
+unet = rl.model_arch(patcher)
+gridU = unet.grid(32, 32)
+sA = A.spatial(16, 16, gridU, "cpu", torch.float32, unet, tiles3)
+check(f"a UNet's conv layers at half size: a row per tile too {tuple(sA.shape)}", sA.shape == (6, 1, 16, 16) and sA[0].mean().item() == 1 and sA[2].mean().item() == 0 and torch.equal(sA[1], sA[4]))
+
+sepn = rl.RegionSeparation([A, B], 1.0, 0.1)
+bt = sepn.tile_bias(L, L, gridT, "cpu", torch.float32, 7, True, flux, tiles3, 6)
+img = slice(7, L)
+capA, capB = slice(2, 4), slice(4, 6)
+blocked = lambda row, q, k: bool((bt[row, 0, q, k] < -1000).all())      # noqa: E731
+free = lambda row, q, k: bool((bt[row, 0, q, k] == 0).all())            # noqa: E731
+check(f"separation for a batch of tiles: a row per tile {tuple(bt.shape)}", bt.shape == (6, 1, L, L) and torch.equal(bt[0], bt[3]))
+check("a tile that shows only region A: A's caption reaches its image, B's caption reaches nothing in it",
+      free(0, img, capA) and blocked(0, img, capB) and free(0, img, img))
+check("a tile that shows only region B: the other way round", blocked(2, img, capA) and free(2, img, capB))
+tok = lambda r, c: 7 + r * 16 + c                                        # noqa: E731
+check("a tile across the edge: each side hears its own caption, and the two sides are kept apart early on",
+      bt[1, 0, tok(3, 2), 2].item() == 0 and bt[1, 0, tok(3, 2), 4].item() < -1000 and bt[1, 0, tok(3, 12), 4].item() == 0
+      and bt[1, 0, tok(3, 12), 2].item() < -1000 and bt[1, 0, tok(3, 2), tok(3, 12)].item() < -1000 and bt[1, 0, tok(3, 2), tok(5, 3)].item() == 0)
+late = sepn.tile_bias(L, L, gridT, "cpu", torch.float32, 7, False, flux, tiles3, 6)
+check("after 'until': image tokens are open to each other again, captions still only reach their own region",
+      late[1, 0, tok(3, 2), tok(3, 12)].item() == 0 and late[1, 0, tok(3, 12), 2].item() < -1000)
+check("a batch that isn't the tiles' is left alone", sepn.tile_bias(L, L, gridT, "cpu", torch.float32, 7, True, flux, tiles3, 5) is None)
+one = sepn.bias(L, L, gridT, "cpu", torch.float32, 7, True, flux)
+whole = (canvas, ((0, 0, 48, 80),), 1)
+gridC = flux.grid(48, 80)
+Lc = 7 + 24 * 40
+check("one tile that is the whole picture gives exactly the untiled separation",
+      torch.equal(sepn.tile_bias(Lc, Lc, gridC, "cpu", torch.float32, 7, True, flux, whole, 1), sepn.bias(Lc, Lc, gridC, "cpu", torch.float32, 7, True, flux)) and one is not None)
+# a UNet (cross-attention): image self-attention and image -> text, per tile
+bs = sepn.tile_bias(1024, 1024, gridU, "cpu", torch.float32, 7, True, unet, tiles3, 6)
+bx = sepn.tile_bias(1024, 7, gridU, "cpu", torch.float32, 7, True, unet, tiles3, 6)
+check("UNet: a tile inside one region has nothing to keep apart in it; across the edge the two sides are; each row reads only its regions' captions",
+      bs.shape == (6, 1, 1024, 1024) and float(bs[0].abs().sum()) == 0 and float(bs[1].abs().sum()) > 0
+      and bx.shape == (6, 1, 1024, 7) and bool((bx[0, 0, :, 4:6] < -1000).all()) and bool((bx[0, 0, :, 2:4] == 0).all()) and bool((bx[2, 0, :, 2:4] < -1000).all()))
+
+# the wrapper: tiles in the batch -> state for the hooks and a per-tile attention override; a batch that doesn't fit -> no regions
+wrap = rl._ActivateRegionalLoRAsWrapper((), "test regions", sepn, unet)
+got = {}
+
+
+class Exec2(Exec):
+    def __call__(self, *a, **k):
+        got["tiles"] = rl._tiles()
+        got["override"] = a[5].get("optimized_attention_override")
+        return "out"
+
+
+sig = torch.tensor([10.0, 5.0, 0.0])
+topt = {td.TILES_KEY: {"canvas": canvas, "boxes": [boxL, boxM, boxR], "rows": 2}, "sample_sigmas": sig, "sigmas": torch.tensor([10.0])}
+r = wrap(Exec2(), torch.zeros(6, 4, 32, 32), torch.tensor([1.0] * 6), None, torch.zeros(6, 7, 24), None, topt)
+check("the regional wrapper takes the tiles: the hooks see them, the attention override is set, and they are gone after the call",
+      r == "out" and got["tiles"] == tiles3 and callable(got["override"]) and rl._tiles() is None)
+bad = {td.TILES_KEY: {"canvas": canvas, "boxes": [boxL, boxM, boxR], "rows": 2}, "sample_sigmas": sig}
+ex = Exec2()
+got.clear()
+r = wrap(ex, torch.zeros(4, 4, 32, 32), torch.tensor([1.0] * 4), None, torch.zeros(4, 7, 24), None, bad)
+check("a batch that doesn't fit the tiles: the call goes on without regions (never the whole layout on a tile)", r == "out" and got["tiles"] is None and got["override"] is None)
+
+# through ComfyUI's sampler: Region Genie's model (separation on) -> tiled
+regsep = rl.regional_lora_model(patcher, (), "test regions", sepn)
+both = td.tiled_model(regsep, 128, 128, 32, 4)[0]
+check("Region Genie's model -> tiled: the tiling is the outermost wrapper", list(both.wrappers[KIND])[0] == td.WRAPPER_KEY and len(both.wrappers[KIND]) == 2)
+other = rl.regional_lora_model(td.tiled_model(patcher, 128, 128, 32, 4)[0], (), "test regions", sepn)
+check("tiled -> Region Genie's model: the tiling is the outermost wrapper too", list(other.wrappers[KIND])[0] == td.WRAPPER_KEY and len(other.wrappers[KIND]) == 2)
+pos7 = [[torch.randn(1, 7, 24), {}]]
+neg7 = [[torch.randn(1, 7, 24), {}]]
+plain = nodes.common_ksampler(td.tiled_model(patcher, 128, 128, 32, 4)[0], 3, 3, 4.0, "euler", "simple", pos7, neg7, lat, denoise=0.5)[0]["samples"]
+res2 = nodes.common_ksampler(both, 3, 3, 4.0, "euler", "simple", pos7, neg7, lat, denoise=0.5)[0]["samples"]
+check("a real sampling run with regions kept apart per tile finishes, and differs from the run without regions",
+      res2.shape == plain.shape and bool(torch.isfinite(res2).all()) and not torch.allclose(res2, plain, atol=1e-6))
+res3 = nodes.common_ksampler(other, 3, 3, 4.0, "euler", "simple", pos7, neg7, lat, denoise=0.5)[0]["samples"]
+check("the two wiring orders give the same result", torch.allclose(res2, res3, atol=1e-6))
+
+# ---- the nodes
+it = td.TiledUpscaleRG.INPUT_TYPES()
+check("tile_overlap and tile_blend are inputs of both nodes; blend 1 at first", all("tile_overlap" in n_.INPUT_TYPES()["required"] and n_.INPUT_TYPES()["required"]["tile_blend"][1]["default"] == 1.0 for n_ in (td.TiledUpscaleRG, td.TiledDiffusionRG)))
+tips = [k_ for grp in ("required", "optional") for k_, v in it.get(grp, {}).items() if not (len(v) > 1 and v[1].get("tooltip"))]
+check("Tiled Upscale: every input has a tooltip" + (": missing " + ", ".join(tips) if tips else ""), not tips and it["required"]["upscale_model"][0][0] == "none" and it["required"]["color_fix"][1]["default"] is True and it["required"]["preview"][1]["default"] is True and it["required"]["vae_decode_tile_size"][1]["default"] == 0 and "optional" not in it)
+img = torch.rand(1, 50, 70, 3)
+up = td.upscale_pixels(img, 2.0, None, "lanczos", 16)
+check(f"without an upscale model the image is resized to a size that fits the latent ({up.shape[2]} x {up.shape[1]})", up.shape == (1, 96, 144, 3))
+
+
+class FakeVAE:
+    def encode(self, px):
+        return torch.nn.functional.avg_pool2d(px.movedim(-1, 1), 8).repeat(1, 2, 1, 1)[:, :4]
+
+    def decode(self, z):
+        return torch.nn.functional.interpolate(z[:, :3], scale_factor=8).movedim(1, -1)
+
+
+node = td.TiledUpscaleRG()
+im, la = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), "none", 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.5, 128, 128, 32, 4, 1.0)
+check(f"Tiled Upscale end to end: image {tuple(im.shape)} and latent {tuple(la['samples'].shape)}", im.shape == (1, 192, 320, 3) and la["samples"].shape == (1, 4, 24, 40))
+check("the steps that are run: steps x denoise, the last ones (20 at 0.2: from step 16; at least one; all of them at 1)",
+      [td.redraw_start(20, 0.2), td.redraw_start(20, 1.0), td.redraw_start(20, 0.01), td.redraw_start(30, 0.5), td.redraw_start(1, 0.2)] == [16, 0, 19, 15, 0])
+seen_steps = []
+orig_ks = nodes.common_ksampler
+
+
+def spy_ks(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, **kw):
+    seen_steps.append((steps, kw.get("denoise"), kw.get("start_step"), kw.get("last_step"), kw.get("force_full_denoise")))
+    return orig_ks(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, **kw)
+
+
+nodes.common_ksampler = spy_ks
+m_calls = {"n": 0}
+cnt_model = patcher.clone()
+cnt_model.add_wrapper_with_key(KIND, "count", lambda ex, *a, **k: (m_calls.__setitem__("n", m_calls["n"] + 1), ex(*a, **k))[1])
+node.run(torch.rand(1, 64, 64, 3), cnt_model, pos, neg, FakeVAE(), "none", 1.0, "lanczos", 5, 20, 1.0, "euler", "simple", 0.2, 1024, 1024, 32, 4, 1.0)
+nodes.common_ksampler = orig_ks
+check(f"Tiled Upscale at 20 steps and denoise 0.2 runs the last 4 steps only ({seen_steps[-1]}; {m_calls['n']} model calls)",
+      seen_steps[-1] == (20, 1.0, 16, 20, True) and m_calls["n"] == 4)
+im0, _ = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), "none", 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.0, 128, 128, 32, 4)
+check("denoise 0: only the enlarged image", im0.shape == (1, 192, 320, 3))
+
+# ---- the colour fix
+torch.manual_seed(1)
+ref = torch.rand(1, 64, 96, 3) * 0.5 + 0.2
+big = torch.nn.functional.interpolate(ref.movedim(-1, 1), scale_factor=2, mode="bicubic").movedim(1, -1).clamp(0, 1)
+detail = (torch.rand(1, 128, 192, 3) - 0.5) * 0.06
+shifted = (big * 1.15 + 0.05 + detail).clamp(0, 1)                     # brighter, as an upscale model can leave it
+fx = td.match_colors(shifted, ref)
+mean = lambda t: t.mean(dim=(0, 1, 2))                                 # noqa: E731
+check(f"colour fix: the brightness is the original's again (off by {float((mean(fx) - mean(ref)).abs().max()):.4f}, was {float((mean(shifted) - mean(ref)).abs().max()):.3f})",
+      float((mean(fx) - mean(ref)).abs().max()) < 0.004 and float((mean(shifted) - mean(ref)).abs().max()) > 0.05)
+hp = lambda t: t - torch.nn.functional.avg_pool2d(t.movedim(-1, 1), 3, 1, 1).movedim(1, -1)   # noqa: E731
+check("colour fix: the fine detail of the upscaled image stays", float((hp(fx) - hp(shifted))[:, 8:-8, 8:-8].abs().max()) < 0.01)
+check("colour fix: an image that already matches is left as it is", float((td.match_colors(big, ref) - big).abs().max()) < 0.02)
+check("colour fix: a reference with another batch size changes nothing", td.match_colors(shifted, torch.rand(3, 8, 8, 3)) is shifted)
+
+
+class BrightVAE(FakeVAE):
+    def decode(self, z):
+        return (super().decode(z) * 1.2 + 0.1).clamp(0, 1)
+
+
+src = (torch.linspace(0.2, 0.6, 64).view(1, 1, 64, 1) * torch.linspace(0.6, 1.0, 64).view(1, 64, 1, 1)).repeat(1, 1, 1, 3)   # a smooth picture
+nodes.common_ksampler = lambda model, seed, steps, cfg, sn, sc, p_, n_, latent, **kw: (dict(latent),)   # the latent as it came: only the VAE shifts
+on, _ = node.run(src, patcher, pos, neg, BrightVAE(), "none", 2.0, "lanczos", 5, 4, 1.0, "euler", "simple", 0.0001, 128, 128, 32, 4, 1.0, True)
+off, _ = node.run(src, patcher, pos, neg, BrightVAE(), "none", 2.0, "lanczos", 5, 4, 1.0, "euler", "simple", 0.0001, 128, 128, 32, 4, 1.0, False)
+nodes.common_ksampler = orig_ks
+check(f"Tiled Upscale with color_fix: the result has the input's brightness ({float(on.mean()):.3f} for {float(src.mean()):.3f}; {float(off.mean()):.3f} without)",
+      abs(float(on.mean() - src.mean())) < 0.02 < abs(float(off.mean() - src.mean())))
+
+# ---- VAE tiles, and the preview switch
+class TileVAE(FakeVAE):
+    def __init__(self):
+        self.seen = []
+
+    def spacial_compression_decode(self):
+        return 8
+
+    def encode_tiled(self, px, tile_x=None, tile_y=None, overlap=None):
+        self.seen.append(("enc", tile_x, tile_y, overlap))
+        return self.encode(px)
+
+    def decode_tiled(self, z, tile_x=None, tile_y=None, overlap=None):
+        self.seen.append(("dec", tile_x, tile_y, overlap))
+        return self.decode(z)
+
+
+import latent_preview
+from comfy.cli_args import args as cargs, LatentPreviewMethod
+cargs.preview_method = LatentPreviewMethod.Latent2RGB
+methods = []
+orig_prev = latent_preview.get_previewer
+latent_preview.get_previewer = lambda *a, **k: (methods.append(cargs.preview_method), orig_prev(*a, **k))[1]
+tv = TileVAE()
+node.run(src, patcher, pos, neg, tv, "none", 2.0, "lanczos", 5, 4, 1.0, "euler", "simple", 0.5, 128, 128, 32, 4, 1.0, True, 512, 256, False)
+check(f"VAE tile sizes: encode and decode go in tiles of that size, the decode's in latent cells ({tv.seen})", tv.seen == [("enc", 512, 512, 64), ("dec", 32, 32, 8)])
+tv2 = TileVAE()
+node.run(src, patcher, pos, neg, tv2, "none", 2.0, "lanczos", 5, 4, 1.0, "euler", "simple", 0.5, 128, 128, 32, 4, 1.0, True, 0, 0, True)
+latent_preview.get_previewer = orig_prev
+check("VAE tile size 0: in one piece", tv2.seen == [])
+check(f"preview off: the sampler makes no preview picture in that run, and the setting is back afterwards ({[str(m_) for m_ in methods]})",
+      methods == [LatentPreviewMethod.NoPreviews, LatentPreviewMethod.Latent2RGB] and cargs.preview_method == LatentPreviewMethod.Latent2RGB)
+
+# ---- the upscale model in even pieces
+
+
+class FakeUp:
+    scale, supports_half, supports_bfloat16 = 4, False, True
+
+    def __init__(self):
+        self.sizes = []
+
+    def to(self, *_a):
+        return self
+
+    def __call__(self, a):
+        self.sizes.append(tuple(a.shape[-2:]))
+        return torch.nn.functional.interpolate(a, scale_factor=4, mode="nearest")
+
+
+fu, said = FakeUp(), []
+pic = torch.rand(1, 1024, 1024, 3)
+big_ = td.run_upscale_model(fu, pic, 512, True, said)
+want = torch.nn.functional.interpolate(pic.movedim(-1, 1), scale_factor=4, mode="nearest").movedim(1, -1)
+check(f"the upscale model at 512: ComfyUI's own cut (9 calls), the picture put together right ({said})",
+      len(fu.sizes) == 9 and (512, 512) in fu.sizes and big_.shape == (1, 4096, 4096, 3) and torch.allclose(big_, want, atol=1e-5)
+      and "9 piece(s) of up to 512 x 512 px, full precision" in said[0] and "to run" in said[0])
+fu = FakeUp()
+td.run_upscale_model(fu, pic, 1024)
+check("piece size 1024 on a 1024 px image: one call", fu.sizes == [(1024, 1024)])
+fu = FakeUp()
+td.run_upscale_model(fu, pic, 0)
+check("piece size 0: the whole image in one call", fu.sizes == [(1024, 1024)])
+laps = []
+up2 = td.upscale_pixels(torch.rand(1, 64, 64, 3), 2.0, FakeUp(), "lanczos", 16, 512, False, [], laps.append)
+check(f"a 4x model at upscale_by 2: resized down to 2x; the model and the resize are timed apart ({laps})", up2.shape == (1, 128, 128, 3) and laps == ["upscale model", "resize"])
+
+# ---- the upscale model by name
+check("upscale_model none (or nothing): no model", td.load_upscale_model("none") is None and td.load_upscale_model("") is None)
+import comfy_extras.nodes_upscale_model as um
+loads = []
+old_exec, old_load = getattr(um.UpscaleModelLoader, "execute", None), getattr(um.UpscaleModelLoader, "load_model", None)
+fake = lambda *a: (loads.append(a[-1]), ("model:" + a[-1],))[1]         # noqa: E731
+if old_exec is not None:
+    um.UpscaleModelLoader.execute = staticmethod(fake)
+else:
+    um.UpscaleModelLoader.load_model = fake
+a1, a2, b1 = td.load_upscale_model("a.pth"), td.load_upscale_model("a.pth"), td.load_upscale_model("b.pth")
+check(f"an upscale model is loaded by its file name, once while it stays the same ({loads})", (a1, a2, b1, loads) == ("model:a.pth", "model:a.pth", "model:b.pth", ["a.pth", "b.pth"]))
+td._loaded.clear()
+if old_exec is not None:
+    um.UpscaleModelLoader.execute = old_exec
+else:
+    um.UpscaleModelLoader.load_model = old_load
+
+if __name__ == "__main__":
+    print("\nall passed" if not fails else f"\n{len(fails)} failed")
+    sys.exit(1 if fails else 0)

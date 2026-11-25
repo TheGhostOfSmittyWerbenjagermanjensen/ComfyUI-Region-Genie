@@ -2,6 +2,79 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 85 (Nov 25): Tiled Upscale finished for release; both branches in one pull request
+- Asked: the remaining tasks for the "More settings" fold, then a pull request that merges both branches.
+- Done: manual, help page, hardware checklist, handoff; `claude/tile-aware-regions` (regions cut per tile, the branch the owner has been running) merged into the working branch; a test for a folded setting with a cable.
+- Tested: `run_py.sh`, `run_ui.sh`, `test_tiled.py`, and on real ComfyUI `real_tiled_upscale.cjs` and `real_tooltips.cjs` in both node modes, `real_i18n.cjs`, `real_mode_switch.cjs`.
+
+## Round 84 (Nov 25): Tiled Upscale: the set-once settings fold away
+- Asked: the node is tall; drafts of shorter layouts. Shown: A (fold the six set-once settings), B (two settings per row), C (both). The owner chose A, saw the real node and confirmed it.
+- Built: `js/tiled_upscale.js`: a "More settings" / "Fewer settings" line above the six settings; folded on a new node; the state is saved with the workflow; "N changed" on the line when a folded setting differs from a new node's; a folded setting with a cable stays shown. Icons `chevronRight`, `chevronDown` (Lucide).
+- Fixed while testing: a legacy node loaded with its saved size grew by the fold's height again.
+
+## Round 83 (Nov 25): text box buttons lost after switching node modes; layout drafts for Tiled Upscale
+- Reported: legacy → Nodes 2.0 → legacy, and the pop-up buttons of scene_prompt_positive / scene_prompt_negative and the LLM button are gone until the tab is reloaded.
+- Cause: legacy mode puts the same text box into a new parent element when it comes back; the buttons were in the old parent, and a box already seen wasn't set up again. The Regional LoRAs node's prompts had the same fault.
+- Fixed: `addExpandButton()` gives the field `__rgRehost()`, which moves the button and its extras into the field's parent of the moment; `hookTextarea()` calls it for a box it has seen (the scan every 1.5 s, and on focus).
+- Tested: new `tests/real_mode_switch.cjs` (failed before, passes now), `real_text_boxes.cjs` four ways, `run_ui.sh`.
+- Also: three layout drafts for a shorter Tiled Upscale node, shown to the owner; nothing built yet.
+
+## Round 82 (Nov 25): Tiled Upscale: the order of the widgets
+- Asked: a better order before the node is released; the owner chose "everyday settings first" and asked whether ComfyUI's "advanced" inputs work in legacy node mode.
+- Built: the order list in `INPUT_TYPES`: `upscale_by`, `upscale_model`, `denoise`, the sampler settings, the tile sizes, `color_fix`, `preview`; then `resize_method`, `tile_blend`, the upscale model's two settings, the VAE tile sizes.
+- Found: "advanced" inputs are hidden only in Nodes 2.0 (checked in the test ComfyUI on a core node); legacy mode shows them all. Not used.
+- Tested: `tests/test_tiled.py`, `tests/run_py.sh`, translations check. Saved nodes from before have their values shifted.
+
+## Round 81 (Nov 25): Tiled Upscale: the upscale model's pieces as ComfyUI cuts them
+- Asked: the owner doubts 368 px pieces are better (models may do worse on small pieces), and sent timings: 512 → 12.7 s, 1024 → 9.5 s, 1024 at half precision (bf16) → 9.5 s.
+- Decided (session): back to ComfyUI's own cut, so 512 gives the standard node's picture; the size setting and the half precision switch stay. The console splits the upscale model's time into getting it into memory and running it.
+- Tested: `tests/test_tiled.py`, tooltips and translations on real ComfyUI.
+
+## Round 80 (Nov 25): Tiled Upscale: a faster upscale-model step
+- Asked: the upscale model (4x-UltraSharpV2) takes 12.6 s of a 21 s run; can it be faster without another model? The owner chose both offered ways and wants their timings in the console.
+- Built: `run_upscale_model()`: even pieces (`upscale_model_tile_size`, 512 at first) and `upscale_model_half_precision` (off at first; fp16 or bf16 by what the model supports). The console line says the pieces and the precision used and times the upscale model and the resize apart. New inputs after the existing ones.
+- Found while testing: ComfyUI's node already clips its last piece (1024 px = 512 + 512 + 64 per side, 1.13 times the pixels), so larger pieces save about a tenth at most, not the half first estimated; half precision is where a real gain can come from.
+- Tested: `tests/test_tiled.py` with a stand-in model on CPU (pieces, the picture put together, timing names). Half precision and all speeds: not testable without a GPU.
+
+## Round 79 (Nov 25): Tiled Upscale: VAE tile sizes, preview switch
+- Asked: VAE tile sizes on the node (for small cards and for timing data); a way to hide the sampler's preview picture on the node. The owner's timing line: enlarge 13.2 s, encode 0.4 s, sample 4.0 s, decode 0.5 s.
+- Found: the time is the upscale model (4x-UltraSharpV2 on 1024 px, then resized down), not the sampling or the VAE.
+- Built: `vae_encode_tile_size`, `vae_decode_tile_size` (0 = in one piece), `preview` (on at first), all after the existing inputs so saved nodes keep their values. The timing line splits loading the upscale model, enlarging and the color fix.
+- Tested: `tests/test_tiled.py`, tooltips and translations on real ComfyUI. Not on a GPU; the preview switch not in a browser run.
+
+## Round 78 (Nov 25): Tiled Upscale after the owner's first run (MOSS-Image)
+- Asked: `upscale_model` as a widget with "none"; compare the settings and timings with their DazzleNodes subgraph (ours a second or two slower); a colour correction like that pack's (results too bright with 4x-UltraSharpV2); why the console says "regional LoRAs active" with no regional LoRAs.
+- Found: their run of our node had 2048 px tiles on a 2048 px image (one tile: no tiling) against 1024 px tiles in the subgraph. Sampling was about 5 s of the 18-22 s; the rest (upscale model, VAE, loading) isn't visible from the console. The console line was only worded badly: the model carries the regions (separation), no LoRA.
+- Built: `upscale_model` widget (list of `models/upscale_models`, "none" first; the model stays loaded between runs); `color_fix` (on at first; `match_colors`, our own method); a timing line per run; the console says "regions active (no regional LoRAs)" when there are none. `gen_params` reads the widget's model name for Save Image's settings text.
+- Tested: `tests/test_tiled.py` (colour fix, loading by name, the node end to end), `test_gen_params.py`, tooltips and translations on real ComfyUI. Not on a GPU.
+- Note: a saved Tiled Upscale node from before this round has its widget values shifted by one; set them again.
+
+## Round 77 (Nov 25): Tiled Upscale runs only the last steps
+- Asked: does the node run a full denoise? The owner uses KSampler (Advanced) to run only the last steps for a 0.2 redraw, which is much faster.
+- Found: it passed `denoise` to ComfyUI's sampler, which runs every step on the last part of a longer schedule: 20 model steps at 0.2 where 4 are meant. The `steps` tooltip already described the 4.
+- Fixed: `redraw_start()`; the sampler starts at step `steps - round(steps x denoise)` with denoise 1. Docs and help pages say so, and how to do the same with the Tiled Diffusion node.
+- Tests: `test_tiled.py` counts the model calls (4 for 20 steps at 0.2).
+
+## Round 76 (Nov 25): tiled sampling and Region Genie's regions
+- Asked: would regional prompts in tiled upscaling be worth it; then: read the engine, come back with a sized plan; then: fix the engine's wrong behaviour in tiles now (step 1) and build regions per tile on a branch of its own (step 2).
+- Found: together they were wrong in both wiring orders (regions off inside tiles on transformer models; the whole layout squeezed onto a tile on UNets).
+- Built, step 1 (working branch): the tiling is the outermost wrapper and names its tiles (`rg_tiles`); the regional engine leaves regions out of a tiled run, with a log line.
+- Built, step 2 (branch `claude/tile-aware-regions`): each tile of a batch gets its own cut of every region: LoRA masks and the attention separation per tile, no extra model calls. docs/HANDOFF.md has the details.
+- Tests: `tests/test_tiled.py` (CPU: stand-ins, and ComfyUI's sampler with a tiny random UNet). Not tested: any real model.
+
+## Round 75 (Nov 24-25): Tiled Upscale and Tiled Diffusion (Mixture of Diffusers)
+- Asked: research tiled diffusion upscaling (the DazzleNodes fork of ComfyUI-TiledDiffusion, Mixture of Diffusers, newer methods, Forge Neo's implementation) and whether it fits in one node with broad model support.
+- Decided by the owner: Mixture of Diffusers, standing alone, in this pack; both an all-in-one node and a MODEL → MODEL node; an optional upscale model; overlap and a blend control whose default is the method as defined. Shelved after research: true positions per tile.
+- Built: `tiled_diffusion.py` (written from the paper, no code from other implementations): several tiles per model call on every model, tiles treated as pictures of their own. Nodes Tiled Upscale (Region Genie) and Tiled Diffusion (Region Genie). Version 0.57.0.
+- A working version: the owner has not tried it on a real model yet. Docs written (docs/tiled-upscale.md, help pages, README) and the two nodes translated (zh, ja, ko, es).
+- Tests: `tests/test_tiled.py`. Not tested: real models (quality, seams, speed), the upscale model path, the nodes in the browser.
+
+## Round 74 (Nov 24): Save Image: no_metadata
+- Asked: an option on Save Image (Region Genie) for a file with truly no metadata (no workflow either), which switches `a1111_metadata` off, and the other way round.
+- Built: optional input `no_metadata` (BOOLEAN, off; last in the list, so saved workflows keep their values). On: `run()` drops the prompt, the workflow and the settings text and writes no JPEG sidecar; an EXR keeps only its `chromaticities`.
+- Built: js/save_image.js turns the other switch off when one is turned on, and hides `jpeg_workflow` while `no_metadata` is on. The summary's label ends with ", no metadata". Version 0.56.0.
+- Tests: `test_save_image.py` reads the saved PNG, WebP, JPEG and AVIF for any text, EXIF or sidecar; `real_save_image.cjs` in both modes (the two switches, a PNG and a JPEG from a real run).
+
 ## Round 73 (Nov 24): smooth, wider edge lines along each region's own shape; delete on the region's row
 - Asked: is smoothing the regions' jagged edges expensive; deleting regions is clunky; a mock-up of thicker lines, and of a lower region's line not following the region on top of it.
 - Found: the fills were already smooth; the steps came from round 72's edge line, which a pixel either had or not.

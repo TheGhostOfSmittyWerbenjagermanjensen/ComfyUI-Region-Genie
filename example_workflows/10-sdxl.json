@@ -1,5 +1,5 @@
 {
-  "id": "10babc96-a744-40c6-b30f-23ad33febf41",
+  "id": "1efa31b8-edb4-4e85-aa0e-9f9371e56310",
   "revision": 0,
   "last_node_id": 6,
   "last_link_id": 10,
@@ -327,7 +327,7 @@
       ],
       "size": [
         300.2428802490234,
-        206
+        230
       ],
       "flags": {},
       "order": 5,
@@ -368,7 +368,8 @@
           "exr_bit_depth": "16-bit float",
           "exr_color_space": "sRGB",
           "invert_mask": false,
-          "a1111_metadata": true
+          "a1111_metadata": true,
+          "no_metadata": false
         }
       },
       "widgets_values": [
@@ -385,7 +386,8 @@
         "16-bit float",
         "sRGB",
         false,
-        true
+        true,
+        false
       ],
       "widgets_values_named": {
         "filename_prefix": "RegionGenie/sdxl",
@@ -401,7 +403,8 @@
         "exr_bit_depth": "16-bit float",
         "exr_color_space": "sRGB",
         "invert_mask": false,
-        "a1111_metadata": true
+        "a1111_metadata": true,
+        "no_metadata": false
       }
     },
     {
