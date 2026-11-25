@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 80 (Nov 25): Tiled Upscale: a faster upscale-model step
+- Asked: the upscale model (4x-UltraSharpV2) takes 12.6 s of a 21 s run; can it be faster without another model? The owner chose both offered ways and wants their timings in the console.
+- Built: `run_upscale_model()`: even pieces (`upscale_model_tile_size`, 512 at first) and `upscale_model_half_precision` (off at first; fp16 or bf16 by what the model supports). The console line says the pieces and the precision used and times the upscale model and the resize apart. New inputs after the existing ones.
+- Found while testing: ComfyUI's node already clips its last piece (1024 px = 512 + 512 + 64 per side, 1.13 times the pixels), so larger pieces save about a tenth at most, not the half first estimated; half precision is where a real gain can come from.
+- Tested: `tests/test_tiled.py` with a stand-in model on CPU (pieces, the picture put together, timing names). Half precision and all speeds: not testable without a GPU.
+
 ## Round 79 (Nov 25): Tiled Upscale: VAE tile sizes, preview switch
 - Asked: VAE tile sizes on the node (for small cards and for timing data); a way to hide the sampler's preview picture on the node. The owner's timing line: enlarge 13.2 s, encode 0.4 s, sample 4.0 s, decode 0.5 s.
 - Found: the time is the upscale model (4x-UltraSharpV2 on 1024 px, then resized down), not the sampling or the VAE.

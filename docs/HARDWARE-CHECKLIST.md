@@ -289,6 +289,8 @@ Nothing here has run on a real model yet.
 - [ ] `color_fix` on / off with 4x-UltraSharpV2: on, the result has the original's brightness and colours, with no halos at strong edges and no loss of fine detail
 - [ ] `vae_encode_tile_size` / `vae_decode_tile_size` 512 and 1024: the same picture with no seams from the VAE; less memory at large sizes
 - [ ] `preview` off: no preview picture on the node during the run, in both node modes; other samplers in the same workflow still show theirs
+- [ ] `upscale_model_tile_size` 512 / 1024 / 0 with 4x-UltraSharpV2 on a 1024 px image: time of "upscale model" in the console (before: about 12.6 s for all of enlarging), the same picture, no joins; whether 1024 or 0 pushes the diffusion model out of memory (a longer "sample")
+- [ ] `upscale_model_half_precision` on: the console says bf16 for UltraSharpV2 (a DAT model), fp16 for an ESRGAN one; the picture next to full precision; time
 - [ ] The console's timing line (enlarge, encode, sample, decode): which part takes the time next to the other pack's tiled upscale
 - [ ] A small card: small tiles at batch 1 fit; ComfyUI doesn't offload more than without tiling
 - [ ] ControlNet with SDXL in a tiled run; the warning for a transformer model's ControlNet

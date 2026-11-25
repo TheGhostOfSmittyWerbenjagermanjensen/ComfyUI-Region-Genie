@@ -269,7 +269,82 @@ class TiledDiffusionRG:
         return (tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend)[0],)
 
 
-def upscale_pixels(image, upscale_by, upscale_model, method, multiple):
+UP_OVERLAP = 32                   # px that neighbouring pieces of the upscale model's input share
+
+
+def even_piece(size, most, overlap=UP_OVERLAP):
+    """The piece length (px) to cut `size` px into pieces of at most `most` px that share `overlap` px, all the same
+    length and spread evenly. Cutting at `most` itself leaves a sliver at the end (ComfyUI's tiled_scale cuts 1024 px
+    in pieces of 512 into 512, 512 and a last one of 64 px): the same amount to compute, but a model sees very
+    little of the picture in a sliver. In even pieces they are three of about 368."""
+    if most <= 0 or size <= most:
+        return size
+    most = max(most, overlap * 4)
+    n = math.ceil((size - overlap) / (most - overlap))
+    return min(most, math.ceil((size + (n - 1) * overlap) / n / 16) * 16)
+
+
+def run_upscale_model(upscale_model, image, piece=512, reduced=False, note=None):
+    """`image` (B, H, W, C) through an upscale model, as ComfyUI's Upscale Image (using Model) node does it, but in
+    even pieces of at most `piece` px (0: the whole image at once) and, with `reduced`, at half precision where the
+    model allows it (fp16, or bf16 for models that only take that). When the memory runs out, the pieces are halved.
+    `note`: a list that gets what was done, for the console."""
+    import comfy.model_management as mm
+    patcher = getattr(upscale_model, "patcher", None)
+    device = patcher.load_device if patcher is not None else mm.get_torch_device()
+    image = image[..., :3]
+    scale = max(float(getattr(upscale_model, "scale", 1.0)), 1.0)
+    h, w = image.shape[1], image.shape[2]
+    most = int(piece) if piece and piece > 0 else max(h, w)
+    dtype = None
+    if reduced and getattr(device, "type", str(device)) == "cuda":
+        dtype = torch.float16 if getattr(upscale_model, "supports_half", False) else \
+            torch.bfloat16 if getattr(upscale_model, "supports_bfloat16", False) else None
+    in_img = image.movedim(-1, -3).to(device)
+    out_dev = mm.intermediate_device()
+
+    def call(a):
+        if dtype is None:
+            return upscale_model(a.float())
+        with torch.autocast(device_type="cuda", dtype=dtype):
+            return upscale_model(a.float()).float()
+
+    while True:
+        ty, tx = even_piece(h, most), even_piece(w, most)
+        need = (ty * tx * 3) * image.element_size() * scale * 384.0 * (0.5 if dtype is not None else 1.0)   # ComfyUI's estimate, per piece
+        need += image.nelement() * image.element_size()
+        try:
+            if patcher is not None:
+                mm.load_models_gpu([patcher], memory_required=need, force_full_load=True)
+            else:
+                upscale_model.to(device)
+            steps = in_img.shape[0] * comfy.utils.get_tiled_scale_steps(w, h, tile_x=tx, tile_y=ty, overlap=UP_OVERLAP)
+            out = comfy.utils.tiled_scale(in_img, call, tile_x=tx, tile_y=ty, overlap=UP_OVERLAP, upscale_amount=scale,
+                                          pbar=comfy.utils.ProgressBar(steps), output_device=out_dev)
+            if dtype is not None and not bool(torch.isfinite(out).all()):
+                logging.warning("[Region Genie] Tiled Upscale: the upscale model gave a broken picture at half precision; "
+                                "run again at full precision")
+                dtype = None
+                continue
+            break
+        except Exception as e:
+            raise_non_oom = getattr(mm, "raise_non_oom", None)
+            if raise_non_oom is not None:
+                raise_non_oom(e)
+            elif not isinstance(e, getattr(mm, "OOM_EXCEPTION", ())):
+                raise
+            most = max(ty, tx) // 2
+            if most < 128:
+                raise
+    if patcher is None:
+        upscale_model.to("cpu")
+    if note is not None:
+        prec = {None: "full precision", torch.float16: "fp16", torch.bfloat16: "bf16"}[dtype]
+        note.append(f"upscale model: {steps} piece(s) of {tx} x {ty} px, {prec}")
+    return out.movedim(-3, -1).clamp(0, 1).to(mm.intermediate_dtype())
+
+
+def upscale_pixels(image, upscale_by, upscale_model, method, multiple, piece=512, reduced=False, note=None, lap=None):
     """The image enlarged `upscale_by` times in pixels: with the upscale model first when there is one, then
     resized to the exact size (a multiple of `multiple` px, so it fits the latent's cells)."""
     b, h, w, _ = image.shape
@@ -277,12 +352,13 @@ def upscale_pixels(image, upscale_by, upscale_model, method, multiple):
     th = max(multiple, int(round(h * upscale_by / multiple)) * multiple)
     img = image
     if upscale_model is not None and upscale_by > 1.0:
-        from comfy_extras.nodes_upscale_model import ImageUpscaleWithModel
-        fn = getattr(ImageUpscaleWithModel, "execute", None)
-        out = fn(upscale_model, img) if fn is not None else ImageUpscaleWithModel().upscale(upscale_model, img)
-        img = getattr(out, "result", out)[0]
+        img = run_upscale_model(upscale_model, img, piece, reduced, note)
+        if lap:
+            lap("upscale model")
     if img.shape[1] != th or img.shape[2] != tw:
         img = comfy.utils.common_upscale(img.movedim(-1, 1), tw, th, method, "disabled").movedim(1, -1)
+    if lap:
+        lap("resize")
     return img.clamp(0, 1)
 
 
@@ -440,6 +516,13 @@ class TiledUpscaleRG:
                     "image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out.")}),
                 "preview": ("BOOLEAN", {"default": True, "tooltip": (
                     "Shows the picture on the node while it is redrawn, as a sampler does. Off: No preview picture.")}),
+                "upscale_model_tile_size": ("INT", {"default": 512, "min": 0, "max": 8192, "step": 64, "tooltip": (
+                    "The upscale model works on pieces of the image of at most this size in pixels, all the same size. "
+                    "Larger pieces are faster and need more memory; when it runs out, they are halved.\n"
+                    "0: The whole image at once.")}),
+                "upscale_model_half_precision": ("BOOLEAN", {"default": False, "tooltip": (
+                    "Runs the upscale model at half precision where it allows it, which is faster and needs less "
+                    "memory. A few models give a slightly different picture with it. The console says what was used.")}),
             },
         }
 
@@ -454,7 +537,8 @@ class TiledUpscaleRG:
 
     def run(self, image, model, positive, negative, vae, upscale_model, upscale_by, resize_method, seed, steps, cfg,
             sampler_name, scheduler, denoise, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend=1.0,
-            color_fix=True, vae_encode_tile_size=0, vae_decode_tile_size=0, preview=True):
+            color_fix=True, vae_encode_tile_size=0, vae_decode_tile_size=0, preview=True, upscale_model_tile_size=512,
+            upscale_model_half_precision=False):
         import nodes
         times, t0 = [], time.perf_counter()
 
@@ -471,8 +555,9 @@ class TiledUpscaleRG:
         px = px_per_cell(model)
         up = upscale_model if not isinstance(upscale_model, str) else load_upscale_model(upscale_model)   # a name, or a loaded model
         lap("load upscale model")
-        pixels = upscale_pixels(image, float(upscale_by), up, resize_method if resize_method in RESIZE else "lanczos", px * 2)
-        lap("enlarge")
+        notes = []
+        pixels = upscale_pixels(image, float(upscale_by), up, resize_method if resize_method in RESIZE else "lanczos", px * 2,
+                                upscale_model_tile_size, upscale_model_half_precision, notes, lap)
         pixels = fixed(pixels[:, :, :, :3])                # before redrawing too: the model then starts from the right colors
         lap("color fix")
         latent = {"samples": vae_encode(vae, pixels, vae_encode_tile_size)}
@@ -495,6 +580,7 @@ class TiledUpscaleRG:
         images = fixed(images)
         lap("color fix")
         logging.info(f"[Region Genie] Tiled Upscale: {pixels.shape[2]} x {pixels.shape[1]} px, {tiler.last_tiles} tile(s), "
-                     f"{steps - start} of {steps} steps, {tiler.calls} model calls. " + ", ".join(times)
+                     f"{steps - start} of {steps} steps, {tiler.calls} model calls"
+                     + "".join("; " + n for n in notes) + ". " + ", ".join(times)
                      + " (sample and the VAE steps include loading their models)")
         return (images, out)
