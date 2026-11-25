@@ -400,12 +400,6 @@ check(f"preview off: the sampler makes no preview picture in that run, and the s
       methods == [LatentPreviewMethod.NoPreviews, LatentPreviewMethod.Latent2RGB] and cargs.preview_method == LatentPreviewMethod.Latent2RGB)
 
 # ---- the upscale model in even pieces
-check(f"even pieces: 1024 px at most 512 is three of 368 a side, not 512, 512 and a sliver of 64; a size that fits is one piece ({td.even_piece(1024, 512)}, {td.even_piece(1024, 1024)}, {td.even_piece(1024, 0)}, {td.even_piece(3000, 512)})",
-      (td.even_piece(1024, 512), td.even_piece(1024, 1024), td.even_piece(1024, 0)) == (368, 1024, 1024) and td.even_piece(3000, 512) <= 512)
-for size, most in ((1024, 512), (3000, 512), (1500, 1024), (777, 256)):
-    t_ = td.even_piece(size, most)
-    check(f"even pieces of {size} px at most {most}: {t_} px, as many pieces as before",
-          t_ <= most and comfy.utils.get_tiled_scale_steps(size, size, tile_x=t_, tile_y=t_, overlap=32) <= comfy.utils.get_tiled_scale_steps(size, size, tile_x=most, tile_y=most, overlap=32))
 
 
 class FakeUp:
@@ -426,10 +420,12 @@ fu, said = FakeUp(), []
 pic = torch.rand(1, 1024, 1024, 3)
 big_ = td.run_upscale_model(fu, pic, 512, True, said)
 want = torch.nn.functional.interpolate(pic.movedim(-1, 1), scale_factor=4, mode="nearest").movedim(1, -1)
-check(f"the upscale model gets 9 pieces of at most 368 px and the picture is put together right ({said})",
-      len(fu.sizes) == 9 and all(352 <= v <= 368 for sz in fu.sizes for v in sz) and  # no slivers
-       big_.shape == (1, 4096, 4096, 3) and torch.allclose(big_, want, atol=1e-5)
-      and "9 piece(s) of 368 x 368 px, full precision" in said[0])
+check(f"the upscale model at 512: ComfyUI's own cut (9 calls), the picture put together right ({said})",
+      len(fu.sizes) == 9 and (512, 512) in fu.sizes and big_.shape == (1, 4096, 4096, 3) and torch.allclose(big_, want, atol=1e-5)
+      and "9 piece(s) of up to 512 x 512 px, full precision" in said[0] and "to run" in said[0])
+fu = FakeUp()
+td.run_upscale_model(fu, pic, 1024)
+check("piece size 1024 on a 1024 px image: one call", fu.sizes == [(1024, 1024)])
 fu = FakeUp()
 td.run_upscale_model(fu, pic, 0)
 check("piece size 0: the whole image in one call", fu.sizes == [(1024, 1024)])
