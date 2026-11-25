@@ -571,7 +571,7 @@
       },
       "steps": {
         "name": "steps",
-        "tooltip": "The steps of a full run; with a denoise below 1 only the last part of them is done."
+        "tooltip": "The steps of a full run. Only the last part of them is run: steps x denoise, so 4 of 20 at a denoise of 0.2 (as KSampler (Advanced) does when it starts at a later step)."
       },
       "cfg": {
         "name": "cfg",

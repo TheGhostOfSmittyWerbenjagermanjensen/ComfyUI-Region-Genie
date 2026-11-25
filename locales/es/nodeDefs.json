@@ -571,7 +571,7 @@
       },
       "steps": {
         "name": "pasos",
-        "tooltip": "Los pasos de una ejecución completa; con un denoise menor que 1 solo se hace la última parte."
+        "tooltip": "Los pasos de una ejecución completa. Solo se ejecuta la última parte: pasos x denoise, es decir, 4 de 20 con un denoise de 0.2 (como hace KSampler (Advanced) cuando empieza en un paso posterior)."
       },
       "cfg": {
         "name": "cfg",

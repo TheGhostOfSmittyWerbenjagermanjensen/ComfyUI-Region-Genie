@@ -287,6 +287,13 @@ def upscale_pixels(image, upscale_by, upscale_model, method, multiple):
 RESIZE = ["lanczos", "bicubic", "bilinear", "area", "nearest-exact"]
 
 
+def redraw_start(steps, denoise):
+    """The step a run of `steps` starts at so that `denoise` of it is redrawn: the last round(steps x denoise)
+    steps are run, at least one."""
+    steps = max(1, int(steps))
+    return max(0, min(steps - 1, steps - int(round(steps * float(denoise)))))
+
+
 class TiledUpscaleRG:
     """IMAGE -> IMAGE: enlarge, then redraw in tiles at a low denoise."""
 
@@ -308,7 +315,8 @@ class TiledUpscaleRG:
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": True,
                                  "tooltip": "The seed of the noise that is added before redrawing."}),
                 "steps": ("INT", {"default": 20, "min": 1, "max": 10000, "tooltip": (
-                    "The steps of a full run; with a denoise below 1 only the last part of them is done.")}),
+                    "The steps of a full run. Only the last part of them is run: steps x denoise, so 4 of 20 at a "
+                    "denoise of 0.2 (as KSampler (Advanced) does when it starts at a later step).")}),
                 "cfg": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01,
                                   "tooltip": "The cfg, as on a sampler. 1 for distilled models."}),
                 "sampler_name": (comfy.samplers.KSampler.SAMPLERS, {"tooltip": "The sampler."}),
@@ -343,7 +351,12 @@ class TiledUpscaleRG:
         if denoise <= 0:
             return (pixels, latent)
         m, _ = tiled_model(model, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend)
-        out = nodes.common_ksampler(m, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, denoise=denoise)[0]
+        # Only the last part of the steps is run, as KSampler (Advanced) does with start_at_step: at denoise 0.2 and 20
+        # steps, the last 4. (A sampler's own `denoise` runs all 20 steps on the last fifth of a 100-step schedule:
+        # five times the model calls for the same amount of redrawing.)
+        start = redraw_start(steps, denoise)
+        out = nodes.common_ksampler(m, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, denoise=1.0,
+                                    start_step=start, last_step=steps, force_full_denoise=True)[0]
         images = vae.decode(out["samples"])
         if images.ndim == 5:                              # a video VAE's frames: the pictures one after another
             images = images.reshape(-1, images.shape[-3], images.shape[-2], images.shape[-1])

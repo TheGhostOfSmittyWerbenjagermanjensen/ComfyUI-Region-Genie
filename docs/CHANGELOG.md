@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 77 (Nov 25): Tiled Upscale runs only the last steps
+- Asked: does the node run a full denoise? The owner uses KSampler (Advanced) to run only the last steps for a 0.2 redraw, which is much faster.
+- Found: it passed `denoise` to ComfyUI's sampler, which runs every step on the last part of a longer schedule: 20 model steps at 0.2 where 4 are meant. The `steps` tooltip already described the 4.
+- Fixed: `redraw_start()`; the sampler starts at step `steps - round(steps x denoise)` with denoise 1. Docs and help pages say so, and how to do the same with the Tiled Diffusion node.
+- Tests: `test_tiled.py` counts the model calls (4 for 20 steps at 0.2).
+
 ## Round 76 (Nov 25): tiled sampling and Region Genie's regions
 - Asked: would regional prompts in tiled upscaling be worth it; then: read the engine, come back with a sized plan; then: fix the engine's wrong behaviour in tiles now (step 1) and build regions per tile on a branch of its own (step 2).
 - Found: together they were wrong in both wiring orders (regions off inside tiles on transformer models; the whole layout squeezed onto a tile on UNets).

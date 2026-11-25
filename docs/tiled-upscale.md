@@ -24,7 +24,7 @@ Two nodes that redraw a large picture in overlapping tiles, so a model can upsca
 1. Enlarges the image with the upscale model, when one is connected.
 2. Resizes it to the exact size (`upscale_by` times the original, rounded to a size the model's latent fits).
 3. Encodes it with the VAE.
-4. Adds noise according to `denoise` and redraws it in tiles with your model.
+4. Adds noise according to `denoise` and redraws it in tiles with your model, running only the last part of the steps.
 5. Decodes the result.
 
 | Input | What it is |
@@ -39,6 +39,7 @@ Two nodes that redraw a large picture in overlapping tiles, so a model can upsca
 | `tile_width`, `tile_height`, `tile_overlap`, `tile_batch_size`, `tile_blend` | The tile settings; see below |
 
 - **Outputs:** `image`, and `latent` (the same picture before decoding).
+- **Only the last part of the steps is run:** `steps` times `denoise`, so 4 of 20 at a denoise of 0.2. That is what KSampler (Advanced) does when it starts at a later step, and it is much faster than a sampler's own `denoise`, which runs every step.
 - With `denoise` 0 it only enlarges.
 - Every tile gets the whole prompt. Describe the picture as you did when making it.
 
@@ -47,6 +48,7 @@ Two nodes that redraw a large picture in overlapping tiles, so a model can upsca
 **Tiled Diffusion (Region Genie)** takes a model and gives back the model, sampling in tiles. Put it before any sampler when you want your own chain of nodes: your own encode and decode, a custom sampler, several passes.
 
 - It has the five tile settings and nothing else.
+- For speed, use KSampler (Advanced) and start at a later step (steps 20, start at step 16 for a fifth redrawn). A plain KSampler's `denoise` runs all its steps.
 - Tiles only help from an existing picture at a low denoise. From an empty latent every tile draws a picture of its own.
 
 ## The tile settings
