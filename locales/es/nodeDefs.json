@@ -616,6 +616,18 @@
       "color_fix": {
         "name": "corrección_de_color",
         "tooltip": "Mantiene los colores y el brillo de la imagen original: un modelo de escalado o el redibujado pueden desplazarlos. Solo se igualan los colores a gran escala; el nuevo detalle fino se conserva."
+      },
+      "vae_encode_tile_size": {
+        "name": "tamaño_de_tesela_de_codificación_vae",
+        "tooltip": "El VAE codifica la imagen ampliada en teselas de este tamaño en píxeles, lo que necesita menos memoria con una imagen grande.\n0: De una pieza. ComfyUI cambia igualmente a teselas por sí mismo cuando se agota la memoria."
+      },
+      "vae_decode_tile_size": {
+        "name": "tamaño_de_tesela_de_decodificación_vae",
+        "tooltip": "El VAE decodifica el resultado en teselas de este tamaño en píxeles, lo que necesita menos memoria con una imagen grande.\n0: De una pieza. ComfyUI cambia igualmente a teselas por sí mismo cuando se agota la memoria."
+      },
+      "preview": {
+        "name": "vista_previa",
+        "tooltip": "Muestra la imagen en el nodo mientras se redibuja, como hace un sampler. Desactivado: Sin imagen de vista previa."
       }
     },
     "outputs": {

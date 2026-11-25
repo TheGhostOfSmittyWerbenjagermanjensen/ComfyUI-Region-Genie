@@ -298,7 +298,7 @@ check("the two wiring orders give the same result", torch.allclose(res2, res3, a
 it = td.TiledUpscaleRG.INPUT_TYPES()
 check("tile_overlap and tile_blend are inputs of both nodes; blend 1 at first", all("tile_overlap" in n_.INPUT_TYPES()["required"] and n_.INPUT_TYPES()["required"]["tile_blend"][1]["default"] == 1.0 for n_ in (td.TiledUpscaleRG, td.TiledDiffusionRG)))
 tips = [k_ for grp in ("required", "optional") for k_, v in it.get(grp, {}).items() if not (len(v) > 1 and v[1].get("tooltip"))]
-check("Tiled Upscale: every input has a tooltip" + (": missing " + ", ".join(tips) if tips else ""), not tips and it["required"]["upscale_model"][0][0] == "none" and it["required"]["color_fix"][1]["default"] is True and "optional" not in it)
+check("Tiled Upscale: every input has a tooltip" + (": missing " + ", ".join(tips) if tips else ""), not tips and it["required"]["upscale_model"][0][0] == "none" and it["required"]["color_fix"][1]["default"] is True and it["required"]["preview"][1]["default"] is True and it["required"]["vae_decode_tile_size"][1]["default"] == 0 and "optional" not in it)
 img = torch.rand(1, 50, 70, 3)
 up = td.upscale_pixels(img, 2.0, None, "lanczos", 16)
 check(f"without an upscale model the image is resized to a size that fits the latent ({up.shape[2]} x {up.shape[1]})", up.shape == (1, 96, 144, 3))
@@ -365,6 +365,39 @@ off, _ = node.run(src, patcher, pos, neg, BrightVAE(), "none", 2.0, "lanczos", 5
 nodes.common_ksampler = orig_ks
 check(f"Tiled Upscale with color_fix: the result has the input's brightness ({float(on.mean()):.3f} for {float(src.mean()):.3f}; {float(off.mean()):.3f} without)",
       abs(float(on.mean() - src.mean())) < 0.02 < abs(float(off.mean() - src.mean())))
+
+# ---- VAE tiles, and the preview switch
+class TileVAE(FakeVAE):
+    def __init__(self):
+        self.seen = []
+
+    def spacial_compression_decode(self):
+        return 8
+
+    def encode_tiled(self, px, tile_x=None, tile_y=None, overlap=None):
+        self.seen.append(("enc", tile_x, tile_y, overlap))
+        return self.encode(px)
+
+    def decode_tiled(self, z, tile_x=None, tile_y=None, overlap=None):
+        self.seen.append(("dec", tile_x, tile_y, overlap))
+        return self.decode(z)
+
+
+import latent_preview
+from comfy.cli_args import args as cargs, LatentPreviewMethod
+cargs.preview_method = LatentPreviewMethod.Latent2RGB
+methods = []
+orig_prev = latent_preview.get_previewer
+latent_preview.get_previewer = lambda *a, **k: (methods.append(cargs.preview_method), orig_prev(*a, **k))[1]
+tv = TileVAE()
+node.run(src, patcher, pos, neg, tv, "none", 2.0, "lanczos", 5, 4, 1.0, "euler", "simple", 0.5, 128, 128, 32, 4, 1.0, True, 512, 256, False)
+check(f"VAE tile sizes: encode and decode go in tiles of that size, the decode's in latent cells ({tv.seen})", tv.seen == [("enc", 512, 512, 64), ("dec", 32, 32, 8)])
+tv2 = TileVAE()
+node.run(src, patcher, pos, neg, tv2, "none", 2.0, "lanczos", 5, 4, 1.0, "euler", "simple", 0.5, 128, 128, 32, 4, 1.0, True, 0, 0, True)
+latent_preview.get_previewer = orig_prev
+check("VAE tile size 0: in one piece", tv2.seen == [])
+check(f"preview off: the sampler makes no preview picture in that run, and the setting is back afterwards ({[str(m_) for m_ in methods]})",
+      methods == [LatentPreviewMethod.NoPreviews, LatentPreviewMethod.Latent2RGB] and cargs.preview_method == LatentPreviewMethod.Latent2RGB)
 
 # ---- the upscale model by name
 check("upscale_model none (or nothing): no model", td.load_upscale_model("none") is None and td.load_upscale_model("") is None)

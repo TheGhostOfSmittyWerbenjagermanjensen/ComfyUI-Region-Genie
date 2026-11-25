@@ -23,6 +23,7 @@ How it is done here:
 Tile sizes are given in pixels and turned into latent cells with the model's own scale (8 px per cell for most,
 16 for the Flux.2 latent); tiles keep even sizes and positions, so a model that patches 2 x 2 cells sees whole patches.
 """
+import contextlib
 import logging
 import math
 import time
@@ -350,6 +351,50 @@ def redraw_start(steps, denoise):
     return max(0, min(steps - 1, steps - int(round(steps * float(denoise)))))
 
 
+def _vae_tile(size):
+    size = int(size or 0)
+    return 0 if size <= 0 else max(64, size)
+
+
+def vae_encode(vae, pixels, tile=0):
+    """The latent of `pixels`; in tiles of `tile` px when it isn't 0 (as the VAE Encode (Tiled) node does)."""
+    tile = _vae_tile(tile)
+    if not tile:
+        return vae.encode(pixels)
+    return vae.encode_tiled(pixels, tile_x=tile, tile_y=tile, overlap=min(64, tile // 4))
+
+
+def vae_decode(vae, samples, tile=0):
+    """The picture of a latent; in tiles of `tile` px when it isn't 0 (as the VAE Decode (Tiled) node does)."""
+    tile = _vae_tile(tile)
+    if not tile:
+        return vae.decode(samples)
+    try:
+        comp = max(1, int(vae.spacial_compression_decode()))
+    except Exception:
+        comp = 8
+    return vae.decode_tiled(samples, tile_x=max(1, tile // comp), tile_y=max(1, tile // comp), overlap=max(1, min(64, tile // 4) // comp))
+
+
+@contextlib.contextmanager
+def _no_preview(off):
+    """While inside (and `off`): samplers make no preview picture. ComfyUI reads the preview method when a sampler
+    sets up its callback; it is put back afterwards. The progress bar still moves."""
+    if not off:
+        yield
+        return
+    try:
+        from comfy.cli_args import args, LatentPreviewMethod
+        before, args.preview_method = args.preview_method, LatentPreviewMethod.NoPreviews
+    except Exception:
+        yield
+        return
+    try:
+        yield
+    finally:
+        args.preview_method = before
+
+
 class TiledUpscaleRG:
     """IMAGE -> IMAGE: enlarge, then redraw in tiles at a low denoise."""
 
@@ -387,6 +432,14 @@ class TiledUpscaleRG:
                 "color_fix": ("BOOLEAN", {"default": True, "tooltip": (
                     "Keeps the colors and the brightness of the original image, which an upscale model or the redrawing "
                     "can shift. Only the coarse colors are matched; the new fine detail stays.")}),
+                "vae_encode_tile_size": ("INT", {"default": 0, "min": 0, "max": 8192, "step": 64, "tooltip": (
+                    "The VAE encodes the enlarged image in tiles of this size in pixels, which needs less memory for a "
+                    "large image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out.")}),
+                "vae_decode_tile_size": ("INT", {"default": 0, "min": 0, "max": 8192, "step": 64, "tooltip": (
+                    "The VAE decodes the result in tiles of this size in pixels, which needs less memory for a large "
+                    "image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out.")}),
+                "preview": ("BOOLEAN", {"default": True, "tooltip": (
+                    "Shows the picture on the node while it is redrawn, as a sampler does. Off: No preview picture.")}),
             },
         }
 
@@ -401,14 +454,15 @@ class TiledUpscaleRG:
 
     def run(self, image, model, positive, negative, vae, upscale_model, upscale_by, resize_method, seed, steps, cfg,
             sampler_name, scheduler, denoise, tile_width, tile_height, tile_overlap, tile_batch_size, tile_blend=1.0,
-            color_fix=True):
+            color_fix=True, vae_encode_tile_size=0, vae_decode_tile_size=0, preview=True):
         import nodes
         times, t0 = [], time.perf_counter()
 
         def lap(name):
             nonlocal t0
             now = time.perf_counter()
-            times.append(f"{name} {now - t0:.1f} s")
+            if now - t0 >= 0.05:
+                times.append(f"{name} {now - t0:.1f} s")
             t0 = now
 
         def fixed(img):
@@ -416,10 +470,12 @@ class TiledUpscaleRG:
 
         px = px_per_cell(model)
         up = upscale_model if not isinstance(upscale_model, str) else load_upscale_model(upscale_model)   # a name, or a loaded model
+        lap("load upscale model")
         pixels = upscale_pixels(image, float(upscale_by), up, resize_method if resize_method in RESIZE else "lanczos", px * 2)
-        pixels = fixed(pixels[:, :, :, :3])                # before redrawing too: the model then starts from the right colors
         lap("enlarge")
-        latent = {"samples": vae.encode(pixels)}
+        pixels = fixed(pixels[:, :, :, :3])                # before redrawing too: the model then starts from the right colors
+        lap("color fix")
+        latent = {"samples": vae_encode(vae, pixels, vae_encode_tile_size)}
         lap("encode")
         if denoise <= 0:
             return (pixels, latent)
@@ -428,15 +484,17 @@ class TiledUpscaleRG:
         # steps, the last 4. (A sampler's own `denoise` runs all 20 steps on the last fifth of a 100-step schedule:
         # five times the model calls for the same amount of redrawing.)
         start = redraw_start(steps, denoise)
-        out = nodes.common_ksampler(m, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, denoise=1.0,
-                                    start_step=start, last_step=steps, force_full_denoise=True)[0]
+        with _no_preview(not preview):
+            out = nodes.common_ksampler(m, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, denoise=1.0,
+                                        start_step=start, last_step=steps, force_full_denoise=True)[0]
         lap("sample")
-        images = vae.decode(out["samples"])
+        images = vae_decode(vae, out["samples"], vae_decode_tile_size)
         if images.ndim == 5:                              # a video VAE's frames: the pictures one after another
             images = images.reshape(-1, images.shape[-3], images.shape[-2], images.shape[-1])
-        images = fixed(images)
         lap("decode")
+        images = fixed(images)
+        lap("color fix")
         logging.info(f"[Region Genie] Tiled Upscale: {pixels.shape[2]} x {pixels.shape[1]} px, {tiler.last_tiles} tile(s), "
                      f"{steps - start} of {steps} steps, {tiler.calls} model calls. " + ", ".join(times)
-                     + " (the first of them includes loading models)")
+                     + " (sample and the VAE steps include loading their models)")
         return (images, out)
