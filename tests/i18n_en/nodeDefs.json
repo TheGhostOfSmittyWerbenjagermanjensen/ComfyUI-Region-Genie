@@ -557,17 +557,17 @@
         "name": "vae",
         "tooltip": "The model's VAE."
       },
-      "upscale_model": {
-        "name": "upscale_model",
-        "tooltip": "An upscale model (ESRGAN and the like) for the enlarging; sharper than a plain resize.\nnone: The image is resized with resize_method only."
-      },
       "upscale_by": {
         "name": "upscale_by",
         "tooltip": "How many times larger the result is, per side. 1: Only redraws the image at its size."
       },
-      "resize_method": {
-        "name": "resize_method",
-        "tooltip": "How the image is resized to its new size. Used by itself without an upscale model, or after the upscale model when its factor is another one."
+      "upscale_model": {
+        "name": "upscale_model",
+        "tooltip": "An upscale model (ESRGAN and the like) for the enlarging; sharper than a plain resize.\nnone: The image is resized with resize_method only."
+      },
+      "denoise": {
+        "name": "denoise",
+        "tooltip": "How much of the enlarged image is redrawn. About 0.05: Only polish. About 0.2: Fine detail. 0.3-0.4: More invention. Higher: The tiles start to forget the picture."
       },
       "seed": {
         "name": "seed",
@@ -589,10 +589,6 @@
         "name": "scheduler",
         "tooltip": "The scheduler."
       },
-      "denoise": {
-        "name": "denoise",
-        "tooltip": "How much of the enlarged image is redrawn. About 0.05: Only polish. About 0.2: Fine detail. 0.3-0.4: More invention. Higher: The tiles start to forget the picture."
-      },
       "tile_width": {
         "name": "tile_width",
         "tooltip": "The width of one tile in pixels. Use a size the model draws well at (about what it was trained on). Smaller tiles need less memory and take more model calls."
@@ -609,25 +605,21 @@
         "name": "tile_batch_size",
         "tooltip": "How many tiles go through the model in one call. More is faster while they fit in memory; 1 needs the least memory."
       },
-      "tile_blend": {
-        "name": "tile_blend",
-        "tooltip": "How widely a tile's say spreads from its middle where tiles overlap.\n1: As Mixture of Diffusers defines it (the usual).\nHigher: The tiles are mixed over a wider band, towards a plain average; softer, and it can smear detail.\nLower: Each pixel follows the tile it is deepest in more strictly; crisper, and a seam can show sooner."
-      },
       "color_fix": {
         "name": "color_fix",
         "tooltip": "Keeps the colors and the brightness of the original image, which an upscale model or the redrawing can shift. Only the coarse colors are matched; the new fine detail stays."
       },
-      "vae_encode_tile_size": {
-        "name": "vae_encode_tile_size",
-        "tooltip": "The VAE encodes the enlarged image in tiles of this size in pixels, which needs less memory for a large image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out."
-      },
-      "vae_decode_tile_size": {
-        "name": "vae_decode_tile_size",
-        "tooltip": "The VAE decodes the result in tiles of this size in pixels, which needs less memory for a large image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out."
-      },
       "preview": {
         "name": "preview",
         "tooltip": "Shows the picture on the node while it is redrawn, as a sampler does. Off: No preview picture."
+      },
+      "resize_method": {
+        "name": "resize_method",
+        "tooltip": "How the image is resized to its new size. Used by itself without an upscale model, or after the upscale model when its factor is another one."
+      },
+      "tile_blend": {
+        "name": "tile_blend",
+        "tooltip": "How widely a tile's say spreads from its middle where tiles overlap.\n1: As Mixture of Diffusers defines it (the usual).\nHigher: The tiles are mixed over a wider band, towards a plain average; softer, and it can smear detail.\nLower: Each pixel follows the tile it is deepest in more strictly; crisper, and a seam can show sooner."
       },
       "upscale_model_tile_size": {
         "name": "upscale_model_tile_size",
@@ -636,6 +628,14 @@
       "upscale_model_half_precision": {
         "name": "upscale_model_half_precision",
         "tooltip": "Runs the upscale model at half precision where it allows it, which is faster and needs less memory. A few models give a slightly different picture with it. The console says what was used."
+      },
+      "vae_encode_tile_size": {
+        "name": "vae_encode_tile_size",
+        "tooltip": "The VAE encodes the enlarged image in tiles of this size in pixels, which needs less memory for a large image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out."
+      },
+      "vae_decode_tile_size": {
+        "name": "vae_decode_tile_size",
+        "tooltip": "The VAE decodes the result in tiles of this size in pixels, which needs less memory for a large image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out."
       }
     },
     "outputs": {

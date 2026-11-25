@@ -33,16 +33,19 @@ With `color_fix` on, the colors are brought back to the original image's after s
 |---|---|
 | `image` | The image to upscale |
 | `model`, `positive`, `negative`, `vae` | As on a sampler: the model (with its LoRAs), the prompts and the VAE |
-| `upscale_model` | An upscale model for the enlarging, from `models/upscale_models`. `none`: the image is only resized |
 | `upscale_by` | How many times larger per side (1 only redraws at the same size) |
-| `resize_method` | How the image is resized: by itself, or after the upscale model when its factor differs |
-| `seed`, `steps`, `cfg`, `sampler_name`, `scheduler` | As on a sampler |
+| `upscale_model` | An upscale model for the enlarging, from `models/upscale_models`. `none`: the image is only resized |
 | `denoise` | How much is redrawn (0.2 at first); see below |
-| `tile_width`, `tile_height`, `tile_overlap`, `tile_batch_size`, `tile_blend` | The tile settings; see below |
+| `seed`, `steps`, `cfg`, `sampler_name`, `scheduler` | As on a sampler |
+| `tile_width`, `tile_height`, `tile_overlap`, `tile_batch_size` | The tile settings; see below |
 | `color_fix` | Keeps the colors and brightness of the original image (on at first); see below |
-| `vae_encode_tile_size`, `vae_decode_tile_size` | The VAE works in tiles of this size in pixels; 0 (at first) is in one piece; see below |
-| `upscale_model_tile_size`, `upscale_model_half_precision` | How the upscale model is run; see below |
 | `preview` | Shows the picture on the node while it is redrawn (on at first). Off: no preview picture |
+| `resize_method` | How the image is resized: by itself, or after the upscale model when its factor differs |
+| `tile_blend` | How widely tiles are mixed where they overlap; see below |
+| `upscale_model_tile_size`, `upscale_model_half_precision` | How the upscale model is run; see below |
+| `vae_encode_tile_size`, `vae_decode_tile_size` | The VAE works in tiles of this size in pixels; 0 (at first) is in one piece; see below |
+
+The settings you change from image to image come first; the last four rows are set once.
 
 - **Outputs:** `image`, and `latent` (the same picture before decoding).
 - **Only the last part of the steps is run:** `steps` times `denoise`, so 4 of 20 at a denoise of 0.2. That is what KSampler (Advanced) does when it starts at a later step, and it is much faster than a sampler's own `denoise`, which runs every step.

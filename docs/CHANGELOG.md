@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 82 (Nov 25): Tiled Upscale: the order of the widgets
+- Asked: a better order before the node is released; the owner chose "everyday settings first" and asked whether ComfyUI's "advanced" inputs work in legacy node mode.
+- Built: the order list in `INPUT_TYPES`: `upscale_by`, `upscale_model`, `denoise`, the sampler settings, the tile sizes, `color_fix`, `preview`; then `resize_method`, `tile_blend`, the upscale model's two settings, the VAE tile sizes.
+- Found: "advanced" inputs are hidden only in Nodes 2.0 (checked in the test ComfyUI on a core node); legacy mode shows them all. Not used.
+- Tested: `tests/test_tiled.py`, `tests/run_py.sh`, translations check. Saved nodes from before have their values shifted.
+
 ## Round 81 (Nov 25): Tiled Upscale: the upscale model's pieces as ComfyUI cuts them
 - Asked: the owner doubts 368 px pieces are better (models may do worse on small pieces), and sent timings: 512 → 12.7 s, 1024 → 9.5 s, 1024 at half precision (bf16) → 9.5 s.
 - Decided (session): back to ComfyUI's own cut, so 512 gives the standard node's picture; the size setting and the half precision switch stay. The console splits the upscale model's time into getting it into memory and running it.
