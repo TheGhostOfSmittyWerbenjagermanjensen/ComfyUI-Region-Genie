@@ -2,6 +2,11 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 86 (Nov 25): a GitHub Release with every version
+- Asked: like the automatic publish to the Comfy Registry, a Release on GitHub for each new version.
+- Built: `.github/workflows/release.yml`: tag `v<version>` and a release with GitHub's generated notes, after a merge to `main` that touches pyproject.toml, when that version has no release yet; also by hand. Merging this round makes the release of 0.57.0, the first one.
+- Tested: the file is valid YAML and the version line is read as the publish workflow reads it. The workflow itself can only run on `main`.
+
 ## Round 85 (Nov 25): Tiled Upscale finished for release; both branches in one pull request
 - Asked: the remaining tasks for the "More settings" fold, then a pull request that merges both branches.
 - Done: manual, help page, hardware checklist, handoff; `claude/tile-aware-regions` (regions cut per tile, the branch the owner has been running) merged into the working branch; a test for a folded setting with a cable.
