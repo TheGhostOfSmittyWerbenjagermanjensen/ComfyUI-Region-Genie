@@ -315,6 +315,25 @@ class FakeVAE:
 node = td.TiledUpscaleRG()
 im, la = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.5, 128, 128, 32, 4, 1.0)
 check(f"Tiled Upscale end to end: image {tuple(im.shape)} and latent {tuple(la['samples'].shape)}", im.shape == (1, 192, 320, 3) and la["samples"].shape == (1, 4, 24, 40))
+check("the steps that are run: steps x denoise, the last ones (20 at 0.2: from step 16; at least one; all of them at 1)",
+      [td.redraw_start(20, 0.2), td.redraw_start(20, 1.0), td.redraw_start(20, 0.01), td.redraw_start(30, 0.5), td.redraw_start(1, 0.2)] == [16, 0, 19, 15, 0])
+seen_steps = []
+orig_ks = nodes.common_ksampler
+
+
+def spy_ks(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, **kw):
+    seen_steps.append((steps, kw.get("denoise"), kw.get("start_step"), kw.get("last_step"), kw.get("force_full_denoise")))
+    return orig_ks(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, **kw)
+
+
+nodes.common_ksampler = spy_ks
+m_calls = {"n": 0}
+cnt_model = patcher.clone()
+cnt_model.add_wrapper_with_key(KIND, "count", lambda ex, *a, **k: (m_calls.__setitem__("n", m_calls["n"] + 1), ex(*a, **k))[1])
+node.run(torch.rand(1, 64, 64, 3), cnt_model, pos, neg, FakeVAE(), 1.0, "lanczos", 5, 20, 1.0, "euler", "simple", 0.2, 1024, 1024, 32, 4, 1.0)
+nodes.common_ksampler = orig_ks
+check(f"Tiled Upscale at 20 steps and denoise 0.2 runs the last 4 steps only ({seen_steps[-1]}; {m_calls['n']} model calls)",
+      seen_steps[-1] == (20, 1.0, 16, 20, True) and m_calls["n"] == 4)
 im0, _ = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.0, 128, 128, 32, 4)
 check("denoise 0: only the enlarged image", im0.shape == (1, 192, 320, 3))
 

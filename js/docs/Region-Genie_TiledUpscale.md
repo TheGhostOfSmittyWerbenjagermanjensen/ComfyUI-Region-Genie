@@ -7,6 +7,7 @@ are blended at every step (Mixture of Diffusers), several tiles per model call.
 - `upscale_model` is optional: an upscale model (ESRGAN and the like) does the enlarging; without it the image is
   resized with `resize_method`.
 - `upscale_by`: how many times larger per side.
+- Only the last part of the steps is run (`steps` x `denoise`: 4 of 20 at 0.2), as KSampler (Advanced) does.
 - `denoise`: how much is redrawn. About 0.05 only polishes, about 0.2 adds fine detail, 0.3-0.4 invents more;
   higher and the tiles start to forget the picture.
 - `tile_width` / `tile_height`: a size the model draws well at. Smaller tiles need less memory.

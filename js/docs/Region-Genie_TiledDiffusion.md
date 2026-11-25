@@ -9,5 +9,6 @@ Genie)** does a whole upscale in one node.
 - `tile_batch_size`: how many tiles go through the model in one call; raise it while they fit in memory.
 - `tile_blend`: 1 is the usual blend; higher mixes tiles more softly, lower more crisply.
 
-Use it from an existing picture at a low denoise (about 0.2). From an empty latent every tile draws a picture of
+Use it from an existing picture at a low denoise (about 0.2); with KSampler (Advanced), start at a later step
+(20 steps, start at 16) so only those last steps are run. From an empty latent every tile draws a picture of
 its own.
