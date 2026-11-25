@@ -315,8 +315,8 @@ class TiledUpscaleRG:
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": True,
                                  "tooltip": "The seed of the noise that is added before redrawing."}),
                 "steps": ("INT", {"default": 20, "min": 1, "max": 10000, "tooltip": (
-                    "The steps of a full run. Only the last part of them is run: steps x denoise, so 4 of 20 at a "
-                    "denoise of 0.2 (as KSampler (Advanced) does when it starts at a later step).")}),
+                    "The steps of a full run. Only the last part of them is run, steps x denoise. That is 4 of 20 at a "
+                    "denoise of 0.2, as KSampler (Advanced) does when it starts at a later step.")}),
                 "cfg": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01,
                                   "tooltip": "The cfg, as on a sampler. 1 for distilled models."}),
                 "sampler_name": (comfy.samplers.KSampler.SAMPLERS, {"tooltip": "The sampler."}),
