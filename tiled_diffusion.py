@@ -471,54 +471,60 @@ class TiledUpscaleRG:
     @classmethod
     def INPUT_TYPES(cls):
         import comfy.samplers
-        return {
-            "required": {
-                "image": ("IMAGE", {"tooltip": "The image to upscale."}),
-                "model": ("MODEL", {"tooltip": "The model that redraws the enlarged image (with its LoRAs applied)."}),
-                "positive": ("CONDITIONING", {"tooltip": "The prompt: What the image shows. Every tile gets it."}),
-                "negative": ("CONDITIONING", {"tooltip": "The negative prompt."}),
-                "vae": ("VAE", {"tooltip": "The model's VAE."}),
-                "upscale_model": (upscale_model_names(), {"default": NO_MODEL, "tooltip": (
-                    "An upscale model (ESRGAN and the like) for the enlarging; sharper than a plain resize.\n"
-                    "none: The image is resized with resize_method only.")}),
-                "upscale_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 8.0, "step": 0.05, "tooltip": (
-                    "How many times larger the result is, per side. 1: Only redraws the image at its size.")}),
-                "resize_method": (RESIZE, {"default": "lanczos", "tooltip": (
-                    "How the image is resized to its new size. Used by itself without an upscale model, or after the "
-                    "upscale model when its factor is another one.")}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": True,
-                                 "tooltip": "The seed of the noise that is added before redrawing."}),
-                "steps": ("INT", {"default": 20, "min": 1, "max": 10000, "tooltip": (
-                    "The steps of a full run. Only the last part of them is run, steps x denoise. That is 4 of 20 at a "
-                    "denoise of 0.2, as KSampler (Advanced) does when it starts at a later step.")}),
-                "cfg": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01,
-                                  "tooltip": "The cfg, as on a sampler. 1 for distilled models."}),
-                "sampler_name": (comfy.samplers.KSampler.SAMPLERS, {"tooltip": "The sampler."}),
-                "scheduler": (comfy.samplers.KSampler.SCHEDULERS, {"tooltip": "The scheduler."}),
-                "denoise": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": (
-                    "How much of the enlarged image is redrawn. About 0.05: Only polish. About 0.2: Fine detail. "
-                    "0.3-0.4: More invention. Higher: The tiles start to forget the picture.")}),
-                **_TILE,
-                "color_fix": ("BOOLEAN", {"default": True, "tooltip": (
-                    "Keeps the colors and the brightness of the original image, which an upscale model or the redrawing "
-                    "can shift. Only the coarse colors are matched; the new fine detail stays.")}),
-                "vae_encode_tile_size": ("INT", {"default": 0, "min": 0, "max": 8192, "step": 64, "tooltip": (
-                    "The VAE encodes the enlarged image in tiles of this size in pixels, which needs less memory for a "
-                    "large image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out.")}),
-                "vae_decode_tile_size": ("INT", {"default": 0, "min": 0, "max": 8192, "step": 64, "tooltip": (
-                    "The VAE decodes the result in tiles of this size in pixels, which needs less memory for a large "
-                    "image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out.")}),
-                "preview": ("BOOLEAN", {"default": True, "tooltip": (
-                    "Shows the picture on the node while it is redrawn, as a sampler does. Off: No preview picture.")}),
-                "upscale_model_tile_size": ("INT", {"default": 512, "min": 0, "max": 8192, "step": 64, "tooltip": (
-                    "The upscale model works on pieces of the image of this size in pixels. Larger pieces are faster "
-                    "and need more memory; when it runs out, they are halved. 512 is what ComfyUI's own node uses.\n"
-                    "0: The whole image at once.")}),
-                "upscale_model_half_precision": ("BOOLEAN", {"default": False, "tooltip": (
-                    "Runs the upscale model at half precision where it allows it, which is faster and needs less "
-                    "memory. A few models give a slightly different picture with it. The console says what was used.")}),
-            },
+        req = {
+            "image": ("IMAGE", {"tooltip": "The image to upscale."}),
+            "model": ("MODEL", {"tooltip": "The model that redraws the enlarged image (with its LoRAs applied)."}),
+            "positive": ("CONDITIONING", {"tooltip": "The prompt: What the image shows. Every tile gets it."}),
+            "negative": ("CONDITIONING", {"tooltip": "The negative prompt."}),
+            "vae": ("VAE", {"tooltip": "The model's VAE."}),
+            "upscale_model": (upscale_model_names(), {"default": NO_MODEL, "tooltip": (
+                "An upscale model (ESRGAN and the like) for the enlarging; sharper than a plain resize.\n"
+                "none: The image is resized with resize_method only.")}),
+            "upscale_by": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 8.0, "step": 0.05, "tooltip": (
+                "How many times larger the result is, per side. 1: Only redraws the image at its size.")}),
+            "resize_method": (RESIZE, {"default": "lanczos", "tooltip": (
+                "How the image is resized to its new size. Used by itself without an upscale model, or after the "
+                "upscale model when its factor is another one.")}),
+            "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": True,
+                             "tooltip": "The seed of the noise that is added before redrawing."}),
+            "steps": ("INT", {"default": 20, "min": 1, "max": 10000, "tooltip": (
+                "The steps of a full run. Only the last part of them is run, steps x denoise. That is 4 of 20 at a "
+                "denoise of 0.2, as KSampler (Advanced) does when it starts at a later step.")}),
+            "cfg": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01,
+                              "tooltip": "The cfg, as on a sampler. 1 for distilled models."}),
+            "sampler_name": (comfy.samplers.KSampler.SAMPLERS, {"tooltip": "The sampler."}),
+            "scheduler": (comfy.samplers.KSampler.SCHEDULERS, {"tooltip": "The scheduler."}),
+            "denoise": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": (
+                "How much of the enlarged image is redrawn. About 0.05: Only polish. About 0.2: Fine detail. "
+                "0.3-0.4: More invention. Higher: The tiles start to forget the picture.")}),
+            **_TILE,
+            "color_fix": ("BOOLEAN", {"default": True, "tooltip": (
+                "Keeps the colors and the brightness of the original image, which an upscale model or the redrawing "
+                "can shift. Only the coarse colors are matched; the new fine detail stays.")}),
+            "vae_encode_tile_size": ("INT", {"default": 0, "min": 0, "max": 8192, "step": 64, "tooltip": (
+                "The VAE encodes the enlarged image in tiles of this size in pixels, which needs less memory for a "
+                "large image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out.")}),
+            "vae_decode_tile_size": ("INT", {"default": 0, "min": 0, "max": 8192, "step": 64, "tooltip": (
+                "The VAE decodes the result in tiles of this size in pixels, which needs less memory for a large "
+                "image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out.")}),
+            "preview": ("BOOLEAN", {"default": True, "tooltip": (
+                "Shows the picture on the node while it is redrawn, as a sampler does. Off: No preview picture.")}),
+            "upscale_model_tile_size": ("INT", {"default": 512, "min": 0, "max": 8192, "step": 64, "tooltip": (
+                "The upscale model works on pieces of the image of this size in pixels. Larger pieces are faster "
+                "and need more memory; when it runs out, they are halved. 512 is what ComfyUI's own node uses.\n"
+                "0: The whole image at once.")}),
+            "upscale_model_half_precision": ("BOOLEAN", {"default": False, "tooltip": (
+                "Runs the upscale model at half precision where it allows it, which is faster and needs less "
+                "memory. A few models give a slightly different picture with it. The console says what was used.")}),
         }
+        # everyday settings first, then the ones that are set once (the order of the widgets on the node)
+        order = ["image", "model", "positive", "negative", "vae",
+                 "upscale_by", "upscale_model", "denoise", "seed", "steps", "cfg", "sampler_name", "scheduler",
+                 "tile_width", "tile_height", "tile_overlap", "tile_batch_size", "color_fix", "preview",
+                 "resize_method", "tile_blend", "upscale_model_tile_size", "upscale_model_half_precision",
+                 "vae_encode_tile_size", "vae_decode_tile_size"]
+        assert set(order) == set(req), "Tiled Upscale: the order list and the inputs differ"
+        return {"required": {k: req[k] for k in order}}
 
     RETURN_TYPES = ("IMAGE", "LATENT")
     RETURN_NAMES = ("image", "latent")
