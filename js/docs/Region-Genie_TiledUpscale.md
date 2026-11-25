@@ -6,6 +6,9 @@ are blended at every step (Mixture of Diffusers), several tiles per model call.
 - Connect `image`, and `model`, `positive`, `negative` and `vae` as on a sampler.
 - `upscale_model`: an upscale model (ESRGAN and the like) does the enlarging; with `none` the image is only
   resized with `resize_method`.
+- `vae_encode_tile_size`, `vae_decode_tile_size`: the VAE works in tiles of this size, for less memory on large
+  images; 0 is in one piece.
+- `preview`: off hides the preview picture on the node.
 - `color_fix`: keeps the colors and brightness of the original image, which an upscale model or the redrawing
   can shift.
 - `upscale_by`: how many times larger per side.

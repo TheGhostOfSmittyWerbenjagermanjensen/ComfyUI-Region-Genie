@@ -40,12 +40,15 @@ With `color_fix` on, the colors are brought back to the original image's after s
 | `denoise` | How much is redrawn (0.2 at first); see below |
 | `tile_width`, `tile_height`, `tile_overlap`, `tile_batch_size`, `tile_blend` | The tile settings; see below |
 | `color_fix` | Keeps the colors and brightness of the original image (on at first); see below |
+| `vae_encode_tile_size`, `vae_decode_tile_size` | The VAE works in tiles of this size in pixels; 0 (at first) is in one piece; see below |
+| `preview` | Shows the picture on the node while it is redrawn (on at first). Off: no preview picture |
 
 - **Outputs:** `image`, and `latent` (the same picture before decoding).
 - **Only the last part of the steps is run:** `steps` times `denoise`, so 4 of 20 at a denoise of 0.2. That is what KSampler (Advanced) does when it starts at a later step, and it is much faster than a sampler's own `denoise`, which runs every step.
 - With `denoise` 0 it only enlarges.
 - **`color_fix`:** an upscale model, the VAE or the redrawing can shift the colors, often towards brighter. With it on, the coarse colors of the result are matched to the original image's (areas of about 8 px of the original and larger); the new fine detail is kept. The `latent` output is the picture before the last of the two fixes.
-- **The console shows where the time went:** one line per run with the size, the number of tiles, the steps run and the seconds for enlarging, encoding, sampling and decoding.
+- **VAE tile sizes:** the tiles above only limit what the model needs. The VAE still encodes and decodes the whole enlarged image, which is what runs out of memory first on a small card at large sizes. ComfyUI switches to tiles by itself when that happens, after the failed try; a size set here skips the failed try and lets you choose the size (512 or 1024 are usual). In one piece is fastest while it fits.
+- **The console shows where the time went:** one line per run with the size, the number of tiles, the steps run and the seconds for loading the upscale model, enlarging, the color fix, encoding, sampling and decoding.
 - Every tile gets the whole prompt. Describe the picture as you did when making it.
 
 ## Tiled Diffusion: for your own sampler

@@ -287,6 +287,8 @@ Nothing here has run on a real model yet.
 - [ ] `tile_blend` 0.5, 1, 2: crisper to softer; `tile_overlap` 0 shows seams, 128 doesn't
 - [ ] With an upscale model chosen in `upscale_model` (4x model, `upscale_by` 2): the image is resized down to 2x after it; `none` only resizes
 - [ ] `color_fix` on / off with 4x-UltraSharpV2: on, the result has the original's brightness and colours, with no halos at strong edges and no loss of fine detail
+- [ ] `vae_encode_tile_size` / `vae_decode_tile_size` 512 and 1024: the same picture with no seams from the VAE; less memory at large sizes
+- [ ] `preview` off: no preview picture on the node during the run, in both node modes; other samplers in the same workflow still show theirs
 - [ ] The console's timing line (enlarge, encode, sample, decode): which part takes the time next to the other pack's tiled upscale
 - [ ] A small card: small tiles at batch 1 fit; ComfyUI doesn't offload more than without tiling
 - [ ] ControlNet with SDXL in a tiled run; the warning for a transformer model's ControlNet

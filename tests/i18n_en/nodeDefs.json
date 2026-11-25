@@ -616,6 +616,18 @@
       "color_fix": {
         "name": "color_fix",
         "tooltip": "Keeps the colors and the brightness of the original image, which an upscale model or the redrawing can shift. Only the coarse colors are matched; the new fine detail stays."
+      },
+      "vae_encode_tile_size": {
+        "name": "vae_encode_tile_size",
+        "tooltip": "The VAE encodes the enlarged image in tiles of this size in pixels, which needs less memory for a large image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out."
+      },
+      "vae_decode_tile_size": {
+        "name": "vae_decode_tile_size",
+        "tooltip": "The VAE decodes the result in tiles of this size in pixels, which needs less memory for a large image.\n0: In one piece. ComfyUI still switches to tiles by itself when the memory runs out."
+      },
+      "preview": {
+        "name": "preview",
+        "tooltip": "Shows the picture on the node while it is redrawn, as a sampler does. Off: No preview picture."
       }
     },
     "outputs": {

@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 79 (Nov 25): Tiled Upscale: VAE tile sizes, preview switch
+- Asked: VAE tile sizes on the node (for small cards and for timing data); a way to hide the sampler's preview picture on the node. The owner's timing line: enlarge 13.2 s, encode 0.4 s, sample 4.0 s, decode 0.5 s.
+- Found: the time is the upscale model (4x-UltraSharpV2 on 1024 px, then resized down), not the sampling or the VAE.
+- Built: `vae_encode_tile_size`, `vae_decode_tile_size` (0 = in one piece), `preview` (on at first), all after the existing inputs so saved nodes keep their values. The timing line splits loading the upscale model, enlarging and the color fix.
+- Tested: `tests/test_tiled.py`, tooltips and translations on real ComfyUI. Not on a GPU; the preview switch not in a browser run.
+
 ## Round 78 (Nov 25): Tiled Upscale after the owner's first run (MOSS-Image)
 - Asked: `upscale_model` as a widget with "none"; compare the settings and timings with their DazzleNodes subgraph (ours a second or two slower); a colour correction like that pack's (results too bright with 4x-UltraSharpV2); why the console says "regional LoRAs active" with no regional LoRAs.
 - Found: their run of our node had 2048 px tiles on a 2048 px image (one tile: no tiling) against 1024 px tiles in the subgraph. Sampling was about 5 s of the 18-22 s; the rest (upscale model, VAE, loading) isn't visible from the console. The console line was only worded badly: the model carries the regions (separation), no LoRA.
