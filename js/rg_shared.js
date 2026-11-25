@@ -1363,7 +1363,7 @@ const recentSet = (id, v) => { RECENT.set(id, v); setSetting(id, v); setTimeout(
 // tells).
 const OSB_W = 14, EXP_W = 16, EXP_GAP = 2;
 export function addExpandButton(t, title, onOpen, extras = []) {
-    const host = t?.parentElement;
+    let host = t?.parentElement;
     if (!host) return null;
     const old = host.querySelector(":scope > .rg-expand");
     if (old && old.__rgFor === t) return old;
@@ -1402,6 +1402,19 @@ export function addExpandButton(t, title, onOpen, extras = []) {
     host.addEventListener("mouseenter", place);
     host.appendChild(b);
     for (const el of extras) { el.classList.add("rg-corner"); host.appendChild(el); }
+    // the field was put into another parent element (ComfyUI's legacy nodes do that with a text widget's box when the
+    // node mode is switched to Nodes 2.0 and back): the buttons go with it
+    t.__rgRehost = () => {
+        const h = t.parentElement;
+        if (!h || (h === host && b.isConnected)) return;
+        host = h;
+        if (getComputedStyle(host).position === "static") host.style.position = "relative";
+        for (const x of host.querySelectorAll(":scope > .rg-expand")) if (x !== b) x.remove();
+        host.addEventListener("mouseenter", place);
+        host.appendChild(b);
+        for (const el of extras) host.appendChild(el);
+        last = ""; place(); requestAnimationFrame(place);
+    };
     place();
     requestAnimationFrame(place);
     return b;
@@ -2676,6 +2689,7 @@ function hookTextarea(entry, t, name) {
     if (entry.onTextarea) {
         entry.seen = entry.seen || new WeakSet();
         if (!entry.seen.has(t)) { entry.seen.add(t); entry.onTextarea(name || widgetTextareaName(entry, t), t); }
+        else t.__rgRehost?.();                      // the same box in a new parent element: its corner buttons follow
     }
 }
 function scanWidgets(entry) {

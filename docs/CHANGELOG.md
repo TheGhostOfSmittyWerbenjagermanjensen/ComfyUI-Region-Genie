@@ -2,6 +2,13 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 83 (Nov 25): text box buttons lost after switching node modes; layout drafts for Tiled Upscale
+- Reported: legacy → Nodes 2.0 → legacy, and the pop-up buttons of scene_prompt_positive / scene_prompt_negative and the LLM button are gone until the tab is reloaded.
+- Cause: legacy mode puts the same text box into a new parent element when it comes back; the buttons were in the old parent, and a box already seen wasn't set up again. The Regional LoRAs node's prompts had the same fault.
+- Fixed: `addExpandButton()` gives the field `__rgRehost()`, which moves the button and its extras into the field's parent of the moment; `hookTextarea()` calls it for a box it has seen (the scan every 1.5 s, and on focus).
+- Tested: new `tests/real_mode_switch.cjs` (failed before, passes now), `real_text_boxes.cjs` four ways, `run_ui.sh`.
+- Also: three layout drafts for a shorter Tiled Upscale node, shown to the owner; nothing built yet.
+
 ## Round 82 (Nov 25): Tiled Upscale: the order of the widgets
 - Asked: a better order before the node is released; the owner chose "everyday settings first" and asked whether ComfyUI's "advanced" inputs work in legacy node mode.
 - Built: the order list in `INPUT_TYPES`: `upscale_by`, `upscale_model`, `denoise`, the sampler settings, the tile sizes, `color_fix`, `preview`; then `resize_method`, `tile_blend`, the upscale model's two settings, the VAE tile sizes.
