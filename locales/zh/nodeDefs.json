@@ -535,7 +535,7 @@
   },
   "Region-Genie_TiledUpscale": {
     "display_name": "分块放大（Region Genie） ✨",
-    "description": "在一个节点内放大图像：先放大图像（连接了放大模型时使用它），然后用你的模型以重叠的分块重绘，并在每一步混合这些分块（Mixture of Diffusers），每次模型调用处理多个分块。",
+    "description": "在一个节点内放大图像：先放大图像（选择了放大模型时使用它），然后用你的模型以重叠的分块重绘，并在每一步混合这些分块（Mixture of Diffusers），每次模型调用处理多个分块。",
     "inputs": {
       "image": {
         "name": "图像",
@@ -611,7 +611,11 @@
       },
       "upscale_model": {
         "name": "放大模型",
-        "tooltip": "可选。用于放大的放大模型（ESRGAN 等）；比单纯缩放更清晰。没有它时用“缩放方法”调整图像大小。"
+        "tooltip": "用于放大的放大模型（ESRGAN 等）；比单纯缩放更清晰。\nnone：只用“缩放方法”调整图像大小。"
+      },
+      "color_fix": {
+        "name": "颜色修正",
+        "tooltip": "保持原图的颜色和亮度：放大模型或重绘可能使它们偏移。只匹配大范围的颜色；新的细节保留。"
       }
     },
     "outputs": {
@@ -621,7 +625,7 @@
       },
       "1": {
         "name": "Latent",
-        "tooltip": "同一结果的 latent，解码之前。"
+        "tooltip": "同一结果的 latent，解码之前、最后一次颜色修正之前。"
       }
     }
   },

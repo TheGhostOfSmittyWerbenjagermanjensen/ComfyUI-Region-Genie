@@ -4,8 +4,10 @@ Upscales an image in one node: it enlarges the image, then redraws it with your 
 are blended at every step (Mixture of Diffusers), several tiles per model call.
 
 - Connect `image`, and `model`, `positive`, `negative` and `vae` as on a sampler.
-- `upscale_model` is optional: an upscale model (ESRGAN and the like) does the enlarging; without it the image is
+- `upscale_model`: an upscale model (ESRGAN and the like) does the enlarging; with `none` the image is only
   resized with `resize_method`.
+- `color_fix`: keeps the colors and brightness of the original image, which an upscale model or the redrawing
+  can shift.
 - `upscale_by`: how many times larger per side.
 - Only the last part of the steps is run (`steps` x `denoise`: 4 of 20 at 0.2), as KSampler (Advanced) does.
 - `denoise`: how much is redrawn. About 0.05 only polishes, about 0.2 adds fine detail, 0.3-0.4 invents more;

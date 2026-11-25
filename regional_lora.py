@@ -1102,8 +1102,8 @@ class _ActivateRegionalLoRAsWrapper:
         run_id = id(sigmas) if sigmas is not None else None
         if run_id is not None and run_id != self._last_run:
             self._last_run = run_id
-            _log(f"{LOG} regional LoRAs active in this run ({self.arch.name}, one pass, masked inside the model): "
-                 f"{self.label}")
+            what = "regional LoRAs active" if self.entries else "regions active (no regional LoRAs)"
+            _log(f"{LOG} {what} in this run ({self.arch.name}, one pass, masked inside the model): {self.label}")
             return True
         return False
 

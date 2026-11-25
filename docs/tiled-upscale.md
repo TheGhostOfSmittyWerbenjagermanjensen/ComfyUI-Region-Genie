@@ -21,26 +21,31 @@ Two nodes that redraw a large picture in overlapping tiles, so a model can upsca
 
 **Tiled Upscale (Region Genie)** takes an image and gives back the upscaled image. In order, it:
 
-1. Enlarges the image with the upscale model, when one is connected.
+1. Enlarges the image with the upscale model, when one is chosen.
 2. Resizes it to the exact size (`upscale_by` times the original, rounded to a size the model's latent fits).
 3. Encodes it with the VAE.
 4. Adds noise according to `denoise` and redraws it in tiles with your model, running only the last part of the steps.
 5. Decodes the result.
 
+With `color_fix` on, the colors are brought back to the original image's after step 2 and after step 5.
+
 | Input | What it is |
 |---|---|
 | `image` | The image to upscale |
 | `model`, `positive`, `negative`, `vae` | As on a sampler: the model (with its LoRAs), the prompts and the VAE |
-| `upscale_model` | Optional. An upscale model for the enlarging; without it the image is resized |
+| `upscale_model` | An upscale model for the enlarging, from `models/upscale_models`. `none`: the image is only resized |
 | `upscale_by` | How many times larger per side (1 only redraws at the same size) |
 | `resize_method` | How the image is resized: by itself, or after the upscale model when its factor differs |
 | `seed`, `steps`, `cfg`, `sampler_name`, `scheduler` | As on a sampler |
 | `denoise` | How much is redrawn (0.2 at first); see below |
 | `tile_width`, `tile_height`, `tile_overlap`, `tile_batch_size`, `tile_blend` | The tile settings; see below |
+| `color_fix` | Keeps the colors and brightness of the original image (on at first); see below |
 
 - **Outputs:** `image`, and `latent` (the same picture before decoding).
 - **Only the last part of the steps is run:** `steps` times `denoise`, so 4 of 20 at a denoise of 0.2. That is what KSampler (Advanced) does when it starts at a later step, and it is much faster than a sampler's own `denoise`, which runs every step.
 - With `denoise` 0 it only enlarges.
+- **`color_fix`:** an upscale model, the VAE or the redrawing can shift the colors, often towards brighter. With it on, the coarse colors of the result are matched to the original image's (areas of about 8 px of the original and larger); the new fine detail is kept. The `latent` output is the picture before the last of the two fixes.
+- **The console shows where the time went:** one line per run with the size, the number of tiles, the steps run and the seconds for enlarging, encoding, sampling and decoding.
 - Every tile gets the whole prompt. Describe the picture as you did when making it.
 
 ## Tiled Diffusion: for your own sampler

@@ -297,8 +297,8 @@ check("the two wiring orders give the same result", torch.allclose(res2, res3, a
 # ---- the nodes
 it = td.TiledUpscaleRG.INPUT_TYPES()
 check("tile_overlap and tile_blend are inputs of both nodes; blend 1 at first", all("tile_overlap" in n_.INPUT_TYPES()["required"] and n_.INPUT_TYPES()["required"]["tile_blend"][1]["default"] == 1.0 for n_ in (td.TiledUpscaleRG, td.TiledDiffusionRG)))
-tips = [k_ for grp in ("required", "optional") for k_, v in it[grp].items() if not (len(v) > 1 and v[1].get("tooltip"))]
-check("Tiled Upscale: every input has a tooltip" + (": missing " + ", ".join(tips) if tips else ""), not tips and "upscale_model" in it["optional"])
+tips = [k_ for grp in ("required", "optional") for k_, v in it.get(grp, {}).items() if not (len(v) > 1 and v[1].get("tooltip"))]
+check("Tiled Upscale: every input has a tooltip" + (": missing " + ", ".join(tips) if tips else ""), not tips and it["required"]["upscale_model"][0][0] == "none" and it["required"]["color_fix"][1]["default"] is True and "optional" not in it)
 img = torch.rand(1, 50, 70, 3)
 up = td.upscale_pixels(img, 2.0, None, "lanczos", 16)
 check(f"without an upscale model the image is resized to a size that fits the latent ({up.shape[2]} x {up.shape[1]})", up.shape == (1, 96, 144, 3))
@@ -313,7 +313,7 @@ class FakeVAE:
 
 
 node = td.TiledUpscaleRG()
-im, la = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.5, 128, 128, 32, 4, 1.0)
+im, la = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), "none", 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.5, 128, 128, 32, 4, 1.0)
 check(f"Tiled Upscale end to end: image {tuple(im.shape)} and latent {tuple(la['samples'].shape)}", im.shape == (1, 192, 320, 3) and la["samples"].shape == (1, 4, 24, 40))
 check("the steps that are run: steps x denoise, the last ones (20 at 0.2: from step 16; at least one; all of them at 1)",
       [td.redraw_start(20, 0.2), td.redraw_start(20, 1.0), td.redraw_start(20, 0.01), td.redraw_start(30, 0.5), td.redraw_start(1, 0.2)] == [16, 0, 19, 15, 0])
@@ -330,12 +330,59 @@ nodes.common_ksampler = spy_ks
 m_calls = {"n": 0}
 cnt_model = patcher.clone()
 cnt_model.add_wrapper_with_key(KIND, "count", lambda ex, *a, **k: (m_calls.__setitem__("n", m_calls["n"] + 1), ex(*a, **k))[1])
-node.run(torch.rand(1, 64, 64, 3), cnt_model, pos, neg, FakeVAE(), 1.0, "lanczos", 5, 20, 1.0, "euler", "simple", 0.2, 1024, 1024, 32, 4, 1.0)
+node.run(torch.rand(1, 64, 64, 3), cnt_model, pos, neg, FakeVAE(), "none", 1.0, "lanczos", 5, 20, 1.0, "euler", "simple", 0.2, 1024, 1024, 32, 4, 1.0)
 nodes.common_ksampler = orig_ks
 check(f"Tiled Upscale at 20 steps and denoise 0.2 runs the last 4 steps only ({seen_steps[-1]}; {m_calls['n']} model calls)",
       seen_steps[-1] == (20, 1.0, 16, 20, True) and m_calls["n"] == 4)
-im0, _ = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.0, 128, 128, 32, 4)
+im0, _ = node.run(torch.rand(1, 96, 160, 3), patcher, pos, neg, FakeVAE(), "none", 2.0, "lanczos", 5, 4, 4.0, "euler", "simple", 0.0, 128, 128, 32, 4)
 check("denoise 0: only the enlarged image", im0.shape == (1, 192, 320, 3))
+
+# ---- the colour fix
+torch.manual_seed(1)
+ref = torch.rand(1, 64, 96, 3) * 0.5 + 0.2
+big = torch.nn.functional.interpolate(ref.movedim(-1, 1), scale_factor=2, mode="bicubic").movedim(1, -1).clamp(0, 1)
+detail = (torch.rand(1, 128, 192, 3) - 0.5) * 0.06
+shifted = (big * 1.15 + 0.05 + detail).clamp(0, 1)                     # brighter, as an upscale model can leave it
+fx = td.match_colors(shifted, ref)
+mean = lambda t: t.mean(dim=(0, 1, 2))                                 # noqa: E731
+check(f"colour fix: the brightness is the original's again (off by {float((mean(fx) - mean(ref)).abs().max()):.4f}, was {float((mean(shifted) - mean(ref)).abs().max()):.3f})",
+      float((mean(fx) - mean(ref)).abs().max()) < 0.004 and float((mean(shifted) - mean(ref)).abs().max()) > 0.05)
+hp = lambda t: t - torch.nn.functional.avg_pool2d(t.movedim(-1, 1), 3, 1, 1).movedim(1, -1)   # noqa: E731
+check("colour fix: the fine detail of the upscaled image stays", float((hp(fx) - hp(shifted))[:, 8:-8, 8:-8].abs().max()) < 0.01)
+check("colour fix: an image that already matches is left as it is", float((td.match_colors(big, ref) - big).abs().max()) < 0.02)
+check("colour fix: a reference with another batch size changes nothing", td.match_colors(shifted, torch.rand(3, 8, 8, 3)) is shifted)
+
+
+class BrightVAE(FakeVAE):
+    def decode(self, z):
+        return (super().decode(z) * 1.2 + 0.1).clamp(0, 1)
+
+
+src = (torch.linspace(0.2, 0.6, 64).view(1, 1, 64, 1) * torch.linspace(0.6, 1.0, 64).view(1, 64, 1, 1)).repeat(1, 1, 1, 3)   # a smooth picture
+nodes.common_ksampler = lambda model, seed, steps, cfg, sn, sc, p_, n_, latent, **kw: (dict(latent),)   # the latent as it came: only the VAE shifts
+on, _ = node.run(src, patcher, pos, neg, BrightVAE(), "none", 2.0, "lanczos", 5, 4, 1.0, "euler", "simple", 0.0001, 128, 128, 32, 4, 1.0, True)
+off, _ = node.run(src, patcher, pos, neg, BrightVAE(), "none", 2.0, "lanczos", 5, 4, 1.0, "euler", "simple", 0.0001, 128, 128, 32, 4, 1.0, False)
+nodes.common_ksampler = orig_ks
+check(f"Tiled Upscale with color_fix: the result has the input's brightness ({float(on.mean()):.3f} for {float(src.mean()):.3f}; {float(off.mean()):.3f} without)",
+      abs(float(on.mean() - src.mean())) < 0.02 < abs(float(off.mean() - src.mean())))
+
+# ---- the upscale model by name
+check("upscale_model none (or nothing): no model", td.load_upscale_model("none") is None and td.load_upscale_model("") is None)
+import comfy_extras.nodes_upscale_model as um
+loads = []
+old_exec, old_load = getattr(um.UpscaleModelLoader, "execute", None), getattr(um.UpscaleModelLoader, "load_model", None)
+fake = lambda *a: (loads.append(a[-1]), ("model:" + a[-1],))[1]         # noqa: E731
+if old_exec is not None:
+    um.UpscaleModelLoader.execute = staticmethod(fake)
+else:
+    um.UpscaleModelLoader.load_model = fake
+a1, a2, b1 = td.load_upscale_model("a.pth"), td.load_upscale_model("a.pth"), td.load_upscale_model("b.pth")
+check(f"an upscale model is loaded by its file name, once while it stays the same ({loads})", (a1, a2, b1, loads) == ("model:a.pth", "model:a.pth", "model:b.pth", ["a.pth", "b.pth"]))
+td._loaded.clear()
+if old_exec is not None:
+    um.UpscaleModelLoader.execute = old_exec
+else:
+    um.UpscaleModelLoader.load_model = old_load
 
 if __name__ == "__main__":
     print("\nall passed" if not fails else f"\n{len(fails)} failed")

@@ -535,7 +535,7 @@
   },
   "Region-Genie_TiledUpscale": {
     "display_name": "Escalado en teselas (Region Genie) ✨",
-    "description": "Escala una imagen en un solo nodo: la amplía (con un modelo de escalado si hay uno conectado) y luego la redibuja con tu modelo en teselas solapadas que se mezclan en cada paso (Mixture of Diffusers), varias teselas por llamada al modelo.",
+    "description": "Escala una imagen en un solo nodo: la amplía (con un modelo de escalado si se ha elegido uno) y luego la redibuja con tu modelo en teselas solapadas que se mezclan en cada paso (Mixture of Diffusers), varias teselas por llamada al modelo.",
     "inputs": {
       "image": {
         "name": "imagen",
@@ -611,7 +611,11 @@
       },
       "upscale_model": {
         "name": "modelo_de_escalado",
-        "tooltip": "Opcional. Un modelo de escalado (ESRGAN y similares) para la ampliación; más nítido que un simple redimensionado. Sin él, la imagen se redimensiona con método_de_redimensionado."
+        "tooltip": "Un modelo de escalado (ESRGAN y similares) para la ampliación; más nítido que un simple redimensionado.\nnone: La imagen solo se redimensiona con método_de_redimensionado."
+      },
+      "color_fix": {
+        "name": "corrección_de_color",
+        "tooltip": "Mantiene los colores y el brillo de la imagen original: un modelo de escalado o el redibujado pueden desplazarlos. Solo se igualan los colores a gran escala; el nuevo detalle fino se conserva."
       }
     },
     "outputs": {
@@ -621,7 +625,7 @@
       },
       "1": {
         "name": "latente",
-        "tooltip": "Lo mismo como latente, antes de decodificar."
+        "tooltip": "Lo mismo como latente, antes de decodificar y antes de la última corrección de color."
       }
     }
   },

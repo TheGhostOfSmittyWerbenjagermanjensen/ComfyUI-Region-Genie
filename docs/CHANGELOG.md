@@ -2,6 +2,13 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 78 (Nov 25): Tiled Upscale after the owner's first run (MOSS-Image)
+- Asked: `upscale_model` as a widget with "none"; compare the settings and timings with their DazzleNodes subgraph (ours a second or two slower); a colour correction like that pack's (results too bright with 4x-UltraSharpV2); why the console says "regional LoRAs active" with no regional LoRAs.
+- Found: their run of our node had 2048 px tiles on a 2048 px image (one tile: no tiling) against 1024 px tiles in the subgraph. Sampling was about 5 s of the 18-22 s; the rest (upscale model, VAE, loading) isn't visible from the console. The console line was only worded badly: the model carries the regions (separation), no LoRA.
+- Built: `upscale_model` widget (list of `models/upscale_models`, "none" first; the model stays loaded between runs); `color_fix` (on at first; `match_colors`, our own method); a timing line per run; the console says "regions active (no regional LoRAs)" when there are none. `gen_params` reads the widget's model name for Save Image's settings text.
+- Tested: `tests/test_tiled.py` (colour fix, loading by name, the node end to end), `test_gen_params.py`, tooltips and translations on real ComfyUI. Not on a GPU.
+- Note: a saved Tiled Upscale node from before this round has its widget values shifted by one; set them again.
+
 ## Round 77 (Nov 25): Tiled Upscale runs only the last steps
 - Asked: does the node run a full denoise? The owner uses KSampler (Advanced) to run only the last steps for a 0.2 redraw, which is much faster.
 - Found: it passed `denoise` to ComfyUI's sampler, which runs every step on the last part of a longer schedule: 20 model steps at 0.2 where 4 are meant. The `steps` tooltip already described the 4.
