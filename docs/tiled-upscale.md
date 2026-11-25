@@ -45,7 +45,7 @@ With `color_fix` on, the colors are brought back to the original image's after s
 | `upscale_model_tile_size`, `upscale_model_half_precision` | How the upscale model is run; see below |
 | `vae_encode_tile_size`, `vae_decode_tile_size` | The VAE works in tiles of this size in pixels; 0 (at first) is in one piece; see below |
 
-The settings you change from image to image come first; the last four rows are set once.
+The settings you change from image to image come first. The last four rows are set once and are folded away on the node: click **More settings** to show them, **Fewer settings** to fold them again. The line says how many of them differ from a new node's values ("2 changed"), a folded setting with a cable connected stays visible, and the fold is saved with the workflow.
 
 - **Outputs:** `image`, and `latent` (the same picture before decoding).
 - **Only the last part of the steps is run:** `steps` times `denoise`, so 4 of 20 at a denoise of 0.2. That is what KSampler (Advanced) does when it starts at a later step, and it is much faster than a sampler's own `denoise`, which runs every step.

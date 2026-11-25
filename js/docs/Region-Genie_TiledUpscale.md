@@ -8,6 +8,8 @@ are blended at every step (Mixture of Diffusers), several tiles per model call.
   resized with `resize_method`.
 - `vae_encode_tile_size`, `vae_decode_tile_size`: the VAE works in tiles of this size, for less memory on large
   images; 0 is in one piece.
+- **More settings** shows the settings that are set once (the ones below, `resize_method` and `tile_blend`);
+  **Fewer settings** folds them away again.
 - `upscale_model_tile_size`: the upscale model works on pieces of this size; larger is faster and
   needs more memory. `upscale_model_half_precision`: faster where the model allows it.
 - `preview`: off hides the preview picture on the node.

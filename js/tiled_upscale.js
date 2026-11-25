@@ -61,6 +61,9 @@ app.registerExtension({
             }
 
             const sizeOf = new Map();                // the widgets' own computeSize, put back when shown again
+            // which widgets this script has folded. Not read from w.hidden: ComfyUI also reports a widget as hidden
+            // while a cable feeds it (it then draws the input's row in its place)
+            const folded = new Set();
             function label() {
                 const open = isOpen();
                 const changed = MORE.filter((n) => W(n) && W(n).value !== initial[n]).length;
@@ -86,8 +89,9 @@ app.registerExtension({
                     const w = W(n);
                     if (!w) continue;
                     const show = open || linked(n);
-                    if (!w.hidden === show) continue;
+                    if (!folded.has(w) === show) continue;
                     changed = true;
+                    if (show) folded.delete(w); else folded.add(w);
                     if (!sizeOf.has(w)) sizeOf.set(w, Object.getOwnPropertyDescriptor(w, "computeSize") || null);
                     w.hidden = !show;
                     if (show) { const d = sizeOf.get(w); if (d) Object.defineProperty(w, "computeSize", d); else delete w.computeSize; }

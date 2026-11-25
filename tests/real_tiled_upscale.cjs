@@ -2,6 +2,7 @@
 //   - a new node shows the everyday settings; the six that are set once are folded away, and the node is shorter
 //   - a click on the line shows them, another folds them again; the node's height follows
 //   - the state and every value survive saving and loading the workflow; a changed folded setting is counted on the line
+//   - a folded setting with a cable connected stays shown
 //
 //   node tests/real_tiled_upscale.cjs [vue] [shots <folder>]
 // Needs a running ComfyUI with this pack.
@@ -76,6 +77,28 @@ const MORE = ["resize_method", "tile_blend", "upscale_model_tile_size", "upscale
     const e = await loaded();
     const v2 = await vals();
     check(`${M}: saved folded and loaded: folded, values kept, as short as a new node (${e.text}, ${e.height} px)`, !e.open && e.hidden === 6 && v2.tile_blend === 1.5 && v2.vae_decode_tile_size === 1024 && v2.tile_overlap === 128 && Math.abs(e.height - a.height) <= 2);
+    // a folded setting with a cable stays on the node; without the cable it folds again
+    const cable = await page.evaluate(async () => {
+        const n = window.__tu, LG = window.LiteGraph;
+        const src = LG.createNode("PrimitiveFloat") || LG.createNode("PrimitiveNode");
+        if (!src) return { made: false };
+        src.pos = [-200, 400]; window.app.graph.add(src);
+        const slot = n.inputs.findIndex((i) => (i.widget?.name ?? i.name) === "tile_blend");
+        // folded by the pack (ComfyUI itself also calls a widget hidden while a cable feeds it: it draws the input's row instead)
+        const hid = () => ["resize_method", "tile_blend", "upscale_model_tile_size"].map((m) => { const w = n.widgets.find((x) => x.name === m);
+            return w._visibility ? !!w._visibility.suppression?.byExtension : !!w.hidden; });
+        const tall = () => n.computeSize()[1];
+        const h0 = tall();
+        if (slot < 0) return { made: true, slot };
+        src.connect(0, n, slot);
+        await new Promise((r) => setTimeout(r, 600));
+        const on = hid(), linked = n.inputs[slot].link != null, h1 = tall();
+        n.disconnectInput(slot);
+        await new Promise((r) => setTimeout(r, 600));
+        return { made: true, slot, linked, on, off: hid(), grew: h1 - h0, back: tall() - h0 };
+    });
+    check(`${M}: a folded setting with a cable stays shown, the others stay folded; unplugged, it folds again (${JSON.stringify(cable)})`,
+          cable.made && cable.linked && JSON.stringify(cable.on) === "[true,false,true]" && JSON.stringify(cable.off) === "[true,true,true]" && cable.grew >= 16 && cable.back === 0);
     check(`${M}: no page errors (${errors.join(" | ")})`, errors.length === 0);
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");

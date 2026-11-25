@@ -294,5 +294,6 @@ Nothing here has run on a real model yet.
 - [ ] The console's timing line (enlarge, encode, sample, decode): which part takes the time next to the other pack's tiled upscale
 - [ ] A small card: small tiles at batch 1 fit; ComfyUI doesn't offload more than without tiling
 - [ ] ControlNet with SDXL in a tiled run; the warning for a transformer model's ControlNet
-- [ ] Branch `claude/tile-aware-regions`: regional LoRAs stay in their regions in the upscale; at denoise 0.4+ tiles don't draw other regions' prompts; Anima, SDXL, Flux, Krea 2
+- [ ] The "More settings" line on the 4K display, both node modes, and in Firefox: folds and shows the six settings, the node's height follows, "N changed" is readable
+- [ ] Regions in a tiled upscale (round 76's step 2): regional LoRAs stay in their regions in the upscale; at denoise 0.4+ tiles don't draw other regions' prompts; Anima, SDXL, Flux, Krea 2
 

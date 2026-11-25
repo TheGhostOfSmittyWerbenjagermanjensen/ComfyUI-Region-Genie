@@ -2,6 +2,16 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 85 (Nov 25): Tiled Upscale finished for release; both branches in one pull request
+- Asked: the remaining tasks for the "More settings" fold, then a pull request that merges both branches.
+- Done: manual, help page, hardware checklist, handoff; `claude/tile-aware-regions` (regions cut per tile, the branch the owner has been running) merged into the working branch; a test for a folded setting with a cable.
+- Tested: `run_py.sh`, `run_ui.sh`, `test_tiled.py`, and on real ComfyUI `real_tiled_upscale.cjs` and `real_tooltips.cjs` in both node modes, `real_i18n.cjs`, `real_mode_switch.cjs`.
+
+## Round 84 (Nov 25): Tiled Upscale: the set-once settings fold away
+- Asked: the node is tall; drafts of shorter layouts. Shown: A (fold the six set-once settings), B (two settings per row), C (both). The owner chose A, saw the real node and confirmed it.
+- Built: `js/tiled_upscale.js`: a "More settings" / "Fewer settings" line above the six settings; folded on a new node; the state is saved with the workflow; "N changed" on the line when a folded setting differs from a new node's; a folded setting with a cable stays shown. Icons `chevronRight`, `chevronDown` (Lucide).
+- Fixed while testing: a legacy node loaded with its saved size grew by the fold's height again.
+
 ## Round 83 (Nov 25): text box buttons lost after switching node modes; layout drafts for Tiled Upscale
 - Reported: legacy → Nodes 2.0 → legacy, and the pop-up buttons of scene_prompt_positive / scene_prompt_negative and the LLM button are gone until the tab is reloaded.
 - Cause: legacy mode puts the same text box into a new parent element when it comes back; the buttons were in the old parent, and a box already seen wasn't set up again. The Regional LoRAs node's prompts had the same fault.
