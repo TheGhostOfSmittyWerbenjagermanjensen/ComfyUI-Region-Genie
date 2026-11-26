@@ -1,0 +1,35 @@
+# Makes a GitHub Release (and its tag, v<version>) for the version in pyproject.toml.
+# By itself: after a merge to main that touches pyproject.toml, when no release of that version exists yet. So the
+# merge that raises the version, which publishes to the Comfy Registry (publish.yml), also makes the release.
+# By hand: Actions > "GitHub release" > Run workflow (on main). It does nothing when the release is already there.
+# The notes are GitHub's own list of the pull requests merged since the release before.
+# Needs no secret: it uses the workflow's own token, with write access to the repository's contents (tags, releases).
+name: GitHub release
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [pyproject.toml, .github/workflows/release.yml]
+permissions:
+  contents: write
+jobs:
+  release:
+    name: Release the version in pyproject.toml
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+      - name: Make the release when there is none of this version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver=$(grep -m1 -E '^version[[:space:]]*=' pyproject.toml | sed -E 's/^[^"]*"([^"]*)".*/\1/')
+          if [ -z "$ver" ]; then echo "No version in pyproject.toml"; exit 1; fi
+          tag="v$ver"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "Release $tag exists already: nothing to do."
+            exit 0
+          fi
+          gh release create "$tag" --target "$GITHUB_SHA" --title "Region Genie $ver" --generate-notes
+          echo "Made release $tag"
