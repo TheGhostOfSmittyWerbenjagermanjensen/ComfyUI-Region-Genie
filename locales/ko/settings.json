@@ -732,7 +732,15 @@
     "name": "캔버스: 레이블과 영역 가장자리 사이의 여백 (%)",
     "tooltip": "캔버스의 영역 프롬프트가 영역 가장자리와 두는 여백으로, 영역의 짧은 변에 대한 %입니다. 여백이 작을수록 프롬프트가 더 많이 보입니다. 이전에는 8로 고정되어 있었습니다."
   },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge ": {
+  "RegionGenie_Main_LabelAlign": {
+    "name": "캔버스: 레이블 글자",
+    "tooltip": "캔버스의 영역 프롬프트 줄을 번호 아래에서 어떻게 정렬할지 정합니다. 번호와 유형 표시는 항상 글자 위 가운데에 놓입니다.",
+    "options": {
+      "Left-aligned": "왼쪽 정렬",
+      "Centered": "가운데 정렬"
+    }
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge , On the canvas: label text": {
     "name": "텍스트",
     "tooltip": "노드와 팝업 편집기에서 프롬프트 상자의 글자 크기, 그리고 캔버스의 영역 라벨 크기와 그림자.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   }

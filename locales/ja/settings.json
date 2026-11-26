@@ -732,7 +732,15 @@
     "name": "キャンバス上：ラベルと領域の端との余白 (%)",
     "tooltip": "キャンバス上の領域プロンプトが領域の端との間に空ける余白。領域の短い辺に対する % で指定します。余白が小さいほどプロンプトが多く表示されます。以前は 8 で固定でした。"
   },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge ": {
+  "RegionGenie_Main_LabelAlign": {
+    "name": "キャンバス上：ラベルの文字",
+    "tooltip": "キャンバス上の領域プロンプトの各行を番号の下でどう揃えるか。番号と種類のマークは常に文字の上で中央に置かれます。",
+    "options": {
+      "Left-aligned": "左揃え",
+      "Centered": "中央揃え"
+    }
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge , On the canvas: label text": {
     "name": "テキスト",
     "tooltip": "ノード上とポップアップエディターでのプロンプト欄の文字サイズと、キャンバス上の領域ラベルのサイズと影。\nEdit…: このページで Region Genie の設定を開きます。"
   }

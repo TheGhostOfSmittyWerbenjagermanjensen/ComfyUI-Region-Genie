@@ -1998,6 +1998,7 @@ export const SET = {
     cmLabelShadow: "RegionGenie.Main.LabelShadow",
     cmLabelShadowStrength: "RegionGenie.Main.LabelShadowStrength",
     cmLabelPad: "RegionGenie.Main.LabelPad",
+    cmLabelAlign: "RegionGenie.Main.LabelAlign",
     cmGridShow: "RegionGenie.Main.GridShow",
     cmGridLines: "RegionGenie.Main.GridLines",
     regionColors: "RegionGenie.Main.RegionColors",
@@ -2331,6 +2332,7 @@ const SETTINGS = [
         { id: SET.cmLabelShadow, name: "On the canvas: label shadow size (px)", type: "number", defaultValue: 4, attrs: { min: 0, max: 12, step: 0.5 }, tooltip: "How far the dark shadow around the region prompts on the canvas spreads (a white glow around dark text on a light region). 0: None.", category: CAT("Text", "9 labelShadow") },
         { id: SET.cmLabelShadowStrength, name: "On the canvas: label shadow strength (%)", type: "number", defaultValue: 200, attrs: { min: 0, max: 300, step: 10 }, tooltip: "How dense the shadow or glow around the region prompts on the canvas is. 0: None.", category: CAT("Text", "91 labelShadowStrength") },
         { id: SET.cmLabelPad, name: "On the canvas: room between a label and its region's edge (%)", type: "number", defaultValue: 3, attrs: { min: 0, max: 20, step: 1 }, tooltip: "How much room a region prompt on the canvas keeps to the edge of its region, in % of the region's shorter side. Less room lets more of the prompt show. 8 was the fixed value before.", category: CAT("Text", "92 labelPad") },
+        { id: SET.cmLabelAlign, name: "On the canvas: label text", type: "combo", defaultValue: "left", options: [{ text: "Left-aligned", value: "left" }, { text: "Centered", value: "center" }], tooltip: "How the lines of a region prompt on the canvas are lined up under its number. The number and the type mark are always centered over the text.", category: CAT("Text", "93 labelAlign") },
         { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
         // the keys that step to the previous / next text field in a pop-up editor: changed in the shortcut list (round 39;
         // they were two rows here), still saved under their own ids

@@ -732,7 +732,15 @@
     "name": "En el lienzo: espacio entre una etiqueta y el borde de su región (%)",
     "tooltip": "Cuánto espacio deja un prompt de región en el lienzo hasta el borde de su región, en % del lado más corto de la región. Con menos espacio se ve más del prompt. Antes el valor fijo era 8."
   },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge ": {
+  "RegionGenie_Main_LabelAlign": {
+    "name": "En el lienzo: texto de la etiqueta",
+    "tooltip": "Cómo se alinean las líneas de un prompt de región en el lienzo bajo su número. El número y la marca de tipo siempre van centrados sobre el texto.",
+    "options": {
+      "Left-aligned": "Alineado a la izquierda",
+      "Centered": "Centrado"
+    }
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge , On the canvas: label text": {
     "name": "Texto",
     "tooltip": "El tamaño del texto de los cuadros de prompt, en el nodo y en los editores emergentes, y el tamaño y la sombra de las etiquetas de región en el lienzo.\nEdit…: Abre los ajustes de Region Genie en esta página."
   }

@@ -732,7 +732,15 @@
     "name": "画布上：标签与区域边缘之间的留白 (%)",
     "tooltip": "画布上的区域提示词与其区域边缘之间保留的空间，以区域较短边的百分比计。留白越小，显示的提示词越多。此前固定为 8。"
   },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge ": {
+  "RegionGenie_Main_LabelAlign": {
+    "name": "画布上：标签文字",
+    "tooltip": "画布上区域提示词的各行在其编号下方如何对齐。编号和类型标记始终居中于文字上方。",
+    "options": {
+      "Left-aligned": "左对齐",
+      "Centered": "居中"
+    }
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge , On the canvas: label text": {
     "name": "文字",
     "tooltip": "提示词框的文字大小（节点上和弹出编辑器中），以及画布上区域标签的大小和阴影。\nEdit…：在此页打开 Region Genie 设置。"
   }
