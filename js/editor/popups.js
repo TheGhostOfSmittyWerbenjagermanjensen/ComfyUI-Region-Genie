@@ -83,7 +83,7 @@ export function* popups(E) {
         const t = { bar, panes, pane, cur: null,
             show(id) { t.cur = id; for (const [k] of defs) { pane[k].classList.toggle("off", k !== id); btn[k].classList.toggle("on", k === id); } },
             // the number on a tab ("2/3"); lit: amber (something there is switched on)
-            count(id, text, lit) { const c = btn[id].__cnt; if (c.textContent !== text) c.textContent = text; c.classList.toggle("lit", !!lit); } };
+            count(id, text, lit) { const c = btn[id].__cnt, t = text ? `(${text})` : ""; if (c.textContent !== t) c.textContent = t; c.classList.toggle("lit", !!lit); } };
         for (const [id, label, tip] of defs) {
             const b = E.el("button", "rg-btn"); b.type = "button"; b.title = tip; b.dataset.tab = id;
             const l = E.el("span"); l.textContent = label;

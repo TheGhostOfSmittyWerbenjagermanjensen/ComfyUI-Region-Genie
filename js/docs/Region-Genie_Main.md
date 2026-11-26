@@ -30,7 +30,7 @@ node outputs the model, the encoded prompts and the latent, plus masks, boxes an
    to change it) and prompt. The small buttons at the end of a row (layers, palette colors, LoRAs) open the region's
    pop-up on that tab: Prompt, LoRAs, Layers, Palette, Options. The LoRAs button is amber while LoRAs are on.
    Drag a region by the six dots at the start of its row to reorder it; a click on them picks the row.
-   *Whole image* holds LoRAs and Control for the whole picture; the power button in the header turns all LoRAs off.
+   *Whole image* holds LoRAs and Control for the whole picture; the LoRAs button in the header turns all LoRAs off.
 6. **Bottom bar**: Generate / Edit, the model, the LLM Prompt Enhancer, tag autocomplete, the wildcard seed (while a prompt has a wildcard), and
    Export / Import. After a run, a button here shows what the run reported, with a ⚠ when something needs attention.
 

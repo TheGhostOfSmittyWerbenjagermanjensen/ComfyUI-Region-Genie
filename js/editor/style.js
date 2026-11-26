@@ -232,8 +232,6 @@ button.rg-paldots i { width:8px; height:8px; border-radius:2px; display:block; }
 .rg-lchip.more { background:#d9a441; color:#1c1c1c; font-weight:600; }
 .rg-lchip:hover { background:color-mix(in srgb, #d9a441 25%, transparent); }
 .rg-lchip.more:hover { background:#e9c46a; }
-.rg-btn.rg-lall { display:inline-flex; align-items:center; gap:4px; }
-.rg-btn.rg-lall svg { width:13px; height:13px; }
 .rg-btn.rg-lall.some { border-color:#d9a441; background:#4a3c16; color:#f3dfae; font-weight:600; }
 .rg-btn.rg-lall.back { border-color:#d9a441; color:#e9c46a; }
 .rg-pop-foot { font-size:10px; opacity:.5; }

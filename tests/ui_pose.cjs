@@ -53,7 +53,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await openLayers(1);
     const row = page.locator(".rg-pop .rg-pop-layers .rg-row.pose");
     check("the figure is listed with its region's layers (the Layers tab of its pop-up counts 2), selected", await row.count() === 1 && await row.first().evaluate((r) => r.classList.contains("sel"))
-        && (await page.locator('.rg-pop .rg-pop-tabs [data-tab="layers"] em').textContent()) === "2" && await row.locator("input").inputValue() === "Pose 1"
+        && (await page.locator('.rg-pop .rg-pop-tabs [data-tab="layers"] em').textContent()) === "(2)" && await row.locator("input").inputValue() === "Pose 1"
         && await page.locator(".rg-list .rg-row.pose").count() === 0);
     await closePop();
     check("the paint_data widget has the figure", await page.evaluate(() => (JSON.parse(window.__node.widgets.find((w) => w.name === "paint_data").value).poses || []).length) === 1);

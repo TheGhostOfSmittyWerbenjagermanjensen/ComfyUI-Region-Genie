@@ -218,7 +218,7 @@ The row at the top of the node sets the size of the picture. Three buttons on th
 - **A region's row** is one line and holds what is used all the time: show / hide, its number, color, type, the prompt (which gets most of the row), the LLM button, and three small buttons for what the region holds.
   - **The layer count** (the layers icon and a number).
   - **The palette's colors** as dots, while the palette is on.
-  - **The LoRAs button:** grey *＋LoRA* with no LoRAs, amber *LoRAs 3* with LoRAs on (*2/3* when some are off), an amber outline *LoRAs 0/2* when all are off. A row with a LoRA on has an amber edge.
+  - **The LoRAs button:** grey *＋LoRA* with no LoRAs, amber *LoRAs (3)* with LoRAs on (*(2/3)* when some are off), an amber outline *LoRAs (0/2)* when all are off. A row with a LoRA on has an amber edge.
   - Each of the three opens the region's pop-up on that tab. Nothing opens under a row.
   - In Edit Mode also keep / change, and with a Control row its Control switch.
 - **Show / hide a region:** the eye button (open: shown, closed: hidden) before a region's number.
@@ -258,10 +258,10 @@ Everything a region holds is in its pop-up, on five tabs. Open it with the **⤢
 *The Options tab.*
 
 - The pop-up keeps its size and its place when you switch tabs. It grows when what it holds needs more room, so it never has a scroll bar. Drag its corner to make it wider or narrower.
-- A number on a tab says how much is there (*LoRAs 2/3*: two of three are on); amber means something there is switched on.
+- A number on a tab says how much is there (*LoRAs (2/3)*: two of three are on); amber means something there is switched on.
 - **Lists are reordered by their grips:** drag a LoRA or a layer by the six dots at the start of its row.
 - *Whole image* has no layers or palette: its LoRAs are on a **LoRAs** tab in the pop-up of `scene_prompt_positive`. Its row shows the LoRAs that are on as chips (name and strength; a long name is cut short, a *+2* chip stands for those that don't fit), and the same LoRAs button as a region's row.
-- **All LoRAs off:** the amber button with a power icon in the list's header shows how many LoRAs are on in the node. A click switches every one off; the next click switches the same ones back on.
+- **All LoRAs off:** the amber *LoRAs (7)* button in the list's header shows how many LoRAs are on in the node (*LoRAs off* when none is). A click switches every one off; the next click switches the same ones back on.
 
 ### Feather
 

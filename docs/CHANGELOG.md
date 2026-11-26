@@ -2,6 +2,13 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 89 (Nov 26): the header's LoRA switch as words; counts in brackets
+- Asked: other signs than the power icon for the header's switch; later a switch per region too.
+- Shown: six options (power, power crossed out when off, lightning, a switch, a plug, the word). The owner chose the word, and asked for every count on a LoRA button to stand in brackets.
+- Built: the header's button reads "LoRAs (7)", or "LoRAs off"; the rows' buttons "LoRAs (3)", "LoRAs (2/3)", "LoRAs (0/1)"; the counts on a pop-up's tabs are in brackets too ("LoRAs (2/3)", "Layers (3)", "Palette (3)"), so the tabs agree with each other. The power icon is gone.
+- Shown, not built: a switch for all of one region's LoRAs at the top of its LoRAs tab (the owner wants a mock-up first).
+- Tested: `run_ui.sh`, tooltips on real ComfyUI in both node modes; pictures retaken.
+
 ## Rounds 87-88 (Nov 25-26): LoRAs at a glance; the Regions list without sub-rows; a region's pop-up with tabs
 - Asked: make it very clear when LoRAs are active, the whole image's above all: it is easy to miss, and a LoRA left on spoils the next prompt. Then, wider: the list is cramped, and rows that open more rows under them are clunky; handle those things in pop-ups that look like the pack's other ones.
 - Shown before building: three ways to mark LoRAs (a count, names, a summary line), then names with a "+N" chip and two ways to open the list, then the list without sub-rows with cards or one window per region (with design guidance from Apple's HIG on popovers, SAP Fiori, Red Hat and others). The owner chose, step by step: one adaptive LoRAs button per row; name chips on Whole image too; a count on the button and a third state for "all off"; one pop-up per region with tabs; the type as an icon with a menu; an "all off" switch that belongs to no row.

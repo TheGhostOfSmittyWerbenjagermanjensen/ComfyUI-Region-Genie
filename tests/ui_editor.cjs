@@ -43,8 +43,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.waitForTimeout(200);
     ls = await lstate();
     const chipW = await page.evaluate(() => Math.round(document.querySelector(".rg-list .rg-row.scene .rg-lchip").getBoundingClientRect().width));
-    check(`three whole-image LoRAs, one off: the button is amber "LoRAs 2/3", the ones that are on are chips, the header counts 2 (${JSON.stringify(ls)})`,
-          ls.btns[0] === "LoRAs 2/3:some" && ls.chips.length >= 1 && !ls.chips.join().includes("c0.4") && ls.all === "2:some" && ls.edge === 1 && ls.subRows === 0);
+    check(`three whole-image LoRAs, one off: the button is amber "LoRAs (2/3)", the ones that are on are chips, the header says "LoRAs (2)" (${JSON.stringify(ls)})`,
+          ls.btns[0] === "LoRAs (2/3):some" && ls.chips.length >= 1 && !ls.chips.join().includes("c0.4") && ls.all === "LoRAs (2):some" && ls.edge === 1 && ls.subRows === 0);
     check(`a chip with a long file name has a fixed greatest width and is cut short (${chipW} px)`, chipW <= 190);
     await page.locator(".rg-list .rg-row.scene .rg-lbtn").click(); await page.waitForTimeout(250);
     const lp = () => page.evaluate(() => { const b = document.querySelector(".rg-pop"); if (!b) return null; const r = b.getBoundingClientRect();
@@ -53,7 +53,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
                  size: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)], scroll: b.scrollHeight - b.clientHeight, bar: getComputedStyle(b.querySelector(".rg-pop-tabs")).display }; });
     let p1 = await lp();
     check(`the LoRAs button opens the scene prompt's pop-up on its LoRAs tab: a row per LoRA with a grip and a switch, ＋LoRA, no scroll bar (${JSON.stringify(p1)})`,
-          p1 && p1.tab === "loras" && p1.cnt === "2/3" && p1.rows === 3 && p1.grips === 3 && p1.sw === 3 && p1.add && p1.scroll <= 1);
+          p1 && p1.tab === "loras" && p1.cnt === "(2/3)" && p1.rows === 3 && p1.grips === 3 && p1.sw === 3 && p1.add && p1.scroll <= 1);
     await page.locator('.rg-pop .rg-pop-tabs [data-tab="prompt"]').click(); await page.waitForTimeout(150);
     const p2 = await lp();
     check(`switching to the Prompt tab keeps the pop-up's place and size (${p1.size} -> ${p2.size})`, p2.tab === "prompt" && JSON.stringify(p1.size) === JSON.stringify(p2.size)
@@ -74,11 +74,11 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator(".rg-lall").click(); await page.waitForTimeout(150);
     ls = await lstate();
     const offState = await page.evaluate(() => window.__node.__rgState().sceneLoras.map((x) => x.on !== false));
-    check(`the header's switch turns every LoRA off: the row's button is an amber outline "LoRAs 0/3", no chips (${JSON.stringify(ls)})`,
-          offState.every((v) => !v) && ls.btns[0] === "LoRAs 0/3:alloff" && ls.chips.length === 0 && ls.all === "0:back" && ls.edge === 0);
+    check(`the header's switch turns every LoRA off: the row's button is an amber outline "LoRAs (0/3)", no chips; the header says "LoRAs off" (${JSON.stringify(ls)})`,
+          offState.every((v) => !v) && ls.btns[0] === "LoRAs (0/3):alloff" && ls.chips.length === 0 && ls.all === "LoRAs off:back" && ls.edge === 0);
     await page.locator(".rg-lall").click(); await page.waitForTimeout(150);
     const onState = await page.evaluate(() => window.__node.__rgState().sceneLoras.map((x) => x.on !== false));
-    check(`…and the next click puts back the ones that were on, not the one that was off (${onState})`, onState.join() === "true,true,false" && (await lstate()).all === "2:some");
+    check(`…and the next click puts back the ones that were on, not the one that was off (${onState})`, onState.join() === "true,true,false" && (await lstate()).all === "LoRAs (2):some");
     await page.evaluate(() => { const n = window.__node; delete n.__rgState().sceneLoras; n.__rgRefresh(); });
     await page.waitForTimeout(150);
 

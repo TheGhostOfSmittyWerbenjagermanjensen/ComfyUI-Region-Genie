@@ -245,10 +245,10 @@ export function* list(E) {
     function loraCount(list) { const own = ownLoras(list); return { all: own.length, on: own.filter((x) => x.on !== false && x.lora).length }; }
     const loraShort = (name) => String(name || "").split(/[\\/]/).pop().replace(/\.(safetensors|ckpt|pt|pth|bin)$/i, "");
     // the one LoRAs button of a row: grey "＋LoRA" with none listed, amber "LoRAs 2" with some on ("2/3" when some are
-    // off), an amber outline "LoRAs 0/3" when all listed ones are off. A click always opens the pop-up's LoRAs tab.
+    // off), an amber outline "LoRAs (0/3)" when all listed ones are off. A click always opens the pop-up's LoRAs tab.
     function loraButton(list, what, open) {
         const { all, on } = loraCount(list);
-        const b = E.btn(all ? `LoRAs ${on === all ? on : `${on}/${all}`}` : "＋LoRA", "", open);
+        const b = E.btn(all ? `LoRAs (${on === all ? on : `${on}/${all}`})` : "＋LoRA", "", open);        // (the number in brackets: round 89)
         b.classList.add("txt", "rg-lbtn", all ? (on ? "some" : "alloff") : "none");
         b.addEventListener("pointerdown", (e) => e.stopPropagation());
         b.title = all ? `LoRAs of ${what}: ${on} of ${all} on. Click to show and change them.`
@@ -303,7 +303,9 @@ export function* list(E) {
         if (!b) return;
         const own = loraLists().flatMap(ownLoras);
         const on = own.filter((x) => x.on !== false && x.lora).length, back = own.filter((x) => x.wasOn).length;
-        setHTML(b, svgIcon("power") + `<span>${on}</span>`);
+        // round 89: the word, as on the rows' buttons (it was a power icon and the number): "LoRAs (7)", or "LoRAs off"
+        const text = on ? `LoRAs (${on})` : "LoRAs off";
+        if (b.textContent !== text) b.textContent = text;
         b.classList.toggle("some", on > 0);
         b.classList.toggle("back", !on && back > 0);
         b.style.display = own.length ? "" : "none";

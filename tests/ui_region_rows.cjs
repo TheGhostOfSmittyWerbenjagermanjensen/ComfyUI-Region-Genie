@@ -69,7 +69,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
           lay.rows === 1 && lay.grip && lay.name && ["eye", "scissors", "up", "down", "copy", "mergeDown", "moveTo", "eraseLayer", "clear"].every((b) => lay.btns.includes(b)) && lay.bar.join() === "layerAdd,mergeAll");
     await pop.locator('.rg-pop-pane[data-pane=layers] > .rg-pop-addl button[data-ic="layerAdd"]').click(); await page.waitForTimeout(150);
     check("new layer there adds a layer to this region; the tab and the row count 2", (await st()).layers.filter((l) => l.region === rid).length === 2
-          && await pop.locator('.rg-pop-tabs [data-tab="layers"] em').textContent() === "2" && (await rows.nth(1).locator("button.rg-cnt").textContent()).trim() === "2");
+          && await pop.locator('.rg-pop-tabs [data-tab="layers"] em').textContent() === "(2)" && (await rows.nth(1).locator("button.rg-cnt").textContent()).trim() === "2");
     // drag the lower layer above the upper one by its grip
     const order0 = (await st()).layers.filter((l) => l.region === rid).map((l) => l.id);
     const g = await page.evaluate(() => [...document.querySelectorAll(".rg-pop .rg-pop-layers .rg-row.layer .rg-grip")].map((x) => { const r = x.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }));
@@ -108,7 +108,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.evaluate((rid) => { const n = window.__node; n.__rgState().regions.find((r) => r.id === rid).palette = ["#AA3333", "#33AA33"]; n.__rgRefresh(); }, rid); await page.waitForTimeout(150);
     const ridRow = (await st()).regions.findIndex((r) => r.id === rid);
     check("with two colors: the tab counts 2 and the row shows them as dots",
-          await pop.locator('.rg-pop-tabs [data-tab="palette"] em').textContent() === "2" && await rows.nth(ridRow).locator("button.rg-paldots i").count() === 2
+          await pop.locator('.rg-pop-tabs [data-tab="palette"] em').textContent() === "(2)" && await rows.nth(ridRow).locator("button.rg-paldots i").count() === 2
           && await pop.locator(".rg-pop-pal .rg-sw.pal").count() === 2);
     await closePop();
     await rows.nth(1).locator("button.rg-paldots").click(); await page.waitForTimeout(200);
