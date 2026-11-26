@@ -116,7 +116,11 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
     // the LLM button's menu and the LLM settings from it (with a list of their own), the color picker of the palette,
     // and the LoRA list of a LoRA row that was added in the pop-up
     const removeMenus = async () => { await page.evaluate(() => { try { window.LiteGraph?.closeAllContextMenus?.(window); } catch (e) { /* older */ } document.querySelectorAll(".litecontextmenu").forEach((m) => m.remove()); }); await sleep(200); };
+    // rounds 87-88: a pop-up has tabs (Prompt, LoRAs, and for a region Layers, Palette, Options)
+    const toTab = async (t) => { const b = page.locator(`.rg-pop .rg-pop-tabs [data-tab="${t}"]`); if (await b.count() && await b.first().isVisible()) { await b.first().click(); await sleep(250); return true; } return false; };
+    const ADD_LORA = ".rg-pop .rg-pop-pane[data-pane=loras] .rg-pop-addl .rg-btn";
     async function popExtras(label, { llm = true, palette = false, loraRow = false } = {}) {
+        await toTab("prompt");
         if (llm && await page.locator(".rg-pop .rg-llm-btn").count()) {
             await menuFrom(label, page.locator(".rg-pop .rg-llm-btn"), "LLM button's menu (right-click)", { button: "right" });
             // Esc with such a menu open closes the menu, not the pop-up under it (round 43)
@@ -139,22 +143,28 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
             await page.evaluate(() => document.querySelector(".rg-llm-pop")?.remove()); await removeMenus();
             check(`${M}: ${label}: the pop-up is still open after all that`, await page.locator(".rg-pop").count() === 1);
         }
-        if (palette && await page.locator(".rg-pop .rg-paladd").count()) {
-            await page.locator(".rg-pop .rg-paladd").first().click(); await sleep(500);
-            check(`${M}: ${label}: the color picker of the palette opens over the pop-up (${await onTop(".rg-cp")})`, await onTop(".rg-cp") === true);
-            await page.keyboard.press("Escape"); await sleep(300);
-            check(`${M}: ${label}: Esc closes the color picker and leaves the pop-up`, await page.locator(".rg-cp").count() === 0 && await page.locator(".rg-pop").count() === 1);
+        if (palette && await toTab("palette")) {
+            // round 88: the palette's color picker is a part of the Palette tab, not a window that could end up behind
+            await page.locator(".rg-pop .rg-pop-paladd").first().click(); await sleep(500);
+            const pk = await page.evaluate(() => { const p = document.querySelector(".rg-pop .rg-pop-pal .rg-cp.inline .rg-cp-sv"); if (!p) return { there: false };
+                const r = p.getBoundingClientRect(), top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { there: true, onTop: p.contains(top) || p === top, floating: document.querySelectorAll("body > .rg-cp").length }; });
+            check(`${M}: ${label}: the palette's color picker is inside the Palette tab, in view, with no picker window (${JSON.stringify(pk)})`, pk.there && pk.onTop && pk.floating === 0);
+            await page.locator(".rg-pop .rg-pop-pal .rg-pop-paldel").click(); await sleep(300);          // the color added here goes again
+            await nativeTips(`${label}, Palette tab`, 2);
         }
-        if (loraRow) {
-            const add = page.locator(".rg-pop .pop-ctl button", { hasText: "＋LoRA" });
+        for (const t of ["layers", "options"]) if (await toTab(t)) await nativeTips(`${label}, ${t} tab`, 2);
+        if (loraRow && await toTab("loras")) {
+            const add = page.locator(ADD_LORA);
             if (await add.count()) {
                 await add.first().click(); await sleep(800);
                 const picked = await page.evaluate(() => { const e = [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].find((x) => x.offsetParent && /\.safetensors$/.test(x.textContent.trim())); e?.click(); return !!e; });
                 await sleep(900); await removeMenus();
-                if (picked && await page.locator(".rg-pop .rg-pop-loras .rg-pick").count()) await menuFrom(label, page.locator(".rg-pop .rg-pop-loras .rg-pick"), "LoRA list of a LoRA row");
+                if (picked && await page.locator(".rg-pop .rg-pop-lorarows .rg-pick").count()) await menuFrom(label, page.locator(".rg-pop .rg-pop-lorarows .rg-pick"), "LoRA list of a LoRA row");
                 else skip(`${label}: the LoRA list of a LoRA row`, "no LoRA file to add a row with");
+                await nativeTips(`${label}, LoRAs tab`, 3);
             }
         }
+        await toTab("prompt");
     }
     // With the pointer on a control, what would the browser's own tooltip show? The title of the nearest element around
     // the pointer that has the attribute: it must be empty. Asked for every control with a tooltip that is in view.
@@ -228,7 +238,7 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
     check(`${M}: a region's pop-up editor is on top (${await onTop(".rg-pop")})`, await onTop(".rg-pop") === true);
     await fieldLists("pop-up editor of a region, its prompt", page.locator(".rg-pop textarea").first());
     await menuFrom("pop-up editor of a region", page.locator(".rg-pop .rg-wc-pick"), "wildcard");
-    await menuFrom("pop-up editor of a region", page.locator(".rg-pop .pop-ctl button", { hasText: "＋LoRA" }), "LoRA");
+    await toTab("loras"); await menuFrom("pop-up editor of a region", page.locator(ADD_LORA), "LoRA"); await toTab("prompt");
     await popExtras("pop-up editor of a region", { palette: true, loraRow: true });
     await nativeTips("pop-up editor of a region", 12);
     await closePop();
@@ -241,7 +251,7 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
         check(`${M}: ${SCENE_NAMES[i]}: its pop-up editor is on top (${await onTop(".rg-pop")})`, await onTop(".rg-pop") === true);
         await fieldLists(`pop-up editor of ${SCENE_NAMES[i]}`, page.locator(".rg-pop textarea").first());
         await menuFrom(`pop-up editor of ${SCENE_NAMES[i]}`, page.locator(".rg-pop .rg-wc-pick"), "wildcard");
-        if (i === 0) { await menuFrom(`pop-up editor of ${SCENE_NAMES[i]}`, page.locator(".rg-pop .pop-ctl button", { hasText: "＋LoRA" }), "LoRA"); await popExtras(`pop-up editor of ${SCENE_NAMES[i]}`, { loraRow: true }); }
+        if (i === 0) { await toTab("loras"); await menuFrom(`pop-up editor of ${SCENE_NAMES[i]}`, page.locator(ADD_LORA), "LoRA"); await popExtras(`pop-up editor of ${SCENE_NAMES[i]}`, { loraRow: true }); }
         if (i < 2) await nativeTips(`pop-up editor of ${SCENE_NAMES[i]}`, 7);
         await closePop();
     }
@@ -326,7 +336,7 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
     check(`${M}: large editor: a region's pop-up editor opens over the window (${await onTop(".rg-pop")})`, await onTop(".rg-pop") === true);
     await fieldLists("large editor, pop-up editor of a region", page.locator(".rg-pop textarea").first());
     await menuFrom("large editor, pop-up editor of a region", page.locator(".rg-pop .rg-wc-pick"), "wildcard");
-    await menuFrom("large editor, pop-up editor of a region", page.locator(".rg-pop .pop-ctl button", { hasText: "＋LoRA" }), "LoRA");
+    await toTab("loras"); await menuFrom("large editor, pop-up editor of a region", page.locator(ADD_LORA), "LoRA"); await toTab("prompt");
     await popExtras("large editor, pop-up editor of a region", { palette: true });
     await closePop();
     // the other things that pop up over the window
@@ -338,9 +348,19 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
         return +getComputedStyle(t).zIndex > +getComputedStyle(m).zIndex && +getComputedStyle(t).zIndex > +(getComputedStyle(document.querySelector(".rg-big")).zIndex || 0); }));
     await nativeTips("a tool's list", 3);
     await page.keyboard.press("Escape"); await sleep(200);
-    await page.locator(".rg-big .rg-row.region button", { hasText: "＋LoRA" }).first().click(); await sleep(700);
+    // rounds 87-88: a region's type menu; its LoRAs button opens the pop-up on the LoRAs tab, and ＋LoRA there the list
+    await page.locator(".rg-big .rg-row.region .rg-tybtn").first().click(); await sleep(400);
+    check(`${M}: large editor: a region's type menu opens over the window (${await onTop(".rg-menu")})`, await onTop(".rg-menu") === true);
+    await nativeTips("the type menu", 1);
+    await page.keyboard.press("Escape"); await sleep(200);
+    await page.locator(".rg-big .rg-row.region .rg-lbtn").first().click(); await sleep(700);
+    check(`${M}: large editor: the LoRAs button opens the region's pop-up over the window, on its LoRAs tab (${await onTop(".rg-pop")})`,
+          await onTop(".rg-pop") === true && await page.evaluate(() => document.querySelector(".rg-pop .rg-pop-tabs .on")?.dataset.tab) === "loras");
+    await page.locator(ADD_LORA).click(); await sleep(700);
     check(`${M}: large editor: the LoRA menu opens over the window (${await onTop(".litecontextmenu")})`, await onTop(".litecontextmenu") === true);
     await page.keyboard.press("Escape"); await page.evaluate(() => document.querySelectorAll(".litecontextmenu").forEach((m) => m.remove())); await sleep(200);
+    await page.evaluate(() => window.__rg?.__rgCloseEditor?.()); await sleep(200);
+    if (await page.locator(".rg-pop").count()) { await page.keyboard.press("Escape"); await sleep(200); }
     await page.locator(".rg-big .rg-row.region .rg-sw.pick").first().click(); await sleep(400);
     check(`${M}: large editor: the color picker opens over the window (${await onTop(".rg-cp")})`, await onTop(".rg-cp") === true);
     await page.keyboard.press("Escape"); await sleep(300);

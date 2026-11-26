@@ -68,23 +68,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     check(`${M}: no field has the focus: the wheel zooms the canvas as before`, +(await mp.inputValue()) === n0 && (zz == null || zz !== await zoomOf()));
 
     // ---- other fields: the multiple, a Control row's strength, a region LoRA's strength, the step box
-    const field = async (name, loc, step, read) => {
+    // over: where the wheel is turned (the node's bottom bar; for a field of a pop-up, the pop-up itself)
+    const field = async (name, loc, step, read, over = ".rg-foot") => {
         if (!(await loc.count())) return check(`${M}: ${name}: the field is there`, false);
         await loc.first().click(); await sleep(120);
         const a = +(await page.evaluate(() => document.activeElement.value));
-        await wheelAt(...(await mid(page.locator(".rg-foot"))), -100, 2);
+        await wheelAt(...(await mid(page.locator(over))), -100, 2);
         const b = +(await page.evaluate(() => document.activeElement.value)), still = await page.evaluate(() => document.activeElement?.type === "number");
-        await wheelAt(...(await mid(page.locator(".rg-foot"))), 100, 1);
+        await wheelAt(...(await mid(page.locator(over))), 100, 1);
         const c = +(await page.evaluate(() => document.activeElement.value));
         const saved = read ? await page.evaluate(read) : c;
-        check(`${M}: ${name}: up twice, down once over the bottom bar (${a} -> ${b} -> ${c}); the field keeps the focus; saved (${saved})`,
+        check(`${M}: ${name}: up twice, down once with the wheel over ${over === ".rg-foot" ? "the bottom bar" : "its pop-up"} (${a} -> ${b} -> ${c}); the field keeps the focus; saved (${saved})`,
             still && Math.abs(b - a - 2 * step) < 1e-6 && Math.abs(c - b + step) < 1e-6 && Math.abs(saved - c) < 1e-6);
     };
     await field("the multiple (×)", page.locator(".rg-size .rg-size-part").first().locator('input[type="number"]').nth(1), 4, () => window.__rg.properties.rg_size.ratio.multiple);
     await field("a Control row's strength", page.locator(".rg-row.ctrl input[type=number]").first(), 0.05, () => window.__rg.__rgState().controls[0].strength);
-    await page.locator(".rg-row.region .rg-chev").first().click(); await sleep(300);
-    const lh = page.locator(".rg-list").getByText(/^LoRAs \(/).first(); if (await lh.count()) { await lh.click(); await sleep(300); }
-    await field("a region LoRA's strength", page.locator(".rg-list .rg-row.lora input[type=number], .rg-list .rg-lora input[type=number]").first(), 0.05, () => window.__rg.__rgState().regions[0].loras[0].strength);
+    // round 87: a region's LoRAs are on the LoRAs tab of its pop-up (moved off the node here, so the bottom bar is free)
+    await page.evaluate(() => window.__rg.__rgEditTab(window.__rg.__rgState().regions[0].id, "loras")); await sleep(400);
+    await page.evaluate(() => { const b = document.querySelector(".rg-pop"); b.style.left = "6px"; b.style.top = "6px"; }); await sleep(100);
+    await field("a region LoRA's strength (in its pop-up)", page.locator(".rg-pop .rg-pop-lorarows input[type=number]").first(), 0.05, () => window.__rg.__rgState().regions[0].loras[0].strength, ".rg-pop");
+    await page.evaluate(() => window.__rg.__rgCloseEditor()); await sleep(200);
     await page.evaluate(() => [...document.querySelector(".rg-size").querySelectorAll("button")].find((b) => /^Manual: /.test(b.title)).click()); await sleep(300);
     await field("manual width (by its step size)", page.locator(".rg-size .rg-size-part").nth(2).locator("input").nth(0), 64, () => window.__rg.properties.rg_size.manual.w);
 

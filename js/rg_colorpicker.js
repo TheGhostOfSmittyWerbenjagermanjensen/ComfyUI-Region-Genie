@@ -213,7 +213,7 @@ export function openColorPicker(anchor, hex, { onInput, onClose, inline = null }
         fields.textContent = ""; hexIn = null; numIns = [];
         copyBtn.title = `Copy (${{ hex: "#4ecb8d", rgb: "rgb(78, 203, 141)", hsl: "hsl(150, 55%, 55%)" }[displayMode]} format)`;
         if (displayMode === "hex") {
-            hexIn = el("input"); hexIn.type = "text"; hexIn.spellcheck = false; hexIn.setAttribute("aria-label", "Hex");
+            hexIn = el("input"); hexIn.type = "text"; hexIn.spellcheck = false; hexIn.setAttribute("aria-label", "Hex"); hexIn.title = "The color as a hex value";
             fieldEvents(hexIn, () => {
                 const n = normalizeHex(hexIn.value);
                 if (n) { setFromRgb(hexToRgb(n)); update(false); }

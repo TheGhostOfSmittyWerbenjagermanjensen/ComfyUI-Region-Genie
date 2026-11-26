@@ -214,12 +214,43 @@ The owner asked for a UI / UX review (new users, regular users, look and feel) a
 
 ### Region rows (round 34, UX batch 2)
 
+**Replaced in rounds 87-88 (see the next section): the options line and the subsections under a row are gone.** What follows is the history.
+
 The owner chose layout B from three mock-ups (a ⋯ menu; inside the opened region; a second line on the active region), with ✕ only among the moved controls. The owner first asked how a region becomes active, then chose B over C, so nothing in the row depends on which region is active.
 
 - A region's row (`renderRegions`, js/editor/llm.js): ▶, show / hide, number, color, type, prompt (and text), LLM, keep (Edit Mode), Control switch (with a Control row), layer count, ＋LoRA. The prompt went from 182 to about 400 px at the default node width.
 - The **options line** (`.rg-row.opts`) is the first thing in an opened region: the words "feather" and "palette" with `featherBox(r)` and `paletteToggle(r)`, then ⇊ merge, ↑ ↓ move, ✕ delete on the right. Every region can be opened now (`chevron(r.id, true, …)`), also one without layers, and "▼ All" opens every region (`kindTargets("all")` adds each region's row).
 - Nothing about the data changed, and the pop-up region editor still has feather, palette and LoRAs.
 - `tests/ui_region_rows.cjs` checks the row, the line and that its controls work. The stub node's image is 256 px wide: test coordinates must stay inside it.
+
+### The Regions list without sub-rows; a region's pop-up with tabs (rounds 87-88)
+
+**What the owner wanted.** LoRAs that are on must be impossible to miss, the whole image's above all. Then, more generally: nothing opening under a row; pop-ups that match the pack's other ones. Every step was shown as mock-ups drawn onto the real node first; the owner's choices are in `docs/CHANGELOG.md`.
+
+**The rows (`llm.js` `renderRegions`, `list.js`).**
+- A region row is one line: grip, eye, number, swatch, type icon (`.rg-tybtn`, `openMenu` with the three types), prompt (and for a text region `.rg-tsplit` + the text field), LLM, keep / control toggles when they apply, `button.rg-cnt` (layers and pose figures), `button.rg-paldots` (the palette's colors while it is on), the LoRAs button, delete.
+- `loraButton(list, what, open)`: classes `none` / `some` / `alloff`; text "＋LoRA", "LoRAs 3", "LoRAs 2/3", "LoRAs 0/2". `loraChips` (Whole image): chips of the LoRAs that are on, `fit()` hides from the end and shows "+N" (a ResizeObserver keeps it right); a chip's name is cut at 130 px. `ownLoras` leaves out the Edit and Control LoRAs (they have their own rows). Rows with a LoRA on have the class `has-lora` (the amber edge).
+- `E.loraAllBtn` in the header (`canvasUi.js`): `toggleAllLoras` switches all off and marks them `wasOn`; with none on it switches the `wasOn` ones back. `wasOn` is saved in the node's state (Python ignores it); toggling a LoRA by hand clears it on that LoRA.
+- Gone: the ▶ chevrons on rows, the options line, `subHeader` bodies in the list, the Whole image row's click-to-open, the ▼ buttons (`updateExpandButtons` hides them all). `E.expanded` / `E.subOpen` / `E.openSub` still exist and do nothing visible; `subHeader`, `toggleKind`, `chevron` and `paletteRow` are unused now and can be removed in a cleanup.
+- The text field's width of a text region: `node.properties.rg_text_w[region id]` (px), set by `.rg-tsplit`; not part of Undo.
+
+**The pop-up (`popups.js`).**
+- `popTabs(defs, first, onSwitch)`: a tab bar and panes in one grid cell (`.rg-pop-pane.off` is `visibility:hidden`), so the pop-up is as tall as its tallest pane and keeps its size and place on a switch. `popFit(box)` grows the pop-up when its content is taller (never a scroll bar). `POP_MIN_W` (region 430 px).
+- Region pop-up (`editPrompt(rid, rect, focus, at, tab)`): prompt | loras | layers | palette | options. Scene pop-up (`editScene(which, at, tab)`): prompt | loras for `positive`, one pane for the others. `ed.tabs.cur` is passed on when stepping with ◀ / ▶.
+- LoRAs tab: `loraRows(list, { pop: true })` adds `loraGrip` (drag to reorder inside `.rg-pop-lorarows`) and makes the on / off box a switch (`input.rg-switch`).
+- Layers tab: `E.layerRows(rid)` as the list had them, inside `.rg-pop-layers`; `grip("layer")` works on that container, and still drops onto a region's row of the list where the pop-up doesn't cover it. `markLayerRows` marks the rows in the pop-up.
+- Palette tab: `paletteTab(box, r, st)` in `list.js`; `st` (`ed.pal`) keeps the selected color, the inline picker and an undo snapshot between refreshes, so a redraw doesn't end a drag. A change is committed as one undo step half a second after the color rests (`st.flush`, also when the pop-up closes). `openColorPicker(null, hex, { inline: host })` builds the picker into the tab (no window, no outside-click close; `set(hex)`).
+- Options tab: `optLine(label, ...controls)`; feather, Edit Mode's keep, the Control switch, order, show / hide, delete.
+- `popUndoKeys`: Undo / Redo of the editor while no text field has the cursor (a pop-up used to swallow them).
+- Test hooks: `node.__rgEditTab(rid, tab)`, `node.__rgCloseEditor()`.
+
+**The canvas labels (`render.js` `drawLabels`).** Inside a region the number badge and the marks are a line above the text, centered (`it.top = { headW, headH }`); a region too low for that keeps them before the text. Marks: `LABEL_MARKS.person` / `object` / `text` (and `lock` in Edit Mode). Settings: `cmLabelPad` (3%), `cmLabelAlign` (left / center).
+
+**Other.** `.rg-expand` is a solid tile in the field's color (a one-line field's text runs to the field's edge: it can't be stopped earlier, so the tile covers it). The large editor's scene boxes are wrapped in `.rg-big-fld` and get `addExpandButton(..., [], 14)` (14 px for the browser's resize grip) and the LLM corner button; `editScene` places its pop-up left of the big scene box.
+
+**Tested (round 88's finishing).** `run_py.sh`, `run_ui.sh`; on real ComfyUI in both node modes: `real_smoke` (its node count was still 6: it is 8 since the tiled nodes), `real_layering` (new lines for the tabs, the inline picker and the type menu; the legacy run takes about ten minutes), `real_text_boxes` four ways, `real_sockets`, `real_number_wheel` (a pop-up's number field steps with the wheel over its pop-up), `real_attention`, `real_fields_popups`, `real_llm_settings`, `real_pose_input`, `real_run_wildcards`, `real_tooltips`, `real_i18n`; and `real_mode_switch`, `real_settings`, `real_tiled_upscale`, `real_save_image`, `make_examples.cjs check`. Pictures retaken with `shot_readme.cjs` (new: `popup-layers.png`, `popup-palette.png`, `popup-options.png`; `lora.png` is now the LoRAs tab).
+
+**Not done / ideas.** Whole image has no Options tab; its Control and Edit rows are still rows of the list. The type menu shows a tick, not the type's icon. A layer selected on the canvas no longer shows itself anywhere unless that region's Layers tab is open (offered: open it, or a mark on the row's layer count).
 
 ### Canvas labels, region colors, drag to reorder, theme (round 35, UX batch 3)
 

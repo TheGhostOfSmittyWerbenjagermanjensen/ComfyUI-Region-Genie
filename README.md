@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.57.0-8f73d6)
+![Version](https://img.shields.io/badge/version-0.58.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -158,7 +158,7 @@ The easiest way to write prompts. Every text field opens in a large editor that 
 
 <img src="docs/images/popup-scene.png" alt="The pop-up editor of scene_prompt_positive, with a whole-image LoRA" width="560">
 
-<img src="docs/images/popup-region.png" alt="The pop-up editor of a region: type buttons, prompt, color palette, feather and a LoRA" width="500">
+<img src="docs/images/popup-region.png" alt="The pop-up editor of a region: its tabs, the type buttons and the prompt" width="500">
 
 | Where | Control | What it does |
 |---|---|---|
@@ -167,13 +167,12 @@ The easiest way to write prompts. Every text field opens in a large editor that 
 | Text box | Ctrl+Up / Ctrl+Down | Raise or lower the weight of the word or tag at the cursor, or of the selected words: `(tag:1.05)` |
 | | A− / A+ | Smaller / larger text |
 | | Close | Closes the pop-up (also Esc). Your text always stays |
+| Tabs | Prompt, LoRAs, Layers, Palette, Options | Everything a region holds, one tab each; the pop-up keeps its size when you switch |
 | Region only | Object / Character / Text | What kind of region this is |
-| | Color palette | Colors the region should use: on / off, the colors, **+** to add one |
-| | Feather | How soft the region's edge is |
 | Bottom row | Tag autocomplete | Tag suggestions while you type, on / off |
 | | Wildcards | Insert a wildcard (with ComfyUI Impact Pack) |
 | | LLM Prompt Enhancer | Let a local LLM rewrite this prompt when the workflow runs |
-| | ＋LoRA | Add a LoRA: for this region, or for the whole image on `scene_prompt_positive` |
+| LoRAs tab | ＋LoRA | Add a LoRA: for this region, or for the whole image on `scene_prompt_positive` |
 
 Drag the title bar to move a pop-up, and the corner grip to resize it. It stays open while you draw.
 
@@ -217,9 +216,9 @@ The row at the top of the node replaces a separate size node. Pick the size in o
 
 ### Regional LoRAs
 
-**＋LoRA** on a region adds a LoRA that acts only inside that region. **＋LoRA** on *Whole image* adds one for the whole picture. Trigger words show as chips you can click into the prompt.
+The **LoRAs** button on a region's row adds LoRAs that act only inside that region; the one on *Whole image* adds LoRAs for the whole picture. The buttons turn amber and count the LoRAs that are on, *Whole image* names them, and one switch in the list's header turns every LoRA off and back on. Trigger words show as chips you can click into the prompt.
 
-<img src="docs/images/lora.png" alt="A region opened in the list, with a LoRA of its own" width="460">
+<img src="docs/images/lora.png" alt="The LoRAs tab of a region's pop-up, with a LoRA of its own" width="460">
 
 → [Regional LoRAs](docs/regional-loras.md)
 

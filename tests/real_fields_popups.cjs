@@ -219,15 +219,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const hidden = lay();
         delete st.regions[0].hidden; rg.__rgRefresh(); await wait(600);
         rg.__rgSelectLayer(1); await wait(500);
-        const cut = [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.dataset.ic === "scissors");
+        // round 88: a region's layers are on the Layers tab of its pop-up
+        rg.__rgEditTab(1, "layers"); await wait(500);
+        const cut = [...document.querySelectorAll('.rg-pop .rg-row.layer[data-lid="1"] button')].find((b) => b.dataset.ic === "scissors");
         const offTitle = cut?.title || "";
         cut?.click(); await wait(900);
         const L = rg.__rgState().layers[0];
-        const row = document.querySelector('.rg-list .rg-row.layer[data-lid="1"]');
+        const row = document.querySelector('.rg-pop .rg-row.layer[data-lid="1"]');
         const asHole = { region: L.region, owner: L.owner, listed: !!row, hatched: !!row?.classList.contains("hole"),
                          on: !![...(row?.querySelectorAll("button") || [])].find((b) => b.dataset.ic === "scissors" && b.classList.contains("on")) };
         const holeOnly = lay();
-        [...document.querySelectorAll('.rg-list .rg-row.layer[data-lid="1"] button')].find((b) => b.dataset.ic === "scissors")?.click(); await wait(900);
+        [...document.querySelectorAll('.rg-pop .rg-row.layer[data-lid="1"] button')].find((b) => b.dataset.ic === "scissors")?.click(); await wait(900);
+        rg.__rgCloseEditor(); await wait(200);
         const back = { region: rg.__rgState().layers[0].region, owner: rg.__rgState().layers[0].owner };
         const again = lay();
         // an old workflow's 'Unspecified' layer (region 0, no owner): listed under the region of the layer below it
@@ -236,10 +239,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
                      { id: 2, name: "Unspecified 2", region: 0, visible: true, shape: "rect", sides: 5, bw: 0.2, bh: 0.2, sx: 1, sy: 1, rot: 0, ox: 0.25, oy: 0, ops: [] },
                      { id: 3, name: "A", region: 1, visible: true, shape: "rect", sides: 5, bw: 0.5, bh: 1, sx: 1, sy: 1, rot: 0, ox: -0.25, oy: 0, ops: [] }];
         rg.__rgRefresh(); await wait(400); rg.__rgSelectLayer(2); await wait(600);
-        const oldRow = document.querySelector('.rg-list .rg-row.layer[data-lid="2"]');
-        const rows = [...document.querySelectorAll(".rg-list .rg-row")];
-        const under = rows.slice(0, rows.indexOf(oldRow)).reverse().find((r) => r.classList.contains("region"))?.querySelector("textarea")?.value;
-        const oldHole = { listed: !!oldRow?.classList.contains("hole"), under: under === "b" };
+        rg.__rgEditTab(2, "layers"); await wait(500);               // region 2 is the one with the prompt "b"
+        const oldRow = document.querySelector('.rg-pop .rg-row.layer[data-lid="2"]');
+        rg.__rgEditTab(1, "layers"); await wait(500);
+        const inOther = !!document.querySelector('.rg-pop .rg-row.layer[data-lid="2"]');
+        rg.__rgCloseEditor(); await wait(200);
+        const oldHole = { listed: !!oldRow?.classList.contains("hole"), under: !!oldRow && !inOther };
         st.regions = keep.regions; st.layers = keep.layers; rg.__rgRefresh(); await wait(600);
         return { empty, unspecRow, drawn, hidden, offTitle, asHole, holeOnly, back, again, oldHole };
     });
@@ -458,7 +463,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const rightEnd = () => page.evaluate(() => { const b = document.querySelector(".rg-pop").getBoundingClientRect(), l = [...document.querySelectorAll(".rg-pop .pop-ctl > *")].pop().getBoundingClientRect(), t = document.querySelector(".rg-pop textarea").getBoundingClientRect();
         return l.right > b.right - 40 && l.top >= t.bottom - 1; });
     const rowScene = await rowOf();
-    check(`${M}: scene pop-up, bottom row on the right: tag autocomplete, wildcard, LLM, ＋LoRA (${rowScene})`, /gap (tag )?(wildcard )?llm ＋LoRA$/.test(rowScene) && /tag|wildcard/.test(rowScene) && await rightEnd()
+    check(`${M}: scene pop-up, bottom row on the right: tag autocomplete, wildcard, LLM; ＋LoRA is on its LoRAs tab (${rowScene})`, /gap (tag )?(wildcard )?llm$/.test(rowScene)
+        && await page.locator(".rg-pop .rg-pop-pane[data-pane=loras] .rg-pop-addl .rg-btn").count() === 1 && /tag|wildcard/.test(rowScene) && await rightEnd()
         && await page.locator(".rg-pop-head .rg-ac-btn, .rg-pop-head .rg-wc-pick").count() === 0);
     const sv0 = await sceneV();
     await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("Control+End"); await page.keyboard.type(" XYZ");
@@ -489,12 +495,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // a region's pop-up
     await page.evaluate(() => [...document.querySelectorAll(".rg-list .rg-pwrap .rg-expand")][1]?.click()); await sleep(250);
     const rowReg = await rowOf();
-    // round 43: one row. Left of the gap: the palette (its on / off button, colors, +). Right: feather and the rest
-    const palSide = await page.evaluate(() => { const kids = [...document.querySelectorAll(".rg-pop .pop-ctl > *")], g = kids.findIndex((e) => e.classList.contains("rg-pop-gap"));
-        return { left: kids.slice(0, g).every((e) => e.classList.contains("toggle") || e.classList.contains("rg-sw") || e.classList.contains("rg-paladd")), first: kids[0]?.classList.contains("toggle"),
-                 feather: kids.slice(g).some((e) => e.classList.contains("rg-feather")), icons: document.querySelectorAll(".rg-pop .rg-palico").length, rows: document.querySelectorAll(".rg-pop .rg-pop-dyn > .rg-row").length }; });
-    check(`${M}: a region's pop-up, one bottom row: the color palette on the left (one palette button), every other control on the right, ending with tag autocomplete, wildcard, LLM, ＋LoRA (${rowReg}; ${JSON.stringify(palSide)})`,
-        /^x( x)* gap x (x )*(tag )?(wildcard )?llm ＋LoRA$/.test(rowReg) && palSide.left && palSide.first && palSide.feather && palSide.icons === 0 && palSide.rows === 1 && await rightEnd());
+    // round 88: the Prompt tab's bottom row holds what belongs to the text; the palette, feather and ＋LoRA are on their tabs
+    const palSide = await page.evaluate(() => { const p = document.querySelector(".rg-pop");
+        return { tabs: [...p.querySelectorAll(".rg-pop-tabs .rg-btn")].map((b) => b.dataset.tab).join(), inRow: !!p.querySelector(".pop-ctl .rg-feather, .pop-ctl .rg-sw.pal, .pop-ctl .toggle"),
+                 palTab: !!p.querySelector(".rg-pop-pal input.rg-switch"), optFeather: !!p.querySelector(".rg-pop-opts .rg-feather input"), addLora: !!p.querySelector(".rg-pop-pane[data-pane=loras] .rg-pop-addl .rg-btn"),
+                 rows: p.querySelectorAll(".rg-pop-dyn > .rg-row").length }; });
+    check(`${M}: a region's pop-up: five tabs; the Prompt tab's bottom row has tag autocomplete, wildcard and the LLM on the right; the palette, feather and ＋LoRA are on their tabs (${rowReg}; ${JSON.stringify(palSide)})`,
+        /^gap (tag )?(wildcard )?llm$/.test(rowReg) && palSide.tabs === "prompt,loras,layers,palette,options" && !palSide.inRow && palSide.palTab && palSide.optFeather && palSide.addLora && palSide.rows === 1 && await rightEnd());
     const footTx = await page.evaluate(() => document.querySelector(".rg-pop .rg-pop-foot")?.textContent || "");
     await page.locator(".rg-pop textarea").first().click(); await page.keyboard.press("Control+End"); await page.keyboard.type(" XYZ");
     await page.keyboard.press("Escape"); await sleep(200);
