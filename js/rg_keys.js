@@ -69,6 +69,7 @@ export const COMMANDS = [
     // the Image Compare node (round 94): the owner wanted its keys changeable, and the pack's shortcuts in one list by node
     { id: "compare.prev", group: "Image Compare node", ctx: "compare", what: "The picture before (around the ends)", keys: ["ArrowLeft"] },
     { id: "compare.next", group: "Image Compare node", ctx: "compare", what: "The next picture (around the ends)", keys: ["ArrowRight"] },
+    { id: "compare.big", group: "Image Compare node", ctx: "compare", what: "Large view: Open / close", keys: ["Alt+Enter"] },
 ];
 const BY_ID = Object.fromEntries(COMMANDS.map((c) => [c.id, c]));
 
@@ -90,9 +91,12 @@ const FIXED = {
     "Text": [[null, "Enter", "A region's prompt in the list: Done (Shift+Enter: a new line). Pop-up editor: A new line"],
              ["text.next", "Esc", "Pop-up editor: Close (the text stays as it is)"],
              ["text.next", "Ctrl+Up / Ctrl+Down", "A prompt box: Raise or lower the weight of the word or tag at the cursor, or of the selected words, as (tag:1.05). ComfyUI's own keys"]],
-    "Image Compare node": [[null, "Pointer over the node", "Where these keys act: Over the picture or the row of numbers"],
+    "Image Compare node": [[null, "Pointer over the node", "Where these keys act: Anywhere over the node, and in its Large view"],
                            [null, "1 to 9", "Choose that picture (the number row or the numpad)"],
-                           ["compare.next", "Right-click", "A number: Hide that picture from the comparison, or show it again"]],
+                           ["compare.next", "Right-click", "A number: Hide that picture from the comparison, or show it again"],
+                           ["compare.big", "Wheel", "Large view: Zoom into the pictures, out as far as the whole picture fits. On the node: Zoom ComfyUI's graph"],
+                           ["compare.big", "Drag", "Large view, zoomed in: Move the pictures"],
+                           ["compare.big", "Esc", "Large view: Close"]],
 };
 const GROUPS = ["Tools", "While drawing", "Layers and regions", "View", "Text", "Image Compare node"];
 const COLUMN_OF = { "Layers and regions": 1, "View": 1, "Text": 1, "Image Compare node": 1 };      // the sheet's second column; the rest: the first

@@ -19,18 +19,28 @@ Shows two or more images in one node, to compare them with a slider or by flippi
 
 ## Keys
 
-They act while the pointer is over the node (the picture or the row of numbers).
+They act while the pointer is anywhere over the node (its title and inputs too), and in its Large view.
 
 | Key | What it does | Can be changed |
 |---|---|---|
 | 1 to 9, on the number row or the numpad | Chooses that picture | No |
 | Left / Right arrow | The picture before / after, around the ends | Yes |
+| Alt+Enter | Opens / closes the Large view | Yes |
 
-Change the two stepping keys in the pack's shortcut list (**Settings > Region Genie > Shortcuts > Edit…**), in its section *Image Compare node*. They may be keys the Region Genie node's editor also uses: each node only takes its keys while the pointer is over it.
+Change the stepping keys and the Large view's key in the pack's shortcut list (**Settings > Region Genie > Shortcuts > Edit…**), in its section *Image Compare node*. They may be keys the Region Genie node's editor also uses: each node only takes its keys while the pointer is over it.
 
 Flipping in place: rest the pointer on the row of numbers and press the keys. The chosen picture shows whole and changes in place, which shows small differences well.
 
-## The two buttons
+## Looking closer
+
+- **On the node, the wheel zooms ComfyUI's graph** as it does anywhere else, also with the pointer on the picture. Zoom the graph in to look closer, or drag the node's corner to make the picture larger.
+- **The Large view** (the third button, or Alt+Enter with the pointer over the node) opens the comparison in a large window over ComfyUI. The slider, the keys, the numbers and the buttons work as on the node.
+  - **The wheel zooms into the pictures**, about the place under the pointer. Zooming out stops when the whole picture fits the window again, so there is no Fit button: zoom out until it stops.
+  - **A drag moves the pictures** while zoomed in; they stop at their edges.
+  - The number left of the buttons is the picture's size on the screen: 100% is one picture pixel per screen pixel. Far in, the pictures show their own pixels without smoothing.
+  - Close it with the button again, its key, Esc, or a click beside the window.
+
+## The buttons
 
 - **Around the corner** (on to start with): picture 1 has no picture before it, so the *last* picture is on its left. Off: picture 1 shows alone.
 - **Number labels** (on to start with): the numbers in the picture's top corners, which say which picture is on which side.

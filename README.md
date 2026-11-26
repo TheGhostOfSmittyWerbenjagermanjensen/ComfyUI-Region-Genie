@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.58.1-8f73d6)
+![Version](https://img.shields.io/badge/version-0.59.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -335,7 +335,7 @@ One node upscales an image with the model that made it: it enlarges the image, t
 
 ### Image compare
 
-One node compares two or more images: move the pointer across the picture to slide between a picture and the one before it, press 1 to 9 or the arrow keys to choose the picture, and right-click a number to leave a picture out so its neighbours are compared directly. A batch counts as one picture per image.
+One node compares two or more images: move the pointer across the picture to slide between a picture and the one before it, press 1 to 9 or the arrow keys to choose the picture, and right-click a number to leave a picture out so its neighbours are compared directly. A Large view opens it over ComfyUI, where the wheel zooms into the pictures. A batch counts as one picture per image.
 
 <img src="docs/images/image-compare.png" alt="The Image Compare node with three pictures and the slider between two of them" width="360">
 

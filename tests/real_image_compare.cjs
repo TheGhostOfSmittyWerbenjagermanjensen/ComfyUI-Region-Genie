@@ -132,6 +132,54 @@ const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];          // image_1 …
     check(`${M}: two pictures, 1 chosen: the sides swap (2 | 1)`, s.cur === 1 && s.prev === 2 && v.left === COLORS[1] && v.right === COLORS[0]);
     await page.locator(".rg-ic-opts button").nth(0).click(); await hover(0.5); s = await S();
     check(`${M}: two pictures, around the corner off: 1 alone, 2 still 1 | 2`, s.prev === 0 && (await page.keyboard.press("2"), (await S()).prev === 1));
+    // ---- round 95: keys anywhere over the node; the wheel over the picture zooms the graph; the Large view
+    const title = await page.evaluate(() => { const n = window.__cmp, c = window.app.canvas, r = c.canvas.getBoundingClientRect(), ds = c.ds;
+        const vue = document.querySelector(`[data-node-id="${n.id}"]`);
+        if (vue) { const b = vue.getBoundingClientRect(); return [b.left + b.width / 2, b.top + 12]; }
+        return [r.left + (n.pos[0] + n.size[0] / 2 + ds.offset[0]) * ds.scale, r.top + (n.pos[1] - 12 + ds.offset[1]) * ds.scale]; });
+    await page.locator(".rg-ic-opts button").nth(0).click();             // around the corner on again
+    await page.mouse.move(title[0], title[1], { steps: 3 }); await sleep(150);
+    await page.keyboard.press("1"); const t1 = (await S()).cur; await page.keyboard.press("ArrowRight"); const t2 = (await S()).cur;
+    check(`${M}: the keys act with the pointer on the node's title, not only on its picture (${t1}, then ${t2})`, t1 === 1 && t2 === 2);
+    await away(); await page.keyboard.press("1");
+    check(`${M}: and not with the pointer off the node`, (await S()).cur === 2);
+    const scale = () => page.evaluate(() => window.app.canvas.ds.scale);
+    await hover(0.5); const sc0 = await scale();
+    await page.mouse.wheel(0, -240); await sleep(400); const sc1 = await scale();
+    await hover(0.5); await page.mouse.wheel(0, 240); await sleep(400); const sc2 = await scale();
+    check(`${M}: the wheel over the node's picture zooms ComfyUI's graph in and out again (${sc0.toFixed(2)} > ${sc1.toFixed(2)} > ${sc2.toFixed(2)})`, sc1 > sc0 * 1.05 && sc2 < sc1 * 0.97);
+    await page.evaluate(() => { const c = window.app.canvas; c.ds.scale = 1; c.ds.offset = [0, 0]; c.setDirty(true, true); }); await sleep(300);
+    // the Large view
+    await page.locator(".rg-ic-opts .rg-ic-bigbtn").first().click(); await sleep(300);
+    const bigView = page.locator(".rg-ic-big .rg-ic-view");
+    const bb = await bigView.boundingBox();
+    check(`${M}: the Large view opens over ComfyUI and fills most of the window (${Math.round(bb?.width)} × ${Math.round(bb?.height)})`, !!bb && bb.width > 1200 && bb.height > 800 && (await S()).big?.zoom === 1);
+    await page.mouse.move(bb.x + bb.width * 0.25, bb.y + bb.height * 0.5, { steps: 3 }); await sleep(120);
+    await page.keyboard.press("2"); await sleep(100);
+    const bigLook = () => page.evaluate(() => { const v = document.querySelector(".rg-ic-big .rg-ic-view"), [r, l] = v.querySelectorAll("img"), st = v.querySelector(".rg-ic-stage").getBoundingClientRect(), b = v.getBoundingClientRect();
+        return { clip: l.style.clipPath, leftShown: !l.hidden, stage: [st.left - b.left, st.top - b.top, st.width, st.height].map((x) => Math.round(x)), view: [Math.round(b.width), Math.round(b.height)], zoomText: document.querySelector(".rg-ic-big .rg-ic-zoom")?.textContent }; });
+    let bl = await bigLook();
+    check(`${M}: Large view: the slider and the keys work as on the node (1 | 2, cut at a quarter: ${bl.clip})`, (await S()).cur === 2 && bl.leftShown && /inset\(0(px)? 75(\.\d+)?% 0(px)? 0(px)?\)/.test(bl.clip));
+    await page.mouse.wheel(0, -600); await sleep(200);
+    let z1 = (await S()).big.zoom; bl = await bigLook();
+    check(`${M}: Large view: the wheel zooms into the pictures (${z1.toFixed(2)}×, shown as ${bl.zoomText}); the place under the pointer stays there`, z1 > 1.8 && Math.abs((bb.width * 0.25 - bl.stage[0]) / bl.stage[2] - 0.25) < 0.01);
+    check(`${M}: Large view, zoomed: the left picture is still cut exactly at the pointer`, (() => { const m = /inset\(0(?:px)? ([\d.]+)%/.exec(bl.clip); return !!m && Math.abs((1 - m[1] / 100) - (bb.width * 0.25 - bl.stage[0]) / bl.stage[2]) < 0.005; })(), bl.clip + " " + bl.stage.join());
+    // a drag moves the pictures, never past their edge
+    await page.mouse.down(); await page.mouse.move(bb.x + bb.width * 0.25 + 3000, bb.y + bb.height * 0.5 + 3000, { steps: 6 }); await page.mouse.up(); await sleep(150);
+    bl = await bigLook();
+    check(`${M}: Large view: a drag moves the pictures, and stops at their edge (${bl.stage.slice(0, 2).join(", ")})`, bl.stage[0] === 0 && bl.stage[1] === 0);
+    await page.mouse.move(bb.x + bb.width * 0.6, bb.y + bb.height * 0.4, { steps: 3 });
+    for (let i = 0; i < 12; i++) await page.mouse.wheel(0, 600); await sleep(250);
+    bl = await bigLook();
+    check(`${M}: Large view: zooming out stops when the picture fits its frame (${(await S()).big.zoom}×, ${bl.stage.join(", ")})`, (await S()).big.zoom === 1 && bl.stage[0] === 0 && bl.stage[1] === 0 && bl.stage[2] === bl.view[0] && bl.stage[3] === bl.view[1]);
+    check(`${M}: Large view: the graph behind it did not zoom`, Math.abs(await scale() - 1) < 0.001);
+    if (process.env.RG_SHOT) { await page.mouse.wheel(0, -500); await sleep(200); await page.screenshot({ path: process.env.RG_SHOT.replace(/\.png$/, "-large.png") }); }
+    await page.keyboard.press("Escape"); await sleep(200);
+    check(`${M}: Esc closes the Large view; the node is as it was`, await page.locator(".rg-ic-big").count() === 0 && (await S()).big === null && (await S()).cur === 2);
+    await page.mouse.move(title[0], title[1], { steps: 3 }); await page.keyboard.press("Alt+Enter"); await sleep(250);
+    const opened = await page.locator(".rg-ic-big").count();
+    await page.keyboard.press("Alt+Enter"); await sleep(250);
+    check(`${M}: its key opens and closes the Large view with the pointer over the node`, opened === 1 && await page.locator(".rg-ic-big").count() === 0);
     const fit = await page.evaluate(() => { const w = document.querySelector(".rg-ic"); return w.scrollWidth - w.clientWidth <= 1 && w.scrollHeight - w.clientHeight <= 1; });
     check(`${M}: nothing in the node needs a scroll bar`, fit);
     check(`${M}: no page errors`, errors.length === 0, errors.slice(0, 3).join(" | "));

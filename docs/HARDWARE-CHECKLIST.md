@@ -318,4 +318,7 @@ Nothing here has run on a real model yet.
 - [ ] The LoRA list of a region with your own library and rgthree's folders: typing finds LoRAs in every folder, each with its folder; a pick adds it
 - [ ] Settings > Region Genie > Models and files > *Search all folders in every list of ComfyUI (experimental)* on: a Load LoRA node's list (legacy nodes) searches every folder; menus of other packs you use still work
 - [ ] A region's pop-up, Layers tab: move a layer by its grip, then the pop-up's own Undo button puts it back
+- [ ] Image Compare (round 95): the wheel over the node's picture zooms the graph exactly as over the empty graph (same speed, same direction), with a mouse and with a trackpad pinch, in legacy mode and Nodes 2.0
+- [ ] Image Compare, Large view with real pictures: the wheel's zoom speed feels right; zooming out stops at the whole picture; a drag moves it; at high zoom single pixels are sharp; the percent readout is right for a picture you know the size of
+- [ ] Image Compare: number keys and arrows with the pointer on the node's title and on its input names
 
