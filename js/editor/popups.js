@@ -171,7 +171,18 @@ export function* popups(E) {
         const prev = mkB("◀", popNavTip(-1, "scene prompts, then each region's prompt"), () => popStep(-1), "rg-nav prev");
         const next = mkB("▶", popNavTip(1, "scene prompts, then each region's prompt"), () => popStep(1), "rg-nav");
         const x = head.querySelector(".rg-x");
-        ed.histBtns = historyButtons(curHist);
+        // Undo / Redo take back what was done last (round 93). Typing was last, and the Prompt tab is shown: the text's
+        // own steps (curHist()). Anything else was last (a row moved, a switch, a LoRA, a region moved in the list), or
+        // another tab is shown: the editor's Undo, the same as the buttons above the canvas. Before, the buttons only
+        // knew the text, so a layer moved on the Layers tab could not be taken back from the pop-up.
+        const edHist = { undo: () => { ed.last = "edit"; E.undo(); }, redo: () => { ed.last = "edit"; E.redo(); },
+                         canUndo: () => E.undoStack.length > 0 || !!E.textDirty, canRedo: () => E.redoStack.length > 0 };
+        const textLast = () => (!ed.tabs || ed.tabs.cur === "prompt") && ed.last !== "edit" && curHist();
+        box.addEventListener("input", (e) => { if (e.target?.tagName === "TEXTAREA") { ed.last = "text"; ed.histBtns?.refresh(); } }, true);
+        box.addEventListener("click", () => setTimeout(() => ed.histBtns?.refresh(), 0));           // another tab: the buttons may be ready or not
+        ed.histBtns = historyButtons(() => (textLast() ? curHist() : edHist), undefined,
+            ["Undo: Take back what was done last (Ctrl+Z).\nAfter typing: The text, step by step. After anything else (a row moved, a switch, a LoRA): That change, as the Undo button above the canvas does.",
+             "Redo: Bring back what was taken back (Ctrl+Shift+Z / Ctrl+Y)."]);
         head.insertBefore(fp, x);
         head.insertBefore(fm, fp);
         head.insertBefore(prev, fm); head.insertBefore(next, fm);

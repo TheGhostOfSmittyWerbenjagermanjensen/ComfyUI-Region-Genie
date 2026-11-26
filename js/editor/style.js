@@ -10,6 +10,7 @@ const STYLE = `
 .rg-btn { cursor:pointer; white-space:nowrap; }
 .rg-btn.on { background:var(--rg-accent-fill,#3a6ea5); border-color:var(--rg-accent,#5b8fd0); color:#fff; }
 .rg-btn:disabled { opacity:.4; cursor:default; }
+.rg-btn.rg-bigbtn:hover { background:var(--rg-accent-fill,#3a6ea5); border-color:var(--rg-accent,#5b8fd0); color:#fff; }
 .rg-sel { padding:1px 2px; }
 .rg-num { width:40px; padding:1px 3px; }
 .rg-cv { flex:1 1 auto; min-height:260px; position:relative; overflow:hidden; border-radius:4px; background:#222; }

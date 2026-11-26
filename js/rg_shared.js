@@ -1547,7 +1547,7 @@ export function textHistory(ta, store, o = {}) {
 }
 // The Undo / Redo buttons of a pop-up editor. current(): the textHistory() of the text box in use (or null).
 // Returns { undo, redo (the buttons), refresh() }.
-export function historyButtons(current, cls = "rg-btn ico") {
+export function historyButtons(current, cls = "rg-btn ico", tips = null) {
     const mk = (icon, tip, fn) => {
         const b = document.createElement("button"); b.type = "button"; b.className = cls + " rg-hist"; b.dataset.ic = icon;
         b.innerHTML = svgIcon(icon); b.__rgTitle = tip; b.title = KEYS.keyed(tip);
@@ -1555,8 +1555,8 @@ export function historyButtons(current, cls = "rg-btn ico") {
         b.addEventListener("click", (e) => { e.preventDefault(); if (!b.disabled) fn(); });
         return b;
     };
-    const undo = mk("undo", "Undo: Take back the last change to this text (Ctrl+Z).\nThe steps stay when the pop-up is closed and opened again.", () => current()?.undo());
-    const redo = mk("redo", "Redo: Bring back the change that was taken back (Ctrl+Shift+Z / Ctrl+Y).", () => current()?.redo());
+    const undo = mk("undo", tips?.[0] || "Undo: Take back the last change to this text (Ctrl+Z).\nThe steps stay when the pop-up is closed and opened again.", () => current()?.undo());
+    const redo = mk("redo", tips?.[1] || "Redo: Bring back the change that was taken back (Ctrl+Shift+Z / Ctrl+Y).", () => current()?.redo());
     const refresh = () => { const h = current(); undo.disabled = !h?.canUndo(); redo.disabled = !h?.canRedo(); };
     refresh();
     return { undo, redo, refresh };
