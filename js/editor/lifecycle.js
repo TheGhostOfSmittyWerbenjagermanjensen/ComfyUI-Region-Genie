@@ -308,6 +308,8 @@ export function* lifecycle(E) {
     E.node.__rgEdgeMs = () => E.edgeMs;               // tests: how long the edge lines took at the last draw
     E.node.__rgEdgeBy = () => E.edgeBy;               // tests: who drew the edge lines last ("gl" / "js")
     E.node.__rgDims = () => E.dims();                 // the canvas size (the size row shows the same)
+    E.node.__rgEditTab = (rid, tab) => E.editPrompt(rid, null, "prompt", null, tab);        // tests: a region's pop-up on one of its tabs
+    E.node.__rgCloseEditor = () => E.closeEditor(true);
     E.node.__rgSelectLayer = (id) => E.selectLayer(E.state.layers.find((l) => l.id === id) || null);    // tests
     E.node.__rgToolTips = () => Object.values(E.GROUPS).flatMap((g) => g.entries().map((e) => e[2]));   // tests: every tool version's tooltip
     E.node.__rgSetBackdrop = (img, ref) => { E.backdrop = img; E.backdropKey = "test:" + Math.random(); E.backdropRef = ref || null; E.requestDraw(); };

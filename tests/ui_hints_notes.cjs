@@ -142,7 +142,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const headMsg = async (text) => { await page.evaluate((t) => window.__node.__rgHint(t), text); await page.waitForTimeout(80);
         return page.evaluate(() => { const s = document.querySelector(".rg-head .rg-status"), h = document.querySelector(".rg-head").getBoundingClientRect(), r = s.getBoundingClientRect();
             return { wide: s.classList.contains("wide"), all: s.scrollWidth <= s.clientWidth + 1, headH: Math.round(h.height), below: r.top > document.querySelector(".rg-separate").getBoundingClientRect().bottom - 2, text: s.textContent }; }); };
-    const m1 = await headMsg("The layer is too small to shrink by 50 px");
+    const m1 = await headMsg("The layer is too small to shrink by 50 px: choose a smaller value, or make the layer larger first and try again");       // (longer since round 88: the header lost its open / close buttons and has more room)
     check(`a message that doesn't fit beside the fields: a line of its own under the header, all of it readable (${JSON.stringify(m1)})`, m1.wide && m1.all && m1.below && m1.headH > 30);
     await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...(s.loraOpts || {}), allRegions: false, autoOff: true }; n.__rgRefresh(); });
     await page.waitForTimeout(200);

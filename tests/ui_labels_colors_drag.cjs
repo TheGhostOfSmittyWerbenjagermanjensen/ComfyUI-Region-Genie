@@ -117,9 +117,11 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // ---- drag layers: within a region, and onto another region
     const knight = byPrompt(await st(), "a knight"), cliff = byPrompt(await st(), "a windswept");
     await page.evaluate((rid) => { const n = window.__node, s = n.__rgState(); const l = s.layers.find((x) => x.region === rid); s.layers.push({ ...JSON.parse(JSON.stringify(l)), id: 99, name: "Second" }); n.__rgRefresh(); }, knight.id);
-    await page.locator('[title^="Show or hide everything in the list"]').click(); await page.waitForTimeout(100);
-    if (!(await page.locator(".rg-row.layer").count())) { await page.locator('[title^="Show or hide everything in the list"]').click(); await page.waitForTimeout(100); }
-    const lrow = (lid) => page.locator(`.rg-row.layer[data-lid="${lid}"]`);
+    // round 88: a region's layers are on the Layers tab of its pop-up (they were rows under its row in the list).
+    // The pop-up is moved off the list here, so the other region's row can be dropped on
+    await page.evaluate((rid) => window.__node.__rgEditTab(rid, "layers"), knight.id); await page.waitForTimeout(200);
+    await page.evaluate(() => { const b = document.querySelector(".rg-pop"); b.style.left = "6px"; b.style.top = "6px"; }); await page.waitForTimeout(80);
+    const lrow = (lid) => page.locator(`.rg-pop .rg-row.layer[data-lid="${lid}"]`);
     const first = (await st()).layers.find((l) => l.region === knight.id && l.id !== 99).id;
     const stackOf = async (rid) => (await st()).layers.filter((l) => l.region === rid).map((l) => l.id);
     check("the copy is on top of the knight's layers", (await stackOf(knight.id)).join() === `${first},99`);
@@ -137,6 +139,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.mouse.up(); await page.waitForTimeout(150);
     const moved = (await st()).layers.find((l) => l.id === 99);
     check("dropped on another region's row: the layer moves into that region, on top of its layers", moved.region === cliff.id && (await stackOf(cliff.id)).at(-1) === 99);
+    await page.evaluate(() => window.__node.__rgCloseEditor()); await page.waitForTimeout(80);
 
     // ---- round 41: the marks before a label's prompt are drawn shapes, not emoji: a person for a character region,
     // a lock for a region kept as it is in Edit Mode. They take 14 px each before the text.

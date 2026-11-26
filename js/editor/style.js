@@ -190,6 +190,21 @@ input.rg-switch { appearance:none; -webkit-appearance:none; width:26px; height:1
 input.rg-switch::after { content:""; position:absolute; left:2px; top:2px; width:10px; height:10px; border-radius:50%; background:#aaa; transition:left .1s; }
 input.rg-switch:checked { background:#d9a441; }
 input.rg-switch:checked::after { left:14px; background:#1c1c1c; }
+/* the other tabs of a region's pop-up (round 88) */
+.rg-pop-layers { position:relative; display:flex; flex-direction:column; gap:1px; }
+.rg-pop .rg-row.lvl1 { margin-left:0; }
+.rg-pop-layers > .rg-hint, .rg-pop-pal > .rg-hint { padding:4px 2px; white-space:normal; }
+.rg-pop-pal { display:flex; flex-direction:column; gap:4px; }
+.rg-pop-opts { display:grid; grid-template-columns:max-content 1fr; gap:6px 12px; align-items:center; padding:2px 2px 0; }
+.rg-pop-optl { font-weight:600; opacity:.85; }
+.rg-pop-optc { display:flex; align-items:center; gap:6px; min-width:0; }
+.rg-pop-optc .rg-hint { white-space:normal; }
+/* the region row's small buttons: its type, its layers, its palette (round 88) */
+.rg-row .rg-btn.rg-tybtn { flex:0 0 auto; }
+button.rg-cnt { background:transparent; border:1px solid transparent; border-radius:4px; color:inherit; font:inherit; font-size:10px; cursor:pointer; padding:1px 3px; margin:0; opacity:.7; }
+button.rg-cnt:hover, button.rg-paldots:hover { opacity:1; border-color:var(--border-color,#555); background:var(--comfy-input-bg,#222); }
+button.rg-paldots { flex:0 0 auto; display:inline-flex; gap:2px; align-items:center; background:transparent; border:1px solid transparent; border-radius:4px; padding:3px; margin:0; cursor:pointer; }
+button.rg-paldots i { width:8px; height:8px; border-radius:2px; display:block; }
 /* LoRAs at a glance in the list (round 87): the one button of a row, the chips on Whole image, the header's switch */
 .rg-btn.rg-lbtn.some { background:#d9a441; border-color:#d9a441; color:#1c1c1c; font-weight:600; }
 .rg-btn.rg-lbtn.alloff { border-color:#d9a441; color:#e9c46a; }

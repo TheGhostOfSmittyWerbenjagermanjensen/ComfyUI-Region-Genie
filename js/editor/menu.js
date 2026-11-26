@@ -23,6 +23,11 @@ export function* menu(E) {
         return [
             { head: title(r), swatch: r.color },
             { label: "Edit prompt…", icon: "expand", key: "Double-click its label", fn: () => E.editPrompt(r.id, null) },
+            // round 88: the other tabs of the region's pop-up
+            { label: "LoRAs…", fn: () => E.editPrompt(r.id, null, "prompt", null, "loras") },
+            { label: "Layers…", icon: "layers", fn: () => E.editPrompt(r.id, null, "prompt", null, "layers") },
+            { label: "Color palette…", icon: "palette", fn: () => E.editPrompt(r.id, null, "prompt", null, "palette") },
+            { label: "Options…", fn: () => E.editPrompt(r.id, null, "prompt", null, "options") },
             { label: "Hide region", icon: "eyeOff", fn: () => E.change(() => { r.hidden = true; }) },
             null,
             { label: "Move up (in front)", icon: "up", disabled: i <= 0, fn: () => move(-1) },

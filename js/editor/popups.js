@@ -21,6 +21,7 @@ export function* popups(E) {
     // in E.textHist for as long as the node lives). ◀ / ▶ step through every text field of the node.
     const histOf = E.histOf;                       // (core.js: the node's own text boxes use the same steps)
     const POP_W = { scene: 640, region: 560 };
+    const POP_MIN_W = { scene: 300, region: 430 };      // (a region's pop-up has five tabs and the layer rows: narrower would cut them)
     const CLOSE_TIP = "Close (Esc).\nThe text stays as it is: Undo takes a change back.";
     const FS_POP = { scene: SET.fsPopScene, prompt: SET.fsPopRegion, text: SET.fsPopText };
     const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -36,14 +37,14 @@ export function* popups(E) {
             box.style.top = clampN(parseFloat(box.style.top) || 6, 0, Math.max(0, H - 40)) + "px";
         };
         if (ed.at) {
-            box.style.width = clampN(Math.round(ed.at.width), 240, Math.max(240, W - 12)) + "px";
+            box.style.width = clampN(Math.round(ed.at.width), POP_MIN_W[kind], Math.max(POP_MIN_W[kind], W - 12)) + "px";
             box.style.height = clampN(Math.round(ed.at.height), 160, Math.max(160, H - 12)) + "px";
             box.classList.add("sized");
             if (!ed.placed) { ed.placed = true; box.style.left = ed.at.left + "px"; box.style.top = ed.at.top + "px"; }
             keepOn(); return;
         }
         const sz = popSizes()[kind] || {};
-        const w = clampN(Math.round(sz.w || POP_W[kind]), 240, Math.max(240, W - 12));
+        const w = clampN(Math.round(sz.w || POP_W[kind]), POP_MIN_W[kind], Math.max(POP_MIN_W[kind], W - 12));
         box.style.width = w + "px";
         box.classList.remove("sized");
         const h = sz.h || naturalHeight(box, [...box.querySelectorAll("textarea")]);
@@ -96,7 +97,17 @@ export function* popups(E) {
         t.show(defs.some((d) => d[0] === first) ? first : defs[0][0]);
         return t;
     }
-    const TAB_TIPS = { prompt: "The prompt and what goes with it.", loras: "The LoRAs: On / off, the file, the strength, the trigger words. Drag a row by its grip to move it." };
+    const TAB_TIPS = { prompt: "The prompt and what goes with it.", loras: "The LoRAs: On / off, the file, the strength, the trigger words. Drag a row by its grip to move it.",
+                       layers: "The layers: What is drawn in this region. Drag a row by its grip to move it in front of or behind the others.",
+                       palette: "The color palette: Up to 5 colors this region should use.",
+                       options: "The rest: Feather, the region's place in the order, merging its layers, hiding and deleting it." };
+    // a line of a pop-up's Options tab: what it is, then its controls
+    const optLine = (label, ...kids) => {
+        const l = E.el("span", "rg-pop-optl"); l.textContent = label;
+        const c = E.el("span", "rg-row rg-pop-optc"); c.append(...kids.filter(Boolean));       // (rg-row: the small toggles take their look from it)
+        return [l, c];
+    };
+    const optNote = (text) => { const n = E.el("span", "rg-hint"); n.textContent = text; return n; };
     // Undo / Redo in a pop-up while no text has the cursor (its LoRAs tab): the editor's own, so a LoRA moved, switched
     // or removed there comes back. In a text field the keys stay that field's (its own text steps).
     function popUndoKeys(e) {
@@ -175,7 +186,7 @@ export function* popups(E) {
             if (e.button !== 0) return;
             const w0 = box.offsetWidth, h0 = box.offsetHeight, W = window.innerWidth, H = window.innerHeight;
             drag(e, (dx, dy) => {
-                box.style.width = clampN(w0 + dx, 240, Math.max(240, W - box.offsetLeft - 6)) + "px";
+                box.style.width = clampN(w0 + dx, POP_MIN_W[kind], Math.max(POP_MIN_W[kind], W - box.offsetLeft - 6)) + "px";
                 box.style.height = clampN(h0 + dy, 160, Math.max(160, H - box.offsetTop - 6)) + "px";
                 box.style.maxHeight = ""; box.classList.add("sized");
             }, () => {
@@ -309,11 +320,18 @@ export function* popups(E) {
         const dyn = E.el("div", "rg-pop-dyn");
         const foot = E.el("div", "rg-pop-foot");
         foot.textContent = popFootText();
-        const tabs = popTabs([["prompt", "Prompt", TAB_TIPS.prompt], ["loras", "LoRAs", TAB_TIPS.loras]], tab,
+        // round 88: everything that was under the region's row in the list is on a tab here
+        const tabs = popTabs([["prompt", "Prompt", TAB_TIPS.prompt], ["loras", "LoRAs", TAB_TIPS.loras], ["layers", "Layers", TAB_TIPS.layers],
+                              ["palette", "Palette", TAB_TIPS.palette], ["options", "Options", TAB_TIPS.options]], tab,
                              (id) => { if (id === "prompt") prompt.ta.focus(); else box.focus(); });
         const loraRowsBox = E.el("div", "rg-pop-lorarows"), loraAddBox = E.el("div", "rg-row rg-pop-addl");
+        const layerRowsBox = E.el("div", "rg-pop-layers"), layerBar = E.el("div", "rg-row rg-pop-addl");
+        const palBox = E.el("div", "rg-pop-pal"), optBox = E.el("div", "rg-pop-opts");
         tabs.pane.prompt.append(types, prompt.wrapF, text.wrapF, dyn);
         tabs.pane.loras.append(loraRowsBox, loraAddBox);
+        tabs.pane.layers.append(layerRowsBox, layerBar);
+        tabs.pane.palette.append(palBox);
+        tabs.pane.options.append(optBox);
         box.tabIndex = -1;
         box.append(head, tabs.bar, tabs.panes, foot);
         document.body.appendChild(box);
@@ -354,10 +372,43 @@ export function* popups(E) {
                 }
                 // one row (round 43). Left: the color palette (its on / off button, the colors, +). Right: everything
                 // else: kept / changed (Edit Mode), feather, the tag list, the wildcard list, the LLM, ＋LoRA
-                const ctl = E.paletteRow(rr, true);
-                ctl.classList.add("pop-ctl");
-                ctl.append(flexGap(), ...(E.isEdit() ? [E.keepToggle(rr)] : []), E.featherBox(rr), ...popTools(ed, wcPick), E.llmButton(rr.id, "pop"));
+                // the Prompt tab's bottom row: what belongs to the text (the tag list, the wildcard list, the LLM)
+                const ctl = E.el("div", "rg-row pop-ctl");
+                ctl.append(flexGap(), ...popTools(ed, wcPick), E.llmButton(rr.id, "pop"));
                 dyn.replaceChildren(ctl);
+                // the Layers tab: the region's pose figures and layers (the rows the list had), a new layer, merge all
+                const lays = E.listedOf(rid), nPose = E.posesOf(rid).length;
+                tabs.count("layers", lays.length + nPose ? String(lays.length + nPose) : "", false);
+                const act = document.activeElement, keepLid = layerRowsBox.contains(act) && act.tagName === "INPUT" ? act.closest(".rg-row.layer")?.dataset.lid : null;
+                if (lays.length + nPose) layerRowsBox.replaceChildren(E.layerRows(rid));
+                else layerRowsBox.replaceChildren(optNote("No layers yet: Draw on the canvas with this region selected, or add an empty layer."));
+                if (keepLid) layerRowsBox.querySelector(`.rg-row.layer[data-lid="${keepLid}"] input[type=text]`)?.focus();
+                const addLay = E.ico("@layerAdd", "Add an empty layer on top of this region's layers; brush, lasso and fill then go into it", () => { E.curRegion = rid; E.addLayerBtn.click(); });
+                const mergeAll = E.ico("@mergeAll", "Merge all visible layers of this region into one layer", () => E.mergeRegion(rid));
+                mergeAll.disabled = lays.filter((l) => l.visible !== false).length < 2;
+                layerBar.replaceChildren(addLay, mergeAll);
+                // the Palette tab
+                const pal = E.paletteRow(rr, true);
+                const palN = rr.paletteOn ? pal.querySelectorAll(".rg-sw.pal").length : 0;
+                tabs.count("palette", palN ? String(palN) : "", palN > 0);
+                palBox.replaceChildren(pal, optNote(rr.paletteOn
+                    ? "On: These colors are sent with the region (MOSS-Image and Ideogram 4 read them). The first one shows the region."
+                    : "Off: Turn it on with the palette button to give this region up to 5 colors (MOSS-Image and Ideogram 4 read them)."));
+                // the Options tab: one line per thing
+                const k2 = E.state.regions.indexOf(rr), nReg = E.state.regions.length;
+                const swap = (d) => E.change(() => { [E.state.regions[k2 + d], E.state.regions[k2]] = [E.state.regions[k2], E.state.regions[k2 + d]]; E.sortLayersByRegions(); });
+                const up = E.ico("@up", "Move up: Earlier in the output order, and its layers in front", () => swap(-1)); up.disabled = k2 <= 0;
+                const down = E.ico("@down", "Move down: Later in the output order, and its layers behind", () => swap(1)); down.disabled = k2 >= nReg - 1;
+                const eye = E.ico(rr.hidden ? "@eyeOff" : "@eye", rr.hidden ? "Hidden: Not drawn and not output. Click to show it again"
+                    : "Show / hide this region: A hidden region is not drawn and is left out of every output", () => E.change(() => { if (rr.hidden) delete rr.hidden; else rr.hidden = true; }));
+                const del = E.ico("@close", "Delete region and its layers. Undo brings them back.", () => E.deleteRegion(rr));
+                optBox.replaceChildren(
+                    ...optLine("Feather", E.featherBox(rr), optNote("px; the chain shares the value with the other regions")),
+                    ...(E.isEdit() ? optLine("Edit Mode", E.keepToggle(rr), optNote("whether this region is kept or changed")) : []),
+                    ...(E.controls().length ? optLine("Control", E.controlToggle(rr), optNote("whether the Control rows act in this region")) : []),
+                    ...optLine("Order", up, down, optNote(`region ${k2 + 1} of ${nReg}; the top one is in front`)),
+                    ...optLine("Show", eye, optNote(rr.hidden ? "hidden: not drawn, not output" : "shown")),
+                    ...optLine("Delete", del, optNote("the region and its layers")));
                 // the LoRAs tab (round 87; they were rows under the prompt)
                 const n = E.loraCount(rr.loras);
                 tabs.count("loras", n.all ? (n.on === n.all ? String(n.on) : `${n.on}/${n.all}`) : "", n.on > 0);

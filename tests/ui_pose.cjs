@@ -47,9 +47,15 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         && b0[0] >= -.41 && b0[2] <= -.09 && b0[1] >= -.39 && b0[3] <= .39 && Math.abs(b0[3] - b0[1] - .76) < .02);
     check("it belongs to the region under it (region 1) and is selected", P[0].region === 1 && await strip.locator("button:disabled").count() === 2);
     check("standing: the person's right shoulder is on our left, nothing hidden", P[0].pts[2][0] < P[0].pts[5][0] && !P[0].off);
-    const row = page.locator(".rg-list .rg-row.pose");
-    check("the figure is listed with its region's layers (Layers (2)), selected", await row.count() === 1 && await row.first().evaluate((r) => r.classList.contains("sel"))
-        && /Layers \(2\)/.test(await page.locator(".rg-list").textContent()) && await row.locator("input").inputValue() === "Pose 1");
+    // round 88: a region's figures and layers are on the Layers tab of its pop-up
+    const openLayers = async (rid) => { await page.evaluate((rid) => window.__node.__rgEditTab(rid, "layers"), rid); await sleep(150); };
+    const closePop = async () => { await page.evaluate(() => window.__node.__rgCloseEditor()); await sleep(100); };
+    await openLayers(1);
+    const row = page.locator(".rg-pop .rg-pop-layers .rg-row.pose");
+    check("the figure is listed with its region's layers (the Layers tab of its pop-up counts 2), selected", await row.count() === 1 && await row.first().evaluate((r) => r.classList.contains("sel"))
+        && (await page.locator('.rg-pop .rg-pop-tabs [data-tab="layers"] em').textContent()) === "2" && await row.locator("input").inputValue() === "Pose 1"
+        && await page.locator(".rg-list .rg-row.pose").count() === 0);
+    await closePop();
     check("the paint_data widget has the figure", await page.evaluate(() => (JSON.parse(window.__node.widgets.find((w) => w.name === "paint_data").value).poses || []).length) === 1);
 
     // ---- a joint
@@ -92,7 +98,11 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await drag(mid, [mid[0] + .50, mid[1]]);
     P = await poses();
     check(`dragged by a bone onto the other region: it moved (${(P[0].pts[1][0]).toFixed(2)}) and belongs to region 2`, P[0].pts[1][0] > .1 && P[0].region === 2);
-    check("it is listed under that region now", await page.evaluate(() => { const rows = [...document.querySelectorAll(".rg-list .rg-row")]; const i = rows.findIndex((r) => r.classList.contains("pose")); const j = rows.findIndex((r) => /a wizard/.test(r.querySelector("textarea")?.value || "")); return i > j && j >= 0; }));
+    await openLayers(2);
+    const there = await page.locator(".rg-pop .rg-pop-layers .rg-row.pose").count();
+    await openLayers(1);
+    check("it is listed with that region's layers now, not the first one's", there === 1 && await page.locator(".rg-pop .rg-pop-layers .rg-row.pose").count() === 0);
+    await closePop();
 
     // ---- another starting pose; duplicate, delete, undo
     await strip.locator("select").selectOption("facingAway"); await sleep(60);
@@ -110,9 +120,12 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("a click on empty canvas deselects (the box is gone, the buttons are off)", await strip.locator("button:disabled").count() === 5);
 
     // ---- the list row's buttons; the Select tool doesn't touch figures
-    await page.locator(".rg-list .rg-row.pose").first().locator("button").first().click(); await sleep(120);          // the eye
+    const poseRid = (await poses())[0].region;
+    await openLayers(poseRid);
+    await page.locator(".rg-pop .rg-row.pose").first().locator("button").first().click(); await sleep(120);          // the eye
     check("a figure's eye hides it", (await poses()).some((p) => p.visible === false));
-    await page.locator(".rg-list .rg-row.pose").first().locator("button").first().click(); await sleep(120);
+    await page.locator(".rg-pop .rg-row.pose").first().locator("button").first().click(); await sleep(120);
+    await closePop();
     await page.evaluate(() => window.__node.__rgSetTool("select")); await sleep(80);
     check("with another tool the strip is hidden and the figures stay drawn", !(await strip.isVisible()) && (await poses()).length === 2);
     const before = JSON.stringify(await poses());

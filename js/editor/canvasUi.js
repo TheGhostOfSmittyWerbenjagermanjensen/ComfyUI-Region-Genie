@@ -183,6 +183,7 @@ export function* canvasUi(E) {
         openSub(rid, "layers");
         E.refreshUI();
     });
+    E.addLayerBtn = addLayerBtn;
     for (const [b, ic] of [[addRegionBtn, "regionAdd"], [addLayerBtn, "layerAdd"]]) { b.innerHTML = svgIcon(ic); b.classList.add("icon"); }
     const expandBtns = {
         layers: E.btn("▼ Layers", "Show or hide the layers of every region", () => E.toggleKind("layers")),

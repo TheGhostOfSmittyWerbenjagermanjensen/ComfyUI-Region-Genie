@@ -76,22 +76,32 @@ export function* list(E) {
     function grip(kind, id, onPick) {
         const g = E.el("span", "rg-grip"); g.innerHTML = svgIcon("grip");
         g.title = kind === "region" ? "Click: Make this region the active one.\nDrag: Move it up or down in the list (the output order; the top region is in front)."
-            : "Click: Select this layer.\nDrag: Move it above or below another layer, or onto another region's row.";
+            : "Click: Select this layer.\nDrag: Move it above or below another layer of this region, or onto another region's row in the list.";
         g.addEventListener("pointerdown", (e) => {
             if (e.button !== 0) return;
             e.preventDefault(); e.stopPropagation();
+            // round 88: a layer's row is in its region's pop-up (the Layers tab); there it moves among that region's layers
+            const list = (kind === "layer" && g.closest(".rg-pop-layers")) || E.regList;
             onPick?.();                                          // pressing the grip picks its row, as its prompt / name field does
             const line = E.el("div", "rg-dropline");
             let target = null;                                   // region: { to } | layer: { lid, after } or { rid }
-            const self = () => E.regList.querySelector(kind === "region" ? `.rg-row.region[data-rid="${id}"]` : `.rg-row.layer[data-lid="${id}"]`);
+            const self = () => list.querySelector(kind === "region" ? `.rg-row.region[data-rid="${id}"]` : `.rg-row.layer[data-lid="${id}"]`);
             self()?.classList.add("dragging");
             E.wrap.classList.add("rg-sorting");
-            const clear = () => { line.remove(); E.regList.querySelector(".rg-row.dropon")?.classList.remove("dropon"); };
+            const clear = () => { line.remove(); list.querySelector(".rg-row.dropon")?.classList.remove("dropon"); E.regList.querySelector(".rg-row.dropon")?.classList.remove("dropon"); };
             let last = null;
             const move = (ev) => {
                 last = ev;
-                const box = E.regList.getBoundingClientRect(), y = ev.clientY;
+                const box = list.getBoundingClientRect(), y = ev.clientY;
                 clear(); target = null;
+                // from a pop-up's Layers tab onto another region's row in the list (where the pop-up doesn't cover it):
+                // the layer moves into that region, as it did when the layers were rows of the list
+                if (list !== E.regList) {
+                    const pb = list.closest(".rg-pop").getBoundingClientRect(), inPop = ev.clientX >= pb.left && ev.clientX <= pb.right && y >= pb.top && y <= pb.bottom;
+                    const over = inPop ? null : [...E.regList.querySelectorAll(".rg-row.region")].find((el) => { const r = el.getBoundingClientRect(); return y >= r.top && y <= r.bottom && ev.clientX >= r.left && ev.clientX <= r.right; });
+                    if (over) { target = { rid: Number(over.dataset.rid) }; over.classList.add("dropon"); return; }
+                    if (!inPop) return;
+                }
                 if (ev.clientX < box.left - 40 || ev.clientX > box.right + 40 || y < box.top - 30 || y > box.bottom + 30) return;
                 const mid = (el) => { const r = el.getBoundingClientRect(); return (r.top + r.bottom) / 2; };
                 if (kind === "region") {
@@ -103,7 +113,7 @@ export function* list(E) {
                     if (to < rows.length) rows[to].before(line); else E.regList.appendChild(line);
                     return;
                 }
-                const rows = [...E.regList.querySelectorAll(".rg-row.layer, .rg-row.region")];
+                const rows = [...list.querySelectorAll(".rg-row.layer, .rg-row.region")];
                 let best = null, bd = Infinity;
                 for (const el of rows) { const r = el.getBoundingClientRect(), d = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0; if (d < bd) { bd = d; best = el; } }
                 if (!best) return;
@@ -116,9 +126,9 @@ export function* list(E) {
             // held near the list's top or bottom edge: the list scrolls, so a row out of view can be reached
             const scroller = setInterval(() => {
                 if (!last) return;
-                const box = E.regList.getBoundingClientRect(), y = last.clientY, was = E.regList.scrollTop;
-                if (y < box.top + 16 && y > box.top - 30) E.regList.scrollTop -= 8; else if (y > box.bottom - 16 && y < box.bottom + 30) E.regList.scrollTop += 8;
-                if (E.regList.scrollTop !== was) move(last);
+                const box = list.getBoundingClientRect(), y = last.clientY, was = list.scrollTop;
+                if (y < box.top + 16 && y > box.top - 30) list.scrollTop -= 8; else if (y > box.bottom - 16 && y < box.bottom + 30) list.scrollTop += 8;
+                if (list.scrollTop !== was) move(last);
             }, 40);
             const done = (ev) => {
                 clearInterval(scroller);
@@ -219,7 +229,9 @@ export function* list(E) {
     function updateExpandButtons() {
         const names = { loras: "LoRAs", all: "All" };              // layers and palettes: icons
         for (const [k, b] of Object.entries(E.expandBtns)) {
-            if (k === "loras") { b.style.display = "none"; continue; }       // round 87: LoRAs are in the pop-ups, nothing to open here
+            // rounds 87 / 88: what a row holds is on the tabs of its pop-up; nothing opens under a row any more
+            if (b.style.display !== "none") b.style.display = "none";
+            continue;
             const any = kindTargets(k).length > 0;
             const arrow = any && kindOpen(k) ? "▲" : "▼";
             const html = names[k] ? `${arrow} ${names[k]}` : `<span>${arrow}</span>${svgIcon(k)}`;
@@ -532,7 +544,6 @@ export function* list(E) {
         b.addEventListener("pointerdown", (e) => e.stopPropagation());
         b.addEventListener("click", (e) => {
             e.preventDefault();
-            if (!r.paletteOn) E.openSub(r.id, "palette");    // show the new palette row right away
             E.change(() => { if (r.paletteOn) delete r.paletteOn; else r.paletteOn = true; });
         });
         return b;
