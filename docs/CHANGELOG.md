@@ -9,6 +9,7 @@ Each round is one request from the owner: what was asked, what was decided (and 
   - Tiled Diffusion: with a latent of an odd number of cells along one side (a picture whose side is 8 px times an odd number, with a model of one cell per patch such as SDXL), the last row or column could lie outside every tile and came out empty. The last tile now always ends at the edge. Tiled Upscale was not affected (it sizes pictures to an even number of cells).
   - Saved data whose `regions`, `ops` or `layers` is not a list (damaged or hand-edited) stopped the node from loading (editor) or the run (Python). It is read as empty now.
   - A region whose color, prompt or text is not a text was kept as it was and changed again at the next load; an import mark that is not a text likewise. They are cleaned at the first read.
+- CLAUDE.md: the long "when X changed, run Y" list became four lines that point at `verify.py` (the owner approved the text).
 - Tested: `verify.py --all`; the property tests with 4000 examples / 40 sequences; each fix was confirmed by its test failing on the code before the fix.
 
 ## Round 91 (Nov 26): where a pop-up opens; the open field's outline; the pack's colors as Settings
