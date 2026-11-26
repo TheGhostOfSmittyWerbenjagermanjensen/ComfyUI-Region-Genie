@@ -76,7 +76,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const byCode = await popTa.inputValue();
     await undoB.click(); await page.waitForTimeout(60);
     check(`a text set by code is one step: Undo puts the typed text back (${JSON.stringify(byCode)} -> ${JSON.stringify(await popTa.inputValue())})`, byCode === "set by code" && /!$/.test(await popTa.inputValue()));
-    // the bottom row: tag switch (hidden here: no autocomplete pack in the stub page), wildcard button, LLM, ＋LoRA
+    // the bottom row: tag switch (hidden here: no autocomplete pack in the stub page), wildcard button, LLM (＋LoRA is on the LoRAs tab since round 87)
     const bottom = await page.evaluate(() => [...document.querySelectorAll(".rg-pop .pop-ctl > *")].map((e) => e.classList.contains("rg-ac-btn") ? "tag" : e.classList.contains("rg-wc-pick") ? "wildcard" : e.classList.contains("rg-llm-btn") ? "llm" : e.classList.contains("rg-pop-gap") ? "gap" : e.textContent.trim()));
     // round 43: one row. Left: the palette (its on / off button first, then the colors and +). Right: everything else
     const row = await page.evaluate(() => { const r = document.querySelector(".rg-pop .pop-ctl"), kids = [...r.children], gap = kids.findIndex((e) => e.classList.contains("rg-pop-gap")), rr = r.getBoundingClientRect();
@@ -86,7 +86,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
             left: kids.slice(0, gap).every((e) => e.classList.contains("toggle") || e.classList.contains("rg-sw") || e.classList.contains("rg-paladd")), feather: kids.slice(gap).some((e) => e.classList.contains("rg-feather")),
             oneLine: Math.max(...shown.map(mid)) - Math.min(...shown.map(mid)) < 3, rightEnd: rr.right - shown[shown.length - 1].getBoundingClientRect().right < 4, leftEnd: shown[0].getBoundingClientRect().left - rr.left < 4 }; });
     check(`bottom row: the palette on the left (its on / off button, no second palette icon), every other control on the right, all on one line (${bottom.join(" | ")}; ${JSON.stringify(row)})`,
-        bottom.slice(-4).join("|") === "tag|wildcard|llm|＋LoRA" && row.first && row.palIcons === 0 && row.rows === 1 && row.left && row.feather && row.oneLine && row.rightEnd && row.leftEnd);
+        bottom.slice(-3).join("|") === "tag|wildcard|llm" && row.first && row.palIcons === 0 && row.rows === 1 && row.left && row.feather && row.oneLine && row.rightEnd && row.leftEnd);
     check("no tag switch or wildcard button is left in the title bar", await page.locator(".rg-pop-head .rg-ac-btn, .rg-pop-head .rg-wc-pick").count() === 0);
     // the palette's last color removed (right-click): the palette is off again, its button no longer lit
     await page.evaluate(() => { const n = window.__node, r = n.__rgState().regions[0]; r.palette = ["#FF0000", "#00FF00"]; r.paletteOn = true; n.__rgRefresh(); });

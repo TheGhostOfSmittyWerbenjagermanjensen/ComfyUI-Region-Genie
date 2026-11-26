@@ -8,6 +8,7 @@ import { PAL_MAX, normPalette, activePalette } from "./colors.js";
 export function* list(E) {
     Object.assign(E, {
         activateRegion, refreshUI, ico, chevron, grip, subHeader, toggleKind, updateExpandButtons, loraRows, addLoraTo, layerRows,
+        ownLoras, loraCount, loraButton, loraChips, toggleAllLoras, syncLoraAll,
         regionSwatch, featherBox, paletteToggle, paletteRow,
     });
     yield;
@@ -53,7 +54,6 @@ export function* list(E) {
     // what an open row / subsection shows; empty subsections are left out
     const subKinds = (r) => [
         ...(listedOf(r.id).length || E.posesOf(r.id).length ? ["layers"] : []),
-        ...((r.loras || []).length ? ["loras"] : []),
         ...(r.paletteOn ? ["palette"] : []),
     ]; E.subKinds = subKinds;
     function chevron(key, has, what) {
@@ -219,6 +219,7 @@ export function* list(E) {
     function updateExpandButtons() {
         const names = { loras: "LoRAs", all: "All" };              // layers and palettes: icons
         for (const [k, b] of Object.entries(E.expandBtns)) {
+            if (k === "loras") { b.style.display = "none"; continue; }       // round 87: LoRAs are in the pop-ups, nothing to open here
             const any = kindTargets(k).length > 0;
             const arrow = any && kindOpen(k) ? "▲" : "▼";
             const html = names[k] ? `${arrow} ${names[k]}` : `<span>${arrow}</span>${svgIcon(k)}`;
@@ -226,21 +227,97 @@ export function* list(E) {
             b.disabled = !any;
         }
     }
+    // ---- LoRAs at a glance (round 87): the list shows that a row has LoRAs, and how many are on; the LoRAs
+    // themselves are in the row's pop-up (its LoRAs tab). The Edit and Control LoRAs have their own rows and don't count.
+    function ownLoras(list) { return (list || []).filter((x) => !x.edit && !x.control); }
+    function loraCount(list) { const own = ownLoras(list); return { all: own.length, on: own.filter((x) => x.on !== false && x.lora).length }; }
+    const loraShort = (name) => String(name || "").split(/[\\/]/).pop().replace(/\.(safetensors|ckpt|pt|pth|bin)$/i, "");
+    // the one LoRAs button of a row: grey "＋LoRA" with none listed, amber "LoRAs 2" with some on ("2/3" when some are
+    // off), an amber outline "LoRAs 0/3" when all listed ones are off. A click always opens the pop-up's LoRAs tab.
+    function loraButton(list, what, open) {
+        const { all, on } = loraCount(list);
+        const b = E.btn(all ? `LoRAs ${on === all ? on : `${on}/${all}`}` : "＋LoRA", "", open);
+        b.classList.add("txt", "rg-lbtn", all ? (on ? "some" : "alloff") : "none");
+        b.addEventListener("pointerdown", (e) => e.stopPropagation());
+        b.title = all ? `LoRAs of ${what}: ${on} of ${all} on. Click to show and change them.`
+            : `No LoRAs on ${what} yet. Click to add one.`;
+        return b;
+    }
+    // the LoRAs that are on, as chips with their strength (the Whole image row has the room): as many as fit, then "+N"
+    function loraChips(list, open) {
+        const box = E.el("span", "rg-lchips");
+        const on = ownLoras(list).filter((x) => x.on !== false && x.lora);
+        const chips = on.map((x) => {
+            const c = E.el("button", "rg-lchip"); c.type = "button";
+            const n = E.el("span"); n.textContent = loraShort(x.lora);
+            const s = E.el("b"); s.textContent = String(x.strength);
+            c.append(n, s); c.title = `${x.lora}\nStrength ${x.strength}. Click to show and change the LoRAs.`;
+            return c;
+        });
+        const more = E.el("button", "rg-lchip more"); more.type = "button";
+        for (const c of [...chips, more]) {
+            c.addEventListener("pointerdown", (e) => e.stopPropagation());
+            c.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); open(); });
+        }
+        box.append(...chips, more);
+        const fit = () => {
+            if (!box.isConnected || !box.clientWidth) return;
+            for (const c of chips) c.style.display = "";
+            more.style.display = "none";
+            let hidden = 0;
+            while (box.scrollWidth > box.clientWidth + 1 && hidden < chips.length) {
+                hidden++;
+                chips[chips.length - hidden].style.display = "none";
+                more.style.display = ""; more.textContent = `+${hidden}`;
+                more.title = `${hidden} more LoRA${hidden === 1 ? "" : "s"} on. Click to show and change the LoRAs.`;
+            }
+        };
+        box.__rgFit = fit;
+        try { new ResizeObserver(fit).observe(box); } catch (e) { /* old browser */ }
+        return box;
+    }
+    // every LoRA list of the node: the whole image's, then each region's
+    const loraLists = () => [E.state.sceneLoras || [], ...E.state.regions.map((r) => r.loras || [])];
+    // the header's switch: all LoRAs off; the next click puts back the ones it switched off (kept as lo.wasOn, saved
+    // with the node, so it also works after a reload)
+    function toggleAllLoras() {
+        const own = loraLists().flatMap(ownLoras);
+        const on = own.filter((x) => x.on !== false);
+        if (on.length) E.change(() => { for (const x of own) delete x.wasOn; for (const x of on) { x.on = false; x.wasOn = true; } });
+        else if (own.some((x) => x.wasOn)) E.change(() => { for (const x of own) if (x.wasOn) { x.on = true; delete x.wasOn; } });
+    }
+    function syncLoraAll() {
+        const b = E.loraAllBtn;
+        if (!b) return;
+        const own = loraLists().flatMap(ownLoras);
+        const on = own.filter((x) => x.on !== false && x.lora).length, back = own.filter((x) => x.wasOn).length;
+        setHTML(b, svgIcon("power") + `<span>${on}</span>`);
+        b.classList.toggle("some", on > 0);
+        b.classList.toggle("back", !on && back > 0);
+        b.style.display = own.length ? "" : "none";
+        b.title = on ? `${on} LoRA${on === 1 ? " is" : "s are"} on in this node (whole image and regions).\nClick: Switch them all off. The next click switches the same ones back on.`
+            : back ? `All LoRAs are off.\nClick: Switch the ${back} back on that this button switched off.`
+            : "All LoRAs are off. Switch them on in a row's LoRAs.";
+    }
     // one LoRA of a region (or of the whole image), with its trigger words as chips
+    // owner.pop: in a pop-up's LoRAs tab: a grip to drag the row up or down, and the on / off box as a switch
     function loraRows(list, owner) {
         // owner: { prompt(): string, append(word) } (region prompt, or scene_prompt_positive for whole-image LoRAs)
         const frag = document.createDocumentFragment();
         list.forEach((lo, i) => {
             if (owner?.sceneOnly && (lo.edit || lo.control)) return;          // on the Edit / Control rows instead
             const row = E.el("div", "rg-row lora");
-            const tag = E.el("span", "rg-hint"); tag.textContent = lo.control ? "Control" : lo.edit ? "Edit" : "LoRA";
+            row.dataset.li = String(i);
+            const tag = owner?.pop ? loraGrip(list, i) : E.el("span", "rg-hint");
+            if (!owner?.pop) tag.textContent = lo.control ? "Control" : lo.edit ? "Edit" : "LoRA";
             if (lo.edit) {
                 tag.title = `Edit LoRA for ${lo.edit}, added by Edit Mode: Used only in Edit Mode with a ${lo.edit} model, `
                     + "and removed when the node is switched back to generate (Settings > Region Genie > Edit Mode).";
                 row.classList.add("edit");
             }
             const on = E.el("input"); on.type = "checkbox"; on.checked = lo.on !== false; on.title = "On / off";
-            on.addEventListener("change", () => E.change(() => { lo.on = on.checked; }));
+            if (owner?.pop) { on.classList.add("rg-switch"); row.classList.toggle("off", lo.on === false); }
+            on.addEventListener("change", () => E.change(() => { lo.on = on.checked; delete lo.wasOn; }));
             const pick = E.el("button", "rg-pick");
             const setLabel = () => {
                 pick.textContent = lo.lora || "(choose a LoRA)";
@@ -266,6 +343,41 @@ export function* list(E) {
             fillTriggerChips(chips, lo.lora, owner.prompt, (w) => owner.append([w]), E.el);
         });
         return frag;
+    }
+    // the grip of a LoRA row in a pop-up: drag it up or down in its list. A line shows where it lands; one undo step.
+    function loraGrip(list, i) {
+        const g = E.el("span", "rg-grip"); g.innerHTML = svgIcon("grip");
+        g.title = "Drag to move this LoRA up or down in the list.";
+        g.addEventListener("pointerdown", (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault(); e.stopPropagation();
+            const box = g.closest(".rg-pop-lorarows");
+            if (!box) return;
+            const rows = [...box.querySelectorAll(":scope > .rg-row.lora")];
+            const me = rows.find((r) => Number(r.dataset.li) === i);
+            const line = E.el("div", "rg-lora-drop");
+            box.appendChild(line);
+            let to = null;                                  // the list index it would land before (list.length: at the end)
+            g.setPointerCapture?.(e.pointerId);
+            me?.classList.add("dragging");
+            const move = (ev) => {
+                const br = box.getBoundingClientRect();
+                let y = br.bottom - 1; to = list.length;
+                for (const r of rows) {
+                    const rr = r.getBoundingClientRect(), chips = r.nextElementSibling?.classList.contains("rg-trig") ? r.nextElementSibling.getBoundingClientRect() : rr;
+                    if (ev.clientY < (rr.top + Math.max(rr.bottom, chips.bottom)) / 2) { y = rr.top - 1; to = Number(r.dataset.li); break; }
+                }
+                line.style.top = Math.round(y - br.top + box.scrollTop) + "px";
+            };
+            const up = () => {
+                g.removeEventListener("pointermove", move); g.removeEventListener("pointerup", up); g.removeEventListener("pointercancel", up);
+                line.remove(); me?.classList.remove("dragging");
+                if (to == null || to === i || to === i + 1) return;
+                E.change(() => { const [x] = list.splice(i, 1); list.splice(to > i ? to - 1 : to, 0, x); });
+            };
+            g.addEventListener("pointermove", move); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
+        });
+        return g;
     }
     function addLoraTo(list, ev, onAdded) {
         pickLora(ev, (name) => { onAdded?.(); E.change(() => { list.push({ lora: name, strength: 1, on: true }); }); E.focusSink(); })

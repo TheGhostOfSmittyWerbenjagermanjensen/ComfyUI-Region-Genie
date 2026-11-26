@@ -167,6 +167,46 @@ button.rg-sw.pick:hover { outline:1px solid #5b8fd0; }
 .rg-pop .rg-row.lora, .rg-pop .rg-row.pal { margin-left:0; }
 .rg-pop .rg-trig { margin-left:30px; }
 .rg-pop-dyn { display:flex; flex-direction:column; gap:3px; }
+/* a pop-up's tabs (round 87): the panes lie on top of each other, so the pop-up is as tall as the tallest and keeps its size */
+.rg-pop:focus { outline:none; }
+.rg-pop-tabs { display:flex; gap:4px; }
+.rg-pop-tabs .rg-btn { flex:1 1 0; padding:3px 6px; display:flex; justify-content:center; align-items:center; gap:5px; }
+.rg-pop-tabs .rg-btn em { font-style:normal; opacity:.7; }
+.rg-pop-tabs .rg-btn em.lit { color:#e9c46a; opacity:1; font-weight:600; }
+.rg-pop-tabs .rg-btn.on em.lit { color:#ffe2a0; }
+.rg-pop-panes { display:grid; flex:1 1 auto; }
+.rg-pop-pane { grid-area:1 / 1; display:flex; flex-direction:column; gap:5px; min-width:0; }
+.rg-pop-pane.off { visibility:hidden; pointer-events:none; }
+.rg-pop-lorarows { position:relative; display:flex; flex-direction:column; }
+.rg-pop-lorarows > .rg-hint { padding:4px 2px; }
+.rg-pop .rg-row.rg-pop-addl { justify-content:flex-start; }
+.rg-lora-drop { position:absolute; left:0; right:0; height:2px; background:#5b8fd0; pointer-events:none; }
+.rg-pop .rg-row.lora { font-size:12px; gap:5px; }
+.rg-pop .rg-row.lora.dragging { opacity:.45; }
+.rg-pop .rg-row.lora.off .rg-pick { opacity:.55; }
+.rg-pop .rg-row.lora .rg-grip { opacity:.6; }
+input.rg-switch { appearance:none; -webkit-appearance:none; width:26px; height:14px; border-radius:7px; background:#555; position:relative;
+  cursor:pointer; flex:0 0 auto; margin:0 2px; border:0; }
+input.rg-switch::after { content:""; position:absolute; left:2px; top:2px; width:10px; height:10px; border-radius:50%; background:#aaa; transition:left .1s; }
+input.rg-switch:checked { background:#d9a441; }
+input.rg-switch:checked::after { left:14px; background:#1c1c1c; }
+/* LoRAs at a glance in the list (round 87): the one button of a row, the chips on Whole image, the header's switch */
+.rg-btn.rg-lbtn.some { background:#d9a441; border-color:#d9a441; color:#1c1c1c; font-weight:600; }
+.rg-btn.rg-lbtn.alloff { border-color:#d9a441; color:#e9c46a; }
+.rg-row.has-lora { box-shadow:inset 3px 0 0 #d9a441; }
+.rg-row.scene.has-chips .rg-pseudo { flex:0 0 auto; }
+.rg-lchips { display:flex; flex:1 1 0; min-width:0; overflow:hidden; gap:4px; align-items:center; margin:0 4px 0 8px; }
+.rg-lchip { flex:0 0 auto; display:inline-flex; gap:4px; align-items:center; height:18px; margin:0; padding:0 7px; border-radius:9px; border:1px solid #d9a441;
+  background:transparent; color:#e9c46a; font:inherit; font-size:11px; font-weight:normal; cursor:pointer; white-space:nowrap; }
+.rg-lchip > span { max-width:130px; overflow:hidden; text-overflow:ellipsis; }       /* a long file name is cut short; the tooltip has all of it */
+.rg-lchip b { color:var(--input-text,#fff); font-weight:500; flex:0 0 auto; }
+.rg-lchip.more { background:#d9a441; color:#1c1c1c; font-weight:600; }
+.rg-lchip:hover { background:color-mix(in srgb, #d9a441 25%, transparent); }
+.rg-lchip.more:hover { background:#e9c46a; }
+.rg-btn.rg-lall { display:inline-flex; align-items:center; gap:4px; }
+.rg-btn.rg-lall svg { width:13px; height:13px; }
+.rg-btn.rg-lall.some { border-color:#d9a441; background:#4a3c16; color:#f3dfae; font-weight:600; }
+.rg-btn.rg-lall.back { border-color:#d9a441; color:#e9c46a; }
 .rg-pop-foot { font-size:10px; opacity:.5; }
 .rg-bslider { position:absolute; left:8px; top:50%; transform:translateY(-50%); width:30px; height:190px; opacity:.45;
   transition:opacity .12s; z-index:3; touch-action:none; cursor:ns-resize; }

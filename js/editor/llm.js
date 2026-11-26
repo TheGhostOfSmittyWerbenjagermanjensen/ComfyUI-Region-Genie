@@ -182,8 +182,9 @@ export function* llm(E) {
     }
 
     // a region's LoRAs; trigger-word chips add to its prompt
-    function regionLoraRows(r) {
+    function regionLoraRows(r, pop = false) {
         return E.loraRows(r.loras || [], {
+            pop,
             prompt: () => r.prompt,
             append: (words) => E.change(() => { for (const w of words) r.prompt = appendWord(r.prompt, w); }),
         });
@@ -218,7 +219,11 @@ export function* llm(E) {
         const scene = E.el("div", "rg-row scene");
         const sl = E.el("span", "rg-pseudo"); sl.textContent = "Whole image";
         sl.title = "LoRAs here act on the whole picture (and all text), like a normal LoRA";
-        const sceneAdd = E.ico("＋LoRA", "Add a LoRA for the whole image", (e) => { E.state.sceneLoras = E.state.sceneLoras || []; E.addLoraTo(E.state.sceneLoras, e, () => E.expanded.add(E.SCENE)); }, "txt");
+        // round 87: the row shows its LoRAs that are on as chips, and one LoRAs button; both open the scene prompt's
+        // pop-up on its LoRAs tab (the LoRA rows were a part of the list that opened under this row)
+        const openSceneLoras = () => E.editScene("positive", null, "loras");
+        const sceneAdd = E.loraButton(E.state.sceneLoras, "the whole image", openSceneLoras);
+        const sceneChips = E.loraChips(E.state.sceneLoras, openSceneLoras);
         // round 18: Control is a row you add (and remove with its ✕), not an always-there switch
         const ctlAdd = E.ico("＋Control", "Add a Control row: The model follows a color map, depth, canny or your own control_image "
             + "(ControlNet / control LoRA; the files are set in Settings > Region Genie > Control). Several rows combine where the "
@@ -227,33 +232,14 @@ export function* llm(E) {
             : "Add an Edit row: A LoRA of this node's own, used only in Edit Mode (any model)", () => E.addEditRow(), "txt");
         if (!E.isEdit()) editAdd.style.display = "none";
         // the Edit and Control LoRAs are set on their own rows, not listed here (round 23)
-        const ownLoras = (E.state.sceneLoras || []).filter((x) => !x.edit && !x.control);
-        const nScene = ownLoras.length;
+        const nScene = E.loraCount(E.state.sceneLoras).on;
         const sGap = E.el("span"); sGap.style.flex = "1 1 auto";
-        const sOpen = E.expanded.has(E.SCENE);
-        scene.append(E.el("span", "rg-grip pad"), E.chevron(E.SCENE, true, `the whole-image LoRAs (${nScene})`), sl, sGap, llmButton(LLM_SCENE), sceneAdd, ctlAdd, editAdd);
-        // a click anywhere on the row (but its buttons) opens or closes it, like the chevron
-        scene.title = `${sOpen ? "Hide" : "Show"} the LoRAs that act on the whole image (${nScene})`;
-        scene.addEventListener("pointerdown", (e) => {
-            if (e.button !== 0 || e.target.closest?.("button, input, select, textarea")) return;
-            e.stopPropagation();
-            if (E.expanded.has(E.SCENE)) E.expanded.delete(E.SCENE); else E.expanded.add(E.SCENE);
-            renderRegions();
-        });
+        const pad = E.el("span", "rg-chev empty"); pad.style.visibility = "hidden";          // (the row's text starts where the regions' does)
+        scene.append(E.el("span", "rg-grip pad"), pad, sl, nScene ? sceneChips : sGap, llmButton(LLM_SCENE), sceneAdd, ctlAdd, editAdd);
+        scene.classList.toggle("has-lora", nScene > 0);
+        scene.classList.toggle("has-chips", nScene > 0);
         E.regList.appendChild(scene);
-        if (sOpen && nScene) {
-            E.regList.appendChild(E.loraRows(E.state.sceneLoras, {
-                sceneOnly: true,
-                prompt: () => E.sceneW?.value || "",
-                append: (words) => { let v = E.sceneW?.value || ""; for (const w of words) v = appendWord(v, w); E.setWidget(E.sceneW, v); E.hint("Added to scene_prompt_positive"); renderRegions(); },
-            }));
-        } else if (sOpen) {
-            const empty = E.el("div", "rg-row lora");
-            const t = E.el("span", "rg-hint");
-            t.textContent = "No whole-image LoRAs yet: ＋LoRA adds one that acts on the whole picture, like Load LoRA";
-            empty.appendChild(t);
-            E.regList.appendChild(empty);
-        }
+        sceneChips.__rgFit?.();
 
         if (E.isEdit()) E.regList.appendChild(E.editRows());
         E.controls().forEach((c, k) => E.regList.appendChild(E.controlRow(c, k)));
@@ -322,7 +308,9 @@ export function* llm(E) {
                 row.appendChild(txWrap);
                 E.addExpandButton(tx, "Open this region in the pop-up editor (its text to render)", openPop("text", tx));
             }
-            const addL = E.ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { r.loras = r.loras || []; E.addLoraTo(r.loras, e, () => E.openSub(r.id, "loras")); }, "txt");
+            // round 87: one LoRAs button; it opens the region's pop-up on its LoRAs tab
+            const addL = E.loraButton(r.loras, "this region", () => E.editPrompt(r.id, null, "prompt", null, "loras"));
+            row.classList.toggle("has-lora", E.loraCount(r.loras).on > 0);
             const mergeAll = E.ico("@mergeAll", "Merge all visible layers of this region into one layer", () => E.mergeRegion(r.id));
             mergeAll.disabled = lays.filter((l) => l.visible !== false).length < 2;
             const up = E.ico("@up", "Move up: Earlier in the output order, and its layers in front", () => E.change(() => {
@@ -354,21 +342,21 @@ export function* llm(E) {
                     if (!E.subOpen.has(`${r.id}:${k}`)) continue;
                     const body = E.el("div", "rg-subbody");
                     if (k === "layers") body.appendChild(E.layerRows(r.id));
-                    else if (k === "loras") { body.dataset.loras = String(r.id); body.appendChild(regionLoraRows(r)); }
                     else body.appendChild(E.paletteRow(r, false));
                     E.regList.appendChild(body);
                 }
             }
         });
         E.regList.scrollTop = scroll;
+        E.syncLoraAll();
         E.idxKey = "";
         E.updateRegionIndices();
     }
     function refreshChips(rid) {                   // trigger chips follow prompt edits
         const r = E.regionById(rid);
-        const box = E.regList.querySelector(`[data-loras="${rid}"]`);
+        const box = E.editor?.rid === rid ? E.editor.box.querySelector(".rg-pop-lorarows") : null;      // (the pop-up's LoRAs tab)
         if (!r || !box || !(r.loras || []).length) return;
-        box.replaceChildren(regionLoraRows(r));
+        box.replaceChildren(regionLoraRows(r, true));
     }
     function markRegionRows() {
         const rows = [...E.regList.querySelectorAll(".rg-row.region")];

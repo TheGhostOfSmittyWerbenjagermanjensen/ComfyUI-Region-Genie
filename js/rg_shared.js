@@ -120,6 +120,7 @@ export const LUCIDE = {
     up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',   // arrow-up
     down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',   // arrow-down
     chevronRight: '<path d="m9 18 6-6-6-6"/>',   // chevron-right
+    power: '<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/>',   // power
     chevronDown: '<path d="m6 9 6 6 6-6"/>',   // chevron-down
     copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',   // copy
     scissors: '<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>',   // scissors
