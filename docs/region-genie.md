@@ -79,6 +79,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - Esc while it waits leaves the key as it is.
   - **+** next to a key adds a second key for the same thing, **✕** (shown while a key waits) removes a key, the round arrow on a changed row puts its default back, and **Reset all** puts every default back.
   - A key that another shortcut already uses is taken from that one, and the sheet says which. The buttons' tooltips, the hints on the canvas and the right-click menu show the keys you chose.
+  - The list holds the whole pack's shortcuts, a section per node: the last section, *Image Compare node*, has the two keys that step through that node's pictures. A node's keys act only while the pointer is over it, so two nodes may use the same key.
   - Mouse gestures and held keys (Shift for equal sides, the wheel, right-click …) are listed with a dashed outline and can't be changed.
   - Esc can't be given to something else by pressing it (it cancels), but the shortcuts that use it can be given another key.
   - The same sheet opens from **Settings > Region Genie > Shortcuts > Edit…**; the keys apply to every Region Genie node and are saved with ComfyUI's settings, not with the workflow.
@@ -86,7 +87,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 ### Right-click menu
 
 - **Right-click on the canvas** opens a menu.
-  - On a region (which becomes the active one): Edit prompt, Hide region, Move up / down in the list, Duplicate or Delete the layer under the pointer, Delete region.
+  - On a region (which becomes the active one): Edit prompt, Hide region, Move up / down in the list, Hide, Duplicate or Delete the layer under the pointer, Delete region.
   - Where regions overlap, the others under the pointer are listed under *Also here*.
   - On empty canvas: Add a region, Paste layer, Fit the image in view, Labels on / off, Snap to grid on / off, Show the grid without snapping, the large editor and the shortcut sheet.
   - Everything in it can be undone with Ctrl+Z like the buttons it stands for.
@@ -560,6 +561,7 @@ The details:
   - Outside a pop-up, the same keys undo the editor's last step as before (a whole prompt edit is one step there).
 - **The bottom row of the Prompt tab:** the tag autocomplete switch, the wildcard list (when ComfyUI Impact Pack is installed) and the LLM Prompt Enhancer button (not on `scene_prompt_negative`).
 - **Undo and Redo on the other tabs:** while no text has the cursor, the Undo / Redo keys take back the editor's last step (a LoRA moved, a layer deleted).
+- **The pop-up's Undo / Redo buttons take back what was done last.** After typing that is the text, step by step. After anything else (a layer or a region moved, a switch, a LoRA) it is that change, the same as the Undo button above the canvas, on every tab.
 - **Esc closes what is on top first:** with a list or menu open over a pop-up, Esc closes that; the next Esc closes the pop-up.
 - **The field whose pop-up is open is outlined** in the highlight color, so you can see at a glance which field the pop-up belongs to: a region's prompt in the list, a scene prompt's box, the box in the large editor.
 - **The pack's two colors are yours to choose** (Settings > Region Genie > Region Genie node):
@@ -627,7 +629,9 @@ The details:
 
 - **Basics:** the switches used most, **Shortcuts**, and the pages *Region Genie node*, *Image size*, *Canvas tools* and *Text*.
   - The switches: hints on the canvas, snap to grid, tag autocomplete in new nodes, new regions start with the LLM on, keep all regions separate automatically.
-- **Models and files:** the pages *Control*, *Edit Mode*, *LLM Prompt Enhancer*, *Keeping regions separate, per model* and *Select object*, then **Browse… for model files** and **Check model files**.
+- **Models and files:** the pages *Control*, *Edit Mode*, *LLM Prompt Enhancer*, *Keeping regions separate, per model* and *Select object*, then **Browse… for model files**, the two **Search all folders** switches and **Check model files**.
+  - *Search all folders in this pack's file lists* (on): where rgthree-comfy's "Auto Nest Subdirectories in Menus" sorts a list of files into folders, typing in the list's filter box finds the files of every folder, each shown with its folder. Off: the filter box only searches the open folder. It covers the pack's own lists (the LoRA list, the model-file fields).
+  - *Search all folders in every list of ComfyUI (experimental)* (off): the same search in every such list, on any node of any pack (a Load LoRA node's list). It reaches into menus other packs open: switch it off if one misbehaves. Nodes 2.0 draws its own dropdowns, which are not sorted into folders, so there it only matters for menus that still open the classic way.
 - **Other nodes:** the pages *Regional LoRAs* and *Save Image*.
 
 ![Settings > Region Genie: a short list, each topic one row with Edit…](images/settings-tab.png)

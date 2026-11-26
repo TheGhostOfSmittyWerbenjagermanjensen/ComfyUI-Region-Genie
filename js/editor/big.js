@@ -22,6 +22,7 @@ export function* big(E) {
 
     E.big = null;                                    // while open: { ov, win, side, hole, sizeHole, fields, timer }
     const bigBtn = E.iconBtn("expand", "", () => toggleBig(), "toggle"); E.bigBtn = bigBtn;
+    bigBtn.classList.add("rg-bigbtn");                       // lit under the pointer, as the pop-up buttons of the text boxes are
     E.barGap.before(bigBtn);
     function setBigBtn() {
         const k = keyLabel(bigKeyText());

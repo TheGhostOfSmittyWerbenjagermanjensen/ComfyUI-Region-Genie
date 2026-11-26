@@ -296,7 +296,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const menu0 = await page.evaluate(() => [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].slice(0, 6).map((e) => e.textContent.trim()));
     const filt = page.locator(".litecontextmenu .comfy-context-menu-filter").first();
     await filt.fill("rgtest_edit_row"); await sleep(500);
-    await page.evaluate(() => { const e = [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].find((x) => x.offsetParent && /rgtest_edit_row\.safetensors$/.test(x.textContent.trim())); e?.click(); });
+    await page.evaluate(() => { const e = [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].find((x) => x.offsetParent && /rgtest_edit_row\.safetensors$/.test((x.querySelector(".rg-ff-n") || x).textContent.trim())); e?.click(); });
     await sleep(1200);
     const er = await page.evaluate(() => {
         const rg = window.__rg;

@@ -751,5 +751,13 @@
   "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px , Highlight color, Switched-on color": {
     "name": "Region Genie ノード",
     "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_ModelFiles_SearchAllFolders": {
+    "name": "このパックのファイル一覧ですべてのフォルダーを検索",
+    "tooltip": "オン（既定）：フォルダーごとに分けられたファイル一覧で、フィルター欄に入力するとすべてのフォルダーのファイルが見つかり、それぞれに所属フォルダーが表示されます。\nオフ：フィルター欄は開いているフォルダーだけを検索します。\n対象の一覧：このパック自身の一覧（LoRA 一覧、モデルファイル欄）で、rgthree-comfy の「Auto Nest Subdirectories in Menus」がフォルダーごとに分けているもの。"
+  },
+  "RegionGenie_ModelFiles_SearchAllFoldersEverywhere": {
+    "name": "ComfyUI のすべての一覧ですべてのフォルダーを検索（実験的）",
+    "tooltip": "オフ（既定）：このパック自身の一覧だけがすべてのフォルダーを検索します。\nオン：どのパックのどのノードでも、フォルダーごとに分けられたファイル一覧で同じ検索を行います（Load LoRA ノードの一覧、チェックポイントローダーの一覧）。\n実験的：ComfyUI や他のパックが開くメニューに作用します。他のパックのメニューの動作がおかしい場合はオフにしてください。"
   }
 }

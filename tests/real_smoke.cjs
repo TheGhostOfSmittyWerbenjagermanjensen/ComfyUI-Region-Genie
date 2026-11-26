@@ -32,7 +32,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         window.__rg = rg;
         return { rg: !!rg.__rgState, slot, regs: Object.keys(LG.registered_node_types).filter((k) => k.startsWith("Region-Genie")).length };
     });
-    check(`${vue ? "Nodes 2.0" : "legacy"}: Region Genie node created with its editor`, ok.rg && ok.slot >= 0 && ok.regs === 8);      // the eight nodes (six, and since round 75 Tiled Upscale and Tiled Diffusion); nothing internal is registered (round 68)
+    check(`${vue ? "Nodes 2.0" : "legacy"}: Region Genie node created with its editor`, ok.rg && ok.slot >= 0 && ok.regs === 9);      // the nine nodes (six, since round 75 Tiled Upscale and Tiled Diffusion, since round 93 Image Compare); nothing internal is registered (round 68)
     await page.waitForTimeout(2500);
     const bd = await page.evaluate(() => !!window.__rg.__rgView && document.querySelectorAll(".rg-cv .rg-imgmode .rg-seg").length > 0);
     check("image-mode buttons show with Load Image connected", bd);
@@ -47,7 +47,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator(".rg-toolopts").first().hover().catch(() => {});      // folded to an icon until hovered (round 12)
     const findVis = await page.locator(".rg-toolopts .rg-find").first().isVisible();
     check("find field visible", findVis);
-    const respP = page.waitForResponse((r) => r.url().includes("/region_genie/sam_select"), { timeout: 240000 });
+    const respP = page.waitForResponse((r) => r.url().includes("/region_genie/sam_select"), { timeout: 600000 });      // a cold stand-in model (1.75 GB, CPU) took over 4 minutes on a cloud machine three times in one day
     const [cx, cy] = await page.evaluate(() => window.__rg.__rgToClient(120, 300));
     await page.mouse.click(cx, cy);
     await page.waitForTimeout(300);

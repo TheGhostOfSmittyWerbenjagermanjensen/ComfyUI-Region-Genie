@@ -6,8 +6,10 @@ Region Genie
   Regional LoRAs                  several regional LoRAs + their conditioning in one node
   Create Hook LoRA (Quantized)    hook LoRA that works on int8/fp8 models
   Tiled Upscale / Tiled Diffusion upscaling in blended tiles (Mixture of Diffusers)
+  Image Compare                   two or more images in one node: a slider, and the keys to flip between them
 """
 from .bbox_masks import BBoxesToMasks, MaskPicker
+from .image_compare import ImageCompareRG
 from .region_genie import RegionGenie
 from .regional_lora import CreateHookLoRAQuantized, RegionalLoRAs
 from .save_image import SaveImageRG
@@ -35,6 +37,7 @@ NODES = [
     ("Region-Genie_SaveImage", SaveImageRG, "Save Image (Region Genie)"),
     ("Region-Genie_TiledUpscale", TiledUpscaleRG, "Tiled Upscale (Region Genie)"),
     ("Region-Genie_TiledDiffusion", TiledDiffusionRG, "Tiled Diffusion (Region Genie)"),
+    ("Region-Genie_ImageCompare", ImageCompareRG, "Image Compare (Region Genie)"),
 ]
 
 
@@ -61,6 +64,8 @@ _ALIASES = {
                      "hires fix", "high resolution", "tile", "tiles", "ultimate upscale", "detail"],
     TiledDiffusionRG: ["tiled diffusion", "mixture of diffusers", "multidiffusion", "tile", "tiles", "tiled sampling",
                        "upscale", "high resolution"],
+    ImageCompareRG: ["compare", "image compare", "image comparer", "comparison", "slider", "before after", "A/B", "side by side",
+                     "preview", "difference"],
     CreateHookLoRAQuantized: ["hook LoRA", "LoRA", "regional LoRA", "LoRA mask", "masked LoRA", "runtime LoRA",
                               "quantized LoRA", "int8", "fp8", "LoRA hook", "Create Hook LoRA"],
 }

@@ -96,7 +96,7 @@ for (const sub of ["loras", "controlnet"]) {
     check(`the field opens ComfyUI's menu inside the dialog, on the model folders, quickly with ${BIG.length} LoRAs (${menuMs} ms; ${menu.top.join(" | ")})`,
         menu.inDlg && menu.top[0] === "None" && menu.top.some((t) => /controlnet/.test(t)) && menu.top.some((t) => /loras/.test(t)) && menuMs < 5000);
     await page.locator(".litecontextmenu .comfy-context-menu-filter").first().fill("@author"); await sleep(600);
-    const found = await page.evaluate(() => [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].filter((e) => e.offsetParent).map((e) => e.textContent.trim()));
+    const found = await page.evaluate(() => [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].filter((e) => e.offsetParent).map((e) => e.title || e.textContent.trim()));      // a hit's title: the name with its folders
     check(`the search finds 'sub\\@author' names (${found.slice(0, 2).join(" | ")})`, found.some((t) => t.includes("rgtest_sub\\@author\\x.safetensors")));
     await page.keyboard.press("Escape"); await page.evaluate(() => document.querySelectorAll(".litecontextmenu").forEach((m) => m.remove())); await sleep(300);
     // Browse… on: Region Genie's pickers (the dialog follows the switch)

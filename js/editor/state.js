@@ -39,9 +39,13 @@ export function normLoraOpts(o) {
              ...(o.autoOff && !o.allRegions ? { autoOff: true } : {}),
              ...(o.shareBg ? { shareBg: true } : {}) };            // shareBg: kept-separate regions still share the background
 }
+// damaged or hand-edited data: a text that isn't one (a number is written out, anything else is dropped), and a
+// 'regions' that isn't a list. Found by tests/ui_properties.cjs: before, such data stopped the node from loading
+const str = (v) => (typeof v === "string" ? v : typeof v === "number" && Number.isFinite(v) ? String(v) : "");
+const regionRows = (d) => (Array.isArray(d.regions) ? d.regions : []).filter((r) => r && typeof r === "object" && r.id != null);
 function normRegion(r) {
-    return { id: r.id, color: String(r.color || "#FFFFFF").toUpperCase(), prompt: r.prompt || "",
-             type: TYPES.includes(r.type) ? r.type : "object", text: r.text || "",
+    return { id: r.id, color: (str(r.color) || "#FFFFFF").toUpperCase(), prompt: str(r.prompt),
+             type: TYPES.includes(r.type) ? r.type : "object", text: str(r.text),
              ...(r.fromImage ? { fromImage: true } : {}),
              ...(normLoras(r.loras).length ? { loras: normLoras(r.loras) } : {}),
              ...(r.featherLinked === false ? { featherLinked: false, feather: Math.max(0, Math.round(+r.feather || 0)) } : {}),
@@ -90,7 +94,7 @@ function migrateV1(d, W, H) {
         }
         L.ops.push({ t: o.t, e: false, d: o.s ?? 0.02, p: o.p.map(([x, y]) => [x * W / short, y * H / short]) });
     }
-    return { v: 2, regions: (d.regions || []).filter((r) => r && r.id != null).map(normRegion), layers };
+    return { v: 2, regions: regionRows(d).map(normRegion), layers };
 }
 
 // a layer's centre as an offset from the image centre (short-side units); older data: fractions of W and H
@@ -108,7 +112,7 @@ export function parseState(text, W, H) {
     if (!Array.isArray(d.layers)) return migrateV1(d, W, H);
     return {
         v: 2,
-        regions: (d.regions || []).filter((r) => r && r.id != null).map(normRegion),
+        regions: regionRows(d).map(normRegion),
         layers: d.layers.filter((l) => l && typeof l === "object").map((l) => ({
             id: l.id, name: l.name || "Layer", region: l.region ?? UNSPEC, visible: l.visible !== false,
             // a hole (region 0) is listed under the region it was made in (round 20)
@@ -120,7 +124,7 @@ export function parseState(text, W, H) {
         })),
         ...(normPoses(d).length ? { poses: normPoses(d) } : {}),
         ...(d.poseInputTaken ? { poseInputTaken: true } : {}),        // the pose_keypoint input's figures were put on the canvas: the input itself isn't used at a run
-        ...(d.importSig ? { importSig: String(d.importSig) } : {}),
+        ...(str(d.importSig) ? { importSig: str(d.importSig) } : {}),
         ...(normLoras(d.sceneLoras).length ? { sceneLoras: normLoras(d.sceneLoras) } : {}),
         ...(d.loraOpts ? { loraOpts: normLoraOpts(d.loraOpts) } : {}),
         ...(+d.feather > 0 ? { feather: Math.round(+d.feather) } : {}),
@@ -147,7 +151,7 @@ function normControls(d) {
 const CONTROL_KINDS = ["color", "color+depth", "depth", "canny", "other", "pose"];
 // the pose figures (pose.js): 18 points each; region: its region's id, or null for none (also when that region is gone)
 function normPoses(d) {
-    const rids = new Set((d.regions || []).filter((r) => r && r.id != null).map((r) => r.id));
+    const rids = new Set(regionRows(d).map((r) => r.id));
     const num = (v) => (Number.isFinite(+v) ? +v : 0);
     return (Array.isArray(d.poses) ? d.poses : []).filter((p) => p && typeof p === "object" && Array.isArray(p.pts) && p.pts.length >= 18)
         .map((p, i) => {

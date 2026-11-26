@@ -310,3 +310,15 @@ Nothing here has run on a real model yet.
 - [ ] Firefox: the switch (a styled checkbox), the tabs, and dragging rows by their grips
 - [ ] Settings > Region Genie > Region Genie node: *Highlight color* and *Switched-on color* (round 91): the swatch opens the picker over the Settings window; a changed color shows at once on the node, in an open pop-up and in the large editor; *Default* puts it back; colors you can tell apart well read well on the canvas's dark ground
 - [ ] A pop-up opened from a field near the bottom of the window opens above the field, not over it; from a field near the top, below it
+
+## Round 93: Image Compare, the folder search, the pop-up's Undo
+- [ ] Image Compare with real results (large pictures, 2 to 6 inputs, a batch): the slider follows the pointer without lag; 1 to 9 on the number row and on the numpad, and the arrow keys, work while the pointer is over the node and nowhere else
+- [ ] Image Compare in Firefox and on the 4K display: the numbers and the two buttons are easy to hit; right-click on a number hides it (no browser menu)
+- [ ] Image Compare with pictures of different sizes or shapes: each is fitted into the frame; say if they should be scaled to match instead
+- [ ] The LoRA list of a region with your own library and rgthree's folders: typing finds LoRAs in every folder, each with its folder; a pick adds it
+- [ ] Settings > Region Genie > Models and files > *Search all folders in every list of ComfyUI (experimental)* on: a Load LoRA node's list (legacy nodes) searches every folder; menus of other packs you use still work
+- [ ] A region's pop-up, Layers tab: move a layer by its grip, then the pop-up's own Undo button puts it back
+- [ ] Image Compare (round 95): the wheel over the node's picture zooms the graph exactly as over the empty graph (same speed, same direction), with a mouse and with a trackpad pinch, in legacy mode and Nodes 2.0
+- [ ] Image Compare, Large view with real pictures: the wheel's zoom speed feels right; zooming out stops at the whole picture; a drag moves it; at high zoom single pixels are sharp; the percent readout is right for a picture you know the size of
+- [ ] Image Compare: number keys and arrows with the pointer on the node's title and on its input names
+- [ ] Image Compare (round 96): a middle-button drag over the node's picture, its numbers and its title moves the graph as over the empty graph; no autoscroll circle appears (Firefox, Windows)

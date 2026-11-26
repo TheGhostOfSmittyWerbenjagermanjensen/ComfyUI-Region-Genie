@@ -151,6 +151,7 @@ export function* regions(E) {
         pushUndo(before);
         resumeText();
         save(); E.refreshUI();
+        if (E.editor) { E.editor.last = "edit"; E.editor.histBtns?.refresh(); }      // the pop-up's Undo: this change was the last thing done
     }
     function restore(text) {
         const st = JSON.parse(text), scene = st.__scene;
@@ -164,8 +165,8 @@ export function* regions(E) {
         if (sceneSet) { E.wcMarkScene?.(); for (const t of Object.values(E.sceneTA || {})) t?.__rgPlaceExpand?.(); }
         E.sceneKnown = JSON.stringify(sceneNow());
     }
-    function undo() { endText(); absorbScene(); if (E.undoStack.length) { E.redoStack.push(snapshot()); restore(E.undoStack.pop()); afterRestore(); } resumeText(); }
-    function redo() { endText(); absorbScene(); if (E.redoStack.length) { E.undoStack.push(snapshot()); restore(E.redoStack.pop()); afterRestore(); } resumeText(); }
+    function undo() { endText(); absorbScene(); if (E.undoStack.length) { E.redoStack.push(snapshot()); restore(E.undoStack.pop()); afterRestore(); } resumeText(); E.editor?.histBtns?.refresh(); }
+    function redo() { endText(); absorbScene(); if (E.redoStack.length) { E.undoStack.push(snapshot()); restore(E.redoStack.pop()); afterRestore(); } resumeText(); E.editor?.histBtns?.refresh(); }
     // ---- text boxes and Undo (round 43). A visit to a text box (click in, type, click out) is ONE step: it starts
     // when the box gets the cursor and is closed when the box is left, and before any other change or an Undo / Redo,
     // so the steps stay in the order things were done. While the cursor is in a box, the Undo keys act on that box's

@@ -751,5 +751,13 @@
   "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px , Highlight color, Switched-on color": {
     "name": "Region Genie 节点",
     "tooltip": "新建 Region Genie 节点的初始设置（图像模式、羽化、分离、网格、区域颜色、标签自动补全、通配符）。\nEdit…：在此页打开 Region Genie 设置。"
+  },
+  "RegionGenie_ModelFiles_SearchAllFolders": {
+    "name": "在本节点包的文件列表中搜索所有文件夹",
+    "tooltip": "开启（默认）：在按文件夹分类的文件列表中，在筛选框里输入即可找到所有文件夹中的文件，每个结果都会显示它所在的文件夹。\n关闭：筛选框只搜索当前打开的文件夹。\n适用的列表：本节点包自己的列表（LoRA 列表、模型文件字段），即 rgthree-comfy 的“Auto Nest Subdirectories in Menus”把它们按文件夹分类的地方。"
+  },
+  "RegionGenie_ModelFiles_SearchAllFoldersEverywhere": {
+    "name": "在 ComfyUI 的所有列表中搜索所有文件夹（实验性）",
+    "tooltip": "关闭（默认）：只有本节点包自己的列表会搜索所有文件夹。\n开启：对任何节点包的任何节点上按文件夹分类的文件列表使用同样的搜索（Load LoRA 节点的列表、检查点加载器的列表）。\n实验性：它会作用于 ComfyUI 和其他节点包打开的菜单。如果其他节点包的菜单出现异常，请将其关闭。"
   }
 }

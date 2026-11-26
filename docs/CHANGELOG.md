@@ -2,6 +2,41 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 96 (Nov 26): Image Compare: a middle-button drag over the node moves the graph (0.59.0)
+- Asked: the middle mouse button should grab and move ComfyUI's graph anywhere over the node; the node takes over nothing but its own keys.
+- Built: `middleToGraph` (the press is handed to the graph's canvas when the first movement did not move the graph by itself; no autoscroll of the browser).
+- Tests changed: `real_smoke.cjs` waits up to 10 minutes (4) for Select object's stand-in model: a cold load on the cloud machine's CPU took longer three times in one day. `real_layering.cjs` expects the shortcut list's six sections (five). `real_image_compare.cjs` grew by the drag.
+
+## Round 95 (Nov 26): Image Compare: keys anywhere over the node, the wheel zooms the graph, a Large view; version 0.59.0
+- Asked: the wheel over the node's picture should zoom ComfyUI's graph as usual; the node's keys should act anywhere over the node; a Large view like the Region Genie node's, where the wheel zooms into the pictures and never further out than the picture fitting its frame (so no Fit button is needed). The owner also set the version: 0.59.0 for rounds 92 to 95 (it was 0.58.1).
+- Built: `wheelToGraph` (the wheel is passed to the graph's canvas where ComfyUI didn't act on it by itself); `nodeUnderPointer` (the node's own element, the Nodes 2.0 node element, or in legacy mode the node at the pointer's place on the graph); the Large view (`makeUI(true)`: a second bar and picture over ComfyUI, sharing the node's state): the wheel zooms about the pointer from 1 (fit) to 32 times, a drag moves the pictures and stops at their edges, far in the pictures show their own pixels unsmoothed, a readout says the size in percent of the picture's pixels. A command `compare.big` (Alt+Enter) in the shortcut list.
+- Decided here, for the owner to confirm: Esc, the button again, its key or a click beside the window close the Large view; the readout; unsmoothed pixels from 3 screen pixels per picture pixel; the most zoom (32 times the fit).
+- Tests changed: `ui_review_items.cjs` expects 45 changeable keys (44); `real_image_compare.cjs` grew by the three items.
+
+## Round 94 (Nov 26): Image Compare: the last picture after every run; its stepping keys in the shortcut list (0.59.0)
+- Asked: after every run the last picture of that run is the chosen one (4 pictures, then 3: picture 3). The node's keys changeable, for keyboards without arrow keys; the shortcut list showing the whole pack's shortcuts, in sections.
+- Built: `setPics` always chooses the last shown picture. Two commands, `compare.prev` / `compare.next` (ctx `compare`, group "Image Compare node") in `COMMANDS`; the node's key handler asks `keyIs`. The sheet has the section, with fixed rows for 1 to 9 and the right-click. A key is only taken from a command of the same ctx, so the arrows stay the editor's nudge keys too.
+- CLAUDE.md: the shortcut rule again covers every node of the pack, a section per node (it was scoped to the editor in round 93).
+- Tests changed: `real_image_compare.cjs` expects the last picture after every run (it expected a kept choice), and tries A / D in place of the arrows.
+
+## Round 93 (Nov 26): Image Compare node, a search through every folder of a list, the pop-up's Undo buttons, two small items (0.59.0)
+- Asked: (1) search a list that rgthree sorts into folders through all its folders, switchable in Settings, hits showing their folder; (2) "Hide this layer" in the canvas's right-click menu; (3) check that every way of moving a region or layer can be undone by every Undo, with a pop-up open on each tab; (4) the Large editor button lit under the pointer; (5) a mock-up of an image comparison node for more than two images, with a slider, number keys and arrow keys.
+- Decided by the owner: the search is for the pack's own lists (a Setting, on), with a second, experimental Setting (off) for every list of ComfyUI. The node: a slider only; the last picture chosen to start with; picture 1 has the last picture on its left, with a button on the node to turn that off; number labels with a button; a batch counts per image; a picture is hidden with a right-click on its number; its keys are its own and fixed, not in the Region Genie node's shortcut list.
+- Found in (3): the pop-up's own Undo / Redo buttons only knew the text field, so no move could be taken back with them. They now take back what was done last. `tests/ui_reorder_undo.cjs` tries 57 combinations (five tabs, seven ways to move, three ways to undo); 19 failed before.
+- Built: `image_compare.py` / `js/image_compare.js`; `installMenuSearch()` and the two Settings in `js/rg_shared.js`; the rule for the pop-up's buttons in `popups.js` (`ed.last`); the menu entry; the button's hover.
+- Tests changed: `real_smoke.cjs` expects 9 nodes; `real_fields_popups.cjs`, `real_llm_settings.cjs`, `real_layering.cjs` and `real_settings.cjs` read a search hit's name part (a hit now also shows its folder). New: `real_image_compare.cjs`, `test_image_compare.py`, `real_menu_search.cjs`, `ui_reorder_undo.cjs`.
+- CLAUDE.md: the shortcut rule is scoped to the Region Genie node's editor; another node's keys are its own.
+
+## Round 92 (Nov 26): one verify command, property tests, and the four defects they found (0.59.0)
+- Asked: the owner read Anthropic's post on how the Claude Code team verifies changes and asked how this project compares; then to build what was missing: a verify command and skill, test changes named in reports, property tests, and a shorter check list in CLAUDE.md.
+- Built: `tests/verify.py` (the checks for the changed files, one line each, logs in `tests/out/verify/`; it starts the test ComfyUI) and the `verify` skill in `.claude/skills/verify/`; `tests/test_properties.py` (Hypothesis) and `tests/ui_properties.cjs` (a seeded generator in the stub page).
+- Found by the property tests and fixed:
+  - Tiled Diffusion: with a latent of an odd number of cells along one side (a picture whose side is 8 px times an odd number, with a model of one cell per patch such as SDXL), the last row or column could lie outside every tile and came out empty. The last tile now always ends at the edge. Tiled Upscale was not affected (it sizes pictures to an even number of cells).
+  - Saved data whose `regions`, `ops` or `layers` is not a list (damaged or hand-edited) stopped the node from loading (editor) or the run (Python). It is read as empty now.
+  - A region whose color, prompt or text is not a text was kept as it was and changed again at the next load; an import mark that is not a text likewise. They are cleaned at the first read.
+- CLAUDE.md: the long "when X changed, run Y" list became four lines that point at `verify.py` (the owner approved the text).
+- Tested: `verify.py --all`; the property tests with 4000 examples / 40 sequences; each fix was confirmed by its test failing on the code before the fix.
+
 ## Round 91 (Nov 26): where a pop-up opens; the open field's outline; the pack's colors as Settings
 - Asked: pop-ups appeared higher on the page than before (look into it); a mock-up of outlining the text field whose pop-up is open. The owner also said: "never a scroll bar" is a guideline, not a law (avoid them, never a horizontal one, ask when a design hangs on it).
 - Found: with default sizes nothing had moved. A pop-up whose saved size was smaller than its fullest tab grew after it was placed and was pushed up over its field; the owner's sizes dated from before the tabs.
