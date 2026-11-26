@@ -185,13 +185,13 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const last = b.querySelector("section:last-of-type .rg-keys-row:last-child")?.getBoundingClientRect(), lastSec = [...b.querySelectorAll("section")].pop().getBoundingClientRect();
         const r = { secs, sideways: b.scrollWidth > b.clientWidth + 1, inWin: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, endSeen: lastSec.bottom <= br.bottom + 1, scrolls: b.scrollHeight > b.clientHeight + 1 };
         b.scrollTop = 0; return r; });
-    const names = "Tools|While drawing|Layers and regions|View|Text";
+    const names = "Tools|While drawing|Layers and regions|View|Text|Image Compare node";      // round 94: the pack's shortcuts, a section per node
     for (const [w, hgt, what] of [[900, 1100, "a tall window"], [900, 420, "a low window"], [460, 700, "a narrow window"]]) {
         await page.setViewportSize({ width: w, height: hgt }); await page.waitForTimeout(150);
         await page.evaluate(() => document.querySelector(".rg-keys-btn").click()); await page.waitForTimeout(200);
         const sh = await sheet();
         const cols = sh ? new Set(sh.secs.map((s) => s.left)).size : 0;
-        check(`shortcut list in ${what} (${w}×${hgt}): all five sections inside it${sh?.scrolls ? ", the rest by scrolling down" : ""}, nothing off to the side (${cols} column${cols === 1 ? "" : "s"})`,
+        check(`shortcut list in ${what} (${w}×${hgt}): all six sections inside it${sh?.scrolls ? ", the rest by scrolling down" : ""}, nothing off to the side (${cols} column${cols === 1 ? "" : "s"})`,
             !!sh && sh.secs.map((s) => s.name).join("|") === names && sh.secs.every((s) => s.inside) && !sh.sideways && sh.inWin && sh.endSeen && cols === (w < 700 ? 1 : 2));
         await page.keyboard.press("Escape"); await page.waitForTimeout(120);
     }

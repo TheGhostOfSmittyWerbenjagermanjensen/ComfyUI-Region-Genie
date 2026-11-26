@@ -105,8 +105,8 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("a keyboard button in the bottom bar, its tooltip names the key", await kb.count() === 1 && /\(\?\)/.test(await kb.getAttribute("title")));
     await kb.click(); await page.waitForTimeout(120);
     let sh = await sheet();
-    check(`the button opens the shortcut list on the page, inside the window (${sh?.groups.join(", ")}; ${sh?.rows.length} rows)`, !!sh && sh.onPage && sh.in && sh.groups.join("|") === "Tools|While drawing|Layers and regions|View|Text" && sh.rows.length > 40);
-    check("keys that can be changed are buttons; mouse gestures and held keys are listed but fixed", !!sh && sh.rows.filter((r) => !r.fixed).length === 42 && sh.rows.filter((r) => r.fixed).length >= 11
+    check(`the button opens the shortcut list on the page, inside the window (${sh?.groups.join(", ")}; ${sh?.rows.length} rows)`, !!sh && sh.onPage && sh.in && sh.groups.join("|") === "Tools|While drawing|Layers and regions|View|Text|Image Compare node" && sh.rows.length > 40);
+    check("keys that can be changed are buttons; mouse gestures and held keys are listed but fixed", !!sh && sh.rows.filter((r) => !r.fixed).length === 44 && sh.rows.filter((r) => r.fixed).length >= 11
         && rowOf(sh, "edit.redo").keys.join("|") === "Ctrl+Shift+Z|Ctrl+Y" && sh.rows.some((r) => r.fixed && r.keys[0] === "Ctrl+Click" && /Take a spot out of the selection/.test(r.what)));
     check("nothing changed yet: 'Reset all' is greyed", !!sh && sh.resetOff && !sh.rows.some((r) => r.changed));
     check("the button is lit while the list is open", await kb.evaluate((b) => b.classList.contains("on")));
