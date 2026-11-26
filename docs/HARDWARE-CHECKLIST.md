@@ -308,4 +308,5 @@ Nothing here has run on a real model yet.
 - [ ] Canvas labels: the number and the type's mark above the prompt read well at 11 px on the 4K display; the box and the T are clear
 - [ ] The large editor: the scene boxes' pop-up buttons sit left of the browser's resize grip and both can be used
 - [ ] Firefox: the switch (a styled checkbox), the tabs, and dragging rows by their grips
-
+- [ ] Settings > Region Genie > Region Genie node: *Highlight color* and *Switched-on color* (round 91): the swatch opens the picker over the Settings window; a changed color shows at once on the node, in an open pop-up and in the large editor; *Default* puts it back; colors you can tell apart well read well on the canvas's dark ground
+- [ ] A pop-up opened from a field near the bottom of the window opens above the field, not over it; from a field near the top, below it

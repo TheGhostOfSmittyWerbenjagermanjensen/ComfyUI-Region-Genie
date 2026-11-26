@@ -380,6 +380,7 @@ export function* llm(E) {
         });
         E.regList.scrollTop = scroll;
         E.syncLoraAll();
+        E.markOpenField();
         E.idxKey = "";
         E.updateRegionIndices();
     }

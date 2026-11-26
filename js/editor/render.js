@@ -3,7 +3,7 @@
 import { UNSPEC } from "./shared.js";
 import { shapeVerts, bitmapCanvas } from "./geometry.js";
 import { hexRgb } from "./colors.js";
-import { LABEL_MARKS } from "../rg_shared.js";
+import { LABEL_MARKS, accentColor } from "../rg_shared.js";
 
 // The marks before a label's prompt (a person: a character region; a lock: kept as it is in Edit Mode): filled
 // shapes in the label's text color, MARK_SIZE px tall at 100 %, MARK_STEP px from one to the next / to the text.
@@ -423,7 +423,7 @@ export function* render(E) {
                 poly.pts.forEach(([x, y], i) => {
                     const [a, b] = E.toScr(x, y);
                     E.ctx.beginPath(); E.ctx.arc(a, b, (i ? 3 : 6) * dpr, 0, Math.PI * 2);
-                    E.ctx.fillStyle = i ? "#fff" : "#5b8fd0"; E.ctx.fill(); E.ctx.stroke();
+                    E.ctx.fillStyle = i ? "#fff" : accentColor(); E.ctx.fill(); E.ctx.stroke();
                 });
             }
             E.ctx.restore();
@@ -435,9 +435,9 @@ export function* render(E) {
         if (L && E.isShown(L) && E.hiddenSel !== E.selId) {
             const cs = E.boxCornersImg(L);
             if (cs) {
-                outline(cs, "#5b8fd0", E.tool !== "select");
+                outline(cs, accentColor(), E.tool !== "select");
                 if (E.tool === "select") for (const hd of handles(L)) {
-                    E.ctx.fillStyle = hd.kind === "rotate" ? "#5b8fd0" : "#fff";
+                    E.ctx.fillStyle = hd.kind === "rotate" ? accentColor() : "#fff";
                     E.ctx.strokeStyle = "#1d3d66"; E.ctx.lineWidth = 1.5;
                     E.ctx.beginPath();
                     if (hd.kind === "rotate") E.ctx.arc(hd.x, hd.y, 5 * dpr, 0, Math.PI * 2);

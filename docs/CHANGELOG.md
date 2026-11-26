@@ -2,6 +2,13 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 91 (Nov 26): where a pop-up opens; the open field's outline; the pack's colors as Settings
+- Asked: pop-ups appeared higher on the page than before (look into it); a mock-up of outlining the text field whose pop-up is open. The owner also said: "never a scroll bar" is a guideline, not a law (avoid them, never a horizontal one, ask when a design hangs on it).
+- Found: with default sizes nothing had moved. A pop-up whose saved size was smaller than its fullest tab grew after it was placed and was pushed up over its field; the owner's sizes dated from before the tabs.
+- Decided by the owner: place the pop-up with its final height; outline B (always the highlight color); and let the user choose the highlight and accent colors in Settings, for color blindness and for fun.
+- Built: `popGrow` before placement; `markOpenField` / `rg-pop-open`; Settings "Highlight color" and "Switched-on color", with every blue and amber of the pack's style sheets moved to CSS variables.
+- Tested: `run_ui.sh` (new checks in `ui_popup_text.cjs`), `run_py.sh`, Settings, tooltips and translations on real ComfyUI, and the real suites that depend on the style sheets.
+
 ## Round 90 (Nov 26): a switch for all of one list's LoRAs
 - Asked: like the header's button, a switch for all of one region's LoRAs. Shown as a mock-up at the top of the LoRAs tab; the owner confirmed it, with the same line for the whole image under its own label, On while any LoRA is on, and no line for an empty list. The owner also added `release.yml` to `main` by hand and made the 0.57.0 release with it; `main` was merged into the working branch.
 - Built: `loraSwitch`; "This region's LoRAs" / "The whole image's LoRAs".

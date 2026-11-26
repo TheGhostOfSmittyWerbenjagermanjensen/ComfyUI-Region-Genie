@@ -283,7 +283,7 @@ const FB_CSS = `
 .rg-fb-item.sel { background:rgba(37,99,199,.45); }
 .rg-fb-item svg { width:16px; height:16px; flex:0 0 16px; opacity:.85; }
 .rg-fb-item .sz { margin-left:auto; opacity:.6; font-size:12px; }
-.rg-fb-msg { color:#d9a441; min-height:16px; }
+.rg-fb-msg { color:var(--rg-on,#d9a441); min-height:16px; }
 .rg-fb-foot { display:flex; gap:6px; justify-content:flex-end; align-items:center; }
 .rg-fb-foot span { flex:1 1 auto; opacity:.75; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 `;
@@ -777,7 +777,7 @@ export function regionColors() {
 const COLORS_CSS = `
 .rg-colors { display:flex; flex-wrap:wrap; align-items:center; gap:5px; max-width:420px; justify-content:flex-end; }
 .rg-colors .sw { width:22px; height:22px; padding:0; border-radius:4px; border:1px solid rgba(128,128,128,.7); cursor:pointer; }
-.rg-colors .sw:hover, .rg-colors .sw:focus-visible { outline:2px solid var(--p-primary-color, #5b8fd0); outline-offset:1px; }
+.rg-colors .sw:hover, .rg-colors .sw:focus-visible { outline:2px solid var(--p-primary-color, var(--rg-accent,#5b8fd0)); outline-offset:1px; }
 .rg-colors .act { height:24px; padding:0 8px; border-radius:4px; border:1px solid var(--border-color, #555); background:var(--comfy-input-bg, #222);
   color:inherit; font:inherit; cursor:pointer; }
 .rg-colors .act:disabled { opacity:.4; cursor:default; }`;
@@ -817,6 +817,50 @@ const regionColorsType = () => (name, setter, value) => {
         box.append(add, reset);
     };
     render();
+    return box;
+};
+// ---- the pack's two colors (round 91): the accent (selection, focus, lit buttons, a pop-up's border, the field whose
+// pop-up is open) and the "switched on" color (LoRAs that are on, the switches, notes). Both are Settings, for people
+// who see the built-in blue and amber badly, or just like others better. The style sheets take them from CSS variables
+// (--rg-accent, --rg-on and the shades worked out from them); what is drawn on a canvas asks accentColor().
+const ACCENT_DEFAULT = "#5B8FD0", ON_DEFAULT = "#D9A441";
+const hex6 = (v, d) => { const m = /^#?([0-9a-f]{6})$/i.exec(String(v ?? "").trim()); return m ? "#" + m[1].toUpperCase() : d; };
+export const accentColor = () => hex6(getSetting(SET.accentColor, ACCENT_DEFAULT), ACCENT_DEFAULT);
+export const onColor = () => hex6(getSetting(SET.onColor, ON_DEFAULT), ON_DEFAULT);
+const rgbOf = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixHex = (h, to, t) => "#" + rgbOf(h).map((c, i) => Math.round(c + (rgbOf(to)[i] - c) * t).toString(16).padStart(2, "0")).join("");
+export function applyPackColors() {
+    if (typeof document === "undefined") return;
+    const st = document.documentElement.style, a = accentColor(), o = onColor();
+    const set = (k, v) => { if (v == null) st.removeProperty(k); else st.setProperty(k, v); };
+    const own = a !== ACCENT_DEFAULT, ownOn = o !== ON_DEFAULT;
+    set("--rg-accent", own ? a : null);
+    set("--rg-accent-fill", own ? mixHex(a, "#000000", 0.25) : null);          // a lit button's fill: darker, white text on it
+    const [r, g, b] = rgbOf(o), light = r * 0.299 + g * 0.587 + b * 0.114 > 140;
+    set("--rg-on", ownOn ? o : null);
+    set("--rg-on-soft", ownOn ? mixHex(o, "#ffffff", 0.3) : null);              // text in that color on a dark ground
+    set("--rg-on-pale", ownOn ? mixHex(o, "#ffffff", 0.6) : null);
+    set("--rg-on-bg", ownOn ? mixHex(o, "#000000", 0.66) : null);               // a dark fill of that hue
+    set("--rg-on-ink", ownOn ? (light ? "#1c1c1c" : "#ffffff") : null);         // text on the color itself
+}
+if (typeof document !== "undefined") { setTimeout(applyPackColors, 0); setTimeout(applyPackColors, 2500); }
+// one color as a Setting: a swatch that opens the pack's color picker, and a button for the built-in color
+const oneColorType = (id, def, what) => (name, setter, value) => {
+    if (!document.getElementById("rg-colors-style")) { const s = document.createElement("style"); s.id = "rg-colors-style"; s.textContent = COLORS_CSS; document.head.appendChild(s); }
+    const box = document.createElement("div"); box.className = "rg-colors";
+    let cur = hex6(value, def);
+    const sw = document.createElement("button"); sw.type = "button"; sw.className = "sw";
+    const reset = document.createElement("button"); reset.type = "button"; reset.className = "act"; reset.textContent = "Default";
+    reset.title = "Put the built-in color back.";
+    const show = () => { sw.style.background = cur; sw.dataset.color = cur; sw.title = `${cur}: ${what}\nClick: Change it.`; reset.disabled = cur === def; };
+    const save = (v) => { cur = hex6(v, def); try { setter(cur); } catch (e) { /* the dialog is gone */ } setSetting(id, cur); applyPackColors(); show(); };
+    sw.addEventListener("click", (e) => {
+        e.preventDefault();
+        openColorPicker(sw, cur, { onInput: (hex) => { sw.style.background = hex; }, onClose: (hex, changed) => { if (changed) save(hex); else show(); } });
+    });
+    reset.addEventListener("click", () => save(def));
+    box.append(sw, reset);
+    show();
     return box;
 };
 const checkFilesType = () => () => {
@@ -1123,7 +1167,7 @@ export const CHIP_CSS = `
 .rg-chip-hint { opacity:.65; font-size:10px; }
 .rg-chip { font-size:10px; line-height:14px; padding:0 6px; border-radius:8px; border:1px solid #666; cursor:pointer;
   background:#2a2a2a; color:#ddd; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
-.rg-chip:hover { border-color:#5b8fd0; }
+.rg-chip:hover { border-color:var(--rg-accent,#5b8fd0); }
 .rg-chip.used { border-color:#4a8a5a; color:#9fd8a8; cursor:default; }
 `;
 
@@ -1216,7 +1260,7 @@ function wcUpdate(el) {
             + "border-radius:4px;font:12px sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.5);";
         const st = document.createElement("style");
         st.textContent = ".rg-wc-item{padding:2px 8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
-            + ".rg-wc-item.sel,.rg-wc-item:hover{background:#3a6ea5;color:#fff}";
+            + ".rg-wc-item.sel,.rg-wc-item:hover{background:var(--rg-accent-fill,#3a6ea5);color:#fff}";
         document.head.appendChild(st);
         document.body.appendChild(wcAc.box);
     }
@@ -1679,16 +1723,18 @@ export function openFloatPopup(o) {
         fpop = null;
         clearInterval(watch);
         box.remove();
+        if (o.anchor?.tagName === "TEXTAREA") o.anchor.classList.remove("rg-pop-open");
         o.onClose?.();
     }
     const api_ = { close, box, ta, history: hist };
     fpop = api_;
+    if (o.anchor?.tagName === "TEXTAREA") o.anchor.classList.add("rg-pop-open");       // the field it belongs to is outlined while it is open
     ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
     return api_;
 }
 export const FPOP_CSS = `
 .rg-fpop { position:fixed; z-index:10000; box-sizing:border-box; display:flex; flex-direction:column; gap:5px; padding:6px 8px 5px;
-  background:#1a1a1a; color:#eee; border:2px solid #5b8fd0; border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,.65); font:12px sans-serif; }
+  background:#1a1a1a; color:#eee; border:2px solid var(--rg-accent,#5b8fd0); border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,.65); font:12px sans-serif; }
 .rg-fpop-head { display:flex; align-items:center; gap:6px; font-weight:600; cursor:move; user-select:none; touch-action:none; }
 .rg-fpop-title { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .rg-fpop .rg-btn { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px;
@@ -1697,7 +1743,7 @@ export const FPOP_CSS = `
 .rg-fpop .rg-btn.icon svg { width:14px; height:14px; display:block; }
 .rg-fpop textarea { width:100%; box-sizing:border-box; resize:none; background:var(--comfy-input-bg,#222); color:inherit;
   border:1px solid var(--border-color,#555); border-radius:4px; padding:3px 5px; font-family:inherit; scrollbar-width:thin; }
-.rg-fpop textarea:focus { border-color:#5b8fd0; outline:none; }
+.rg-fpop textarea:focus { border-color:var(--rg-accent,#5b8fd0); outline:none; }
 .rg-fpop.sized textarea { flex:1 1 auto; min-height:40px; }
 .rg-fpop-foot { font-size:10px; opacity:.5; }
 .rg-fpop-ctl { display:flex; align-items:center; justify-content:flex-end; gap:6px; }
@@ -1708,11 +1754,13 @@ export const FPOP_CSS = `
 .rg-fpop-head .rg-btn::before, .rg-fpop-ctl .rg-btn::before, .rg-fpop-ctl .rg-ac-btn::before {
   content:""; position:absolute; z-index:-1; left:-4px; right:-4px; top:50%; height:max(100%, 24px); transform:translateY(-50%); }   /* 1 px border + half the gap */
 .rg-fpop-grip { position:absolute; right:1px; bottom:1px; width:14px; height:14px; cursor:nwse-resize; touch-action:none; opacity:.7;
-  background:linear-gradient(135deg, transparent 52%, #5b8fd0 52% 60%, transparent 60% 70%, #5b8fd0 70% 78%, transparent 78%); }
+  background:linear-gradient(135deg, transparent 52%, var(--rg-accent,#5b8fd0) 52% 60%, transparent 60% 70%, var(--rg-accent,#5b8fd0) 70% 78%, transparent 78%); }
 .rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:var(--comfy-input-bg,#222);
   box-shadow:-5px 0 4px var(--comfy-input-bg,#222); color:color-mix(in srgb, var(--input-text,#ddd) 70%, transparent); cursor:pointer; line-height:0; }
 .rg-expand svg { width:12px; height:12px; display:block; margin:2px; }
-.rg-expand:hover { color:#fff; background:#3a6ea5; box-shadow:none; }
+.rg-expand:hover { color:#fff; background:var(--rg-accent-fill,#3a6ea5); box-shadow:none; }
+/* the text field whose pop-up editor is open (round 91) */
+textarea.rg-pop-open.rg-pop-open { outline:2px solid var(--rg-accent,#5b8fd0) !important; outline-offset:-1px !important; }
 *:hover > .rg-expand { opacity:.75; }
 `;
 
@@ -2002,6 +2050,8 @@ export const SET = {
     cmLabelShadowStrength: "RegionGenie.Main.LabelShadowStrength",
     cmLabelPad: "RegionGenie.Main.LabelPad",
     cmLabelAlign: "RegionGenie.Main.LabelAlign",
+    accentColor: "RegionGenie.Main.AccentColor",
+    onColor: "RegionGenie.Main.OnColor",
     cmGridShow: "RegionGenie.Main.GridShow",
     cmGridLines: "RegionGenie.Main.GridLines",
     regionColors: "RegionGenie.Main.RegionColors",
@@ -2449,6 +2499,10 @@ const SETTINGS = [
         { id: SET.cmFillImage, name: "Region opacity over an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while a connected image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "101 fill image") },
         { id: SET.cmFill, name: "Region opacity without an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while no image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "102 fill") },
         { id: SET.cmEdge, name: "Region edge line (px)", type: "number", defaultValue: 3.5, attrs: { min: 0, max: 10, step: 0.5 }, tooltip: "How wide the solid line along each region's edge is while the regions are see-through, on every Region Genie node. A line wider than a shape fills it. 0: No line.", category: CAT("Region Genie node", "103 edge") },
+        { id: SET.accentColor, name: "Highlight color", type: oneColorType(SET.accentColor, ACCENT_DEFAULT, "The pack's highlight color."), defaultValue: ACCENT_DEFAULT, onChange: () => applyPackColors(),
+          tooltip: "The color of what is selected, in use or lit in every node of the pack. That is the active tool, a selected row, a text field with the cursor, a pop-up's border, and the text field whose pop-up is open.", category: CAT("Region Genie node", "104 accent") },
+        { id: SET.onColor, name: "Switched-on color", type: oneColorType(SET.onColor, ON_DEFAULT, "The pack's color for what is switched on."), defaultValue: ON_DEFAULT, onChange: () => applyPackColors(),
+          tooltip: "The color of what is switched on: LoRAs that are on (their buttons, chips and the edge of their row), the switches, and notes.", category: CAT("Region Genie node", "105 on") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
             // the file field: ComfyUI's menu on the model folders (round 23), Browse… with SET.filePickers
             id: SET.control + "." + key, name, type: fileSettingType(MODEL_ROOTS, CONTROL_NONE, SET.control + "." + key, folder), defaultValue: CONTROL_NONE,
@@ -2647,7 +2701,7 @@ body:has(.rg-pop, .rg-fpop, .rg-big):not(:has(.rg-llm-pop)) .litegraph.liteconte
   border-radius:4px; padding:2px 4px; line-height:0; cursor:pointer; flex:0 0 auto; }
 .rg-ac-btn svg { width:16px; height:16px; display:block; }
 .rg-ac-btn:not(.on) { opacity:.55; }
-.rg-ac-btn.on { background:#3a6ea5; border-color:#5b8fd0; color:#fff; }
+.rg-ac-btn.on { background:var(--rg-accent-fill,#3a6ea5); border-color:var(--rg-accent,#5b8fd0); color:#fff; }
 .rg-pop .rg-ac-btn, .rg-fpop .rg-ac-btn { padding:1px 3px; }
 .rg-pop .rg-ac-btn svg, .rg-fpop .rg-ac-btn svg { width:14px; height:14px; }
 `;

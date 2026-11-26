@@ -9,7 +9,7 @@ import { keyIs, keyUpIs } from "../rg_keys.js";
 
 export function* popups(E) {
     Object.assign(E, {
-        applyFieldFonts, closeEditor, editPrompt, editScene,
+        applyFieldFonts, closeEditor, editPrompt, editScene, markOpenField,
     });
     yield;
 
@@ -53,6 +53,10 @@ export function* popups(E) {
         box.classList.add("sized");
         if (ed.placed) { keepOn(); return; }
         ed.placed = true;
+        // round 91: the height the pop-up ends up with is worked out before it is placed (a tab that holds more than
+        // the saved size made it grow afterwards, and a pop-up that grew past the window's lower edge was pushed up
+        // over its own field): so it goes below its field when it fits there, above it otherwise
+        popGrow(box);
         autoPlace(w, box.offsetHeight, W, H);
         keepOn();
     }
@@ -126,11 +130,17 @@ export function* popups(E) {
         const a = document.activeElement;
         if (box.isConnected && (!a || a === document.body)) box.focus({ preventScroll: true });
     }
-    function popFit(box) {
+    // (a guideline of the owner's, not a law: no scroll bar where it can be avoided, and never a horizontal one. A
+    // pop-up taller than the window scrolls: that is the one case left.)
+    function popGrow(box) {
         const over = box.scrollHeight - box.clientHeight, H = window.innerHeight;
-        if (over <= 1) return;
+        if (over <= 1) return false;
         box.style.height = clampN(box.offsetHeight + over, 160, Math.max(160, H - 12)) + "px";
-        if (box.offsetTop + box.offsetHeight > H - 6) box.style.top = Math.max(6, H - 6 - box.offsetHeight) + "px";
+        return true;
+    }
+    function popFit(box) {
+        const H = window.innerHeight;
+        if (popGrow(box) && box.offsetTop + box.offsetHeight > H - 6) box.style.top = Math.max(6, H - 6 - box.offsetHeight) + "px";
     }
     // the LoRAs tab of a pop-up: the rows (or a line that says there are none), and ＋LoRA under them
     // headBox, label: the switch for all of the list's LoRAs (round 90), above the rows while there are any
@@ -234,11 +244,22 @@ export function* popups(E) {
             else { E.wrap.style.removeProperty(`--rg-fs-${n}`); E.wrap.style.removeProperty(`--rg-lh-${n}`); }
         }
     }
+    // The text field whose pop-up is open is outlined (round 91): a region's prompt (and its text to render) in the
+    // list, a scene prompt's own box on the node, and its box in the large editor. The list's fields are made anew
+    // with every redraw, so this is called after each (renderRegions) as well as when a pop-up opens or closes.
+    function markOpenField() {
+        const ed = E.editor, open = new Set();
+        if (ed?.rid != null) for (const t of E.regList.querySelectorAll(`.rg-row.region[data-rid="${ed.rid}"] textarea`)) open.add(t);
+        if (ed?.scene) { const t = E.sceneTA[ed.scene]; if (t) open.add(t); const b = E.big?.fields?.find((f) => f.which === ed.scene)?.ta; if (b) open.add(b); }
+        for (const t of [...E.regList.querySelectorAll("textarea.rg-pop-open"), ...Object.values(E.sceneTA), ...(E.big?.fields || []).map((f) => f.ta)]) if (t && !open.has(t)) t.classList.remove("rg-pop-open");
+        for (const t of open) t.classList.add("rg-pop-open");
+    }
     function closeEditor(commit = true) {
         if (!E.editor) return;
         const ed = E.editor;
         if (ed.field) ed.endField(!commit);
         E.editor = null;
+        markOpenField();
         ed.pal?.flush?.(); ed.pal?.picker?.close();        // the Palette tab's color picker: its last change is kept
         ed.acCtl?.dispose();
         ed.box.remove();
@@ -373,7 +394,7 @@ export function* popups(E) {
                 num.classList.toggle("none", idx == null);
                 num.title = idx == null ? "No visible pixels yet" : `Output index ${idx}`;
                 sw.style.background = E.colorOf(rid);
-                box.style.borderColor = E.colorOf(rid) || "#5b8fd0";
+                box.style.borderColor = E.colorOf(rid) || "var(--rg-accent,#5b8fd0)";
                 for (const [t, b] of Object.entries(typeBtns)) b.classList.toggle("on", rr.type === t);
                 text.wrapF.style.display = rr.type === "text" ? "" : "none";
                 prompt.ta.__rgSyncUse?.(); text.ta.__rgSyncUse?.();
@@ -437,6 +458,7 @@ export function* popups(E) {
             }); popFit(box); popKeepFocus(box); },
         };
         E.editor = ed;
+        markOpenField();
         popFrame(ed, "region", head, () => (lastTa === text.ta ? "text" : "prompt"),
                  () => { applyPopFont(prompt.ta, "prompt"); applyPopFont(text.ta, "text"); }, () => (lastTa || prompt.ta).__rgHist);
         ed.refresh();
@@ -523,7 +545,7 @@ export function* popups(E) {
                 if (document.activeElement !== ta && ta.value !== String(w.value ?? "")) ta.value = String(w.value ?? "");
                 hist.sync();                                 // a change made elsewhere (the LLM, a LoRA's words) is a step too
                 syncUseS();
-                box.style.borderColor = "#5b8fd0";
+                box.style.borderColor = "var(--rg-accent,#5b8fd0)";
                 const ctl = E.el("div", "rg-row pop-ctl");
                 // the bottom row, on the right: the tag list and the wildcard list (then, positive only: the LLM, ＋LoRA)
                 if (!pos) {
@@ -566,6 +588,7 @@ export function* popups(E) {
             }); popFit(box); popKeepFocus(box); },
         };
         E.editor = ed;
+        markOpenField();
         popFrame(ed, "scene", head, () => "scene", () => applyPopFont(ta, "scene"), () => hist);
         ed.refresh();
         if (tabs.cur !== "prompt") { box.focus(); return; }

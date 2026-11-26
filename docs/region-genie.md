@@ -257,7 +257,7 @@ Everything a region holds is in its pop-up, on five tabs. Open it with the **⤢
 
 *The Options tab.*
 
-- The pop-up keeps its size and its place when you switch tabs. It grows when what it holds needs more room, so it never has a scroll bar. Drag its corner to make it wider or narrower.
+- The pop-up keeps its size and its place when you switch tabs. It is as tall as its fullest tab needs, so it has no scroll bar (only a pop-up taller than the window scrolls); it opens below its field where it fits, above it otherwise. Drag its corner to make it wider or narrower.
 - A number on a tab says how much is there (*LoRAs (2/3)*: two of three are on); amber means something there is switched on.
 - **Lists are reordered by their grips:** drag a LoRA or a layer by the six dots at the start of its row.
 - *Whole image* has no layers or palette: its LoRAs are on a **LoRAs** tab in the pop-up of `scene_prompt_positive`. Its row shows the LoRAs that are on as chips (name and strength; a long name is cut short, a *+2* chip stands for those that don't fit), and the same LoRAs button as a region's row.
@@ -561,6 +561,11 @@ The details:
 - **The bottom row of the Prompt tab:** the tag autocomplete switch, the wildcard list (when ComfyUI Impact Pack is installed) and the LLM Prompt Enhancer button (not on `scene_prompt_negative`).
 - **Undo and Redo on the other tabs:** while no text has the cursor, the Undo / Redo keys take back the editor's last step (a LoRA moved, a layer deleted).
 - **Esc closes what is on top first:** with a list or menu open over a pop-up, Esc closes that; the next Esc closes the pop-up.
+- **The field whose pop-up is open is outlined** in the highlight color, so you can see at a glance which field the pop-up belongs to: a region's prompt in the list, a scene prompt's box, the box in the large editor.
+- **The pack's two colors are yours to choose** (Settings > Region Genie > Region Genie node):
+  - *Highlight color* (a blue at first): what is selected, in use or lit: the active tool, a selected row, a text field with the cursor, a pop-up's border, the field whose pop-up is open.
+  - *Switched-on color* (an amber at first): LoRAs that are on, the switches, notes.
+  - Click the swatch to pick a color; *Default* puts the built-in one back. Useful when the built-in blue and amber are hard to tell apart for you.
 - **The pop-up button of a text box (⤢)** sits in the box's bottom-right corner, left of the scroll bar when the box has one, and in the middle of a region's one-line prompt box.
   - It is a solid tile in the box's own color, so no text shows under it, and it turns blue under the pointer.
 - **`scene_prompt_positive` shows its LLM Prompt Enhancer:** the sparkles button is also in the box's corner, left of ⤢.

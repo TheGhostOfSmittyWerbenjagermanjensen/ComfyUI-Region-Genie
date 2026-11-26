@@ -1,7 +1,7 @@
 // Fill, magic wand, Select object (SAM 3.1) and Arrange (flip, align, grow / shrink).
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { api } from "../../../scripts/api.js";
-import { getSetting, SET } from "../rg_shared.js";
+import { getSetting, SET, accentColor } from "../rg_shared.js";
 import { keyText } from "../rg_keys.js";
 import { LASSO_MODES, TOOL_NUMS, UNSPEC, RASTER_MAX } from "./shared.js";
 import { distanceMap, growMask01, encodeRuns, decodeRuns, bitmapCache, shapeVerts } from "./geometry.js";
@@ -355,7 +355,7 @@ export function* selectTools(E) {
             if (!E.pick.overlay) {
                 const { w, h } = E.pick.R, c = document.createElement("canvas"); c.width = w; c.height = h;
                 const x = c.getContext("2d"), img = x.createImageData(w, h), d = img.data;
-                const [cr, cg, cb] = hexRgb(E.colorOf(E.curRegion) || "#5b8fd0");
+                const [cr, cg, cb] = hexRgb(E.colorOf(E.curRegion) || accentColor());
                 for (const m of E.pick.masks) {
                     const [r, g, b, a] = m.off ? [128, 128, 128, 70] : [cr, cg, cb, 150];
                     for (let i = 0; i < w * h; i++) if (m.mask[i]) { d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = a; }

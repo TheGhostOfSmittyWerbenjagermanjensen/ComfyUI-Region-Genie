@@ -18,7 +18,7 @@ const CSS = `
 .rg-tu-more button:hover { color:var(--input-text, #ddd); background:var(--comfy-input-bg, #222); }
 .rg-tu-more button svg { width:13px; height:13px; }
 .rg-tu-more:after { content:""; flex:1 1 auto; height:1px; background:var(--border-color, #4e4e4e); }
-.rg-tu-more .rg-tu-changed { color:#d9a441; }`;
+.rg-tu-more .rg-tu-changed { color:var(--rg-on,#d9a441); }`;
 
 app.registerExtension({
     name: "RegionGenie.TiledUpscale",

@@ -88,6 +88,26 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
             palTab: !!document.querySelector(".rg-pop .rg-pop-pal input.rg-switch"), optFeather: !!document.querySelector(".rg-pop .rg-pop-opts .rg-feather input") }; });
     check(`the Prompt tab's bottom row: the tag list, the wildcard list and the LLM, on the right, on one line; the palette and feather are on their tabs (${bottom.join(" | ")}; ${JSON.stringify(row)})`,
         bottom.join("|") === "gap|tag|wildcard|llm" && !row.pal && !row.feather && row.rows === 1 && row.oneLine && row.rightEnd && row.palTab && row.optFeather);
+    // round 91: the field whose pop-up is open is outlined in the pack's highlight color, and that color is a Setting
+    const hl = () => page.evaluate(() => { const rid = window.__node.__rgState().regions[0].id, t = document.querySelector(`.rg-row.region[data-rid="${rid}"] textarea.rg-prompt`), cs = getComputedStyle(t);
+        return { cls: t.classList.contains("rg-pop-open"), w: cs.outlineWidth, color: cs.outlineColor, style: cs.outlineStyle, others: document.querySelectorAll("textarea.rg-pop-open").length,
+                 border: getComputedStyle(document.querySelector(".rg-pop textarea")).borderColor }; });
+    const h1 = await hl();
+    check(`while a region's pop-up is open, its prompt field in the list is outlined in the highlight color (${JSON.stringify(h1)})`,
+          h1.cls && h1.w === "2px" && h1.style === "solid" && h1.color === "rgb(91, 143, 208)" && h1.others === 1);
+    await page.evaluate(() => window.__node.__rgRefresh()); await page.waitForTimeout(150);
+    check("…and still after the list is drawn again", (await hl()).cls);
+    await page.evaluate(() => { window.__settings["RegionGenie.Main.AccentColor"] = "#C2185B"; window.__settingsExt.settings.find((x) => x.id === "RegionGenie.Main.AccentColor").onChange("#C2185B"); });
+    await page.waitForTimeout(150);
+    const h2 = await hl();
+    check(`the highlight color is a Setting: the outline follows it (${h2.color})`, h2.color === "rgb(194, 24, 91)");
+    await page.evaluate(() => { window.__settings["RegionGenie.Main.OnColor"] = "#1B5E20"; window.__settingsExt.settings.find((x) => x.id === "RegionGenie.Main.OnColor").onChange("#1B5E20"); });
+    await page.waitForTimeout(100);
+    const onVars = await page.evaluate(() => { const st = document.documentElement.style; return [st.getPropertyValue("--rg-on"), st.getPropertyValue("--rg-on-ink")].join(); });
+    check(`the switched-on color is a Setting too; text on a dark one turns white (${onVars})`, onVars.toLowerCase() === "#1b5e20,#ffffff");
+    await page.evaluate(() => { for (const [k, v] of [["RegionGenie.Main.AccentColor", "#5B8FD0"], ["RegionGenie.Main.OnColor", "#D9A441"]]) { window.__settings[k] = v; window.__settingsExt.settings.find((x) => x.id === k).onChange(v); } });
+    await page.waitForTimeout(100);
+    check("back at the built-in colors, the variables are gone again", await page.evaluate(() => !document.documentElement.style.getPropertyValue("--rg-accent") && !document.documentElement.style.getPropertyValue("--rg-on")));
     check("no tag switch or wildcard button is left in the title bar", await page.locator(".rg-pop-head .rg-ac-btn, .rg-pop-head .rg-wc-pick").count() === 0);
     // the palette's last color removed (right-click): the palette is off again, its button no longer lit
     await page.evaluate(() => { const n = window.__node, r = n.__rgState().regions[0]; r.palette = ["#FF0000", "#00FF00"]; r.paletteOn = true; n.__rgRefresh(); });

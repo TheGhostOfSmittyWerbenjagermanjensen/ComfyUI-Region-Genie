@@ -524,7 +524,7 @@ export function* list(E) {
             if (s.tagName === "INPUT") { if (document.activeElement !== s) s.value = c.toLowerCase(); }
             else s.style.background = c;
         }
-        if (E.editor) E.editor.box.style.borderColor = E.colorOf(E.editor.rid) || "#5b8fd0";
+        if (E.editor) E.editor.box.style.borderColor = E.colorOf(E.editor.rid) || "var(--rg-accent,#5b8fd0)";
         E.requestDraw();
     }
     // mask feather: shared by all linked regions, or this region's own value when unlinked
