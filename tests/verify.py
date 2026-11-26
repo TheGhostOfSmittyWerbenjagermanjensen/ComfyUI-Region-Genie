@@ -285,6 +285,16 @@ def main():
     if have and not a.quick and not os.path.isfile(sam) and any(c in ("test_select.py", "real_smoke.cjs") for c, _, _ in runs):
         print("      (making the stand-in SAM 3.1 model: a minute or two)", flush=True)
         subprocess.run([sys.executable, "tests/make_fake_sam.py", sam], cwd=ROOT, env=env, capture_output=True)
+    # Read that file once before the checks that load it. On a cloud machine a 1.75 GB file that has dropped out of the
+    # disk cache took 106 s to load and then stalled the first selection past 10 minutes (real_smoke timed out four
+    # times in one day, always with a cold file, never with a warm one: 2 s to load, 40 s for the whole check)
+    if have and not a.quick and os.path.isfile(sam) and any(c in ("test_select.py", "real_smoke.cjs") for c, _, _ in runs):
+        t = time.time()
+        with open(sam, "rb") as f:
+            while f.read(1 << 24):
+                pass
+        if time.time() - t > 20:
+            print(f"      (read the stand-in SAM model from a cold disk: {time.time() - t:.0f} s)", flush=True)
     started = False
     for check, arg, _ in runs:
         need = needs(check)

@@ -5,6 +5,7 @@ Each round is one request from the owner: what was asked, what was decided (and 
 ## Round 98 (Nov 26): Image Compare, Large view: the size can be typed (0.59.1)
 - Asked: control the zoom by the percentage the Large view shows; on the node it can be left out.
 - Built: the readout is a field: type a percent of the picture's own pixels and press Enter; the zoom is about the middle of the frame, and less than fitting gives the fit. Not on the node (it has no zoom of its own).
+- `real_smoke.cjs` (legacy) timed out a fourth time, now past 10 minutes, so "a slow model load" was the wrong diagnosis. Found: it only fails when the stand-in model file (1.75 GB) has dropped out of the machine's disk cache (106 s to load, then the first selection stalls); with the file cached the load takes 2 s and the whole check 40 s. `verify.py` now reads the file once before the checks that load it. The test's limit is back at 4 minutes.
 
 ## Round 97 (Nov 26): the Whole image row's pop-up opens by its row (0.59.1)
 - Reported by the owner: the pop-up that the Whole image row's LoRAs button opens appeared near the top, above the canvas, not just above or below the row.
@@ -15,7 +16,7 @@ Each round is one request from the owner: what was asked, what was decided (and 
 ## Round 96 (Nov 26): Image Compare: a middle-button drag over the node moves the graph (0.59.0)
 - Asked: the middle mouse button should grab and move ComfyUI's graph anywhere over the node; the node takes over nothing but its own keys.
 - Built: `middleToGraph` (the press is handed to the graph's canvas when the first movement did not move the graph by itself; no autoscroll of the browser).
-- Tests changed: `real_smoke.cjs` waits up to 10 minutes (4) for Select object's stand-in model: a cold load on the cloud machine's CPU took longer three times in one day. `real_layering.cjs` expects the shortcut list's six sections (five). `real_image_compare.cjs` grew by the drag.
+- Tests changed: `real_smoke.cjs` waited up to 10 minutes (4) for Select object's stand-in model; taken back in round 98, when the real cause was found. `real_layering.cjs` expects the shortcut list's six sections (five). `real_image_compare.cjs` grew by the drag.
 
 ## Round 95 (Nov 26): Image Compare: keys anywhere over the node, the wheel zooms the graph, a Large view; version 0.59.0
 - Asked: the wheel over the node's picture should zoom ComfyUI's graph as usual; the node's keys should act anywhere over the node; a Large view like the Region Genie node's, where the wheel zooms into the pictures and never further out than the picture fitting its frame (so no Fit button is needed). The owner also set the version: 0.59.0 for rounds 92 to 95 (it was 0.58.1).
