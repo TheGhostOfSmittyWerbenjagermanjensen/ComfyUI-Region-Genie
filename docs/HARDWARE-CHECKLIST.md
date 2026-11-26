@@ -321,4 +321,4 @@ Nothing here has run on a real model yet.
 - [ ] Image Compare (round 95): the wheel over the node's picture zooms the graph exactly as over the empty graph (same speed, same direction), with a mouse and with a trackpad pinch, in legacy mode and Nodes 2.0
 - [ ] Image Compare, Large view with real pictures: the wheel's zoom speed feels right; zooming out stops at the whole picture; a drag moves it; at high zoom single pixels are sharp; the percent readout is right for a picture you know the size of
 - [ ] Image Compare: number keys and arrows with the pointer on the node's title and on its input names
-
+- [ ] Image Compare (round 96): a middle-button drag over the node's picture, its numbers and its title moves the graph as over the empty graph; no autoscroll circle appears (Firefox, Windows)

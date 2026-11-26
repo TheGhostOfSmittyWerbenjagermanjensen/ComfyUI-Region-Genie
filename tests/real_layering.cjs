@@ -321,7 +321,7 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
     const secs = await page.evaluate(() => { const b = document.querySelector(".rg-keys-body"), br = b.getBoundingClientRect();
         return { names: [...b.querySelectorAll("section h4")].map((h) => h.textContent).join("|"), inside: [...b.querySelectorAll("section")].every((s) => { const r = s.getBoundingClientRect(); return r.left >= br.left - 1 && r.right <= br.right + 1; }),
                  sideways: b.scrollWidth > b.clientWidth + 1 }; });
-    check(`${M}: node: the shortcut list has its five sections, none off to the side (${secs.names})`, secs.names === "Tools|While drawing|Layers and regions|View|Text" && secs.inside && !secs.sideways);
+    check(`${M}: node: the shortcut list has its six sections, none off to the side (${secs.names})`, secs.names === "Tools|While drawing|Layers and regions|View|Text|Image Compare node" && secs.inside && !secs.sideways);
     await nativeTips("shortcut list", 20);
     await page.keyboard.press("Escape"); await sleep(200);
     check(`${M}: node: Esc closes the shortcut list`, await page.locator(".rg-keys").count() === 0);

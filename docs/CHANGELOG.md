@@ -2,6 +2,11 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 96 (Nov 26): Image Compare: a middle-button drag over the node moves the graph (0.59.0)
+- Asked: the middle mouse button should grab and move ComfyUI's graph anywhere over the node; the node takes over nothing but its own keys.
+- Built: `middleToGraph` (the press is handed to the graph's canvas when the first movement did not move the graph by itself; no autoscroll of the browser).
+- Tests changed: `real_smoke.cjs` waits up to 10 minutes (4) for Select object's stand-in model: a cold load on the cloud machine's CPU took longer three times in one day. `real_layering.cjs` expects the shortcut list's six sections (five). `real_image_compare.cjs` grew by the drag.
+
 ## Round 95 (Nov 26): Image Compare: keys anywhere over the node, the wheel zooms the graph, a Large view; version 0.59.0
 - Asked: the wheel over the node's picture should zoom ComfyUI's graph as usual; the node's keys should act anywhere over the node; a Large view like the Region Genie node's, where the wheel zooms into the pictures and never further out than the picture fitting its frame (so no Fit button is needed). The owner also set the version: 0.59.0 for rounds 92 to 95 (it was 0.58.1).
 - Built: `wheelToGraph` (the wheel is passed to the graph's canvas where ComfyUI didn't act on it by itself); `nodeUnderPointer` (the node's own element, the Nodes 2.0 node element, or in legacy mode the node at the pointer's place on the graph); the Large view (`makeUI(true)`: a second bar and picture over ComfyUI, sharing the node's state): the wheel zooms about the pointer from 1 (fit) to 32 times, a drag moves the pictures and stops at their edges, far in the pictures show their own pixels unsmoothed, a readout says the size in percent of the picture's pixels. A command `compare.big` (Alt+Enter) in the shortcut list.

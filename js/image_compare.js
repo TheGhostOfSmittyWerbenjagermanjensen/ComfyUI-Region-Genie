@@ -254,7 +254,7 @@ function setup(node) {
         } else {
             view.addEventListener("wheel", wheelToGraph, { passive: true });
             bar.addEventListener("wheel", wheelToGraph, { passive: true });
-            wrap.addEventListener("pointerdown", middleToGraph);
+            wrap.addEventListener("pointerdown", middleToGraph, true);        // before the number row keeps its presses to itself
             wrap.addEventListener("mousedown", (e) => { if (e.button === 1) e.preventDefault(); });
             wrap.addEventListener("auxclick", (e) => { if (e.button === 1) e.preventDefault(); });
         }
