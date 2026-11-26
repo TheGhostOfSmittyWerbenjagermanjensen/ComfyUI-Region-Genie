@@ -19,6 +19,8 @@ const MAX_KEYS = 2;                                  // keys per command
 
 // ctx: where the key acts. "main": the editor (default). "draw": only while an outline or a selection is being made
 // (it wins over "main" then, so Enter / Backspace / Esc can mean two things). "text": a pop-up editor's text box.
+// "compare": the Image Compare node (another node of the pack: its keys act while the pointer is over that node, and
+// may be the same keys as the editor's, since a key is only taken from a command of the same context).
 // shiftFree: Shift with it is a variation of the same command, not another key. hold: acts while held down.
 export const COMMANDS = [
     { id: "tool.select", group: "Tools", what: "Select: Move, resize and rotate layers", keys: ["V"] },
@@ -64,6 +66,9 @@ export const COMMANDS = [
     { id: "view.help", group: "View", what: "This list", keys: ["?"] },
     { id: "text.prev", group: "Text", ctx: "text", what: "Pop-up editor: The previous text field", keys: ["PageUp"], setting: "RegionGenie.Popup.PrevKey" },
     { id: "text.next", group: "Text", ctx: "text", what: "Pop-up editor: The next text field", keys: ["PageDown"], setting: "RegionGenie.Popup.NextKey" },
+    // the Image Compare node (round 94): the owner wanted its keys changeable, and the pack's shortcuts in one list by node
+    { id: "compare.prev", group: "Image Compare node", ctx: "compare", what: "The picture before (around the ends)", keys: ["ArrowLeft"] },
+    { id: "compare.next", group: "Image Compare node", ctx: "compare", what: "The next picture (around the ends)", keys: ["ArrowRight"] },
 ];
 const BY_ID = Object.fromEntries(COMMANDS.map((c) => [c.id, c]));
 
@@ -85,9 +90,12 @@ const FIXED = {
     "Text": [[null, "Enter", "A region's prompt in the list: Done (Shift+Enter: a new line). Pop-up editor: A new line"],
              ["text.next", "Esc", "Pop-up editor: Close (the text stays as it is)"],
              ["text.next", "Ctrl+Up / Ctrl+Down", "A prompt box: Raise or lower the weight of the word or tag at the cursor, or of the selected words, as (tag:1.05). ComfyUI's own keys"]],
+    "Image Compare node": [[null, "Pointer over the node", "Where these keys act: Over the picture or the row of numbers"],
+                           [null, "1 to 9", "Choose that picture (the number row or the numpad)"],
+                           ["compare.next", "Right-click", "A number: Hide that picture from the comparison, or show it again"]],
 };
-const GROUPS = ["Tools", "While drawing", "Layers and regions", "View", "Text"];
-const COLUMN_OF = { "Layers and regions": 1, "View": 1, "Text": 1 };      // the sheet's second column; the rest: the first
+const GROUPS = ["Tools", "While drawing", "Layers and regions", "View", "Text", "Image Compare node"];
+const COLUMN_OF = { "Layers and regions": 1, "View": 1, "Text": 1, "Image Compare node": 1 };      // the sheet's second column; the rest: the first
 
 // ---------------------------------------------------------------- the keys in use
 let cache = { sig: null, map: null };

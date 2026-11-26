@@ -79,6 +79,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - Esc while it waits leaves the key as it is.
   - **+** next to a key adds a second key for the same thing, **✕** (shown while a key waits) removes a key, the round arrow on a changed row puts its default back, and **Reset all** puts every default back.
   - A key that another shortcut already uses is taken from that one, and the sheet says which. The buttons' tooltips, the hints on the canvas and the right-click menu show the keys you chose.
+  - The list holds the whole pack's shortcuts, a section per node: the last section, *Image Compare node*, has the two keys that step through that node's pictures. A node's keys act only while the pointer is over it, so two nodes may use the same key.
   - Mouse gestures and held keys (Shift for equal sides, the wheel, right-click …) are listed with a dashed outline and can't be changed.
   - Esc can't be given to something else by pressing it (it cancels), but the shortcuts that use it can be given another key.
   - The same sheet opens from **Settings > Region Genie > Shortcuts > Edit…**; the keys apply to every Region Genie node and are saved with ComfyUI's settings, not with the workflow.

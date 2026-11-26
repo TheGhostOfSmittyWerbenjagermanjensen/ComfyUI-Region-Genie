@@ -13,19 +13,20 @@ Shows two or more images in one node, to compare them with a slider or by flippi
 
 ## Comparing
 
-- **The chosen picture** is the lit number. To start with it is the last picture (the highest number), so the newest result shows.
+- **The chosen picture** is the lit number. After every run it is the last picture (the highest number), so the newest result shows: four pictures read 3 | 4, and a later run that brings three reads 2 | 3.
 - **Pointer on the picture:** the picture *before* the chosen one is left of the pointer, the chosen one right of it. The number of the left picture has an outline in the switched-on color.
 - **Pointer off the picture:** the chosen picture shows whole.
-- A run that brings as many pictures as the one before keeps the picture you chose. When the number of pictures changes, the last one is chosen again.
 
 ## Keys
 
-They act while the pointer is over the node (the picture or the row of numbers), and are the node's own: they are not in the Region Genie node's shortcut list and can't be changed.
+They act while the pointer is over the node (the picture or the row of numbers).
 
-| Key | What it does |
-|---|---|
-| 1 to 9, on the number row or the numpad | Chooses that picture |
-| Left / Right arrow | The picture before / after, around the ends |
+| Key | What it does | Can be changed |
+|---|---|---|
+| 1 to 9, on the number row or the numpad | Chooses that picture | No |
+| Left / Right arrow | The picture before / after, around the ends | Yes |
+
+Change the two stepping keys in the pack's shortcut list (**Settings > Region Genie > Shortcuts > Edit…**), in its section *Image Compare node*. They may be keys the Region Genie node's editor also uses: each node only takes its keys while the pointer is over it.
 
 Flipping in place: rest the pointer on the row of numbers and press the keys. The chosen picture shows whole and changes in place, which shows small differences well.
 

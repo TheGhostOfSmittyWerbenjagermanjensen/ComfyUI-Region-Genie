@@ -9,8 +9,9 @@
 // - The LAST picture (the highest number) is the chosen one to start with: four pictures show "3 | 4", two "1 | 2".
 // - Picture 1 has the LAST picture on its left (around the corner); a button on the node turns that off (picture 1
 //   then shows alone). With two pictures that means: 2 chosen is "1 | 2", 1 chosen is "2 | 1".
-// - The keys are this node's own and fixed: they are not in the Region Genie node's shortcut list (another node,
-//   another job). The node's description and help page name them.
+// - The keys: 1-9 are fixed; the two that step (the arrows) are the user's, in the pack's shortcut list under its
+//   own section "Image Compare node" (rg_keys.js, ctx "compare"), so they can be the same keys as the editor's.
+// - After every run the last picture is the chosen one.
 // - Number labels on the picture, with a button to hide them.
 // - Every image of a batch is a picture of its own, in input order.
 // - A picture can be hidden from the comparison (right-click its number): its neighbours are then compared
@@ -21,6 +22,7 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 import { svgIcon } from "./rg_shared.js";
+import { keyIs } from "./rg_keys.js";
 
 const NODE = "Region-Genie_ImageCompare";
 const CSS = `
@@ -55,10 +57,12 @@ function onKey(e) {
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
     // the number row and the numpad (by the key's place, so the numpad works with Num Lock off too)
     const d = +(/^(?:Digit|Numpad)([1-9])$/.exec(e.code || "")?.[1] || (/^[1-9]$/.test(e.key) ? e.key : 0));
+    // the two stepping keys are the user's (the shortcut list, section "Image Compare node"); a key given to them
+    // comes before the numbers
     let used = false;
-    if (d && !e.shiftKey) used = c.choose(d);
-    else if (e.key === "ArrowLeft") used = c.step(-1);
-    else if (e.key === "ArrowRight") used = c.step(1);
+    if (keyIs(e, "compare.prev")) used = c.step(-1);
+    else if (keyIs(e, "compare.next")) used = c.step(1);
+    else if (d && !e.shiftKey) used = c.choose(d);
     if (used) { e.preventDefault(); e.stopImmediatePropagation(); }
 }
 
@@ -119,13 +123,12 @@ function setup(node) {
         settle(); draw();
     }
     function setPics(list) {
-        const first = !st.pics.length, changed = st.pics.length !== list.length;
         st.pics = list;
         P().hidden = P().hidden.filter((n) => n <= list.length);
         imgR.dataset.n = ""; imgL.dataset.n = "";
-        // to start with, and whenever the number of pictures changed: the last one (the highest number), so the newest
-        // result shows and the one before it is on its left. A later run with as many pictures keeps the user's choice
-        if (first || changed || !shown().includes(st.cur)) { const v = shown(); st.cur = v[v.length - 1] || 0; }
+        // after every run: the last picture (the highest number that is shown), so the newest result shows and the one
+        // before it is on its left (the owner's choice, round 94: also when a run brings as many pictures as the last)
+        { const v = shown(); st.cur = v[v.length - 1] || 0; }
         build();
     }
     const choose = (n) => { if (n > st.pics.length || P().hidden.includes(n)) return false; st.cur = n; draw(); return true; };

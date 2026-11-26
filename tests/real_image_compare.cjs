@@ -115,7 +115,13 @@ const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];          // image_1 …
     await run(5); s = await S();
     check(`${M}: a run after loading: the last picture is the chosen one again (pictures 3 and 4 still hidden: 2 | 5)`, s.cur === 5 && s.prev === 2);
     await page.keyboard.press("ArrowLeft"); await run(5);
-    check(`${M}: a later run with as many pictures keeps the picture that was chosen`, (await S()).cur === 2);
+    check(`${M}: every run chooses the last picture again, also with as many pictures as before`, (await S()).cur === 5);
+    // the two stepping keys are the user's: A / D in place of the arrows, then back
+    await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Shortcuts", JSON.stringify({ "compare.prev": ["A"], "compare.next": ["D"] })); }); await sleep(300);
+    await hover(0.5); await page.keyboard.press("a"); const k1 = (await S()).cur; await page.keyboard.press("ArrowLeft"); const k2 = (await S()).cur; await page.keyboard.press("d"); const k3 = (await S()).cur;
+    check(`${M}: with A / D set in the shortcut list they step and the arrows no longer do (${k1}, ${k2}, ${k3})`, k1 === 2 && k2 === 2 && k3 === 5);
+    await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Shortcuts", "{}"); }); await sleep(300);
+    await page.keyboard.press("ArrowLeft");
     await chip(3).click(); s = await S();
     check(`${M}: after the next run they are still hidden; a click on a hidden number shows that picture again`, s.hidden.join() === "4" && s.cur === 3 && s.prev === 2);
     // ---- the plain case: two pictures

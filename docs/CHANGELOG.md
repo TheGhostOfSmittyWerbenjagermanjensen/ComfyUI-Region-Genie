@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 94 (Nov 26): Image Compare: the last picture after every run; its stepping keys in the shortcut list (0.58.1)
+- Asked: after every run the last picture of that run is the chosen one (4 pictures, then 3: picture 3). The node's keys changeable, for keyboards without arrow keys; the shortcut list showing the whole pack's shortcuts, in sections.
+- Built: `setPics` always chooses the last shown picture. Two commands, `compare.prev` / `compare.next` (ctx `compare`, group "Image Compare node") in `COMMANDS`; the node's key handler asks `keyIs`. The sheet has the section, with fixed rows for 1 to 9 and the right-click. A key is only taken from a command of the same ctx, so the arrows stay the editor's nudge keys too.
+- CLAUDE.md: the shortcut rule again covers every node of the pack, a section per node (it was scoped to the editor in round 93).
+- Tests changed: `real_image_compare.cjs` expects the last picture after every run (it expected a kept choice), and tries A / D in place of the arrows.
+
 ## Round 93 (Nov 26): Image Compare node, a search through every folder of a list, the pop-up's Undo buttons, two small items (0.58.1)
 - Asked: (1) search a list that rgthree sorts into folders through all its folders, switchable in Settings, hits showing their folder; (2) "Hide this layer" in the canvas's right-click menu; (3) check that every way of moving a region or layer can be undone by every Undo, with a pop-up open on each tab; (4) the Large editor button lit under the pointer; (5) a mock-up of an image comparison node for more than two images, with a slider, number keys and arrow keys.
 - Decided by the owner: the search is for the pack's own lists (a Setting, on), with a second, experimental Setting (off) for every list of ComfyUI. The node: a slider only; the last picture chosen to start with; picture 1 has the last picture on its left, with a button on the node to turn that off; number labels with a button; a batch counts per image; a picture is hidden with a right-click on its number; its keys are its own and fixed, not in the Region Genie node's shortcut list.

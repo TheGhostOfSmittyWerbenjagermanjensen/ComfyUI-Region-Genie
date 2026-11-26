@@ -51,8 +51,9 @@ class ImageCompareRG:
     OUTPUT_NODE = True
     CATEGORY = "Region Genie"
     DESCRIPTION = ("Shows two or more images in one node to compare them. Move the pointer across the picture: The "
-                   "picture before the chosen one is left of the pointer, the chosen one right of it. The number keys "
-                   "and the arrow keys choose the picture while the pointer is over the node.")
+                   "picture before the chosen one is left of the pointer, the chosen one right of it. While the pointer is "
+                   "over the node, the number keys choose a picture and the arrow keys step through them; the two "
+                   "stepping keys can be changed in the shortcut list (Settings > Region Genie > Shortcuts).")
 
     def run(self, **inputs):
         import nodes

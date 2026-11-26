@@ -687,7 +687,7 @@
   },
   "Region-Genie_ImageCompare": {
     "display_name": "Comparar imágenes (Region Genie) ✨",
-    "description": "Muestra dos o más imágenes en un nodo para compararlas. Mueve el puntero sobre la imagen: la imagen anterior a la elegida queda a la izquierda del puntero y la elegida a su derecha. Las teclas numéricas y las flechas eligen la imagen mientras el puntero está sobre el nodo.",
+    "description": "Muestra dos o más imágenes en un nodo para compararlas. Mueve el puntero sobre la imagen: la imagen anterior a la elegida queda a la izquierda del puntero y la elegida a su derecha. Mientras el puntero está sobre el nodo, las teclas numéricas eligen una imagen y las flechas pasan de una a otra; esas dos teclas se pueden cambiar en la lista de atajos (Settings > Region Genie > Shortcuts).",
     "inputs": {
       "image_1": {
         "name": "imagen_1",
