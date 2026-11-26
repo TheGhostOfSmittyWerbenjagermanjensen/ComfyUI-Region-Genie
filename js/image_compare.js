@@ -46,7 +46,11 @@ const CSS = `
 .rg-ic-opts button svg { width:14px; height:14px; display:block; }
 .rg-ic-opts button.on { background:var(--rg-accent-fill,#3a6ea5); border-color:var(--rg-accent,#5b8fd0); color:#fff; }
 .rg-ic-opts button.rg-ic-bigbtn:hover { background:var(--rg-accent-fill,#3a6ea5); border-color:var(--rg-accent,#5b8fd0); color:#fff; }
-.rg-ic-zoom { min-width:44px; text-align:right; font-variant-numeric:tabular-nums; opacity:.75; }
+.rg-ic-zoom { display:flex; align-items:center; gap:2px; margin-right:3px; font-variant-numeric:tabular-nums; }
+.rg-ic-zoom input { box-sizing:border-box; width:52px; height:24px; margin:0; padding:0 4px; text-align:right; font:inherit; font-variant-numeric:tabular-nums; color:inherit;
+  background:var(--comfy-input-bg,#222); border:1px solid var(--border-color,#555); border-radius:4px; outline:none; }
+.rg-ic-zoom input:hover, .rg-ic-zoom input:focus { border-color:var(--rg-accent,#5b8fd0); }
+.rg-ic-zoom span { opacity:.75; }
 .rg-ic-view { position:relative; flex:1 1 auto; min-height:60px; border-radius:4px; overflow:hidden; background:#000; cursor:ew-resize; user-select:none; touch-action:none; }
 .rg-ic-stage { position:absolute; inset:0; transform-origin:0 0; pointer-events:none; }
 .rg-ic-view img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; pointer-events:none; -webkit-user-drag:none; }
@@ -173,7 +177,9 @@ function setup(node) {
         const wrap = el("div", "rg-ic"), bar = el("div", "rg-ic-bar"), chips = el("div", "rg-ic-chips"), opts = el("div", "rg-ic-opts"), view = el("div", "rg-ic-view");
         const stage = el("div", "rg-ic-stage"), imgR = el("img"), imgL = el("img"), line = el("div", "rg-ic-line"), tagL = el("span", "rg-ic-tag l"), tagR = el("span", "rg-ic-tag r"), empty = el("div", "rg-ic-empty");
         imgR.alt = ""; imgL.alt = ""; imgR.draggable = false; imgL.draggable = false;
-        const wrapBtn = el("button"), tagBtn = el("button"), bigBtn = el("button", "rg-ic-bigbtn"), zoomLbl = el("span", "rg-ic-zoom");
+        const wrapBtn = el("button"), tagBtn = el("button"), bigBtn = el("button", "rg-ic-bigbtn"), zoomLbl = el("label", "rg-ic-zoom"), zoomIn = el("input"), zoomPct = el("span");
+        // the Large view's size field: shows the picture's size in percent and takes a typed one (round 98)
+        zoomIn.type = "text"; zoomIn.inputMode = "numeric"; zoomIn.autocomplete = "off"; zoomIn.spellcheck = false; zoomPct.textContent = "%"; zoomLbl.append(zoomIn, zoomPct);
         for (const [b, ic] of [[wrapBtn, "repeat"], [tagBtn, "hash"], [bigBtn, "expand"]]) { b.type = "button"; b.innerHTML = svgIcon(ic); }
         opts.append(...(isBig ? [zoomLbl] : []), wrapBtn, tagBtn, bigBtn); bar.append(chips, opts); stage.append(imgR, imgL); view.append(stage, line, tagL, tagR, empty); wrap.append(bar, view);
         wrap.__rgNode = node;
@@ -201,8 +207,10 @@ function setup(node) {
             const fit = imgR.naturalWidth ? Math.min(W / imgR.naturalWidth, (view.clientHeight || 1) / imgR.naturalHeight) : 1;
             view.classList.toggle("sharp", fit * u.z >= 3);
             if (!isBig) view.style.cursor = prev ? "ew-resize" : "default";
-            zoomLbl.textContent = `${Math.round(fit * u.z * 100)}%`;
-            zoomLbl.title = "The picture's size on the screen: 100% is one picture pixel per screen pixel.\nWheel: Zoom in and out (out as far as the whole picture fits). Drag: Move the picture.";
+            u.fit = fit;
+            if (document.activeElement !== zoomIn) zoomIn.value = String(Math.round(fit * u.z * 100));
+            zoomLbl.title = "The picture's size on the screen, in percent: 100 is one picture pixel per screen pixel.\nType a size and press Enter. The smallest is the whole picture fitting the window.\n"
+                + "Wheel: Zoom in and out. Drag: Move the picture.";
             [...chips.children].forEach((b, i) => { b.classList.toggle("cur", i + 1 === st.cur); b.classList.toggle("prev", i + 1 === prev); b.classList.toggle("hid", p.hidden.includes(i + 1)); });
             wrapBtn.classList.toggle("on", !!p.wrap); tagBtn.classList.toggle("on", !!p.labels); bigBtn.classList.toggle("on", isBig);
             wrapBtn.title = p.wrap ? "Around the corner: ON. The first picture has the last one on its left. Click to show the first picture alone."
@@ -224,6 +232,22 @@ function setup(node) {
                 return b;
             }));
         };
+        // zoom to z about the place (mx, my) of the frame: that place stays where it is
+        const zoomTo = (z, mx, my) => {
+            z = Math.min(MAX_ZOOM, Math.max(1, z));
+            u.tx = mx - (mx - u.tx) * z / u.z; u.ty = my - (my - u.ty) * z / u.z; u.z = z;
+            if (u.z <= 1.0005) { u.z = 1; u.tx = 0; u.ty = 0; }
+        };
+        // a typed size: percent of the picture's own pixels, about the middle of the frame; less than fitting is fitting
+        const typed = () => {
+            const p = parseFloat(String(zoomIn.value).replace(",", ".").replace(/[^\d.]/g, ""));
+            if (Number.isFinite(p) && p > 0) zoomTo(p / 100 / (u.fit || 1), view.clientWidth / 2, view.clientHeight / 2);
+            zoomIn.blur(); u.draw();
+        };
+        zoomIn.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); typed(); } else if (e.key === "Escape") { e.preventDefault(); zoomIn.blur(); u.draw(); } });
+        zoomIn.addEventListener("change", typed);
+        zoomIn.addEventListener("focus", () => zoomIn.select());
+        for (const ev of ["pointerdown", "mousedown", "dblclick", "wheel"]) zoomLbl.addEventListener(ev, (e) => e.stopPropagation());
         let drag = null;                           // the Large view, zoomed in: a drag moves the pictures
         const move = (e) => {
             const r = view.getBoundingClientRect(); if (!r.width) return;
@@ -244,10 +268,7 @@ function setup(node) {
                 e.preventDefault(); e.stopPropagation();
                 const r = view.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
                 const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
-                const z = Math.min(MAX_ZOOM, Math.max(1, u.z * Math.pow(1.0015, -dy)));
-                // the place under the pointer stays under the pointer
-                u.tx = mx - (mx - u.tx) * z / u.z; u.ty = my - (my - u.ty) * z / u.z; u.z = z;
-                if (u.z <= 1.0005) { u.z = 1; u.tx = 0; u.ty = 0; }
+                zoomTo(u.z * Math.pow(1.0015, -dy), mx, my);     // the place under the pointer stays under the pointer
                 u.x = Math.min(1, Math.max(0, mx / r.width)); u.over = true;
                 u.draw();
             }, { passive: false });

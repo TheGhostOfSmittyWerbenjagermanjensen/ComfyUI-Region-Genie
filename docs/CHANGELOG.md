@@ -2,6 +2,10 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 98 (Nov 26): Image Compare, Large view: the size can be typed (0.59.1)
+- Asked: control the zoom by the percentage the Large view shows; on the node it can be left out.
+- Built: the readout is a field: type a percent of the picture's own pixels and press Enter; the zoom is about the middle of the frame, and less than fitting gives the fit. Not on the node (it has no zoom of its own).
+
 ## Round 97 (Nov 26): the Whole image row's pop-up opens by its row (0.59.1)
 - Reported by the owner: the pop-up that the Whole image row's LoRAs button opens appeared near the top, above the canvas, not just above or below the row.
 - Found: that pop-up is the scene prompt's (on its LoRAs tab), and it was always placed by the scene prompt's text box, which is above the canvas. Reproduced in the real ComfyUI before the fix.

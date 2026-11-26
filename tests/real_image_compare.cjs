@@ -170,7 +170,7 @@ const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];          // image_1 …
     await page.mouse.move(bb.x + bb.width * 0.25, bb.y + bb.height * 0.5, { steps: 3 }); await sleep(120);
     await page.keyboard.press("2"); await sleep(100);
     const bigLook = () => page.evaluate(() => { const v = document.querySelector(".rg-ic-big .rg-ic-view"), [r, l] = v.querySelectorAll("img"), st = v.querySelector(".rg-ic-stage").getBoundingClientRect(), b = v.getBoundingClientRect();
-        return { clip: l.style.clipPath, leftShown: !l.hidden, stage: [st.left - b.left, st.top - b.top, st.width, st.height].map((x) => Math.round(x)), view: [Math.round(b.width), Math.round(b.height)], zoomText: document.querySelector(".rg-ic-big .rg-ic-zoom")?.textContent }; });
+        return { clip: l.style.clipPath, leftShown: !l.hidden, stage: [st.left - b.left, st.top - b.top, st.width, st.height].map((x) => Math.round(x)), view: [Math.round(b.width), Math.round(b.height)], zoomText: document.querySelector(".rg-ic-big .rg-ic-zoom input")?.value + "%" }; });
     let bl = await bigLook();
     check(`${M}: Large view: the slider and the keys work as on the node (1 | 2, cut at a quarter: ${bl.clip})`, (await S()).cur === 2 && bl.leftShown && /inset\(0(px)? 75(\.\d+)?% 0(px)? 0(px)?\)/.test(bl.clip));
     await page.mouse.wheel(0, -600); await sleep(200);
@@ -185,6 +185,16 @@ const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];          // image_1 …
     for (let i = 0; i < 12; i++) await page.mouse.wheel(0, 600); await sleep(250);
     bl = await bigLook();
     check(`${M}: Large view: zooming out stops when the picture fits its frame (${(await S()).big.zoom}×, ${bl.stage.join(", ")})`, (await S()).big.zoom === 1 && bl.stage[0] === 0 && bl.stage[1] === 0 && bl.stage[2] === bl.view[0] && bl.stage[3] === bl.view[1]);
+    // round 98: the size field: a typed percent of the picture's own pixels
+    const zf = page.locator(".rg-ic-big .rg-ic-zoom input");
+    const fitPct = +(await zf.inputValue());
+    await zf.click(); await page.keyboard.type(String(fitPct * 2)); await page.keyboard.press("Enter"); await sleep(200);
+    bl = await bigLook();
+    check(`${M}: Large view: a typed size sets the zoom (${fitPct}% fits; typed ${fitPct * 2}%: ${(await S()).big.zoom.toFixed(2)}×), about the middle of the frame`, Math.abs((await S()).big.zoom - 2) < 0.02 && Math.abs(bl.stage[0] + bl.view[0] / 2) <= 2 && Math.abs(bl.stage[1] + bl.view[1] / 2) <= 2 && (await zf.inputValue()) === String(fitPct * 2));
+    await page.keyboard.press("3"); await sleep(100);
+    await zf.click(); await page.keyboard.type("1"); await page.keyboard.press("Enter"); await sleep(200);
+    check(`${M}: Large view: a size smaller than the whole picture fitting gives the fit (shown as ${await zf.inputValue()}%)`, (await S()).big.zoom === 1 && (await zf.inputValue()) === String(fitPct));
+    check(`${M}: Large view: digits typed into the size field did not choose a picture`, (await S()).cur === 2);
     check(`${M}: Large view: the graph behind it did not zoom`, Math.abs(await scale() - 1) < 0.001);
     if (process.env.RG_SHOT) { await page.mouse.wheel(0, -500); await sleep(200); await page.screenshot({ path: process.env.RG_SHOT.replace(/\.png$/, "-large.png") }); }
     await page.keyboard.press("Escape"); await sleep(200);
