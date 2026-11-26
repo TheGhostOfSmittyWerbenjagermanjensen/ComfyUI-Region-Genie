@@ -15,6 +15,9 @@ const CSS = `
   background:var(--comfy-menu-bg, var(--background, #1e1e1e)); color:var(--fg-color, #ddd); box-shadow:0 4px 12px rgba(0,0,0,.45);
   font:12px/1.2 var(--font-inter, Inter, Arial, sans-serif); user-select:none; touch-action:none; }
 .rg-cp * { box-sizing:border-box; }
+/* as a part of a panel (a pop-up's Palette tab): no window of its own, wider than tall */
+.rg-cp.inline { position:static; z-index:auto; width:100%; padding:0; border:0; background:transparent; box-shadow:none; }
+.rg-cp.inline .rg-cp-sv { aspect-ratio:auto; height:96px; }
 .rg-cp-sv { position:relative; width:100%; aspect-ratio:1/1; border-radius:2px; cursor:crosshair; touch-action:none; }
 .rg-cp-sv::before, .rg-cp-sv::after { content:""; position:absolute; inset:0; border-radius:2px; }
 .rg-cp-sv::before { background:linear-gradient(to right, #fff, transparent); }
@@ -162,9 +165,12 @@ export function closeColorPicker() { current?.close(); }
 // true right after the picker of this anchor was closed by pressing on the anchor (so a click there toggles)
 export const justClosedBy = (anchor) => lastClosed.anchor === anchor && performance.now() - lastClosed.t < 500;
 
-export function openColorPicker(anchor, hex, { onInput, onClose } = {}) {
-    if (justClosedBy(anchor)) { lastClosed = { anchor: null, t: 0 }; return null; }   // that press closed it
-    closeColorPicker();
+// inline: an element to build the picker into, as a part of that panel (the Palette tab of a region's pop-up): it has
+// no place of its own, isn't closed by a click elsewhere or by Esc, and stays until its close() is called. The api's
+// set(hex) shows another color in it without reporting a change.
+export function openColorPicker(anchor, hex, { onInput, onClose, inline = null } = {}) {
+    if (!inline && justClosedBy(anchor)) { lastClosed = { anchor: null, t: 0 }; return null; }   // that press closed it
+    if (!inline) closeColorPicker();
     ensureStyle();
     const start = normalizeHex(hex) || "#000000";
     let [h, s, v] = rgbToHsb(...hexToRgb(start));
@@ -235,7 +241,7 @@ export function openColorPicker(anchor, hex, { onInput, onClose } = {}) {
         input.addEventListener("blur", () => { delete input.dataset.editing; syncFields(true); });
         input.addEventListener("keydown", (e) => {
             e.stopPropagation();
-            if (e.key === "Enter") { apply(); close(); }
+            if (e.key === "Enter") { apply(); if (inline) input.blur(); else close(); }
         });
     }
     function syncFields(force) {
@@ -314,10 +320,17 @@ export function openColorPicker(anchor, hex, { onInput, onClose } = {}) {
     for (const ev of ["pointerdown", "mousedown", "click", "dblclick", "wheel", "contextmenu", "keyup", "keypress"]) panel.addEventListener(ev, (e) => e.stopPropagation());
     panel.addEventListener("contextmenu", (e) => e.preventDefault());
 
-    document.body.appendChild(panel);
+    if (inline) { panel.classList.add("inline"); inline.appendChild(panel); } else document.body.appendChild(panel);
     buildFields();
     update(false);
     changed = false;                                  // the first paint is not a change
+    if (inline) {
+        let closedI = false;
+        const apiI = { panel, get hex() { return last; },
+            set(x) { const n = normalizeHex(x); if (!n || n === last) return; setFromRgb(hexToRgb(n)); last = n; update(true); },
+            close() { if (closedI) return; closedI = true; window.removeEventListener("paste", onPaste, true); clearTimeout(msgTimer); panel.remove(); onClose?.(last, changed); } };
+        return apiI;
+    }
 
     function place() {
         const r = anchor.getBoundingClientRect(), pw = panel.offsetWidth, ph = panel.offsetHeight, pad = 10;

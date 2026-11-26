@@ -194,7 +194,17 @@ input.rg-switch:checked::after { left:14px; background:#1c1c1c; }
 .rg-pop-layers { position:relative; display:flex; flex-direction:column; gap:1px; }
 .rg-pop .rg-row.lvl1 { margin-left:0; }
 .rg-pop-layers > .rg-hint, .rg-pop-pal > .rg-hint { padding:4px 2px; white-space:normal; }
-.rg-pop-pal { display:flex; flex-direction:column; gap:4px; }
+.rg-pop-pal { display:flex; flex-direction:column; gap:7px; padding-top:2px; }
+.rg-pop-palhead { display:flex; align-items:center; gap:7px; cursor:pointer; }
+.rg-pop-palname { font-weight:600; white-space:nowrap; }
+.rg-pop-palstate { font-weight:600; padding:0 7px; border-radius:8px; border:1px solid var(--border-color,#555); opacity:.75; }
+.rg-pop-palhead.on .rg-pop-palstate { background:#d9a441; border-color:#d9a441; color:#1c1c1c; opacity:1; }
+.rg-pop-palhead .rg-hint { white-space:normal; }
+.rg-pop-palrow { display:flex; align-items:center; gap:6px; }
+.rg-pop-palrow.off .rg-sw.pal { opacity:.4; }
+.rg-pop-palrow .rg-sw.pal.big { width:30px; height:22px; border-radius:4px; border:1px solid rgba(0,0,0,.6); padding:0; cursor:pointer; flex:0 0 auto; }
+.rg-pop-palrow .rg-sw.pal.big.sel { outline:2px solid #5b8fd0; outline-offset:1px; }
+.rg-pop-palpick { max-width:420px; }
 .rg-pop-opts { display:grid; grid-template-columns:max-content 1fr; gap:6px 12px; align-items:center; padding:2px 2px 0; }
 .rg-pop-optl { font-weight:600; opacity:.85; }
 .rg-pop-optc { display:flex; align-items:center; gap:6px; min-width:0; }
@@ -343,11 +353,13 @@ input.rg-sw[type=color]::-webkit-color-swatch { border:none; border-radius:2px; 
 input.rg-sw[type=color]::-moz-color-swatch { border:none; border-radius:2px; }
 .rg-pwrap { position:relative; display:flex; flex:1 1 auto; min-width:0; }
 .rg-pwrap > textarea.rg-prompt { padding-right:18px !important; }
-.rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:transparent;
-  color:var(--input-text,#ddd); opacity:.3; cursor:pointer; line-height:0; }
+/* round 88: the button is a solid tile in the field's own color, so no text shows under it (a one-line field's text
+   runs to the field's edge), and its icon is always plain to see */
+.rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:var(--comfy-input-bg,#222);
+  box-shadow:-5px 0 4px var(--comfy-input-bg,#222); color:color-mix(in srgb, var(--input-text,#ddd) 70%, transparent); cursor:pointer; line-height:0; }
 .rg-expand svg { width:12px; height:12px; display:block; margin:2px; }
-.rg-expand:hover { opacity:1; background:rgba(91,143,208,.35); }
-*:hover > .rg-expand { opacity:.75; }
+.rg-expand:hover { color:#fff; background:#3a6ea5; box-shadow:none; }
+*:hover > .rg-expand { color:var(--input-text,#ddd); }
 textarea.rg-scene-ta { padding-right:20px !important; }
 /* more controls in a text box's corner, left of the pop-up button (placed by addExpandButton(), rg_shared.js) */
 .rg-btn.rg-corner { position:absolute; z-index:3; margin:0; }

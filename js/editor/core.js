@@ -165,6 +165,7 @@ export function* core(E) {
     E.labelPx = () => num(SET.cmLabelSize, 11, 8, 32);                    // the prompts on the canvas: text size with the image fitted in view,
     E.labelShadow = () => num(SET.cmLabelShadow, 4, 0, 12);               // their shadow / glow: how far it spreads (px)
     E.labelMaxPx = () => Math.max(E.labelPx(), num(SET.cmLabelMax, 16, 8, 64));   // …and the most they grow to when zooming in (never under their size)
+    E.labelPad = () => num(SET.cmLabelPad, 3, 0, 20) / 100;                   // the room they keep to the region's edge, of its shorter side
     E.labelShadowStrength = () => num(SET.cmLabelShadowStrength, 200, 0, 300) / 100;   // and how dense (1 = 100%)
     E.showGrid = !!getSetting(SET.cmGridShow, false);     // the grid's lines while snap is off
     E.gridAlphaNow = () => GRID_LINES[getSetting(SET.cmGridLines, "normal")] || GRID_LINES.normal;

@@ -684,10 +684,6 @@
     "name": "캔버스 도구",
     "tooltip": "올가미, 마술봉, 채우기 버튼이 처음에 사용하는 버전, 마술봉 허용 오차, 채우기 틈 크기, 캔버스의 힌트.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength ": {
-    "name": "텍스트",
-    "tooltip": "노드와 팝업 편집기에서 프롬프트 상자의 글자 크기, 그리고 캔버스의 영역 라벨 크기와 그림자.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
-  },
   "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "컨트롤",
     "tooltip": "각 모델이 Control 행에 사용하는 컨트롤 LoRA, ControlNet 또는 LLLite 파일과 깊이 모델.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
@@ -731,5 +727,13 @@
   "RegionGenie_Main_LabelShadowStrength": {
     "name": "캔버스: 라벨 그림자 강도 (%)",
     "tooltip": "캔버스의 영역 프롬프트 주위 그림자나 광채의 진하기입니다. 0: 없음."
+  },
+  "RegionGenie_Main_LabelPad": {
+    "name": "캔버스: 레이블과 영역 가장자리 사이의 여백 (%)",
+    "tooltip": "캔버스의 영역 프롬프트가 영역 가장자리와 두는 여백으로, 영역의 짧은 변에 대한 %입니다. 여백이 작을수록 프롬프트가 더 많이 보입니다. 이전에는 8로 고정되어 있었습니다."
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge ": {
+    "name": "텍스트",
+    "tooltip": "노드와 팝업 편집기에서 프롬프트 상자의 글자 크기, 그리고 캔버스의 영역 라벨 크기와 그림자.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   }
 }

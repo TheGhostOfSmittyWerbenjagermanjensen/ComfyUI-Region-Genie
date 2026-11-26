@@ -1706,10 +1706,10 @@ export const FPOP_CSS = `
   content:""; position:absolute; z-index:-1; left:-4px; right:-4px; top:50%; height:max(100%, 24px); transform:translateY(-50%); }   /* 1 px border + half the gap */
 .rg-fpop-grip { position:absolute; right:1px; bottom:1px; width:14px; height:14px; cursor:nwse-resize; touch-action:none; opacity:.7;
   background:linear-gradient(135deg, transparent 52%, #5b8fd0 52% 60%, transparent 60% 70%, #5b8fd0 70% 78%, transparent 78%); }
-.rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:transparent;
-  color:var(--input-text,#ddd); opacity:.3; cursor:pointer; line-height:0; }
+.rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:var(--comfy-input-bg,#222);
+  box-shadow:-5px 0 4px var(--comfy-input-bg,#222); color:color-mix(in srgb, var(--input-text,#ddd) 70%, transparent); cursor:pointer; line-height:0; }
 .rg-expand svg { width:12px; height:12px; display:block; margin:2px; }
-.rg-expand:hover { opacity:1; background:rgba(91,143,208,.35); }
+.rg-expand:hover { color:#fff; background:#3a6ea5; box-shadow:none; }
 *:hover > .rg-expand { opacity:.75; }
 `;
 
@@ -1997,6 +1997,7 @@ export const SET = {
     cmLabelMax: "RegionGenie.Main.LabelMax",
     cmLabelShadow: "RegionGenie.Main.LabelShadow",
     cmLabelShadowStrength: "RegionGenie.Main.LabelShadowStrength",
+    cmLabelPad: "RegionGenie.Main.LabelPad",
     cmGridShow: "RegionGenie.Main.GridShow",
     cmGridLines: "RegionGenie.Main.GridLines",
     regionColors: "RegionGenie.Main.RegionColors",
@@ -2329,6 +2330,7 @@ const SETTINGS = [
         { id: SET.cmLabelMax, name: "On the canvas: region labels, largest when zoomed in", type: "number", defaultValue: 16, attrs: { min: 8, max: 64, step: 1 }, tooltip: "Text size in px the region prompts on the canvas grow to at most when zooming in. A value under the size above counts as that size: The text then doesn't grow. Applies to every node.", category: CAT("Text", "8 labelMax") },
         { id: SET.cmLabelShadow, name: "On the canvas: label shadow size (px)", type: "number", defaultValue: 4, attrs: { min: 0, max: 12, step: 0.5 }, tooltip: "How far the dark shadow around the region prompts on the canvas spreads (a white glow around dark text on a light region). 0: None.", category: CAT("Text", "9 labelShadow") },
         { id: SET.cmLabelShadowStrength, name: "On the canvas: label shadow strength (%)", type: "number", defaultValue: 200, attrs: { min: 0, max: 300, step: 10 }, tooltip: "How dense the shadow or glow around the region prompts on the canvas is. 0: None.", category: CAT("Text", "91 labelShadowStrength") },
+        { id: SET.cmLabelPad, name: "On the canvas: room between a label and its region's edge (%)", type: "number", defaultValue: 3, attrs: { min: 0, max: 20, step: 1 }, tooltip: "How much room a region prompt on the canvas keeps to the edge of its region, in % of the region's shorter side. Less room lets more of the prompt show. 8 was the fixed value before.", category: CAT("Text", "92 labelPad") },
         { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
         // the keys that step to the previous / next text field in a pop-up editor: changed in the shortcut list (round 39;
         // they were two rows here), still saved under their own ids

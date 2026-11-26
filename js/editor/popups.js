@@ -229,6 +229,7 @@ export function* popups(E) {
         const ed = E.editor;
         if (ed.field) ed.endField(!commit);
         E.editor = null;
+        ed.pal?.flush?.(); ed.pal?.picker?.close();        // the Palette tab's color picker: its last change is kept
         ed.acCtl?.dispose();
         ed.box.remove();
         E.refreshUI();
@@ -337,7 +338,7 @@ export function* popups(E) {
         document.body.appendChild(box);
 
         const ed = {
-            rid, box, field: null, at, target: ["region", rid], tabs,
+            rid, box, field: null, at, target: ["region", rid], tabs, pal: {},
             // finish editing a text field: one undo step (E.endText()), or put the old text back (cancel: the region is gone)
             endField(cancel) {
                 const f = ed.field;
@@ -388,12 +389,9 @@ export function* popups(E) {
                 mergeAll.disabled = lays.filter((l) => l.visible !== false).length < 2;
                 layerBar.replaceChildren(addLay, mergeAll);
                 // the Palette tab
-                const pal = E.paletteRow(rr, true);
-                const palN = rr.paletteOn ? pal.querySelectorAll(".rg-sw.pal").length : 0;
-                tabs.count("palette", palN ? String(palN) : "", palN > 0);
-                palBox.replaceChildren(pal, optNote(rr.paletteOn
-                    ? "On: These colors are sent with the region (MOSS-Image and Ideogram 4 read them). The first one shows the region."
-                    : "Off: Turn it on with the palette button to give this region up to 5 colors (MOSS-Image and Ideogram 4 read them)."));
+                E.paletteTab(palBox, rr, ed.pal);
+                const palN = (rr.palette || []).length;
+                tabs.count("palette", palN ? String(palN) : "", palN > 0 && !!rr.paletteOn);
                 // the Options tab: one line per thing
                 const k2 = E.state.regions.indexOf(rr), nReg = E.state.regions.length;
                 const swap = (d) => E.change(() => { [E.state.regions[k2 + d], E.state.regions[k2]] = [E.state.regions[k2], E.state.regions[k2 + d]]; E.sortLayersByRegions(); });

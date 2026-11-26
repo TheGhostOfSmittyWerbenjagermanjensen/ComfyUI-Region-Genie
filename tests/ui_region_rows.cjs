@@ -79,9 +79,32 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
 
     // ---- the Palette tab
     await pop.locator('.rg-pop-tabs [data-tab="palette"]').click(); await page.waitForTimeout(120);
-    await pop.locator('.rg-pop-pal button[title^="Color palette"]').click(); await page.waitForTimeout(200); await page.keyboard.press("Escape"); await page.waitForTimeout(100);
-    if (!(await pop.count())) await tab(rid, "palette");
-    check("the palette is switched on from the Palette tab", (await st()).regions.find((r) => r.id === rid).paletteOn === true);
+    const palUi = () => page.evaluate(() => { const b = document.querySelector(".rg-pop .rg-pop-pal"); return { sw: b.querySelector("input.rg-switch").checked, state: b.querySelector(".rg-pop-palstate").textContent,
+        lit: b.querySelector(".rg-pop-palhead").classList.contains("on"), cols: b.querySelectorAll(".rg-sw.pal").length, sel: [...b.querySelectorAll(".rg-sw.pal")].findIndex((x) => x.classList.contains("sel")),
+        picker: !!b.querySelector(".rg-cp.inline .rg-cp-sv"), floating: document.querySelectorAll("body > .rg-cp").length, dim: b.querySelector(".rg-pop-palrow").classList.contains("off") }; });
+    let pu = await palUi();
+    check(`the Palette tab says the palette is off: a switch, the word Off, no colors yet (${JSON.stringify(pu)})`, !pu.sw && pu.state === "Off" && !pu.lit && pu.cols === 0 && !pu.picker);
+    await pop.locator(".rg-pop-pal input.rg-switch").click(); await page.waitForTimeout(150);
+    pu = await palUi();
+    check("the switch turns it on: it says On, lit", pu.sw && pu.state === "On" && pu.lit && (await st()).regions.find((r) => r.id === rid).paletteOn === true);
+    await pop.locator(".rg-pop-pal .rg-pop-paladd").click(); await page.waitForTimeout(200);
+    await pop.locator(".rg-pop-pal .rg-pop-paladd").click(); await page.waitForTimeout(200);
+    pu = await palUi();
+    check(`＋ adds a color and selects it; the color picker is a part of the tab, not a window of its own (${JSON.stringify(pu)})`, pu.cols === 2 && pu.sel === 1 && pu.picker && pu.floating === 0);
+    // drag in the picker's square: the selected color changes live, and it is one undo step
+    const sv = await pop.locator(".rg-pop-pal .rg-cp-sv").boundingBox();
+    await page.mouse.move(sv.x + sv.width * 0.9, sv.y + sv.height * 0.2); await page.mouse.down(); await page.mouse.move(sv.x + sv.width * 0.8, sv.y + sv.height * 0.3, { steps: 4 }); await page.mouse.up();
+    const live = (await st()).regions.find((r) => r.id === rid).palette;
+    check(`dragging in the picker changes the selected color, not the other (${live})`, live[0] === "#FFFFFF" && live[1] !== "#FFFFFF" && await palUi().then((x) => x.picker && x.sel === 1));
+    await page.waitForTimeout(700);
+    await pop.locator(".rg-pop-pal .rg-sw.pal").first().click(); await page.waitForTimeout(150);
+    check("a click on another color selects that one for the picker", (await palUi()).sel === 0 && (await pop.locator(".rg-pop-pal .rg-cp input").first().inputValue()).toLowerCase() === "#ffffff");
+    await page.locator('.rg-bar [title^="Undo"]').click(); await page.waitForTimeout(200);
+    check("Undo takes the picked color back in one step", (await st()).regions.find((r) => r.id === rid).palette[1] === "#FFFFFF");
+    await pop.locator(".rg-pop-pal input.rg-switch").click(); await page.waitForTimeout(150);
+    pu = await palUi();
+    check("switched off: it says Off, the colors are kept and shown dimmed", !pu.sw && pu.state === "Off" && pu.cols === 2 && pu.dim && !(await st()).regions.find((r) => r.id === rid).paletteOn);
+    await pop.locator(".rg-pop-pal input.rg-switch").click(); await page.waitForTimeout(150);
     await page.evaluate((rid) => { const n = window.__node; n.__rgState().regions.find((r) => r.id === rid).palette = ["#AA3333", "#33AA33"]; n.__rgRefresh(); }, rid); await page.waitForTimeout(150);
     const ridRow = (await st()).regions.findIndex((r) => r.id === rid);
     check("with two colors: the tab counts 2 and the row shows them as dots",

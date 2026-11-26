@@ -747,7 +747,7 @@ export function* render(E) {
             // text gets the compact label instead (index and up to three lines on a dark plate), as before.
             const [qx0, qy0] = E.toScr(b.in.x0, b.in.y0), [qx1, qy1] = E.toScr(b.in.x1, b.in.y1);
             const vx0 = Math.max(qx0, 0), vy0 = Math.max(qy0, 0), vx1 = Math.min(qx1, E.cv.width), vy1 = Math.min(qy1, E.cv.height);
-            const iw = vx1 - vx0, ih = vy1 - vy0, mg = Math.max(4 * dpr, Math.min(iw, ih) * 0.08);
+            const iw = vx1 - vx0, ih = vy1 - vy0, mg = Math.max(2 * dpr, Math.min(iw, ih) * E.labelPad());       // (a Setting since round 88; 8% and at least 4 px until then)
             const availW = iw - 2 * mg - nw - gap - mw, maxLines = Math.floor((ih - 2 * mg) / lh);
             if (availW >= 44 * dpr && maxLines >= 1) {
                 const lines = wrapText(E.ctx, text, availW, maxLines);

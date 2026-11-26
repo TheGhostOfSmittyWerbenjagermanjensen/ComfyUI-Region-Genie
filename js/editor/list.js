@@ -8,7 +8,7 @@ import { PAL_MAX, normPalette, activePalette } from "./colors.js";
 export function* list(E) {
     Object.assign(E, {
         activateRegion, refreshUI, ico, chevron, grip, subHeader, toggleKind, updateExpandButtons, loraRows, addLoraTo, layerRows,
-        ownLoras, loraCount, loraButton, loraChips, toggleAllLoras, syncLoraAll,
+        ownLoras, loraCount, loraButton, loraChips, toggleAllLoras, syncLoraAll, paletteTab,
         regionSwatch, featherBox, paletteToggle, paletteRow,
     });
     yield;
@@ -547,6 +547,76 @@ export function* list(E) {
             E.change(() => { if (r.paletteOn) delete r.paletteOn; else r.paletteOn = true; });
         });
         return b;
+    }
+    // The Palette tab of a region's pop-up (round 88): a switch that says whether the palette is on, the colors as
+    // large swatches (a click selects one; the selected one is changed in the color picker right under them, which is
+    // a part of the tab, not a window of its own), + to add one, and a button that removes the selected one.
+    // st: kept by the pop-up between refreshes: { sel, picker, key, before, timer }.
+    function paletteTab(box, r, st) {
+        const pal = normPalette(r.palette), on = !!r.paletteOn;
+        st.sel = Math.max(0, Math.min(pal.length - 1, st.sel ?? 0));
+        // a change in the picker: shown live; once the color has rested for half a second it is one undo step
+        const commit = () => {
+            clearTimeout(st.timer); st.timer = 0;
+            if (st.before == null) return;
+            E.pushUndo(st.before); st.before = null;
+            E.save(); E.renderRegions();
+        };
+        st.flush = commit;
+        const head = E.el("label", "rg-pop-palhead" + (on ? " on" : ""));
+        const sw = E.el("input", "rg-switch"); sw.type = "checkbox"; sw.checked = on;
+        sw.title = on ? "The color palette is on: Its colors are sent with the region. Click to turn it off (the colors are kept)."
+            : "The color palette is off: Nothing is sent. Click to turn it on.";
+        sw.addEventListener("change", () => { commit(); E.change(() => { if (sw.checked) r.paletteOn = true; else delete r.paletteOn; }); });
+        const name = E.el("span", "rg-pop-palname"); name.textContent = "Color palette";
+        const state = E.el("span", "rg-pop-palstate"); state.textContent = on ? "On" : "Off";
+        const note = E.el("span", "rg-hint");
+        note.textContent = on ? "these colors are sent with the region (MOSS-Image and Ideogram 4 read them)" : "nothing is sent; the switch turns it on";
+        head.append(sw, name, state, note);
+        const row = E.el("div", "rg-pop-palrow" + (on ? "" : " off"));
+        pal.forEach((c, i) => {
+            const b = E.el("button", "rg-sw pal big" + (i === st.sel ? " sel" : "")); b.type = "button"; b.style.background = c;
+            b.dataset.pal = `${r.id}:${i}`;
+            b.title = `${c}: Click to select it and change it below; right-click to remove it` + (i === 0 ? " (the first color shows the region)." : ".");
+            b.addEventListener("click", (e) => { e.preventDefault(); if (st.sel !== i) { commit(); st.sel = i; paletteTab(box, r, st); } });
+            b.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); removeAt(i); });
+            row.appendChild(b);
+        });
+        const removeAt = (i) => {
+            commit();
+            E.change(() => { r.palette = normPalette(r.palette); r.palette.splice(i, 1); if (!r.palette.length) { delete r.palette; delete r.paletteOn; } });
+        };
+        if (pal.length < PAL_MAX) {
+            const add = ico("@plus", `Add a color (${pal.length} of ${PAL_MAX})`, () => {
+                commit();
+                st.sel = pal.length;
+                E.change(() => { const cur = normPalette(r.palette); cur.push("#FFFFFF"); r.palette = cur; r.paletteOn = true; });
+            });
+            add.classList.add("rg-pop-paladd");
+            row.appendChild(add);
+        }
+        if (pal.length) {
+            const del = ico("@clear", "Remove the selected color (also: right-click a color). Removing the last one turns the palette off.", () => removeAt(st.sel));
+            const gap = E.el("span"); gap.style.flex = "1 1 auto";
+            row.append(gap, del);
+        }
+        // the picker stays as it is while the same color of the same region is selected (a redraw mustn't end a drag)
+        const key = pal.length ? `${r.id}:${st.sel}` : "";
+        if (st.key !== key) { st.picker?.close(); st.picker = null; st.key = key; st.host = null; }
+        if (!st.host) st.host = E.el("div", "rg-pop-palpick");
+        if (key && !st.picker) {
+            const i = st.sel;
+            st.picker = openColorPicker(null, pal[i], { inline: st.host, onInput: (hex) => {
+                if (st.before == null) st.before = E.snapshot();
+                r.palette = normPalette(r.palette); r.palette[i] = hex.toUpperCase();
+                E.version++; liveColors();
+                const b = box.querySelector(`[data-pal="${r.id}:${i}"]`); if (b) b.style.background = hex;
+                clearTimeout(st.timer); st.timer = setTimeout(commit, 500);
+            } });
+        } else if (key && st.before == null) st.picker.set(pal[st.sel]);          // changed elsewhere (Undo)
+        const empty = E.el("span", "rg-hint");
+        empty.textContent = pal.length ? "" : "No colors yet: ＋ adds one (up to 5). The first color shows the region.";
+        box.replaceChildren(head, row, ...(pal.length ? [st.host] : [empty]));
     }
     // the palette row: swatches (click = change, right-click = remove) and + (add, up to 5)
     function paletteRow(r, inPopup) {

@@ -85,14 +85,14 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         const shown = kids.filter((e) => e.getClientRects().length && !e.classList.contains("rg-pop-gap"));
         return { pal: !!r.querySelector(".toggle, .rg-sw.pal, .rg-paladd"), feather: !!r.querySelector(".rg-feather"), rows: document.querySelectorAll(".rg-pop .rg-pop-dyn > .rg-row").length,
             oneLine: Math.max(...shown.map(mid)) - Math.min(...shown.map(mid)) < 3, rightEnd: rr.right - shown[shown.length - 1].getBoundingClientRect().right < 4,
-            palTab: !!document.querySelector(".rg-pop .rg-pop-pal .rg-row.pal > .toggle"), optFeather: !!document.querySelector(".rg-pop .rg-pop-opts .rg-feather input") }; });
+            palTab: !!document.querySelector(".rg-pop .rg-pop-pal input.rg-switch"), optFeather: !!document.querySelector(".rg-pop .rg-pop-opts .rg-feather input") }; });
     check(`the Prompt tab's bottom row: the tag list, the wildcard list and the LLM, on the right, on one line; the palette and feather are on their tabs (${bottom.join(" | ")}; ${JSON.stringify(row)})`,
         bottom.join("|") === "gap|tag|wildcard|llm" && !row.pal && !row.feather && row.rows === 1 && row.oneLine && row.rightEnd && row.palTab && row.optFeather);
     check("no tag switch or wildcard button is left in the title bar", await page.locator(".rg-pop-head .rg-ac-btn, .rg-pop-head .rg-wc-pick").count() === 0);
     // the palette's last color removed (right-click): the palette is off again, its button no longer lit
     await page.evaluate(() => { const n = window.__node, r = n.__rgState().regions[0]; r.palette = ["#FF0000", "#00FF00"]; r.paletteOn = true; n.__rgRefresh(); });
     await page.waitForTimeout(150);
-    const palOn = () => page.evaluate(() => ({ btn: document.querySelector(".rg-pop .rg-pop-pal .rg-row.pal > .toggle").classList.contains("on"), sw: document.querySelectorAll(".rg-pop .rg-pop-pal .rg-sw.pal").length,
+    const palOn = () => page.evaluate(() => ({ btn: document.querySelector(".rg-pop .rg-pop-pal input.rg-switch").checked, sw: document.querySelectorAll(".rg-pop .rg-pop-pal .rg-sw.pal").length,
         on: !!window.__node.__rgState().regions[0].paletteOn, list: [...document.querySelectorAll(".rg-row.region .rg-btn.toggle.on svg")].length }));
     await page.locator('.rg-pop .rg-pop-tabs [data-tab="palette"]').click(); await page.waitForTimeout(100);
     const p0 = await palOn();
