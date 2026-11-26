@@ -1371,7 +1371,8 @@ const recentSet = (id, v) => { RECENT.set(id, v); setSetting(id, v); setTimeout(
 // field.__rgPlaceExpand(), puts everything in place again (call it when the field's text was set by code: no event
 // tells).
 const OSB_W = 14, EXP_W = 16, EXP_GAP = 2;
-export function addExpandButton(t, title, onOpen, extras = []) {
+// inset: px kept free at the field's right edge (the large editor's scene boxes: the browser's own resize grip is there)
+export function addExpandButton(t, title, onOpen, extras = [], inset = 0) {
     let host = t?.parentElement;
     if (!host) return null;
     const old = host.querySelector(":scope > .rg-expand");
@@ -1392,7 +1393,7 @@ export function addExpandButton(t, title, onOpen, extras = []) {
         const right0 = host.clientWidth - (t.offsetLeft + t.offsetWidth) + (t.clientLeft || 0);     // the field's inner right edge
         const bottom0 = host.clientHeight - (t.offsetTop + t.offsetHeight) + (t.clientTop || 0);
         const items = [b, ...extras.filter((x) => x.isConnected && x.style.display !== "none")];
-        let x = bar + EXP_GAP;
+        let x = bar + EXP_GAP + inset;
         for (const el of items) {
             const w = el === b ? EXP_W : el.offsetWidth || EXP_W, h = el === b ? EXP_W : el.offsetHeight || EXP_W;
             el.style.right = Math.round(right0 + x) + "px";

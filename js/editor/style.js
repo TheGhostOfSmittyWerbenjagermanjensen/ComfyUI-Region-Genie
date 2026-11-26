@@ -208,9 +208,7 @@ input.rg-switch:checked::after { left:14px; background:#1c1c1c; }
 .rg-pop-palrow.off .rg-sw.pal { opacity:.4; }
 .rg-pop-palrow .rg-sw.pal.big { width:30px; height:22px; border-radius:4px; border:1px solid rgba(0,0,0,.6); padding:0; cursor:pointer; flex:0 0 auto; }
 .rg-pop-palrow .rg-sw.pal.big.sel { outline:2px solid #5b8fd0; outline-offset:1px; }
-.rg-pop-palpickwrap { position:relative; }
-.rg-pop .rg-btn.rg-pop-paldel { position:absolute; top:5px; right:5px; z-index:2; background:rgba(20,20,20,.82); border-color:rgba(255,255,255,.35); color:#fff; }
-.rg-pop .rg-btn.rg-pop-paldel:hover { background:#8a2a2a; border-color:#d66; }
+.rg-pop .rg-btn.rg-pop-paldel:hover { background:#8a2a2a; border-color:#d66; color:#fff; }
 .rg-pop-opts { display:grid; grid-template-columns:max-content 1fr; gap:6px 12px; align-items:center; padding:2px 2px 0; }
 .rg-pop-optl { font-weight:600; opacity:.85; }
 .rg-pop-optc { display:flex; align-items:center; gap:6px; min-width:0; }
@@ -282,6 +280,7 @@ button.rg-paldots i { width:8px; height:8px; border-radius:2px; display:block; }
 .rg-big-side > .rg-size { flex:0 0 auto; width:auto !important; height:auto !important; }
 .rg-big-side > .rg-tree { flex:1 1 auto; height:auto !important; min-height:0; }
 .rg-big-scene { flex:0 0 auto; display:flex; flex-direction:column; gap:4px; }
+.rg-big-fld { position:relative; display:flex; }       /* a scene box of the large editor and the buttons in its corner */
 .rg-big-ta { width:100%; box-sizing:border-box; resize:vertical; min-height:34px; background:var(--comfy-input-bg,#222); color:inherit;
   border:1px solid var(--border-color,#555); border-radius:4px; padding:3px 6px; font:12px/1.35 sans-serif; scrollbar-width:thin; }
 .rg-big-ta:focus { border-color:#5b8fd0; outline:none; }

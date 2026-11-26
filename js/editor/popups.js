@@ -539,6 +539,14 @@ export function* popups(E) {
             },
             placed: false,
             place() { popLayout(ed, "scene", (wd, h, W, H) => {
+                // in the large editor: left of its scene box (the node's own field is behind the window)
+                const bf = E.big?.fields?.find((f) => f.which === which)?.ta;
+                if (bf?.isConnected && bf.offsetWidth) {
+                    const br = bf.getBoundingClientRect();
+                    box.style.left = Math.max(6, br.left - wd - 8) + "px";
+                    box.style.top = clampN(br.top, 6, Math.max(6, H - h - 6)) + "px";
+                    return;
+                }
                 // below (else above) the scene prompt's own text box; else at the top of the node's canvas
                 const t = E.sceneTA[which];
                 const r = t?.isConnected && t.offsetParent ? t.getBoundingClientRect() : null;

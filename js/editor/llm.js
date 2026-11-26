@@ -158,6 +158,16 @@ export function* llm(E) {
         }
         const big = E.big?.fields?.find((f) => f.which === "positive")?.ta;
         if (big && big.classList.contains("rg-llm-on") !== on) big.classList.toggle("rg-llm-on", on);
+        // the large editor's scene_prompt_positive box has the same button in its corner (round 88)
+        const expB = big?.parentElement?.querySelector(":scope > .rg-expand");
+        if (expB?.__rgAddExtra && !expB.__rgLlm?.isConnected) {
+            const b = llmButton(LLM_SCENE, "bigcorner");
+            b.classList.add("rg-llm-corner");
+            b.addEventListener("mousedown", (e) => { e.stopPropagation(); e.preventDefault(); });
+            b.__rgRefresh = llmBtns.get(`${LLM_SCENE}|bigcorner`);
+            expB.__rgLlm = b; expB.__rgAddExtra(b);
+        }
+        expB?.__rgLlm?.__rgRefresh?.();
     }
     function updateLlmButtons() {
         sceneLlmMark();
