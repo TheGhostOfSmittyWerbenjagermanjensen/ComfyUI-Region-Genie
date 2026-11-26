@@ -734,7 +734,8 @@ export function* render(E) {
             if (rg.type === "text" && rg.text) text += `  "${rg.text}"`;
             // marks before the prompt, drawn (not emoji): a lock for a region kept as it is in Edit Mode, a person for
             // a character region. They take room at the start of every line, like the index badge.
-            const marks = [...(rg.keep && E.isEdit() ? ["lock"] : []), ...(rg.type === "character" ? ["person"] : [])];
+            // (round 88: every type has its mark, an object and a text region too)
+            const marks = [...(rg.keep && E.isEdit() ? ["lock"] : []), { character: "person", text: "text" }[rg.type] || "object"];
             const mw = marks.length * MARK_STEP * dpr;
             const [cx, cy] = E.toScr((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2);
             const [rx0, ry0] = E.toScr(b.x0, b.y0), [rx1, ry1] = E.toScr(b.x1, b.y1);

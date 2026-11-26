@@ -320,7 +320,37 @@ export function* llm(E) {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); tx.blur(); }
                 });
                 const txWrap = E.el("span", "rg-pwrap rg-twrap"); txWrap.appendChild(tx);
-                row.appendChild(txWrap);
+                // round 88: a handle between the two fields sets how wide the text to render is (this region's, kept
+                // with the node in properties.rg_text_w; not a part of Undo, like the list's height)
+                const TW_MIN = 40, tsplit = E.el("span", "rg-tsplit");
+                tsplit.title = "Drag: More room for the prompt or for the text to render.\nDouble-click: The usual width.";
+                const setTw = (w) => { txWrap.style.flex = w ? `0 0 ${w}px` : ""; };
+                setTw(+E.node.properties?.rg_text_w?.[r.id] || 0);
+                tsplit.addEventListener("pointerdown", (e) => {
+                    if (e.button !== 0) return;
+                    e.preventDefault(); e.stopPropagation();
+                    const k = E.wrap.offsetWidth / Math.max(1, E.wrap.getBoundingClientRect().width);     // screen px -> CSS px (graph zoom)
+                    const x0 = e.clientX, w0 = txWrap.offsetWidth, most = Math.max(TW_MIN, w0 + prWrap.offsetWidth - 60);
+                    let w = w0;
+                    tsplit.setPointerCapture?.(e.pointerId); tsplit.classList.add("drag");
+                    const move = (ev) => { w = Math.round(Math.max(TW_MIN, Math.min(most, w0 - (ev.clientX - x0) * k))); setTw(w); pr.__rgPlaceExpand?.(); tx.__rgPlaceExpand?.(); };
+                    const up = () => {
+                        tsplit.classList.remove("drag");
+                        tsplit.removeEventListener("pointermove", move); tsplit.removeEventListener("pointerup", up); tsplit.removeEventListener("pointercancel", up);
+                        if (w === w0) return;
+                        E.node.properties = E.node.properties || {};
+                        E.node.properties.rg_text_w = { ...(E.node.properties.rg_text_w || {}), [r.id]: w };
+                        E.node.graph?.change?.();
+                    };
+                    tsplit.addEventListener("pointermove", move); tsplit.addEventListener("pointerup", up); tsplit.addEventListener("pointercancel", up);
+                });
+                tsplit.addEventListener("dblclick", (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    if (E.node.properties?.rg_text_w) { delete E.node.properties.rg_text_w[r.id]; E.node.graph?.change?.(); }
+                    setTw(0);
+                });
+                for (const ev of ["mousedown", "click"]) tsplit.addEventListener(ev, (e) => e.stopPropagation());
+                row.append(tsplit, txWrap);
                 E.addExpandButton(tx, "Open this region in the pop-up editor (its text to render)", openPop("text", tx));
             }
             // round 87: one LoRAs button; it opens the region's pop-up on its LoRAs tab

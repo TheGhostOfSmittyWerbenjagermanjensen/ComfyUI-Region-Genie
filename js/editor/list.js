@@ -595,11 +595,6 @@ export function* list(E) {
             add.classList.add("rg-pop-paladd");
             row.appendChild(add);
         }
-        if (pal.length) {
-            const del = ico("@clear", "Remove the selected color (also: right-click a color). Removing the last one turns the palette off.", () => removeAt(st.sel));
-            const gap = E.el("span"); gap.style.flex = "1 1 auto";
-            row.append(gap, del);
-        }
         // the picker stays as it is while the same color of the same region is selected (a redraw mustn't end a drag)
         const key = pal.length ? `${r.id}:${st.sel}` : "";
         if (st.key !== key) { st.picker?.close(); st.picker = null; st.key = key; st.host = null; }
@@ -616,7 +611,14 @@ export function* list(E) {
         } else if (key && st.before == null) st.picker.set(pal[st.sel]);          // changed elsewhere (Undo)
         const empty = E.el("span", "rg-hint");
         empty.textContent = pal.length ? "" : "No colors yet: ＋ adds one (up to 5). The first color shows the region.";
-        box.replaceChildren(head, row, ...(pal.length ? [st.host] : [empty]));
+        // the picker fills the tab's width; the button that removes the selected color lies on its top right corner
+        const wrap = E.el("div", "rg-pop-palpickwrap");
+        if (pal.length) {
+            const del = ico("@clear", "Remove the selected color (also: right-click a color). Removing the last one turns the palette off.", () => removeAt(st.sel));
+            del.classList.add("rg-pop-paldel");
+            wrap.append(st.host, del);
+        }
+        box.replaceChildren(head, row, ...(pal.length ? [wrap] : [empty]));
     }
     // the palette row: swatches (click = change, right-click = remove) and + (add, up to 5)
     function paletteRow(r, inPopup) {

@@ -12,6 +12,9 @@ import "./rg_tooltip.js";                 // the pack's own tooltip takes over e
 // (markPerson, markLock below).
 export const LABEL_MARKS = {
     person: { fill: "M8 1.6a3.1 3.1 0 1 0 0 6.2a3.1 3.1 0 0 0 0-6.2zM2.3 14.7a5.7 5.7 0 0 1 11.4 0z" },
+    // round 88: an object (a box: its three faces) and a text region (a letter T) carry a mark too
+    object: { fill: "M8 1.5l5.7 3.2L8 7.9 2.3 4.7zM2.3 6.2l5 2.8v5.6l-5-2.8zM13.7 6.2v5.6l-5 2.8V9z" },
+    text: { fill: "M2.8 2.2h10.4v3.3h-1.8V4.2H9.1v8h1.7v1.9H5.2v-1.9h1.7v-8H4.6v1.3H2.8z" },
     lock: { fill: "M4.1 7.1h7.8a1.6 1.6 0 0 1 1.6 1.6v4.5a1.6 1.6 0 0 1-1.6 1.6H4.1a1.6 1.6 0 0 1-1.6-1.6V8.7a1.6 1.6 0 0 1 1.6-1.6z",
             stroke: "M5.1 7.3V4.9a2.9 2.9 0 0 1 5.8 0v2.4", width: 1.8 },
 };
