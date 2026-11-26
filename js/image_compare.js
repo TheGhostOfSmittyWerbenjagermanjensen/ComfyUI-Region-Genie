@@ -1,0 +1,189 @@
+// Image Compare (Region Genie): two or more pictures in one node (round 93; image_compare.py sends them).
+//
+// What the owner decided on the mock-up:
+// - A slider only: while the pointer is on the picture, the picture BEFORE the chosen one is left of the pointer and
+//   the chosen one right of it; off the picture, the chosen one shows whole (so flipping with the keys is the
+//   "single" view, and no second mode is needed).
+// - The keys, while the pointer is over the node: 1-9 on the number row or the numpad choose a picture, the arrow
+//   keys the one before / after.
+// - Picture 1 has the LAST picture on its left (around the corner); a button on the node turns that off (picture 1
+//   then shows alone). With two pictures that means: 2 chosen is "1 | 2", 1 chosen is "2 | 1".
+// - Number labels on the picture, with a button to hide them.
+// - Every image of a batch is a picture of its own, in input order.
+// - A picture can be hidden from the comparison (right-click its number): its neighbours are then compared
+//   directly, without rewiring. Hidden pictures keep their numbers.
+// Inputs: image_1, image_2, …; a free one is kept after the last connected one.
+// Saved with the node (properties.rg_compare): which pictures are hidden, the two buttons. The pictures themselves
+// are the last run's, like ComfyUI's own preview.
+import { app } from "../../scripts/app.js";
+import { api } from "../../scripts/api.js";
+import { svgIcon } from "./rg_shared.js";
+
+const NODE = "Region-Genie_ImageCompare";
+const CSS = `
+.rg-ic { display:flex; flex-direction:column; gap:4px; width:100%; height:100%; min-height:0; box-sizing:border-box; padding:0 2px 2px;
+  font:12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--input-text,#ddd); outline:none; }
+.rg-ic-bar { display:flex; align-items:flex-start; gap:6px; flex:0 0 auto; }
+.rg-ic-chips { display:flex; flex-wrap:wrap; gap:3px; flex:1 1 auto; min-width:0; }
+.rg-ic button { box-sizing:border-box; height:20px; min-width:22px; margin:0; padding:0 4px; border:1px solid var(--border-color,#555); border-radius:4px;
+  background:var(--comfy-input-bg,#222); color:inherit; font:inherit; font-variant-numeric:tabular-nums; cursor:pointer; line-height:18px; }
+.rg-ic button:hover { border-color:var(--rg-accent,#5b8fd0); }
+.rg-ic button.cur { background:var(--rg-accent-fill,#3a6ea5); border-color:var(--rg-accent,#5b8fd0); color:#fff; }
+.rg-ic button.prev { border-color:var(--rg-on,#d9a441); color:var(--rg-on,#d9a441); }
+.rg-ic button.hid { opacity:.45; text-decoration:line-through; }
+.rg-ic-opts { display:flex; gap:3px; flex:0 0 auto; }
+.rg-ic-opts button { display:flex; align-items:center; justify-content:center; width:22px; padding:0; }
+.rg-ic-opts button svg { width:14px; height:14px; display:block; }
+.rg-ic-opts button.on { background:var(--rg-accent-fill,#3a6ea5); border-color:var(--rg-accent,#5b8fd0); color:#fff; }
+.rg-ic-view { position:relative; flex:1 1 auto; min-height:60px; border-radius:4px; overflow:hidden; background:#000; cursor:ew-resize; user-select:none; touch-action:none; }
+.rg-ic-view img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; pointer-events:none; -webkit-user-drag:none; }
+.rg-ic-line { position:absolute; top:0; bottom:0; width:2px; margin-left:-1px; background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.45); pointer-events:none; }
+.rg-ic-tag { position:absolute; top:6px; padding:0 7px; border-radius:4px; background:rgba(0,0,0,.62); color:#fff; font-weight:650; font-size:12px; line-height:18px;
+  font-variant-numeric:tabular-nums; pointer-events:none; }
+.rg-ic-tag.l { left:6px; } .rg-ic-tag.r { right:6px; }
+.rg-ic-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:10px; text-align:center; color:#9aa1ad; cursor:default; }
+.rg-ic [hidden] { display:none !important; }`;
+
+let hoverNode = null;                      // the Image Compare node the pointer is over: it gets the keys
+function onKey(e) {
+    const c = hoverNode?.__rgCompare;
+    if (!c || !hoverNode.graph || e.ctrlKey || e.altKey || e.metaKey) return;
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+    // the number row and the numpad (by the key's place, so the numpad works with Num Lock off too)
+    const d = +(/^(?:Digit|Numpad)([1-9])$/.exec(e.code || "")?.[1] || (/^[1-9]$/.test(e.key) ? e.key : 0));
+    let used = false;
+    if (d && !e.shiftKey) used = c.choose(d);
+    else if (e.key === "ArrowLeft") used = c.step(-1);
+    else if (e.key === "ArrowRight") used = c.step(1);
+    if (used) { e.preventDefault(); e.stopImmediatePropagation(); }
+}
+
+function setup(node) {
+    const P = () => { node.properties = node.properties || {}; const p = (node.properties.rg_compare = node.properties.rg_compare || {});
+        if (!Array.isArray(p.hidden)) p.hidden = []; if (p.wrap === undefined) p.wrap = true; if (p.labels === undefined) p.labels = true; return p; };
+    const st = { pics: [], cur: 0, x: 0.5, over: false };
+
+    const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
+    const wrap = el("div", "rg-ic"), bar = el("div", "rg-ic-bar"), chips = el("div", "rg-ic-chips"), opts = el("div", "rg-ic-opts"), view = el("div", "rg-ic-view");
+    const imgR = el("img"), imgL = el("img"), line = el("div", "rg-ic-line"), tagL = el("span", "rg-ic-tag l"), tagR = el("span", "rg-ic-tag r"), empty = el("div", "rg-ic-empty");
+    imgR.alt = ""; imgL.alt = ""; imgR.draggable = false; imgL.draggable = false;
+    const wrapBtn = el("button"), tagBtn = el("button");
+    wrapBtn.type = "button"; tagBtn.type = "button"; wrapBtn.innerHTML = svgIcon("repeat"); tagBtn.innerHTML = svgIcon("hash");
+    opts.append(wrapBtn, tagBtn); bar.append(chips, opts); view.append(imgR, imgL, line, tagL, tagR, empty); wrap.append(bar, view);
+
+    const shown = () => st.pics.map((_, i) => i + 1).filter((n) => !P().hidden.includes(n));
+    // the picture left of the pointer: the shown one before the chosen one; before the first: the last (unless that is off)
+    const prevOf = (n) => { const v = shown(), k = v.indexOf(n); return k > 0 ? v[k - 1] : k === 0 && P().wrap && v.length > 1 ? v[v.length - 1] : 0; };
+    function settle() {                        // the chosen picture is always a shown one: to start with, the second (so "1 | 2")
+        const v = shown();
+        if (!v.includes(st.cur)) st.cur = v.find((n) => n > st.cur) || v[v.length - 1] || 0;
+    }
+    function draw() {
+        const p = P(), n = st.pics.length, prev = prevOf(st.cur), split = st.over && prev > 0;
+        empty.hidden = n > 0;
+        empty.textContent = n ? "" : "Connect two or more images and run the workflow: the pictures show here.";
+        imgR.hidden = !st.cur; imgL.hidden = !split; line.hidden = !split;
+        if (st.cur && imgR.dataset.n !== String(st.cur)) { imgR.src = st.pics[st.cur - 1].url; imgR.dataset.n = String(st.cur); }
+        if (prev && imgL.dataset.n !== String(prev)) { imgL.src = st.pics[prev - 1].url; imgL.dataset.n = String(prev); }
+        imgL.style.clipPath = `inset(0 ${(100 - st.x * 100).toFixed(3)}% 0 0)`;
+        line.style.left = `${(st.x * 100).toFixed(3)}%`;
+        tagL.hidden = !(split && p.labels); tagR.hidden = !(st.cur && p.labels);
+        tagL.textContent = String(prev || ""); tagR.textContent = String(st.cur || "");
+        view.style.cursor = prev ? "ew-resize" : "default";
+        [...chips.children].forEach((b, i) => { b.classList.toggle("cur", i + 1 === st.cur); b.classList.toggle("prev", i + 1 === prev); b.classList.toggle("hid", p.hidden.includes(i + 1)); });
+        wrapBtn.classList.toggle("on", !!p.wrap); tagBtn.classList.toggle("on", !!p.labels);
+        wrapBtn.title = p.wrap ? "Around the corner: ON. The first picture has the last one on its left. Click to show the first picture alone."
+            : "Around the corner: OFF. The first picture shows alone. Click to put the last picture on its left.";
+        tagBtn.title = p.labels ? "Number labels on the picture: ON. Click to hide them." : "Number labels on the picture: OFF. Click to show them.";
+    }
+    function build() {
+        const many = st.pics.some((q) => q.index > 0);
+        chips.replaceChildren(...st.pics.map((q, i) => {
+            const b = el("button"); b.type = "button"; b.textContent = String(i + 1);
+            b.title = `Picture ${i + 1}: From image_${q.input}` + (many ? `, number ${q.index + 1} of its batch` : "") + ".\nClick: Choose it (a hidden one is shown again).\n"
+                + "Right-click: Hide it from the comparison, or show it again. The pictures next to a hidden one are compared with each other.";
+            b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); const h = P().hidden, k = h.indexOf(i + 1); if (k >= 0) h.splice(k, 1); st.cur = i + 1; draw(); });
+            b.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); toggleHidden(i + 1); });
+            return b;
+        }));
+        settle(); draw();
+    }
+    function toggleHidden(n) {
+        const h = P().hidden, k = h.indexOf(n);
+        if (k >= 0) h.splice(k, 1);
+        else if (shown().length > 1) h.push(n);            // the last shown picture stays
+        settle(); draw();
+    }
+    function setPics(list) {
+        const first = !st.pics.length;
+        st.pics = list;
+        P().hidden = P().hidden.filter((n) => n <= list.length);
+        imgR.dataset.n = ""; imgL.dataset.n = "";
+        if (first || !shown().includes(st.cur)) { const v = shown(); st.cur = v[1] || v[0] || 0; }
+        build();
+    }
+    const choose = (n) => { if (n > st.pics.length || P().hidden.includes(n)) return false; st.cur = n; draw(); return true; };
+    const step = (d) => { const v = shown(); if (v.length < 2) return false; const k = v.indexOf(st.cur); st.cur = v[(k + d + v.length) % v.length]; draw(); return true; };
+
+    const move = (e) => { const r = view.getBoundingClientRect(); if (!r.width) return; st.x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); st.over = true; draw(); };
+    view.addEventListener("pointermove", move);
+    view.addEventListener("pointerenter", move);
+    view.addEventListener("pointerleave", () => { st.over = false; draw(); });
+    wrap.addEventListener("pointerenter", () => { hoverNode = node; });
+    wrap.addEventListener("pointerleave", () => { if (hoverNode === node) hoverNode = null; });
+    for (const b of [wrapBtn, tagBtn]) for (const ev of ["pointerdown", "mousedown", "dblclick"]) b.addEventListener(ev, (e) => e.stopPropagation());
+    chips.addEventListener("pointerdown", (e) => e.stopPropagation());
+    wrapBtn.addEventListener("click", (e) => { e.preventDefault(); P().wrap = !P().wrap; draw(); });
+    tagBtn.addEventListener("click", (e) => { e.preventDefault(); P().labels = !P().labels; draw(); });
+
+    const w = node.addDOMWidget("rg_compare", "RgCompare", wrap, { serialize: false, hideOnZoom: false, getMinHeight: () => 150 });
+    w.serialize = false;
+
+    // inputs: image_1 and image_2 at least, and one free input after the last connected one
+    function fixInputs() {
+        const ins = () => (node.inputs || []).map((inp, i) => ({ inp, i, n: +(/^image_(\d+)$/.exec(inp.name || "")?.[1] || 0) })).filter((q) => q.n);
+        let list = ins();
+        while (list.length > 2 && list[list.length - 1].inp.link == null && list[list.length - 2].inp.link == null) { node.removeInput(list[list.length - 1].i); list = ins(); }
+        const last = list[list.length - 1];
+        if (!last || last.inp.link != null) node.addInput(`image_${(last?.n || 0) + 1}`, "IMAGE");
+        if (ins().length < 2) node.addInput("image_2", "IMAGE");
+        node.setDirtyCanvas?.(true, true);
+    }
+    const onConn = node.onConnectionsChange;
+    node.onConnectionsChange = function () { const r = onConn?.apply(this, arguments); setTimeout(fixInputs, 0); return r; };
+    const onConf = node.onConfigure;
+    node.onConfigure = function () { const r = onConf?.apply(this, arguments); setTimeout(() => { fixInputs(); settle(); draw(); }, 0); return r; };
+    const onExec = node.onExecuted;
+    node.onExecuted = function (out) {
+        const r = onExec?.apply(this, arguments);
+        const list = (out?.rg_compare || []).filter((q) => q && q.filename).map((q) => ({ input: +q.input || 0, index: +q.index || 0,
+            url: api.apiURL(`/view?filename=${encodeURIComponent(q.filename)}&subfolder=${encodeURIComponent(q.subfolder || "")}&type=${encodeURIComponent(q.type || "temp")}&rand=${Math.random()}`) }));
+        setPics(list);
+        return r;
+    };
+    const onRemoved = node.onRemoved;
+    node.onRemoved = function () { if (hoverNode === node) hoverNode = null; return onRemoved?.apply(this, arguments); };
+
+    // tests, and anything else that wants to drive the node
+    node.__rgCompare = { choose, step, toggleHidden, setPics, fixInputs,
+        state: () => ({ n: st.pics.length, cur: st.cur, prev: prevOf(st.cur), shown: shown(), hidden: [...P().hidden], wrap: !!P().wrap, labels: !!P().labels, over: st.over, x: st.x }) };
+    draw();
+    setTimeout(fixInputs, 0);
+}
+
+app.registerExtension({
+    name: "RegionGenie.ImageCompare",
+    setup() { window.addEventListener("keydown", onKey, true); },
+    async beforeRegisterNodeDef(nodeType, nodeData) {
+        if (nodeData.name !== NODE) return;
+        if (!document.getElementById("rg-ic-css")) { const s = document.createElement("style"); s.id = "rg-ic-css"; s.textContent = CSS; document.head.appendChild(s); }
+        const onCreated = nodeType.prototype.onNodeCreated;
+        nodeType.prototype.onNodeCreated = function () {
+            const r = onCreated?.apply(this, arguments);
+            setup(this);
+            if (this.size) this.setSize([Math.max(this.size[0], 380), Math.max(this.size[1], 360)]);
+            return r;
+        };
+    },
+});

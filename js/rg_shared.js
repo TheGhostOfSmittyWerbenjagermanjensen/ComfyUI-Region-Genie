@@ -101,6 +101,8 @@ export const LUCIDE = {
     clear: '<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',   // trash-2
     eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',   // eye
     eyeOff: '<path d="m15 18-.722-3.25"/><path d="M2 8a10.645 10.645 0 0 0 20 0"/><path d="m20 15-1.726-2.05"/><path d="m4 15 1.726-2.05"/><path d="m9 18 .722-3.25"/>',   // eye-closed
+    repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',   // repeat
+    hash: '<line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/>',   // hash
     link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',   // link
     unlink: '<path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/>',   // unlink
     pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',   // pencil
@@ -501,11 +503,14 @@ function deepSearch(root, entries, pick) {
 // ---- the same search in every menu that is sorted into folders (round 93) ---------------------------------------
 // rgthree-comfy's "Auto Nest Subdirectories in Menus" turns a long list of files (a Load LoRA node's, a checkpoint
 // loader's, this pack's LoRA list) into folders, and ComfyUI's filter box then only searches the folder that is open.
-// With the Setting on, typing in the filter box of such a menu lists the matching files of every folder.
+// With the Setting on, typing in the filter box of such a menu lists the matching files of every folder: one Setting
+// for the pack's own lists (on), one for every other menu of ComfyUI (experimental, off: it reaches into menus that
+// other packs open).
 // How: LiteGraph.ContextMenu is wrapped once. rgthree wraps it too, in its own setup(), before or after this pack:
 // wrapped first, this function gets the list as rgthree made it (folders, each file with rgthree_originalValue);
 // wrapped last, it gets the plain list of names. Both are read. A menu that isn't nested is left alone.
 export const menuSearchOn = () => getSetting(SET.menuSearch, true) !== false;
+export const menuSearchAllOn = () => getSetting(SET.menuSearchAll, false) === true;
 function menuLeaves(values) {
     const out = [];
     const add = (v) => { const t = typeof v === "string" ? v : typeof v?.rgthree_originalValue === "string" ? v.rgthree_originalValue : null; if (t) out.push(t); return !!t; };
@@ -522,9 +527,14 @@ export function installMenuSearch() {
         const isRoot = !options?.parentMenu, cb0 = options?.callback;
         const leaves = isRoot ? menuLeaves(values) : [];
         const before = isRoot ? new Set(document.querySelectorAll(".litecontextmenu")) : null;
-        const ret = Inner.apply(this, arguments);
+        // LiteGraph's own ContextMenu is a class (it needs `new`); ComfyUI and rgthree put plain functions around it
+        // that are also called without `new`. Both are passed on as they came.
+        let ret;
+        if (new.target) ret = Reflect.construct(Inner, arguments, new.target === Outer ? Inner : new.target);
+        else { try { ret = Inner.apply(this, arguments); } catch (e) { if (!(e instanceof TypeError)) throw e; ret = Reflect.construct(Inner, arguments); } }
         try {
-            if (isRoot && leaves.length && (menuSearchOn() || options?.extra?.rg_deep)) {
+            // the pack's own lists (extra.rg_deep): its Setting; every other menu of ComfyUI: the experimental one
+            if (isRoot && leaves.length && (options?.extra?.rg_deep ? menuSearchOn() : menuSearchAllOn())) {
                 const root = [...document.querySelectorAll(".litecontextmenu")].find((m) => !before.has(m));
                 const cb = options?.rgthree_originalCallback || cb0;
                 if (root && typeof cb === "function") {
@@ -569,7 +579,7 @@ export async function openModelMenu(ev, { roots, home, none, noneLabel, title, o
     const at = ar ? new MouseEvent("click", { clientX: ar.left, clientY: ar.bottom + 2 }) : ev;
     new LiteGraph.ContextMenu(items, {
         event: at, className: "dark", title, scale: Math.max(1, dlg ? 1 : (app.canvas?.ds?.scale || 1)),
-        extra: { rg_deep: true },                             // the pack's own model fields search every folder, whatever the Setting says
+        extra: { rg_deep: true },                             // one of the pack's own lists: the search through every folder (its Setting)
         callback: (v) => {
             const t = typeof v === "string" ? v : (v?.rgthree_originalValue ?? v?.content);
             const s2 = typeof t === "string" ? t : t?.content;
@@ -1166,6 +1176,7 @@ export function contextMenu(ev, items, title, onPick) {
     ensureActiveCanvas();
     new LiteGraph.ContextMenu(items, {
         event: ev, scale: Math.max(1, app.canvas?.ds?.scale || 1), className: "dark", title,
+        extra: { rg_deep: true },                             // one of the pack's own lists: the search through every folder (its Setting)
         callback: (v) => onPick(v),
     });
 }
@@ -2127,6 +2138,7 @@ export const SET = {
     poseModel: "RegionGenie.Pose.Model",
     filePickers: "RegionGenie.ModelFiles.Browse",
     menuSearch: "RegionGenie.ModelFiles.SearchAllFolders",
+    menuSearchAll: "RegionGenie.ModelFiles.SearchAllFoldersEverywhere",
     checkFiles: "RegionGenie.ModelFiles.Check",
     samKeep: "RegionGenie.Select.KeepLoaded",
     samThreshold: "RegionGenie.Select.Threshold",
@@ -2271,11 +2283,17 @@ const SETTINGS = [
             category: CAT("Model files", "1 browse"),
         },
         {
-            id: SET.menuSearch, name: "Search all folders in nested menus", type: "boolean", defaultValue: true,
-            tooltip: "On (default): In a menu that is sorted into folders, typing in its filter box finds the files of every folder, each shown with the folder it is in.\n"
+            id: SET.menuSearch, name: "Search all folders in this pack's file lists", type: "boolean", defaultValue: true,
+            tooltip: "On (default): In a list of files that is sorted into folders, typing in its filter box finds the files of every folder, each shown with the folder it is in.\n"
                 + "Off: The filter box only searches the folder that is open.\n"
-                + "Which menus: Every list of files that rgthree-comfy's 'Auto Nest Subdirectories in Menus' sorts into folders, on any node (a Load LoRA node's list, this pack's LoRA list). "
-                + "The pack's own model-file fields search every folder either way.",
+                + "Which lists: This pack's own (the LoRA list, the model-file fields), where rgthree-comfy's 'Auto Nest Subdirectories in Menus' sorts them into folders.",
+            category: CAT("Model files", "2 search"),
+        },
+        {
+            id: SET.menuSearchAll, name: "Search all folders in every list of ComfyUI (experimental)", type: "boolean", defaultValue: false,
+            tooltip: "Off (default): Only this pack's own lists search every folder.\n"
+                + "On: The same search in every list of files that is sorted into folders, on any node of any pack (a Load LoRA node's list, a checkpoint loader's).\n"
+                + "Experimental: It reaches into menus that ComfyUI and other packs open. Switch it off if a menu of another pack misbehaves.",
             category: CAT("Model files", "2 search"),
         },
         {
@@ -2715,7 +2733,7 @@ const pageRowType = (key) => () => {
 (() => {
     // which rows stay in the tab (they are on their page too), and where
     const stay = new Map([[SET.toolHints, ["node", "01"]], [SET.cmSnap, ["node", "02"]], [SET.acDefault, ["node", "03"]], [SET.llmNewRegions, ["node", "04"]],
-        [SET.cmAutoSeparate, ["node", "05"]], [SET.shortcuts, ["node", "06"]], [SET.filePickers, ["files", "80"]], [SET.menuSearch, ["files", "805"]], [SET.checkFiles, ["files", "81"]]]);
+        [SET.cmAutoSeparate, ["node", "05"]], [SET.shortcuts, ["node", "06"]], [SET.filePickers, ["files", "80"]], [SET.menuSearch, ["files", "805"]], [SET.menuSearchAll, ["files", "806"]], [SET.checkFiles, ["files", "81"]]]);
     const names = {};
     SETTINGS.forEach((d, i) => { d.rgIndex = i; });                         // a page lists its settings in the order they are written above
     for (const d of SETTINGS) {

@@ -13,7 +13,7 @@ const fails = [];
 const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name); if (!ok) { fails.push(name); if (note) console.log("     " + note); } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const vue = process.argv[2] === "vue", M = vue ? "Nodes 2.0" : "legacy";
-const SET = "RegionGenie.ModelFiles.SearchAllFolders";
+const SET = "RegionGenie.ModelFiles.SearchAllFoldersEverywhere", OWN = "RegionGenie.ModelFiles.SearchAllFolders";
 
 (async () => {
     const browser = await chromium.launch();
@@ -78,9 +78,8 @@ const SET = "RegionGenie.ModelFiles.SearchAllFolders";
         // the Setting off: the filter box is ComfyUI's own again
         await page.evaluate(async (SET) => window.app.extensionManager.setting.set(SET, false), SET); await sleep(300);
         await openCombo(); await filt().fill(word); await sleep(500);
-        check("with the Setting off, the filter box searches the open folder only (no hits from other folders)", (await hits()).length === 0);
+        check("with the experimental Setting off (the default), another node's list searches the open folder only", (await hits()).length === 0);
         await closeMenus();
-        await page.evaluate(async (SET) => window.app.extensionManager.setting.set(SET, true), SET); await sleep(300);
     }
     // the Region Genie node's own LoRA list
     await page.evaluate(() => { const b = [...document.querySelectorAll(".rg-row .rg-btn, .rg-row button")].find((x) => x.offsetParent && x.textContent.trim() === "＋LoRA"); b?.click(); }); await sleep(900);
@@ -95,6 +94,14 @@ const SET = "RegionGenie.ModelFiles.SearchAllFolders";
     const got = await page.evaluate(() => { const s = window.__rg.__rgState(); return [...(s.sceneLoras || []), ...s.regions.flatMap((r) => r.loras || [])].map((x) => x.lora); });
     check(`${M}: a click on the hit adds that LoRA to the node (${got.join(", ")})`, got.includes(target));
     await closeMenus();
+    // the pack's own Setting off: its list has ComfyUI's filter only
+    await page.evaluate(async (OWN) => window.app.extensionManager.setting.set(OWN, false), OWN); await sleep(300);
+    await page.evaluate(() => { const b = [...document.querySelectorAll(".rg-pop button, .rg-row .rg-btn, .rg-row button")].find((x) => x.offsetParent && x.textContent.trim() === "＋LoRA"); b?.click(); }); await sleep(900);
+    const opened = await page.locator(".litecontextmenu").count() > 0;
+    if (opened) { await filt().fill(word); await sleep(500); }
+    check(`${M}: with the pack's Setting off, its LoRA list searches the open folder only`, opened && (await hits()).length === 0);
+    await closeMenus();
+    await page.evaluate(async ([OWN, SET]) => { const s = window.app.extensionManager.setting; await s.set(OWN, true); await s.set(SET, false); }, [OWN, SET]);
     check(`${M}: no page errors`, errors.length === 0, errors.slice(0, 3).join(" | "));
     await browser.close();
     console.log(fails.length ? `\n${fails.length} FAILED` : "\nALL PASS");

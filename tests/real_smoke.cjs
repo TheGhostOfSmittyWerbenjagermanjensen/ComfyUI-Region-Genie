@@ -32,7 +32,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         window.__rg = rg;
         return { rg: !!rg.__rgState, slot, regs: Object.keys(LG.registered_node_types).filter((k) => k.startsWith("Region-Genie")).length };
     });
-    check(`${vue ? "Nodes 2.0" : "legacy"}: Region Genie node created with its editor`, ok.rg && ok.slot >= 0 && ok.regs === 8);      // the eight nodes (six, and since round 75 Tiled Upscale and Tiled Diffusion); nothing internal is registered (round 68)
+    check(`${vue ? "Nodes 2.0" : "legacy"}: Region Genie node created with its editor`, ok.rg && ok.slot >= 0 && ok.regs === 9);      // the nine nodes (six, since round 75 Tiled Upscale and Tiled Diffusion, since round 93 Image Compare); nothing internal is registered (round 68)
     await page.waitForTimeout(2500);
     const bd = await page.evaluate(() => !!window.__rg.__rgView && document.querySelectorAll(".rg-cv .rg-imgmode .rg-seg").length > 0);
     check("image-mode buttons show with Load Image connected", bd);

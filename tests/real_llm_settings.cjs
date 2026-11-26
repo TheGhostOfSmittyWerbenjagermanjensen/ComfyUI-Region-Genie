@@ -124,7 +124,7 @@ fs.writeFileSync(outLlm, "");
     // pick a LoRA in it: ComfyUI's menu, its filter
     await page.locator(`${sel("LLM LoRAs")} .rg-lset-lora .rg-ff-name`).first().click(); await sleep(700);
     await page.locator(".litecontextmenu .comfy-context-menu-filter").first().fill("style_12."); await sleep(500);
-    const loraPicked = await page.evaluate(() => { const e = [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].find((x) => x.offsetParent && /style_12\.safetensors$/.test(x.textContent.trim()));
+    const loraPicked = await page.evaluate(() => { const e = [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].find((x) => x.offsetParent && /style_12\.safetensors$/.test((x.querySelector(".rg-ff-n") || x).textContent.trim()));
         e?.click(); return e ? "style_12.safetensors" : ""; });
     await sleep(900);
     lib = await readLib();

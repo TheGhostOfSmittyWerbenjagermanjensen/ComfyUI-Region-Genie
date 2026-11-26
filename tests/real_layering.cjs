@@ -157,7 +157,7 @@ const TAG_LIST = ".pysssss-autocomplete, .comfy-autocomplete-dropdown", WC_LIST 
             const add = page.locator(ADD_LORA);
             if (await add.count()) {
                 await add.first().click(); await sleep(800);
-                const picked = await page.evaluate(() => { const e = [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].find((x) => x.offsetParent && /\.safetensors$/.test(x.textContent.trim())); e?.click(); return !!e; });
+                const picked = await page.evaluate(() => { const e = [...document.querySelectorAll(".litecontextmenu .litemenu-entry")].find((x) => x.offsetParent && /\.safetensors$/.test((x.querySelector(".rg-ff-n") || x).textContent.trim())); e?.click(); return !!e; });
                 await sleep(900); await removeMenus();
                 if (picked && await page.locator(".rg-pop .rg-pop-lorarows .rg-pick").count()) await menuFrom(label, page.locator(".rg-pop .rg-pop-lorarows .rg-pick"), "LoRA list of a LoRA row");
                 else skip(`${label}: the LoRA list of a LoRA row`, "no LoRA file to add a row with");

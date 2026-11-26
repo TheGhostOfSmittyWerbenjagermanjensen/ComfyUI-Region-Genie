@@ -181,7 +181,7 @@ export function* popups(E) {
         box.addEventListener("input", (e) => { if (e.target?.tagName === "TEXTAREA") { ed.last = "text"; ed.histBtns?.refresh(); } }, true);
         box.addEventListener("click", () => setTimeout(() => ed.histBtns?.refresh(), 0));           // another tab: the buttons may be ready or not
         ed.histBtns = historyButtons(() => (textLast() ? curHist() : edHist), undefined,
-            ["Undo: Take back what was done last (Ctrl+Z).\nAfter typing: The text, step by step. After anything else (a row moved, a switch, a LoRA): That change, as the Undo button above the canvas does.",
+            ["Undo: Take back what was done last (Ctrl+Z).\nAfter typing: The text, step by step.\nAfter anything else: That change (a row moved, a switch, a LoRA), as the Undo button above the canvas does.",
              "Redo: Bring back what was taken back (Ctrl+Shift+Z / Ctrl+Y)."]);
         head.insertBefore(fp, x);
         head.insertBefore(fm, fp);

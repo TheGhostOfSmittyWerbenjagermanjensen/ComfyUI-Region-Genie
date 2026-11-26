@@ -78,6 +78,7 @@ RULES = [
     ("real_layering.cjs", BOTH, ("js/editor/popups.js", "js/editor/big.js", "js/editor/style.js", "js/rg_tooltip.js", "js/rg_menu.js", "js/rg_colorpicker.js", "wildcards.py"), None,
      "a pop-up, the large editor, the tooltip, a menu or the style sheet changed"),
     ("real_layering.cjs", BOTH, ANY_JS, r"z-index|zIndex|textarea|autocomplete|openMenu|openFloatPopup", "a z-index, a text field or a menu changed"),
+    ("real_image_compare.cjs", BOTH, ("image_compare.py", "js/image_compare.js"), None, "the Image Compare node changed"),
     ("real_menu_search.cjs", BOTH, ("js/rg_shared.js",), r"deepSearch|menuSearch|MenuSearch|ContextMenu|contextMenu|pickLora|rg-ff-", "a list menu or its search changed"),
     ("i18n_extract.cjs --check", ("",), ("*.py",), r"tooltip|RETURN_NAMES|DISPLAY_NAME|display_name|INPUT_TYPES", "a node text may have changed"),
     ("i18n_extract.cjs --check", ("",), ANY_JS, r"\bSET\.|RegionGenie\.|SETTINGS_PAGES", "a Setting's text may have changed"),
