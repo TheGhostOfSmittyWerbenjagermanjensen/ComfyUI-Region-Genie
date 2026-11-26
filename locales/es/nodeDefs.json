@@ -684,5 +684,19 @@
         "tooltip": "El modelo, muestreando en teselas: conéctalo a un sampler."
       }
     }
+  },
+  "Region-Genie_ImageCompare": {
+    "display_name": "Comparar imágenes (Region Genie) ✨",
+    "description": "Muestra dos o más imágenes en un nodo para compararlas. Mueve el puntero sobre la imagen: la imagen anterior a la elegida queda a la izquierda del puntero y la elegida a su derecha. Las teclas numéricas y las flechas eligen la imagen mientras el puntero está sobre el nodo.",
+    "inputs": {
+      "image_1": {
+        "name": "imagen_1",
+        "tooltip": "Una imagen o un lote de imágenes: cada imagen de un lote cuenta como una imagen propia. Se añade una entrada libre cuando la última recibe un cable."
+      },
+      "image_2": {
+        "name": "imagen_2",
+        "tooltip": "Una imagen o un lote de imágenes: cada imagen de un lote cuenta como una imagen propia. Se añade una entrada libre cuando la última recibe un cable."
+      }
+    }
   }
 }

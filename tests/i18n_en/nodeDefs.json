@@ -684,5 +684,20 @@
         "tooltip": "The model, sampling in tiles. Connect it to a sampler."
       }
     }
+  },
+  "Region-Genie_ImageCompare": {
+    "display_name": "Image Compare (Region Genie) ✨",
+    "description": "Shows two or more images in one node to compare them. Move the pointer across the picture: The picture before the chosen one is left of the pointer, the chosen one right of it. The number keys and the arrow keys choose the picture while the pointer is over the node.",
+    "inputs": {
+      "image_1": {
+        "name": "image_1",
+        "tooltip": "An image, or a batch of images: Every image of a batch counts as a picture of its own. A free input is added when the last one gets a cable."
+      },
+      "image_2": {
+        "name": "image_2",
+        "tooltip": "An image, or a batch of images: Every image of a batch counts as a picture of its own. A free input is added when the last one gets a cable."
+      }
+    },
+    "outputs": {}
   }
 }

@@ -751,5 +751,13 @@
   "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px , Highlight color, Switched-on color": {
     "name": "Region Genie 노드",
     "tooltip": "새 Region Genie 노드의 초기 설정(이미지 모드, 페더, 분리, 그리드, 영역 색상, 태그 자동 완성, 와일드카드).\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
+  },
+  "RegionGenie_ModelFiles_SearchAllFolders": {
+    "name": "이 팩의 파일 목록에서 모든 폴더 검색",
+    "tooltip": "켬(기본값): 폴더별로 정리된 파일 목록에서 필터 상자에 입력하면 모든 폴더의 파일을 찾고, 각 결과에 해당 폴더가 표시됩니다.\n끔: 필터 상자는 열려 있는 폴더만 검색합니다.\n대상 목록: 이 팩 자체의 목록(LoRA 목록, 모델 파일 필드)으로, rgthree-comfy의 'Auto Nest Subdirectories in Menus'가 폴더별로 정리하는 곳입니다."
+  },
+  "RegionGenie_ModelFiles_SearchAllFoldersEverywhere": {
+    "name": "ComfyUI의 모든 목록에서 모든 폴더 검색 (실험적)",
+    "tooltip": "끔(기본값): 이 팩 자체의 목록만 모든 폴더를 검색합니다.\n켬: 어느 팩의 어느 노드에서든 폴더별로 정리된 파일 목록에 같은 검색을 적용합니다(Load LoRA 노드의 목록, 체크포인트 로더의 목록).\n실험적: ComfyUI와 다른 팩이 여는 메뉴에 작용합니다. 다른 팩의 메뉴가 이상하게 동작하면 끄세요."
   }
 }

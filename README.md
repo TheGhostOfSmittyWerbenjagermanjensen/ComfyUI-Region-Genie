@@ -34,6 +34,7 @@
   - [Export and import](#export-and-import)
   - [Save Image](#save-image)
   - [Tiled upscale](#tiled-upscale)
+  - [Image compare](#image-compare)
 - [The nodes](#-the-nodes)
 - [Manual](#-manual)
 - [Languages](#-languages)
@@ -332,6 +333,14 @@ One node upscales an image with the model that made it: it enlarges the image, t
 
 → [Tiled Upscale and Tiled Diffusion](docs/tiled-upscale.md)
 
+### Image compare
+
+One node compares two or more images: move the pointer across the picture to slide between a picture and the one before it, press 1 to 9 or the arrow keys to choose the picture, and right-click a number to leave a picture out so its neighbours are compared directly. A batch counts as one picture per image.
+
+<img src="docs/images/image-compare.png" alt="The Image Compare node with three pictures and the slider between two of them" width="360">
+
+→ [Image Compare (Region Genie)](docs/image-compare.md)
+
 ## ✨ The nodes
 
 All nodes are in the **Region Genie** category, and their names end in ✨.
@@ -346,6 +355,7 @@ All nodes are in the **Region Genie** category, and their names end in ✨.
 | **Save Image (Region Genie)** | Saves in smaller formats, with settings text for other tools |
 | **Tiled Upscale (Region Genie)** | Upscales an image in one node, redrawing it in blended tiles |
 | **Tiled Diffusion (Region Genie)** | Makes a model sample in blended tiles, for your own sampler |
+| **Image Compare (Region Genie)** | Compares two or more images with a slider and the keys |
 
 ## ✨ Manual
 
@@ -360,6 +370,7 @@ All nodes are in the **Region Genie** category, and their names end in ✨.
 | [BBoxes to Masks and Mask Picker](docs/mask-nodes.md) | The two small mask nodes |
 | [Save Image (Region Genie)](docs/save-image.md) | Formats, quality, transparency, settings text for other tools |
 | [Tiled Upscale and Tiled Diffusion](docs/tiled-upscale.md) | Upscaling in tiles: the two nodes, tile settings, denoise, what works with it |
+| [Image Compare (Region Genie)](docs/image-compare.md) | Comparing two or more images: the slider, the keys, hiding pictures |
 | [Setup notes](docs/setup-notes.md) | Finding the nodes, tag autocomplete, coming from Regional Mask Kit |
 
 Inside ComfyUI, select a node and press **Node Info** for a short guide to it.

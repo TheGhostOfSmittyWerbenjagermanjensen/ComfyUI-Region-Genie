@@ -65,15 +65,16 @@ const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];          // image_1 …
     check(`${M}: with four cables there is one free input after them (${ins.now.join(", ")})`, ins.now.join() === "image_1,image_2,image_3,image_4,image_5");
     await run(5);
     let s = await S();
-    check(`${M}: a batch of two counts as two pictures: five in all, the second one chosen (so 1 | 2)`, s.n === 5 && s.cur === 2 && s.prev === 1, JSON.stringify(s));
-    await hover(0.3);
-    let v = await look();
-    check(`${M}: pointer on the picture: picture 1 is left of it, picture 2 right (${hex(v.left)} | ${hex(v.right)})`, v.left === COLORS[0] && v.right === COLORS[1] && v.line);
+    check(`${M}: a batch of two counts as two pictures: five in all, the last one chosen (4 | 5)`, s.n === 5 && s.cur === 5 && s.prev === 4, JSON.stringify(s));
+    await away(); let v = await look();
+    check(`${M}: pointer off the picture: the last picture whole, no line (${hex(v.right)})`, v.left === null && !v.line && v.right === COLORS[3] && v.tagL === null && v.tagR === "5");
+    await hover(0.5); await page.keyboard.press("2"); await hover(0.3);
+    v = await look();
+    check(`${M}: picture 2 chosen, pointer on the picture: picture 1 is left of it, picture 2 right (${hex(v.left)} | ${hex(v.right)})`, v.left === COLORS[0] && v.right === COLORS[1] && v.line);
     check(`${M}: the left picture is cut at the pointer (${v.clip})`, /inset\(0(px)? 7\d(\.\d+)?% 0(px)? 0(px)?\)/.test(v.clip));
     check(`${M}: the labels say which is which (${v.tagL} | ${v.tagR})`, v.tagL === "1" && v.tagR === "2");
     if (process.env.RG_SHOT) await page.screenshot({ path: process.env.RG_SHOT, clip: { x: 0, y: 40, width: 1100, height: 760 } });
-    await away(); v = await look();
-    check(`${M}: pointer off the picture: the chosen picture whole, no line`, v.left === null && !v.line && v.right === COLORS[1] && v.tagL === null && v.tagR === "2");
+    await away();
     // ---- keys
     await page.keyboard.press("4"); s = await S();
     check(`${M}: a key pressed with the pointer away from the node does nothing`, s.cur === 2);
@@ -111,7 +112,11 @@ const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];          // image_1 …
         return { ...cmp.__rgCompare.state(), inputs: cmp.inputs.map((i) => i.name).join(), links: cmp.inputs.filter((i) => i.link != null).length };
     });
     check(`${M}: save and load keep the hidden pictures, the inputs and their cables (${kept.inputs})`, kept.hidden.join() === "3,4" && kept.inputs === "image_1,image_2,image_3,image_4,image_5" && kept.links === 4, JSON.stringify(kept));
-    await run(5); await chip(3).click(); s = await S();
+    await run(5); s = await S();
+    check(`${M}: a run after loading: the last picture is the chosen one again (pictures 3 and 4 still hidden: 2 | 5)`, s.cur === 5 && s.prev === 2);
+    await page.keyboard.press("ArrowLeft"); await run(5);
+    check(`${M}: a later run with as many pictures keeps the picture that was chosen`, (await S()).cur === 2);
+    await chip(3).click(); s = await S();
     check(`${M}: after the next run they are still hidden; a click on a hidden number shows that picture again`, s.hidden.join() === "4" && s.cur === 3 && s.prev === 2);
     // ---- the plain case: two pictures
     await make(COLORS.slice(0, 2), false); await run(2);

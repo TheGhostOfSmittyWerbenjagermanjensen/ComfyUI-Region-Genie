@@ -138,6 +138,39 @@ if (process.env.COMFY_DIR) {
   const svClip = await page.evaluate(() => { const n = window.__sv, ds = window.app.canvas.ds, r = window.app.canvas.canvas.getBoundingClientRect(); return { x: r.x + (n.pos[0] + ds.offset[0]) * ds.scale - 8, y: r.y + (n.pos[1] - 34 + ds.offset[1]) * ds.scale, width: n.size[0] * ds.scale + 16, height: (n.size[1] + 42) * ds.scale }; });
   await page.mouse.move(4, 4); await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "save-image.png"), clip: svClip });
+  // image-compare.png: Image Compare (Region Genie) with three pictures the page draws itself (the same scene, three
+  // ways) and uploads to ComfyUI's input folder; picture 3 chosen, the pointer on the picture: 2 | 3
+  await page.evaluate(async () => {
+    const scene = (k) => { const W = 768, H = 512, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
+      const hue = [212, 22, 268][k], sunX = 0.24 + 0.2 * k, sunY = 0.22 + 0.04 * k;
+      const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, `hsl(${hue} 55% ${22 + k * 5}%)`); sky.addColorStop(0.65, `hsl(${(hue + 40) % 360} 70% 62%)`); sky.addColorStop(1, `hsl(${(hue + 60) % 360} 75% 78%)`);
+      g.fillStyle = sky; g.fillRect(0, 0, W, H);
+      const sun = g.createRadialGradient(sunX * W, sunY * H, 4, sunX * W, sunY * H, 130); sun.addColorStop(0, "rgba(255,250,225,1)"); sun.addColorStop(0.22, "rgba(255,240,190,.9)"); sun.addColorStop(1, "rgba(255,240,190,0)");
+      g.fillStyle = sun; g.fillRect(0, 0, W, H);
+      let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;           // the same hills and trees in all three
+      for (let layer = 0; layer < 4; layer++) { const base = H * (0.52 + layer * 0.11), amp = 52 - layer * 8, ph = rnd() * 6, f1 = 0.005 + rnd() * 0.004, f2 = 0.013 + rnd() * 0.006;
+        g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 6) g.lineTo(x, base - Math.sin(x * f1 + ph) * amp - Math.sin(x * f2 + ph * 2) * amp * 0.35); g.lineTo(W, H); g.closePath();
+        g.fillStyle = `hsl(${(hue + 150 + layer * 8) % 360} ${28 + layer * 6}% ${34 - layer * 7}%)`; g.fill(); }
+      for (let i = 0; i < 11; i++) { const x = rnd() * W, y = H * (0.8 + rnd() * 0.14), h = 40 + rnd() * 62; g.fillStyle = `hsl(${(hue + 160) % 360} 35% ${10 + rnd() * 8}%)`;
+        g.beginPath(); g.moveTo(x, y - h); g.lineTo(x - h * 0.22, y); g.lineTo(x + h * 0.22, y); g.closePath(); g.fill(); }
+      return c; };
+    const names = [];
+    for (let k = 0; k < 3; k++) { const blob = await new Promise((r) => scene(k).toBlob(r, "image/png")); const fd = new FormData(); fd.append("image", blob, `rg_compare_${k + 1}.png`); fd.append("overwrite", "true");
+      await window.app.api.fetchApi("/upload/image", { method: "POST", body: fd }); names.push(`rg_compare_${k + 1}.png`); }
+    const app = window.app, LG = window.LiteGraph; app.graph.clear();
+    for (const k of Object.keys(app.nodeOutputs || {})) delete app.nodeOutputs[k];       // the Save Image picture above: its node's number is used again
+    const cmp = LG.createNode("Region-Genie_ImageCompare"); cmp.pos = [60, 120]; app.graph.add(cmp); window.__cmp = cmp;
+    await new Promise((r) => setTimeout(r, 500));
+    for (let k = 0; k < 3; k++) { const li = LG.createNode("LoadImage"); li.pos = [-600, 100 + k * 380]; app.graph.add(li); li.widgets.find((x) => x.name === "image").value = names[k];
+      li.connect(0, cmp, cmp.inputs.findIndex((i) => i.name === `image_${k + 1}`)); await new Promise((r) => setTimeout(r, 250)); }
+    cmp.setSize([520, 470]); app.canvas.ds.offset = [0, 0]; app.canvas.ds.scale = 1; app.canvas.setDirty(true, true);
+    await new Promise((r) => setTimeout(r, 800)); await app.queuePrompt(0, 1);
+  });
+  await page.waitForFunction(() => window.__cmp.__rgCompare.state().n === 3, null, { timeout: 60000 });
+  await page.waitForTimeout(1500);
+  { const b = await page.locator(".rg-ic-view").first().boundingBox(); await page.mouse.move(b.x + b.width * 0.46, b.y + b.height * 0.55, { steps: 3 }); await page.waitForTimeout(500); }
+  const cmpClip = await page.evaluate(() => { const n = window.__cmp, ds = window.app.canvas.ds, r = window.app.canvas.canvas.getBoundingClientRect(); return { x: r.x + (n.pos[0] + ds.offset[0]) * ds.scale - 8, y: r.y + (n.pos[1] - 34 + ds.offset[1]) * ds.scale, width: n.size[0] * ds.scale + 16, height: (n.size[1] + 42) * ds.scale }; });
+  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "image-compare.png"), clip: cmpClip });
   // settings-tab.png, settings-window.png: Settings > Region Genie, and the Region Genie settings window on a page
   await page.setViewportSize({ width: 1280, height: 860 }); await page.waitForTimeout(400);
   await page.keyboard.press("Control+,"); await page.waitForTimeout(1500);

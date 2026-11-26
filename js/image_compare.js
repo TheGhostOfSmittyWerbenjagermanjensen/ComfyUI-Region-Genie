@@ -6,8 +6,11 @@
 //   "single" view, and no second mode is needed).
 // - The keys, while the pointer is over the node: 1-9 on the number row or the numpad choose a picture, the arrow
 //   keys the one before / after.
+// - The LAST picture (the highest number) is the chosen one to start with: four pictures show "3 | 4", two "1 | 2".
 // - Picture 1 has the LAST picture on its left (around the corner); a button on the node turns that off (picture 1
 //   then shows alone). With two pictures that means: 2 chosen is "1 | 2", 1 chosen is "2 | 1".
+// - The keys are this node's own and fixed: they are not in the Region Genie node's shortcut list (another node,
+//   another job). The node's description and help page name them.
 // - Number labels on the picture, with a button to hide them.
 // - Every image of a batch is a picture of its own, in input order.
 // - A picture can be hidden from the comparison (right-click its number): its neighbours are then compared
@@ -75,7 +78,7 @@ function setup(node) {
     const shown = () => st.pics.map((_, i) => i + 1).filter((n) => !P().hidden.includes(n));
     // the picture left of the pointer: the shown one before the chosen one; before the first: the last (unless that is off)
     const prevOf = (n) => { const v = shown(), k = v.indexOf(n); return k > 0 ? v[k - 1] : k === 0 && P().wrap && v.length > 1 ? v[v.length - 1] : 0; };
-    function settle() {                        // the chosen picture is always a shown one: to start with, the second (so "1 | 2")
+    function settle() {                        // the chosen picture is always a shown one
         const v = shown();
         if (!v.includes(st.cur)) st.cur = v.find((n) => n > st.cur) || v[v.length - 1] || 0;
     }
@@ -116,11 +119,13 @@ function setup(node) {
         settle(); draw();
     }
     function setPics(list) {
-        const first = !st.pics.length;
+        const first = !st.pics.length, changed = st.pics.length !== list.length;
         st.pics = list;
         P().hidden = P().hidden.filter((n) => n <= list.length);
         imgR.dataset.n = ""; imgL.dataset.n = "";
-        if (first || !shown().includes(st.cur)) { const v = shown(); st.cur = v[1] || v[0] || 0; }
+        // to start with, and whenever the number of pictures changed: the last one (the highest number), so the newest
+        // result shows and the one before it is on its left. A later run with as many pictures keeps the user's choice
+        if (first || changed || !shown().includes(st.cur)) { const v = shown(); st.cur = v[v.length - 1] || 0; }
         build();
     }
     const choose = (n) => { if (n > st.pics.length || P().hidden.includes(n)) return false; st.cur = n; draw(); return true; };
@@ -157,6 +162,7 @@ function setup(node) {
     const onExec = node.onExecuted;
     node.onExecuted = function (out) {
         const r = onExec?.apply(this, arguments);
+        this.imgs = null;                          // never ComfyUI's own preview under the node's (a leftover of another node with this id)
         const list = (out?.rg_compare || []).filter((q) => q && q.filename).map((q) => ({ input: +q.input || 0, index: +q.index || 0,
             url: api.apiURL(`/view?filename=${encodeURIComponent(q.filename)}&subfolder=${encodeURIComponent(q.subfolder || "")}&type=${encodeURIComponent(q.type || "temp")}&rand=${Math.random()}`) }));
         setPics(list);

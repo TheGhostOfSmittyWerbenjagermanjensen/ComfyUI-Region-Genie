@@ -66,6 +66,14 @@
     "name": "Check model files",
     "tooltip": "Looks up every model file set in these Settings (Control, Edit Mode, Select object) and in the LLM presets, and lists the ones ComfyUI can't find (moved, renamed or deleted)."
   },
+  "RegionGenie_ModelFiles_SearchAllFolders": {
+    "name": "Search all folders in this pack's file lists",
+    "tooltip": "On (default): In a list of files that is sorted into folders, typing in its filter box finds the files of every folder, each shown with the folder it is in.\nOff: The filter box only searches the folder that is open.\nWhich lists: This pack's own (the LoRA list, the model-file fields), where rgthree-comfy's 'Auto Nest Subdirectories in Menus' sorts them into folders."
+  },
+  "RegionGenie_ModelFiles_SearchAllFoldersEverywhere": {
+    "name": "Search all folders in every list of ComfyUI (experimental)",
+    "tooltip": "Off (default): Only this pack's own lists search every folder.\nOn: The same search in every list of files that is sorted into folders, on any node of any pack (a Load LoRA node's list, a checkpoint loader's).\nExperimental: It reaches into menus that ComfyUI and other packs open. Switch it off if a menu of another pack misbehaves."
+  },
   "RegionGenie_Page_hl: feather, lora_masking, region_separation, separate_all_regions, share_background, separation_until": {
     "name": "Regional LoRAs",
     "tooltip": "What a new Regional LoRAs node starts with.\nEdit…: Opens the Region Genie settings on this page."

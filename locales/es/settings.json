@@ -751,5 +751,13 @@
   "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px , Highlight color, Switched-on color": {
     "name": "Nodo Region Genie",
     "tooltip": "Con qué empieza un nodo Region Genie nuevo (modo de imagen, difuminado, separación, cuadrícula, colores de región, autocompletado de etiquetas, comodines).\nEdit…: Abre los ajustes de Region Genie en esta página."
+  },
+  "RegionGenie_ModelFiles_SearchAllFolders": {
+    "name": "Buscar en todas las carpetas de las listas de archivos de este paquete",
+    "tooltip": "Activado (predeterminado): en una lista de archivos ordenada en carpetas, al escribir en su cuadro de filtro se encuentran los archivos de todas las carpetas, cada uno con la carpeta en la que está.\nDesactivado: el cuadro de filtro solo busca en la carpeta abierta.\nQué listas: las de este paquete (la lista de LoRA, los campos de archivos de modelo), donde «Auto Nest Subdirectories in Menus» de rgthree-comfy las ordena en carpetas."
+  },
+  "RegionGenie_ModelFiles_SearchAllFoldersEverywhere": {
+    "name": "Buscar en todas las carpetas de todas las listas de ComfyUI (experimental)",
+    "tooltip": "Desactivado (predeterminado): solo las listas de este paquete buscan en todas las carpetas.\nActivado: la misma búsqueda en toda lista de archivos ordenada en carpetas, en cualquier nodo de cualquier paquete (la lista de un nodo Load LoRA, la de un cargador de checkpoints).\nExperimental: actúa sobre menús que abren ComfyUI y otros paquetes. Desactívalo si el menú de otro paquete falla."
   }
 }
