@@ -2,6 +2,38 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 91 (Nov 26): where a pop-up opens; the open field's outline; the pack's colors as Settings
+- Asked: pop-ups appeared higher on the page than before (look into it); a mock-up of outlining the text field whose pop-up is open. The owner also said: "never a scroll bar" is a guideline, not a law (avoid them, never a horizontal one, ask when a design hangs on it).
+- Found: with default sizes nothing had moved. A pop-up whose saved size was smaller than its fullest tab grew after it was placed and was pushed up over its field; the owner's sizes dated from before the tabs.
+- Decided by the owner: place the pop-up with its final height; outline B (always the highlight color); and let the user choose the highlight and accent colors in Settings, for color blindness and for fun.
+- Built: `popGrow` before placement; `markOpenField` / `rg-pop-open`; Settings "Highlight color" and "Switched-on color", with every blue and amber of the pack's style sheets moved to CSS variables.
+- Tested: `run_ui.sh` (new checks in `ui_popup_text.cjs`), `run_py.sh`, Settings, tooltips and translations on real ComfyUI, and the real suites that depend on the style sheets.
+
+## Round 90 (Nov 26): a switch for all of one list's LoRAs
+- Asked: like the header's button, a switch for all of one region's LoRAs. Shown as a mock-up at the top of the LoRAs tab; the owner confirmed it, with the same line for the whole image under its own label, On while any LoRA is on, and no line for an empty list. The owner also added `release.yml` to `main` by hand and made the 0.57.0 release with it; `main` was merged into the working branch.
+- Built: `loraSwitch`; "This region's LoRAs" / "The whole image's LoRAs".
+- Tested: `run_ui.sh` (new checks in `ui_editor.cjs`), tooltips and layering on real ComfyUI.
+
+## Round 89 (Nov 26): the header's LoRA switch as words; counts in brackets
+- Asked: other signs than the power icon for the header's switch; later a switch per region too.
+- Shown: six options (power, power crossed out when off, lightning, a switch, a plug, the word). The owner chose the word, and asked for every count on a LoRA button to stand in brackets.
+- Built: the header's button reads "LoRAs (7)", or "LoRAs off"; the rows' buttons "LoRAs (3)", "LoRAs (2/3)", "LoRAs (0/1)"; the counts on a pop-up's tabs are in brackets too ("LoRAs (2/3)", "Layers (3)", "Palette (3)"), so the tabs agree with each other. The power icon is gone.
+- Shown, not built: a switch for all of one region's LoRAs at the top of its LoRAs tab (the owner wants a mock-up first).
+- Tested: `run_ui.sh`, tooltips on real ComfyUI in both node modes; pictures retaken.
+
+## Rounds 87-88 (Nov 25-26): LoRAs at a glance; the Regions list without sub-rows; a region's pop-up with tabs
+- Asked: make it very clear when LoRAs are active, the whole image's above all: it is easy to miss, and a LoRA left on spoils the next prompt. Then, wider: the list is cramped, and rows that open more rows under them are clunky; handle those things in pop-ups that look like the pack's other ones.
+- Shown before building: three ways to mark LoRAs (a count, names, a summary line), then names with a "+N" chip and two ways to open the list, then the list without sub-rows with cards or one window per region (with design guidance from Apple's HIG on popovers, SAP Fiori, Red Hat and others). The owner chose, step by step: one adaptive LoRAs button per row; name chips on Whole image too; a count on the button and a third state for "all off"; one pop-up per region with tabs; the type as an icon with a menu; an "all off" switch that belongs to no row.
+- Built (stage 1): `loraButton`, `loraChips` (fixed greatest width, "+N"), the header's switch (`toggleAllLoras`; what it switched off is kept as `wasOn` on the LoRA), tabs in the pop-ups (`popTabs`: the panes lie on top of each other, so the pop-up keeps its size), a LoRAs tab with grips to reorder, `popFit` (no scroll bar), Undo / Redo keys on a tab without a text cursor.
+- Built (stage 2): Layers, Palette and Options tabs; the region rows are one line (no ▶, no options line, no subsections; the header's ▼ buttons are gone); small buttons for the layer count and the palette's colors; the type icon with a menu; entries for each tab in the row's right-click menu.
+- Asked while it was built, and done: the color picker inside the Palette tab, with a switch that says On / Off (`paletteTab`, `openColorPicker(..., { inline })`); the remove button at the right end of the swatches' row; expand buttons as solid tiles so no text shows under them; the room between a canvas label and its region's edge as a Setting (3%, was a fixed 8%); the label's number and type mark on a line above the prompt, centered, with the text left-aligned or centered (a Setting); a mark for every type (a box and a T were drawn for object and text); a handle between a text region's prompt and its text to render (`properties.rg_text_w`); the large editor: its scene boxes got the pop-up and LLM buttons and the scene pop-up opens beside them.
+- Tested: `run_ui.sh` (five suites rewritten for the new layout, new checks for every tab), `run_py.sh`, and the real-ComfyUI suites in both node modes (see the handoff for which). Not on a GPU, not in Firefox, not on a 4K screen. Version 0.58.0.
+
+## Round 86 (Nov 25): a GitHub Release with every version
+- Asked: like the automatic publish to the Comfy Registry, a Release on GitHub for each new version.
+- Built: `.github/workflows/release.yml`: tag `v<version>` and a release with GitHub's generated notes, after a merge to `main` that touches pyproject.toml, when that version has no release yet; also by hand. Merging this round makes the release of 0.57.0, the first one.
+- Tested: the file is valid YAML and the version line is read as the publish workflow reads it. The workflow itself can only run on `main`.
+
 ## Round 85 (Nov 25): Tiled Upscale finished for release; both branches in one pull request
 - Asked: the remaining tasks for the "More settings" fold, then a pull request that merges both branches.
 - Done: manual, help page, hardware checklist, handoff; `claude/tile-aware-regions` (regions cut per tile, the branch the owner has been running) merged into the working branch; a test for a folded setting with a cable.

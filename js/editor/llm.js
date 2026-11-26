@@ -4,6 +4,8 @@ import { api } from "../../../scripts/api.js";
 import { setHTML, svgIcon, contextMenu, appendWord, autocompleteOnFocus, autocompleteOpen, textHistory } from "../rg_shared.js";
 import { loadLibrary, library, onLibraryChange, resolveNodeLlm, presetForType, sparkleSvg, openLlmSettings } from "../rg_llm.js";
 import { TYPES } from "./shared.js";
+import { openMenu } from "../rg_menu.js";
+import { normPalette } from "./colors.js";
 import { normLoraOpts } from "./state.js";
 
 export function* llm(E) {
@@ -156,6 +158,16 @@ export function* llm(E) {
         }
         const big = E.big?.fields?.find((f) => f.which === "positive")?.ta;
         if (big && big.classList.contains("rg-llm-on") !== on) big.classList.toggle("rg-llm-on", on);
+        // the large editor's scene_prompt_positive box has the same button in its corner (round 88)
+        const expB = big?.parentElement?.querySelector(":scope > .rg-expand");
+        if (expB?.__rgAddExtra && !expB.__rgLlm?.isConnected) {
+            const b = llmButton(LLM_SCENE, "bigcorner");
+            b.classList.add("rg-llm-corner");
+            b.addEventListener("mousedown", (e) => { e.stopPropagation(); e.preventDefault(); });
+            b.__rgRefresh = llmBtns.get(`${LLM_SCENE}|bigcorner`);
+            expB.__rgLlm = b; expB.__rgAddExtra(b);
+        }
+        expB?.__rgLlm?.__rgRefresh?.();
     }
     function updateLlmButtons() {
         sceneLlmMark();
@@ -182,8 +194,9 @@ export function* llm(E) {
     }
 
     // a region's LoRAs; trigger-word chips add to its prompt
-    function regionLoraRows(r) {
+    function regionLoraRows(r, pop = false) {
         return E.loraRows(r.loras || [], {
+            pop,
             prompt: () => r.prompt,
             append: (words) => E.change(() => { for (const w of words) r.prompt = appendWord(r.prompt, w); }),
         });
@@ -218,7 +231,11 @@ export function* llm(E) {
         const scene = E.el("div", "rg-row scene");
         const sl = E.el("span", "rg-pseudo"); sl.textContent = "Whole image";
         sl.title = "LoRAs here act on the whole picture (and all text), like a normal LoRA";
-        const sceneAdd = E.ico("＋LoRA", "Add a LoRA for the whole image", (e) => { E.state.sceneLoras = E.state.sceneLoras || []; E.addLoraTo(E.state.sceneLoras, e, () => E.expanded.add(E.SCENE)); }, "txt");
+        // round 87: the row shows its LoRAs that are on as chips, and one LoRAs button; both open the scene prompt's
+        // pop-up on its LoRAs tab (the LoRA rows were a part of the list that opened under this row)
+        const openSceneLoras = () => E.editScene("positive", null, "loras");
+        const sceneAdd = E.loraButton(E.state.sceneLoras, "the whole image", openSceneLoras);
+        const sceneChips = E.loraChips(E.state.sceneLoras, openSceneLoras);
         // round 18: Control is a row you add (and remove with its ✕), not an always-there switch
         const ctlAdd = E.ico("＋Control", "Add a Control row: The model follows a color map, depth, canny or your own control_image "
             + "(ControlNet / control LoRA; the files are set in Settings > Region Genie > Control). Several rows combine where the "
@@ -227,33 +244,13 @@ export function* llm(E) {
             : "Add an Edit row: A LoRA of this node's own, used only in Edit Mode (any model)", () => E.addEditRow(), "txt");
         if (!E.isEdit()) editAdd.style.display = "none";
         // the Edit and Control LoRAs are set on their own rows, not listed here (round 23)
-        const ownLoras = (E.state.sceneLoras || []).filter((x) => !x.edit && !x.control);
-        const nScene = ownLoras.length;
+        const nScene = E.loraCount(E.state.sceneLoras).on;
         const sGap = E.el("span"); sGap.style.flex = "1 1 auto";
-        const sOpen = E.expanded.has(E.SCENE);
-        scene.append(E.el("span", "rg-grip pad"), E.chevron(E.SCENE, true, `the whole-image LoRAs (${nScene})`), sl, sGap, llmButton(LLM_SCENE), sceneAdd, ctlAdd, editAdd);
-        // a click anywhere on the row (but its buttons) opens or closes it, like the chevron
-        scene.title = `${sOpen ? "Hide" : "Show"} the LoRAs that act on the whole image (${nScene})`;
-        scene.addEventListener("pointerdown", (e) => {
-            if (e.button !== 0 || e.target.closest?.("button, input, select, textarea")) return;
-            e.stopPropagation();
-            if (E.expanded.has(E.SCENE)) E.expanded.delete(E.SCENE); else E.expanded.add(E.SCENE);
-            renderRegions();
-        });
+        scene.append(E.el("span", "rg-grip pad"), sl, nScene ? sceneChips : sGap, llmButton(LLM_SCENE), sceneAdd, ctlAdd, editAdd);
+        scene.classList.toggle("has-lora", nScene > 0);
+        scene.classList.toggle("has-chips", nScene > 0);
         E.regList.appendChild(scene);
-        if (sOpen && nScene) {
-            E.regList.appendChild(E.loraRows(E.state.sceneLoras, {
-                sceneOnly: true,
-                prompt: () => E.sceneW?.value || "",
-                append: (words) => { let v = E.sceneW?.value || ""; for (const w of words) v = appendWord(v, w); E.setWidget(E.sceneW, v); E.hint("Added to scene_prompt_positive"); renderRegions(); },
-            }));
-        } else if (sOpen) {
-            const empty = E.el("div", "rg-row lora");
-            const t = E.el("span", "rg-hint");
-            t.textContent = "No whole-image LoRAs yet: ＋LoRA adds one that acts on the whole picture, like Load LoRA";
-            empty.appendChild(t);
-            E.regList.appendChild(empty);
-        }
+        sceneChips.__rgFit?.();
 
         if (E.isEdit()) E.regList.appendChild(E.editRows());
         E.controls().forEach((c, k) => E.regList.appendChild(E.controlRow(c, k)));
@@ -265,10 +262,15 @@ export function* llm(E) {
             const pick = () => { if (E.activateRegion(r.id)) { markRegionRows(); E.requestDraw(); } };
             row.addEventListener("pointerdown", (e) => { if (e.target === row || e.target.classList.contains("rg-idx") || e.target.classList.contains("rg-cnt")) pick(); });
             const sw = E.regionSwatch(r, pick);
-            const ty = E.el("select", "rg-sel"); ty.title = "Region type.\nobject: A thing or area.\ncharacter: A person or character (also listed in character_boxes).\ntext: Text rendered in the image.";
-            for (const v of TYPES) ty.appendChild(E.opt(v, v));
-            ty.value = r.type;
-            ty.addEventListener("change", () => E.change(() => { r.type = ty.value; }));
+            // round 88: the type is an icon; a click lists the three to choose from (it was a dropdown with the words)
+            const TYPE_ICON = { object: "typeObject", character: "typeCharacter", text: "typeText" };
+            const ty = E.ico("@" + (TYPE_ICON[r.type] || "typeObject"), `Region type: ${r.type}. Click to change it.\nobject: A thing or area.\ncharacter: A person or character (also listed in character_boxes).\ntext: Text rendered in the image.`, () => {
+                const b = ty.getBoundingClientRect();
+                pick();
+                openMenu(b.left, b.bottom + 2, TYPES.map((v) => ({ label: v, icon: TYPE_ICON[v], checked: r.type === v, fn: () => { if (r.type !== v) E.change(() => { r.type = v; }); } })),
+                         { onClose: () => { if (E.wrap.isConnected) E.focusSink(); } });
+            });
+            ty.classList.add("rg-tybtn"); ty.dataset.type = r.type;
             const pr = E.el("textarea", "rg-prompt"); pr.rows = 1; pr.placeholder = r.fromImage ? "prompt for this image color" : "prompt";
             const dblTip = (v) => v || "";
             pr.value = r.prompt; pr.dataset.rid = String(r.id); pr.spellcheck = false;
@@ -290,17 +292,26 @@ export function* llm(E) {
             });
             autocompleteOnFocus(pr, E.node);
             const ix = E.el("span", "rg-idx"); ix.dataset.k = String(i);
-            const cnt = E.el("span", "rg-cnt"); cnt.title = `${lays.length} layer${lays.length === 1 ? "" : "s"} in this region (▶ at the start of the row shows them)`;
-            if (lays.length) { cnt.innerHTML = svgIcon("layers"); cnt.append(String(lays.length)); }
-            const kinds = E.subKinds(r);
+            // round 88: what the region holds, as small buttons that open its pop-up on that tab
+            const openTab = (tab) => () => E.editPrompt(r.id, null, "prompt", null, tab);
+            const cnt = E.el("button", "rg-cnt"); cnt.type = "button";
+            cnt.title = `${lays.length} layer${lays.length === 1 ? "" : "s"} in this region. Click to show and change them.`;
+            cnt.innerHTML = svgIcon("layers"); cnt.append(String(lays.length));
+            const pal = E.el("button", "rg-paldots"); pal.type = "button";
+            const palCols = r.paletteOn ? normPalette(r.palette) : [];
+            pal.title = `Color palette on (${palCols.length} color${palCols.length === 1 ? "" : "s"}). Click to show and change it.`;
+            for (const c of palCols) { const d = E.el("i"); d.style.background = c; pal.appendChild(d); }
+            if (!palCols.length) pal.style.display = "none";
+            for (const b of [cnt, pal]) b.addEventListener("pointerdown", (e) => e.stopPropagation());
+            cnt.addEventListener("click", (e) => { e.preventDefault(); openTab("layers")(); });
+            pal.addEventListener("click", (e) => { e.preventDefault(); openTab("palette")(); });
             const eye = E.ico(r.hidden ? "@eyeOff" : "@eye", r.hidden ? "Hidden: Not drawn and not output. Click to show it again (its layers keep their own show / hide)"
                 : "Show / hide this region: A hidden region is not drawn and is left out of every output; its layers keep their own show / hide",
                 () => E.change(() => { if (r.hidden) delete r.hidden; else r.hidden = true; }));
             eye.classList.add("rg-reye");
-            // ▶ opens the region: its options line (feather, palette, merge, move, delete), then its layers, LoRAs, palette
+            // (until round 88 a ▶ here opened the region's options line, layers and palette under its row)
             row.dataset.rid = String(r.id);
-            row.append(E.grip("region", r.id, pick), E.chevron(r.id, true, "this region's options (feather, palette, merge, move, delete)"
-                + kinds.map((k) => ", " + ({ layers: "layers", loras: "LoRAs", palette: "color palette" })[k]).join("")), eye, ix, sw, ty, prWrap);
+            row.append(E.grip("region", r.id, pick), eye, ix, sw, ty, prWrap);
             E.addExpandButton(pr, "Open this region in the pop-up editor", openPop("prompt", pr));
             if (r.type === "text") {
                 // text to render: grows while edited, like the prompt (Shift+Enter = new line)
@@ -319,18 +330,42 @@ export function* llm(E) {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); tx.blur(); }
                 });
                 const txWrap = E.el("span", "rg-pwrap rg-twrap"); txWrap.appendChild(tx);
-                row.appendChild(txWrap);
+                // round 88: a handle between the two fields sets how wide the text to render is (this region's, kept
+                // with the node in properties.rg_text_w; not a part of Undo, like the list's height)
+                const TW_MIN = 40, tsplit = E.el("span", "rg-tsplit");
+                tsplit.title = "Drag: More room for the prompt or for the text to render.\nDouble-click: The usual width.";
+                const setTw = (w) => { txWrap.style.flex = w ? `0 0 ${w}px` : ""; };
+                setTw(+E.node.properties?.rg_text_w?.[r.id] || 0);
+                tsplit.addEventListener("pointerdown", (e) => {
+                    if (e.button !== 0) return;
+                    e.preventDefault(); e.stopPropagation();
+                    const k = E.wrap.offsetWidth / Math.max(1, E.wrap.getBoundingClientRect().width);     // screen px -> CSS px (graph zoom)
+                    const x0 = e.clientX, w0 = txWrap.offsetWidth, most = Math.max(TW_MIN, w0 + prWrap.offsetWidth - 60);
+                    let w = w0;
+                    tsplit.setPointerCapture?.(e.pointerId); tsplit.classList.add("drag");
+                    const move = (ev) => { w = Math.round(Math.max(TW_MIN, Math.min(most, w0 - (ev.clientX - x0) * k))); setTw(w); pr.__rgPlaceExpand?.(); tx.__rgPlaceExpand?.(); };
+                    const up = () => {
+                        tsplit.classList.remove("drag");
+                        tsplit.removeEventListener("pointermove", move); tsplit.removeEventListener("pointerup", up); tsplit.removeEventListener("pointercancel", up);
+                        if (w === w0) return;
+                        E.node.properties = E.node.properties || {};
+                        E.node.properties.rg_text_w = { ...(E.node.properties.rg_text_w || {}), [r.id]: w };
+                        E.node.graph?.change?.();
+                    };
+                    tsplit.addEventListener("pointermove", move); tsplit.addEventListener("pointerup", up); tsplit.addEventListener("pointercancel", up);
+                });
+                tsplit.addEventListener("dblclick", (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    if (E.node.properties?.rg_text_w) { delete E.node.properties.rg_text_w[r.id]; E.node.graph?.change?.(); }
+                    setTw(0);
+                });
+                for (const ev of ["mousedown", "click"]) tsplit.addEventListener(ev, (e) => e.stopPropagation());
+                row.append(tsplit, txWrap);
                 E.addExpandButton(tx, "Open this region in the pop-up editor (its text to render)", openPop("text", tx));
             }
-            const addL = E.ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { r.loras = r.loras || []; E.addLoraTo(r.loras, e, () => E.openSub(r.id, "loras")); }, "txt");
-            const mergeAll = E.ico("@mergeAll", "Merge all visible layers of this region into one layer", () => E.mergeRegion(r.id));
-            mergeAll.disabled = lays.filter((l) => l.visible !== false).length < 2;
-            const up = E.ico("@up", "Move up: Earlier in the output order, and its layers in front", () => E.change(() => {
-                [E.state.regions[i - 1], E.state.regions[i]] = [E.state.regions[i], E.state.regions[i - 1]]; E.sortLayersByRegions(); }));
-            up.disabled = i === 0;
-            const down = E.ico("@down", "Move down: Later in the output order, and its layers behind", () => E.change(() => {
-                [E.state.regions[i + 1], E.state.regions[i]] = [E.state.regions[i], E.state.regions[i + 1]]; E.sortLayersByRegions(); }));
-            down.disabled = i === E.state.regions.length - 1;
+            // round 87: one LoRAs button; it opens the region's pop-up on its LoRAs tab
+            const addL = E.loraButton(r.loras, "this region", () => E.editPrompt(r.id, null, "prompt", null, "loras"));
+            row.classList.toggle("has-lora", E.loraCount(r.loras).on > 0);
             // on the row itself (round 73; on the opened region's options line until then), and in the row's right-click menu
             const del = E.ico("@close", "Delete region and its layers. Undo brings them back.\nRight-click the row: More for this region.", () => E.deleteRegion(r));
             del.classList.add("rg-rdel");
@@ -340,35 +375,20 @@ export function* llm(E) {
             });
             // the row itself keeps what is used all the time, so the prompt gets the room (round 34); the rest is on
             // the options line of the opened region
-            row.append(llmButton(r.id), ...(E.isEdit() ? [E.keepToggle(r)] : []), ...(E.controls().length ? [E.controlToggle(r)] : []), cnt, addL, del);
+            row.append(llmButton(r.id), ...(E.isEdit() ? [E.keepToggle(r)] : []), ...(E.controls().length ? [E.controlToggle(r)] : []), cnt, pal, addL, del);
             E.regList.appendChild(row);
-            if (E.expanded.has(r.id)) {
-                const opts = E.el("div", "rg-row opts"), gap = E.el("span"); gap.style.flex = "1 1 auto";
-                const fBox = E.featherBox(r), pal = E.paletteToggle(r);
-                const word = (text, forEl) => { const w = E.el("span", "rg-hint rg-word"); w.textContent = text; w.title = forEl.title || forEl.querySelector?.("[title]")?.title || ""; return w; };
-                opts.append(word("feather", fBox), fBox, word("palette", pal), pal, gap, mergeAll, up, down);
-                opts.addEventListener("pointerdown", (e) => { if (e.target === opts || e.target === gap) pick(); });
-                E.regList.appendChild(opts);
-                for (const k of kinds) {
-                    E.regList.appendChild(E.subHeader(r, k));
-                    if (!E.subOpen.has(`${r.id}:${k}`)) continue;
-                    const body = E.el("div", "rg-subbody");
-                    if (k === "layers") body.appendChild(E.layerRows(r.id));
-                    else if (k === "loras") { body.dataset.loras = String(r.id); body.appendChild(regionLoraRows(r)); }
-                    else body.appendChild(E.paletteRow(r, false));
-                    E.regList.appendChild(body);
-                }
-            }
         });
         E.regList.scrollTop = scroll;
+        E.syncLoraAll();
+        E.markOpenField();
         E.idxKey = "";
         E.updateRegionIndices();
     }
     function refreshChips(rid) {                   // trigger chips follow prompt edits
         const r = E.regionById(rid);
-        const box = E.regList.querySelector(`[data-loras="${rid}"]`);
+        const box = E.editor?.rid === rid ? E.editor.box.querySelector(".rg-pop-lorarows") : null;      // (the pop-up's LoRAs tab)
         if (!r || !box || !(r.loras || []).length) return;
-        box.replaceChildren(regionLoraRows(r));
+        box.replaceChildren(regionLoraRows(r, true));
     }
     function markRegionRows() {
         const rows = [...E.regList.querySelectorAll(".rg-row.region")];
@@ -376,6 +396,6 @@ export function* llm(E) {
         rows.forEach((row, k) => row.classList.toggle("sel", ids[k] === E.curRegion));
     }
     function markLayerRows() {
-        for (const row of E.regList.querySelectorAll(".rg-row.layer")) row.classList.toggle("sel", Number(row.dataset.lid) === E.selId);
+        for (const row of (E.editor?.box.querySelectorAll(".rg-row.layer") || [])) row.classList.toggle("sel", Number(row.dataset.lid) === E.selId);
     }
 }

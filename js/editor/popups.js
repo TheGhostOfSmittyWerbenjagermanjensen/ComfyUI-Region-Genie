@@ -9,7 +9,7 @@ import { keyIs, keyUpIs } from "../rg_keys.js";
 
 export function* popups(E) {
     Object.assign(E, {
-        applyFieldFonts, closeEditor, editPrompt, editScene,
+        applyFieldFonts, closeEditor, editPrompt, editScene, markOpenField,
     });
     yield;
 
@@ -21,6 +21,7 @@ export function* popups(E) {
     // in E.textHist for as long as the node lives). ◀ / ▶ step through every text field of the node.
     const histOf = E.histOf;                       // (core.js: the node's own text boxes use the same steps)
     const POP_W = { scene: 640, region: 560 };
+    const POP_MIN_W = { scene: 300, region: 430 };      // (a region's pop-up has five tabs and the layer rows: narrower would cut them)
     const CLOSE_TIP = "Close (Esc).\nThe text stays as it is: Undo takes a change back.";
     const FS_POP = { scene: SET.fsPopScene, prompt: SET.fsPopRegion, text: SET.fsPopText };
     const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -36,14 +37,14 @@ export function* popups(E) {
             box.style.top = clampN(parseFloat(box.style.top) || 6, 0, Math.max(0, H - 40)) + "px";
         };
         if (ed.at) {
-            box.style.width = clampN(Math.round(ed.at.width), 240, Math.max(240, W - 12)) + "px";
+            box.style.width = clampN(Math.round(ed.at.width), POP_MIN_W[kind], Math.max(POP_MIN_W[kind], W - 12)) + "px";
             box.style.height = clampN(Math.round(ed.at.height), 160, Math.max(160, H - 12)) + "px";
             box.classList.add("sized");
             if (!ed.placed) { ed.placed = true; box.style.left = ed.at.left + "px"; box.style.top = ed.at.top + "px"; }
             keepOn(); return;
         }
         const sz = popSizes()[kind] || {};
-        const w = clampN(Math.round(sz.w || POP_W[kind]), 240, Math.max(240, W - 12));
+        const w = clampN(Math.round(sz.w || POP_W[kind]), POP_MIN_W[kind], Math.max(POP_MIN_W[kind], W - 12));
         box.style.width = w + "px";
         box.classList.remove("sized");
         const h = sz.h || naturalHeight(box, [...box.querySelectorAll("textarea")]);
@@ -52,6 +53,10 @@ export function* popups(E) {
         box.classList.add("sized");
         if (ed.placed) { keepOn(); return; }
         ed.placed = true;
+        // round 91: the height the pop-up ends up with is worked out before it is placed (a tab that holds more than
+        // the saved size made it grow afterwards, and a pop-up that grew past the window's lower edge was pushed up
+        // over its own field): so it goes below its field when it fits there, above it otherwise
+        popGrow(box);
         autoPlace(w, box.offsetHeight, W, H);
         keepOn();
     }
@@ -72,7 +77,80 @@ export function* popups(E) {
         const at = { left: b.offsetLeft, top: b.offsetTop, width: b.offsetWidth, height: b.offsetHeight };
         let i = list.findIndex((t) => t[0] === ed.target[0] && t[1] === ed.target[1]);
         const t = list[((i < 0 ? 0 : i) + dir + list.length) % list.length];
-        if (t[0] === "scene") editScene(t[1], at); else editPrompt(t[1], null, "prompt", at);
+        if (t[0] === "scene") editScene(t[1], at, ed.tabs?.cur); else editPrompt(t[1], null, "prompt", at, ed.tabs?.cur);
+    }
+    // The tabs of a pop-up (round 87): what a row holds, each on its own tab (Prompt, LoRAs; layers and the rest later).
+    // Every pane lies in the same place and the pop-up is as tall as the tallest one, so it keeps its size and its
+    // place when the tab is switched. defs: [[id, label, tooltip]]; a single tab shows no tab bar.
+    function popTabs(defs, first, onSwitch) {
+        const bar = E.el("div", "rg-pop-tabs"), panes = E.el("div", "rg-pop-panes"), pane = {}, btn = {};
+        const t = { bar, panes, pane, cur: null,
+            show(id) { t.cur = id; for (const [k] of defs) { pane[k].classList.toggle("off", k !== id); btn[k].classList.toggle("on", k === id); } },
+            // the number on a tab ("2/3"); lit: amber (something there is switched on)
+            count(id, text, lit) { const c = btn[id].__cnt, t = text ? `(${text})` : ""; if (c.textContent !== t) c.textContent = t; c.classList.toggle("lit", !!lit); } };
+        for (const [id, label, tip] of defs) {
+            const b = E.el("button", "rg-btn"); b.type = "button"; b.title = tip; b.dataset.tab = id;
+            const l = E.el("span"); l.textContent = label;
+            const c = E.el("em"); b.__cnt = c;
+            b.append(l, c);
+            b.addEventListener("click", (e) => { e.preventDefault(); if (t.cur !== id) { t.show(id); onSwitch?.(id); } });
+            btn[id] = b; bar.appendChild(b);
+            pane[id] = E.el("div", "rg-pop-pane"); pane[id].dataset.pane = id; panes.appendChild(pane[id]);
+        }
+        if (defs.length < 2) bar.style.display = "none";
+        t.show(defs.some((d) => d[0] === first) ? first : defs[0][0]);
+        return t;
+    }
+    const TAB_TIPS = { prompt: "The prompt and what goes with it.", loras: "The LoRAs: On / off, the file, the strength, the trigger words. Drag a row by its grip to move it.",
+                       layers: "The layers: What is drawn in this region. Drag a row by its grip to move it in front of or behind the others.",
+                       palette: "The color palette: Up to 5 colors this region should use.",
+                       options: "The rest: Feather, the region's place in the order, merging its layers, hiding and deleting it." };
+    // a line of a pop-up's Options tab: what it is, then its controls
+    const optLine = (label, ...kids) => {
+        const l = E.el("span", "rg-pop-optl"); l.textContent = label;
+        const c = E.el("span", "rg-row rg-pop-optc"); c.append(...kids.filter(Boolean));       // (rg-row: the small toggles take their look from it)
+        return [l, c];
+    };
+    const optNote = (text) => { const n = E.el("span", "rg-hint"); n.textContent = text; return n; };
+    // Undo / Redo in a pop-up while no text has the cursor (its LoRAs tab): the editor's own, so a LoRA moved, switched
+    // or removed there comes back. In a text field the keys stay that field's (its own text steps).
+    function popUndoKeys(e) {
+        const t = e.target;
+        if (t?.tagName === "TEXTAREA" || (t?.tagName === "INPUT" && !["checkbox", "button"].includes(t.type))) return false;
+        const undo = keyIs(e, "edit.undo"), redo = keyIs(e, "edit.redo");
+        if (!undo && !redo) return false;
+        e.preventDefault();
+        if (undo) E.undo(); else E.redo();
+        return true;
+    }
+    // never a scroll bar: when what a pop-up holds is taller than the pop-up (a LoRA was added), it grows, up to the window
+    // A control of a pop-up that is redrawn by its own click (a switch, a LoRA row) loses the keyboard focus with its
+    // old element: the pop-up takes it, so Esc and the Undo keys still reach it. Only when nothing else has the focus.
+    function popKeepFocus(box) {
+        const a = document.activeElement;
+        if (box.isConnected && (!a || a === document.body)) box.focus({ preventScroll: true });
+    }
+    // (a guideline of the owner's, not a law: no scroll bar where it can be avoided, and never a horizontal one. A
+    // pop-up taller than the window scrolls: that is the one case left.)
+    function popGrow(box) {
+        const over = box.scrollHeight - box.clientHeight, H = window.innerHeight;
+        if (over <= 1) return false;
+        box.style.height = clampN(box.offsetHeight + over, 160, Math.max(160, H - 12)) + "px";
+        return true;
+    }
+    function popFit(box) {
+        const H = window.innerHeight;
+        if (popGrow(box) && box.offsetTop + box.offsetHeight > H - 6) box.style.top = Math.max(6, H - 6 - box.offsetHeight) + "px";
+    }
+    // the LoRAs tab of a pop-up: the rows (or a line that says there are none), and ＋LoRA under them
+    // headBox, label: the switch for all of the list's LoRAs (round 90), above the rows while there are any
+    function fillLoraTab(headBox, label, rowsBox, addBox, list, rows, tip, onAdd) {
+        const sw = E.loraSwitch(list, label);
+        headBox.replaceChildren(...(sw ? [sw] : []));
+        headBox.style.display = sw ? "" : "none";
+        if (E.ownLoras(list).length) rowsBox.replaceChildren(rows());
+        else { const h = E.el("span", "rg-hint"); h.textContent = "No LoRAs here yet."; rowsBox.replaceChildren(h); }
+        addBox.replaceChildren(E.ico("＋LoRA", tip, onAdd, "txt"));
     }
     // ◀ / ▶, Undo / Redo (the field in use: curHist()), A− / A+ (the field in use: curCat()), dragging by the title bar,
     // the resize grip
@@ -128,7 +206,7 @@ export function* popups(E) {
             if (e.button !== 0) return;
             const w0 = box.offsetWidth, h0 = box.offsetHeight, W = window.innerWidth, H = window.innerHeight;
             drag(e, (dx, dy) => {
-                box.style.width = clampN(w0 + dx, 240, Math.max(240, W - box.offsetLeft - 6)) + "px";
+                box.style.width = clampN(w0 + dx, POP_MIN_W[kind], Math.max(POP_MIN_W[kind], W - box.offsetLeft - 6)) + "px";
                 box.style.height = clampN(h0 + dy, 160, Math.max(160, H - box.offsetTop - 6)) + "px";
                 box.style.maxHeight = ""; box.classList.add("sized");
             }, () => {
@@ -166,11 +244,23 @@ export function* popups(E) {
             else { E.wrap.style.removeProperty(`--rg-fs-${n}`); E.wrap.style.removeProperty(`--rg-lh-${n}`); }
         }
     }
+    // The text field whose pop-up is open is outlined (round 91): a region's prompt (and its text to render) in the
+    // list, a scene prompt's own box on the node, and its box in the large editor. The list's fields are made anew
+    // with every redraw, so this is called after each (renderRegions) as well as when a pop-up opens or closes.
+    function markOpenField() {
+        const ed = E.editor, open = new Set();
+        if (ed?.rid != null) for (const t of E.regList.querySelectorAll(`.rg-row.region[data-rid="${ed.rid}"] textarea`)) open.add(t);
+        if (ed?.scene) { const t = E.sceneTA[ed.scene]; if (t) open.add(t); const b = E.big?.fields?.find((f) => f.which === ed.scene)?.ta; if (b) open.add(b); }
+        for (const t of [...E.regList.querySelectorAll("textarea.rg-pop-open"), ...Object.values(E.sceneTA), ...(E.big?.fields || []).map((f) => f.ta)]) if (t && !open.has(t)) t.classList.remove("rg-pop-open");
+        for (const t of open) t.classList.add("rg-pop-open");
+    }
     function closeEditor(commit = true) {
         if (!E.editor) return;
         const ed = E.editor;
         if (ed.field) ed.endField(!commit);
         E.editor = null;
+        markOpenField();
+        ed.pal?.flush?.(); ed.pal?.picker?.close();        // the Palette tab's color picker: its last change is kept
         ed.acCtl?.dispose();
         ed.box.remove();
         E.refreshUI();
@@ -178,7 +268,8 @@ export function* popups(E) {
     }
     // rect: the label on the canvas it opens from; null = from the region's row in the list. focus: "prompt" | "text"
     // at: { left, top, width, height } to open at (stepping with ◀ / ▶)
-    function editPrompt(rid, rect, focus = "prompt", at = null) {
+    // tab: the tab it opens on ("prompt" | "loras")
+    function editPrompt(rid, rect, focus = "prompt", at = null, tab = "prompt") {
         closeEditor(true);
         const r = E.regionById(rid);
         if (!r) return;
@@ -189,6 +280,7 @@ export function* popups(E) {
         box.dataset.captureWheel = "true";
         box.addEventListener("keydown", (e) => {
             e.stopPropagation();                           // editor shortcuts (Delete, V, B, ...) stay off
+            if (popUndoKeys(e)) return;
             const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
             if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
             if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); if (!closeComfyMenus()) closeEditor(true); }
@@ -260,11 +352,24 @@ export function* popups(E) {
         const dyn = E.el("div", "rg-pop-dyn");
         const foot = E.el("div", "rg-pop-foot");
         foot.textContent = popFootText();
-        box.append(head, types, prompt.wrapF, text.wrapF, dyn, foot);
+        // round 88: everything that was under the region's row in the list is on a tab here
+        const tabs = popTabs([["prompt", "Prompt", TAB_TIPS.prompt], ["loras", "LoRAs", TAB_TIPS.loras], ["layers", "Layers", TAB_TIPS.layers],
+                              ["palette", "Palette", TAB_TIPS.palette], ["options", "Options", TAB_TIPS.options]], tab,
+                             (id) => { if (id === "prompt") prompt.ta.focus(); else box.focus(); });
+        const loraRowsBox = E.el("div", "rg-pop-lorarows"), loraAddBox = E.el("div", "rg-row rg-pop-addl"), loraHeadBox = E.el("div", "rg-pop-lorahead");
+        const layerRowsBox = E.el("div", "rg-pop-layers"), layerBar = E.el("div", "rg-row rg-pop-addl");
+        const palBox = E.el("div", "rg-pop-pal"), optBox = E.el("div", "rg-pop-opts");
+        tabs.pane.prompt.append(types, prompt.wrapF, text.wrapF, dyn);
+        tabs.pane.loras.append(loraHeadBox, loraRowsBox, loraAddBox);
+        tabs.pane.layers.append(layerRowsBox, layerBar);
+        tabs.pane.palette.append(palBox);
+        tabs.pane.options.append(optBox);
+        box.tabIndex = -1;
+        box.append(head, tabs.bar, tabs.panes, foot);
         document.body.appendChild(box);
 
         const ed = {
-            rid, box, field: null, at, target: ["region", rid],
+            rid, box, field: null, at, target: ["region", rid], tabs, pal: {},
             // finish editing a text field: one undo step (E.endText()), or put the old text back (cancel: the region is gone)
             endField(cancel) {
                 const f = ed.field;
@@ -289,7 +394,7 @@ export function* popups(E) {
                 num.classList.toggle("none", idx == null);
                 num.title = idx == null ? "No visible pixels yet" : `Output index ${idx}`;
                 sw.style.background = E.colorOf(rid);
-                box.style.borderColor = E.colorOf(rid) || "#5b8fd0";
+                box.style.borderColor = E.colorOf(rid) || "var(--rg-accent,#5b8fd0)";
                 for (const [t, b] of Object.entries(typeBtns)) b.classList.toggle("on", rr.type === t);
                 text.wrapF.style.display = rr.type === "text" ? "" : "none";
                 prompt.ta.__rgSyncUse?.(); text.ta.__rgSyncUse?.();
@@ -297,15 +402,48 @@ export function* popups(E) {
                     if (document.activeElement !== f.ta && f.ta.value !== (rr[key] || "")) f.ta.value = rr[key] || "";
                     f.ta.__rgHist.sync();                    // a change made elsewhere (the LLM, the list) is a step too
                 }
-                const addL = E.ico("＋LoRA", "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)", (e) => { rr.loras = rr.loras || []; E.addLoraTo(rr.loras, e, () => E.openSub(rr.id, "loras")); }, "txt");
                 // one row (round 43). Left: the color palette (its on / off button, the colors, +). Right: everything
                 // else: kept / changed (Edit Mode), feather, the tag list, the wildcard list, the LLM, ＋LoRA
-                const ctl = E.paletteRow(rr, true);
-                ctl.classList.add("pop-ctl");
-                ctl.append(flexGap(), ...(E.isEdit() ? [E.keepToggle(rr)] : []), E.featherBox(rr), ...popTools(ed, wcPick), E.llmButton(rr.id, "pop"), addL);
-                const loras = E.el("div", "rg-pop-loras");
-                if ((rr.loras || []).length) loras.appendChild(E.regionLoraRows(rr));
-                dyn.replaceChildren(ctl, loras);
+                // the Prompt tab's bottom row: what belongs to the text (the tag list, the wildcard list, the LLM)
+                const ctl = E.el("div", "rg-row pop-ctl");
+                ctl.append(flexGap(), ...popTools(ed, wcPick), E.llmButton(rr.id, "pop"));
+                dyn.replaceChildren(ctl);
+                // the Layers tab: the region's pose figures and layers (the rows the list had), a new layer, merge all
+                const lays = E.listedOf(rid), nPose = E.posesOf(rid).length;
+                tabs.count("layers", lays.length + nPose ? String(lays.length + nPose) : "", false);
+                const act = document.activeElement, keepLid = layerRowsBox.contains(act) && act.tagName === "INPUT" ? act.closest(".rg-row.layer")?.dataset.lid : null;
+                if (lays.length + nPose) layerRowsBox.replaceChildren(E.layerRows(rid));
+                else layerRowsBox.replaceChildren(optNote("No layers yet: Draw on the canvas with this region selected, or add an empty layer."));
+                if (keepLid) layerRowsBox.querySelector(`.rg-row.layer[data-lid="${keepLid}"] input[type=text]`)?.focus();
+                const addLay = E.ico("@layerAdd", "Add an empty layer on top of this region's layers; brush, lasso and fill then go into it", () => { E.curRegion = rid; E.addLayerBtn.click(); });
+                const mergeAll = E.ico("@mergeAll", "Merge all visible layers of this region into one layer", () => E.mergeRegion(rid));
+                mergeAll.disabled = lays.filter((l) => l.visible !== false).length < 2;
+                layerBar.replaceChildren(addLay, mergeAll);
+                // the Palette tab
+                E.paletteTab(palBox, rr, ed.pal);
+                const palN = (rr.palette || []).length;
+                tabs.count("palette", palN ? String(palN) : "", palN > 0 && !!rr.paletteOn);
+                // the Options tab: one line per thing
+                const k2 = E.state.regions.indexOf(rr), nReg = E.state.regions.length;
+                const swap = (d) => E.change(() => { [E.state.regions[k2 + d], E.state.regions[k2]] = [E.state.regions[k2], E.state.regions[k2 + d]]; E.sortLayersByRegions(); });
+                const up = E.ico("@up", "Move up: Earlier in the output order, and its layers in front", () => swap(-1)); up.disabled = k2 <= 0;
+                const down = E.ico("@down", "Move down: Later in the output order, and its layers behind", () => swap(1)); down.disabled = k2 >= nReg - 1;
+                const eye = E.ico(rr.hidden ? "@eyeOff" : "@eye", rr.hidden ? "Hidden: Not drawn and not output. Click to show it again"
+                    : "Show / hide this region: A hidden region is not drawn and is left out of every output", () => E.change(() => { if (rr.hidden) delete rr.hidden; else rr.hidden = true; }));
+                const del = E.ico("@close", "Delete region and its layers. Undo brings them back.", () => E.deleteRegion(rr));
+                optBox.replaceChildren(
+                    ...optLine("Feather", E.featherBox(rr), optNote("px; the chain shares the value with the other regions")),
+                    ...(E.isEdit() ? optLine("Edit Mode", E.keepToggle(rr), optNote("whether this region is kept or changed")) : []),
+                    ...(E.controls().length ? optLine("Control", E.controlToggle(rr), optNote("whether the Control rows act in this region")) : []),
+                    ...optLine("Order", up, down, optNote(`region ${k2 + 1} of ${nReg}; the top one is in front`)),
+                    ...optLine("Show", eye, optNote(rr.hidden ? "hidden: not drawn, not output" : "shown")),
+                    ...optLine("Delete", del, optNote("the region and its layers")));
+                // the LoRAs tab (round 87; they were rows under the prompt)
+                const n = E.loraCount(rr.loras);
+                tabs.count("loras", n.all ? (n.on === n.all ? String(n.on) : `${n.on}/${n.all}`) : "", n.on > 0);
+                fillLoraTab(loraHeadBox, "This region's LoRAs", loraRowsBox, loraAddBox, rr.loras, () => E.regionLoraRows(rr, true),
+                    "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)",
+                    (e) => { rr.loras = rr.loras || []; E.addLoraTo(rr.loras, e); });
                 ed.place();
             },
             placed: false,
@@ -317,19 +455,21 @@ export function* popups(E) {
                 if (!rect) { placeBy(box, { left: cr.left, right: cr.right, top: cr.top - 4, bottom: cr.top - 4 }, w, h, W, H, true); return; }
                 placeBy(box, { left: cr.left + rect.x0 * k, right: cr.left + rect.x1 * k, top: cr.top + rect.y0 * k - 2,
                                bottom: cr.top + rect.y1 * k + 2 }, w, h, W, H, true);
-            }); },
+            }); popFit(box); popKeepFocus(box); },
         };
         E.editor = ed;
+        markOpenField();
         popFrame(ed, "region", head, () => (lastTa === text.ta ? "text" : "prompt"),
                  () => { applyPopFont(prompt.ta, "prompt"); applyPopFont(text.ta, "text"); }, () => (lastTa || prompt.ta).__rgHist);
         ed.refresh();
         const first = focus === "text" && r.type === "text" ? text : prompt;
+        if (tabs.cur !== "prompt") { box.focus(); return; }
         first.ta.focus(); first.ta.setSelectionRange(first.ta.value.length, first.ta.value.length);
     }
     // pop-up editor for scene_prompt_positive / _negative / _background (double-click the text box).
     // Positive: also the LLM Prompt Enhancer and the whole-image LoRAs. Esc or the close button closes it (the text
     // stays), Enter is a new line.
-    function editScene(which, at = null) {
+    function editScene(which, at = null, tab = "prompt") {
         closeEditor(true);
         const pos = which === "positive";
         const w = { positive: E.sceneW, negative: E.sceneNegW, background: E.sceneBgW }[which];
@@ -340,6 +480,7 @@ export function* popups(E) {
         box.dataset.captureWheel = "true";
         box.addEventListener("keydown", (e) => {
             e.stopPropagation();
+            if (popUndoKeys(e)) return;
             const dir = popNavDir(e);                 // the previous / next field key (Settings; Page Up / Page Down)
             if (dir && !autocompleteOpen(e.target, e)) { e.preventDefault(); popStep(dir); return; }
             if (e.key === "Escape" && !autocompleteOpen(e.target, e)) { e.preventDefault(); if (!closeComfyMenus()) closeEditor(true); }
@@ -384,10 +525,17 @@ export function* popups(E) {
         const foot = E.el("div", "rg-pop-foot");
         foot.textContent = popFootText();
         const useRow = E.el("div", "rg-pop-lbl"); useRow.append(useS);
-        box.append(head, useRow, wrapF, dyn, foot);
+        // the scene prompt's pop-up has the whole image's LoRAs on a tab of their own (round 87); the others have one pane
+        const tabs = popTabs(pos ? [["prompt", "Prompt", TAB_TIPS.prompt], ["loras", "LoRAs", TAB_TIPS.loras]] : [["prompt", "Prompt", TAB_TIPS.prompt]], tab,
+                             (id) => { if (id === "prompt") ta.focus(); else box.focus(); });
+        const loraRowsBox = E.el("div", "rg-pop-lorarows"), loraAddBox = E.el("div", "rg-row rg-pop-addl"), loraHeadBox = E.el("div", "rg-pop-lorahead");
+        tabs.pane.prompt.append(useRow, wrapF, dyn);
+        if (pos) tabs.pane.loras.append(loraHeadBox, loraRowsBox, loraAddBox);
+        box.tabIndex = -1;
+        box.append(head, tabs.bar, tabs.panes, foot);
         document.body.appendChild(box);
         const ed = {
-            scene: which, which, box, field: { cancelable: true }, at, target: ["scene", which],
+            scene: which, which, box, field: { cancelable: true }, at, target: ["scene", which], tabs,
             endField() {
                 ed.field = null;
                 E.endText();
@@ -397,7 +545,7 @@ export function* popups(E) {
                 if (document.activeElement !== ta && ta.value !== String(w.value ?? "")) ta.value = String(w.value ?? "");
                 hist.sync();                                 // a change made elsewhere (the LLM, a LoRA's words) is a step too
                 syncUseS();
-                box.style.borderColor = "#5b8fd0";
+                box.style.borderColor = "var(--rg-accent,#5b8fd0)";
                 const ctl = E.el("div", "rg-row pop-ctl");
                 // the bottom row, on the right: the tag list and the wildcard list (then, positive only: the LLM, ＋LoRA)
                 if (!pos) {
@@ -406,41 +554,44 @@ export function* popups(E) {
                     ctl.style.display = tools.some((t) => t.style.display !== "none") ? "" : "none";
                     dyn.replaceChildren(ctl); ed.place(); return;
                 }
-                const lbl = E.el("span", "rg-hint"); lbl.textContent = "Whole image";
-                lbl.title = "LoRAs here act on the whole picture (and all text), like a normal LoRA";
-                const gap = flexGap();
-                const addL = E.ico("＋LoRA", "Add a LoRA for the whole image", (e) => {
-                    E.state.sceneLoras = E.state.sceneLoras || [];
-                    E.addLoraTo(E.state.sceneLoras, e, () => E.expanded.add(E.SCENE));
-                }, "txt");
-                ctl.append(lbl, gap, ...popTools(ed, wcPickS), E.llmButton(E.LLM_SCENE, "pop"), addL);
-                const loras = E.el("div", "rg-pop-loras");
-                if ((E.state.sceneLoras || []).length) {
-                    loras.appendChild(E.loraRows(E.state.sceneLoras, {
-                        prompt: () => String(E.sceneW?.value ?? ""),
-                        append: (words) => {
-                            let v = String(E.sceneW?.value ?? "");
-                            for (const wd of words) v = appendWord(v, wd);
-                            E.setWidget(E.sceneW, v); ta.value = v; E.renderRegions();
-                        },
-                    }));
-                }
-                dyn.replaceChildren(ctl, loras);
+                ctl.append(flexGap(), ...popTools(ed, wcPickS), E.llmButton(E.LLM_SCENE, "pop"));
+                dyn.replaceChildren(ctl);
+                const n = E.loraCount(E.state.sceneLoras);
+                tabs.count("loras", n.all ? (n.on === n.all ? String(n.on) : `${n.on}/${n.all}`) : "", n.on > 0);
+                fillLoraTab(loraHeadBox, "The whole image's LoRAs", loraRowsBox, loraAddBox, E.state.sceneLoras, () => E.loraRows(E.state.sceneLoras, {
+                    pop: true, sceneOnly: true,
+                    prompt: () => String(E.sceneW?.value ?? ""),
+                    append: (words) => {
+                        let v = String(E.sceneW?.value ?? "");
+                        for (const wd of words) v = appendWord(v, wd);
+                        E.setWidget(E.sceneW, v); ta.value = v; E.renderRegions(); E.editor?.refresh();
+                    },
+                }), "Add a LoRA for the whole image", (e) => { E.state.sceneLoras = E.state.sceneLoras || []; E.addLoraTo(E.state.sceneLoras, e); });
                 ed.place();
             },
             placed: false,
             place() { popLayout(ed, "scene", (wd, h, W, H) => {
+                // in the large editor: left of its scene box (the node's own field is behind the window)
+                const bf = E.big?.fields?.find((f) => f.which === which)?.ta;
+                if (bf?.isConnected && bf.offsetWidth) {
+                    const br = bf.getBoundingClientRect();
+                    box.style.left = Math.max(6, br.left - wd - 8) + "px";
+                    box.style.top = clampN(br.top, 6, Math.max(6, H - h - 6)) + "px";
+                    return;
+                }
                 // below (else above) the scene prompt's own text box; else at the top of the node's canvas
                 const t = E.sceneTA[which];
                 const r = t?.isConnected && t.offsetParent ? t.getBoundingClientRect() : null;
                 if (r && r.width) { placeBy(box, r, wd, h, W, H); return; }
                 const cr = E.cv.getBoundingClientRect();
                 placeBy(box, { left: cr.left, right: cr.right, top: cr.top - 4, bottom: cr.top - 4 }, wd, h, W, H, true);
-            }); },
+            }); popFit(box); popKeepFocus(box); },
         };
         E.editor = ed;
+        markOpenField();
         popFrame(ed, "scene", head, () => "scene", () => applyPopFont(ta, "scene"), () => hist);
         ed.refresh();
+        if (tabs.cur !== "prompt") { box.focus(); return; }
         ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
     }
     E.cv.addEventListener("pointerleave", () => { E.hover = null; E.requestDraw(); });

@@ -57,18 +57,18 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 
 - **Without regions** the node is a plain text-to-image prompt node, so the same workflow serves pictures with and without regions.
   - `scene_prompt_positive` and `scene_prompt_negative` are the prompts; `positive`, `negative`, `latent` and `model` go to the sampler as always.
-  - The size row sets the image size, and **＋LoRA** on *Whole image* adds LoRAs for the whole picture.
+  - The size row sets the image size, and the **＋LoRA** button on *Whole image* adds LoRAs for the whole picture.
   - `prompt` is then your scene prompt as plain text (Ideogram 4: its caption JSON with no elements). Hiding every region (the eye buttons) does the same without deleting anything.
 - **An empty canvas** shows two cards. They hide while the pointer is on the canvas.
   - **Start here: with regions** has three steps: pick a shape and drag a box (your first region), type its prompt (in the list, or double-click the middle of the region), connect and run.
-  - **Or without regions** says how to use the node for plain text-to-image: the two scene prompts, and LoRAs under *Whole image*.
+  - **Or without regions** says how to use the node for plain text-to-image: the two scene prompts, and LoRAs on *Whole image*.
 - **The line along the canvas's bottom edge** shows the keys and gestures of the tool in use (for the Rectangle: drag, Shift for equal sides, Alt from the centre).
   - It fades while the pointer is on the canvas (so it never covers what you work on), comes back when the pointer leaves, and shows for a few seconds when you switch tools.
   - The small **?** button in the canvas's lower right corner hides or shows the hints with one click (the same switch as in Settings).
   - **Settings > Region Genie > Canvas tools > Hints on the canvas** turns it and the first steps off.
 - **Tooltips:** point at any button, field or switch for what it does. A shortcut is shown as a key next to the text.
 - **In-app help:** select the node and press **Node Info** in ComfyUI's toolbar (or the Info tab of the side panel) for a short guide with a numbered picture of the node. Every node of the pack has one.
-- **Small buttons are easier to hit:** a click just above, below or beside a small button, a row's ▶ or its grip still counts (the area is at least 24 px tall).
+- **Small buttons are easier to hit:** a click just above, below or beside a small button, a row's grip still counts (the area is at least 24 px tall).
 
 ### Shortcuts
 
@@ -206,14 +206,20 @@ The row at the top of the node sets the size of the picture. Three buttons on th
 - **The region list** (under the canvas) is the output.
   - The number left of each swatch is the region's output index: the `index` to use in Mask Picker or BBoxes to Masks, and its position in every output. Regions without visible pixels show "–" and are left out, so the numbers below them shift.
   - Each region has a color, a type (object, character or text, plus the text to render; that field grows while you edit it too, Shift+Enter for a new line) and a prompt.
+    - The type is the icon before the prompt (a box, a person or a letter T): click it and choose from the three.
+    - A text region's row has a small handle between its prompt and its text to render: drag it to give one of them more room; double-click it for the usual width.
   - The list order is the output order and the stacking order: **drag a region by the grip** (the six dots at the start of its row) to another place in the list.
     - A line shows where it will land, and letting go outside the list changes nothing.
     - A click on the grip without dragging makes the region active, like a click in its prompt.
-    - ↑ ↓ on the region's options line (see *Opening a region*) move the region one step at a time.
+    - ↑ ↓ on the Options tab of the region's pop-up (see *A region's pop-up*) move the region one step at a time.
   - Its layers move with it (the top region is in front; holes keep their place). Click a region's swatch to change its color (display only). The prompt field expands while you edit it; Enter finishes.
   - The small **⤢** button in a prompt's (or text's) bottom-right corner opens the region's pop-up editor next to its row; double-click selects a word, as in any text field. Click a region to make it active: new shapes, paint and fills use it.
   - A layer turned into a hole (✂ on its row) cuts a black hole through the layers below it.
-- **A region's row** holds what is used all the time: show / hide, its number, color, type, the prompt (which gets most of the row), the LLM button, the layer count and ＋LoRA.
+- **A region's row** is one line and holds what is used all the time: show / hide, its number, color, type, the prompt (which gets most of the row), the LLM button, and three small buttons for what the region holds.
+  - **The layer count** (the layers icon and a number).
+  - **The palette's colors** as dots, while the palette is on.
+  - **The LoRAs button:** grey *＋LoRA* with no LoRAs, amber *LoRAs (3)* with LoRAs on (*(2/3)* when some are off), an amber outline *LoRAs (0/2)* when all are off. A row with a LoRA on has an amber edge.
+  - Each of the three opens the region's pop-up on that tab. Nothing opens under a row.
   - In Edit Mode also keep / change, and with a Control row its Control switch.
 - **Show / hide a region:** the eye button (open: shown, closed: hidden) before a region's number.
   - A hidden region isn't drawn and is left out of every output (masks, prompt, LoRAs, the color map, Edit Mode's mask), as if it had no pixels.
@@ -221,23 +227,46 @@ The row at the top of the node sets the size of the picture. Three buttons on th
   - Its layers keep their own show / hide settings, so showing it again brings it back exactly as it was.
   - Drawing into a hidden region (or adding a selection to it) shows it again.
 - **Delete a region:** the ✕ at the end of its row deletes it with its layers (Ctrl+Z brings it back).
-- **Right-click a region's row** (not in a text field): Edit prompt, Hide region, Move up / down, Delete region.
+- **Right-click a region's row** (not in a text field): Edit prompt, LoRAs, Layers, Color palette and Options (each opens the pop-up on that tab), Hide region, Move up / down, Delete region.
 
-### Opening a region
+### A region's pop-up
 
-- **Opening a region:** each region's ▶ chevron opens it.
-  - First comes its **options line**:
-    - **feather** (the value, the chain that links it and the dashed square for edges on the image border).
-    - **palette** (on / off).
-    - Then on the right: merge its layers (two lines joining into one) and ↑ ↓ move the region.
-  - Under it are its subsections: **Layers**, **LoRAs** and **Color palette** (only the ones it has). Each subsection has its own ▶ and starts closed; closing the region hides all of them.
-  - The *Whole image* row opens with a click anywhere on it (except its sparkle and ＋LoRA buttons) and shows its LoRAs, or a hint when it has none.
-  - The ▼ buttons above the list (▼ + layers icon, ▼ LoRAs, ▼ + palette icon) open or close that subsection in every region at once (LoRAs includes *Whole image*), and "▼ All" opens or closes everything.
-  - Adding a LoRA or turning a palette on opens its subsection; selecting a layer on the canvas opens its region's layers.
+Everything a region holds is in its pop-up, on five tabs. Open it with the **⤢** button of its prompt, one of the row's small buttons, the row's right-click menu, or a double-click on its label on the canvas.
+
+| Tab | What is on it |
+|---|---|
+| **Prompt** | The type, the prompt, the text to render, and the tag list, wildcard list and LLM button |
+| **LoRAs** | The region's LoRAs: on / off, file, strength, remove, trigger words; ＋LoRA under them |
+| **Layers** | The region's layers and pose figures, a new layer, merge all |
+| **Palette** | The color palette: on / off, its colors, and the color picker |
+| **Options** | Feather, the region's place in the order, show / hide, delete (in Edit Mode also keep / change; with a Control row its Control switch) |
+
+<img src="images/lora.png" alt="The LoRAs tab of a region's pop-up" width="500">
+
+*The LoRAs tab.*
+
+<img src="images/popup-layers.png" alt="The Layers tab of a region's pop-up" width="500">
+
+*The Layers tab.*
+
+<img src="images/popup-palette.png" alt="The Palette tab of a region's pop-up, with the color picker" width="500">
+
+*The Palette tab.*
+
+<img src="images/popup-options.png" alt="The Options tab of a region's pop-up" width="500">
+
+*The Options tab.*
+
+- The pop-up keeps its size and its place when you switch tabs. It is as tall as its fullest tab needs, so it has no scroll bar (only a pop-up taller than the window scrolls); it opens below its field where it fits, above it otherwise. Drag its corner to make it wider or narrower.
+- A number on a tab says how much is there (*LoRAs (2/3)*: two of three are on); amber means something there is switched on.
+- **Lists are reordered by their grips:** drag a LoRA or a layer by the six dots at the start of its row.
+- *Whole image* has no layers or palette: its LoRAs are on a **LoRAs** tab in the pop-up of `scene_prompt_positive`. Its row shows the LoRAs that are on as chips (name and strength; a long name is cut short, a *+2* chip stands for those that don't fit), and the same LoRAs button as a region's row.
+- **A list's LoRAs off:** the switch at the top of a LoRAs tab (*This region's LoRAs*, or *The whole image's LoRAs*) turns every LoRA of that list off; the next click turns the same ones back on. It says *On* while any of them is on.
+- **All LoRAs off:** the amber *LoRAs (7)* button in the list's header shows how many LoRAs are on in the node (*LoRAs off* when none is). A click switches every one off; the next click switches the same ones back on.
 
 ### Feather
 
-- **Feather** (on the region's options line: open the region with ▶): softens the region's mask edges by that many pixels, in `masks` and for its LoRAs, like Mask Picker's feather (default 0).
+- **Feather** (on the Options tab of the region's pop-up): softens the region's mask edges by that many pixels, in `masks` and for its LoRAs, like Mask Picker's feather (default 0).
   - The chain button links the value: all linked regions share one value; unlink a region to give it its own. The dashed-square button is that region's `feather_canvas_edges`: off (default) keeps edges on the image border solid, on fades them too.
   - Connect `model` (and `clip`) and use the `model` output for the sampler: see [LoRAs per region](regional-loras.md).
 
@@ -245,11 +274,13 @@ The row at the top of the node sets the size of the picture. Three buttons on th
 
 - **Colors** are picked with a built-in color picker like the one in Create Bounding Boxes (saturation/brightness square, hue bar, Hex / RGB / HSL fields); it works the same in legacy nodes and Nodes 2.0.
   - Changes show live; click outside, press Esc or Enter to close it. A whole pick is one undo step.
+  - On the Palette tab of a region's pop-up the picker is a part of the tab, under the colors: click a color, then change it there.
   - The copy button copies the color in the chosen format (`#4ecb8d`, `rgb(78, 203, 141)` or `hsl(150, 55%, 55%)`).
   - The paste button (or Ctrl+V while the picker has focus) reads a color in any of those formats, CSS color names, or three plain numbers.
   - If the browser blocks reading the clipboard, the picker asks you to press Ctrl+V instead.
-- **Color palette** (the palette icon on the region's options line; off by default): turns on a row of up to 5 colors under the region, like MOSS-Image's `palette` and Ideogram's `color_palette`.
-  - "+" adds a white swatch in its place ("+" moves right, or hides at 5 colors) and opens the color picker on it; closing the picker without changing it keeps the white swatch. Click a color to change it, right-click to remove it.
+- **Color palette** (the Palette tab of the region's pop-up; off by default): up to 5 colors for the region, like MOSS-Image's `palette` and Ideogram's `color_palette`.
+  - The switch at the top turns it on or off, and the word next to it says which it is (*On* in amber, or *Off*).
+  - "+" adds a white color and selects it. Click a color to select it and change it in the picker below; the bin at the right end of the row removes the selected one, and so does a right-click on a color.
   - The region is then shown in its **first palette color** everywhere: on the canvas, in the list and in `color_map`.
   - When that color is the same as (or very close to) black or another region's color, it is lightened or darkened a little so every region stays distinguishable.
   - The palette goes into `elements` (`color_palette`), `bboxes` (`palette`), the MOSS JSON `prompt` (`palette`, exactly as MOSS-Image Layout Prompt writes it) and the Ideogram JSON `prompt`, and Import reads it back.
@@ -257,18 +288,18 @@ The row at the top of the node sets the size of the picture. Three buttons on th
 
 ### LoRAs
 
-- **LoRAs** (MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5): "＋LoRA" on a region adds a LoRA that acts only inside that region; "＋LoRA" on *Whole image* adds one for the whole picture.
+- **LoRAs** (MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5): the LoRAs button of a region's row opens the LoRAs tab of its pop-up, where ＋LoRA adds a LoRA that acts only inside that region; the one on *Whole image* adds LoRAs for the whole picture.
   - A whole-image LoRA is merged into the model exactly like a Load LoRA (model only) node placed before the `model` input, so it costs no time while sampling and works with any model.
-  - Each LoRA row has on/off, the LoRA (ComfyUI's list menu, so Easy-Use / rgthree folder nesting works), strength and ✕.
+  - Each LoRA row has a grip (drag to reorder), on / off, the LoRA (ComfyUI's list menu, so Easy-Use / rgthree folder nesting works), strength and ✕.
   - Its **trigger words** are shown as chips. Click a chip to add it to the region's prompt (whole-image LoRAs: to `scene_prompt_positive`).
   - The words are read from the files model managers save next to the LoRA (`.cm-info.json` "TrainedWords", `.civitai.info`, LoRA Manager `.metadata.json`, A1111 `.json`, or the file's own metadata). The chip's tooltip names the file.
   - A ✓ chip is already in the prompt.
 
 ## Layers
 
-- **Layers** are the things you draw.
+- **Layers** are the things you draw. A region's layers are on the **Layers** tab of its pop-up (the layer count on its row opens it).
   - Each layer row has:
-    - The **grip**: a click selects the layer. Drag it above or below another layer, also another region's, or onto a region's row to put it on top of that region's layers.
+    - The **grip**: a click selects the layer. Drag it above or below another layer of the region, or onto another region's row in the list (where the pop-up doesn't cover it) to put it on top of that region's layers.
     - The eye (show / hide).
     - **✂ hole**. On: the layer cuts its area out of every layer below it, so no region is there; black in `color_map`.
       - It stays listed under its region, with a striped swatch, and is drawn striped on the canvas.
@@ -280,10 +311,10 @@ The row at the top of the node sets the size of the picture. Three buttons on th
     - Move to another region (two arrows, left and right).
     - Erase its contents (a backspace key).
     - Delete (a bin).
-  - The merge button on a region's options line merges all of its visible layers.
+  - Under the rows: a new empty layer, and merge all of the region's visible layers.
   - **Ctrl+C / Ctrl+X / Ctrl+V** copy, cut and paste the selected layer (click the canvas first so it has the keyboard): a pasted layer lands on top of the active region's layers, in the same place (with no active region, back in its own region).
   - It also pastes into another Region Genie node. With no layer selected, Ctrl+C / Ctrl+V do ComfyUI's usual node copy and paste.
-  - Selecting a layer on the canvas opens its region.
+  - Selecting a layer on the canvas marks its row on the Layers tab, when that pop-up is open.
   - Only visible pixels inside the image reach `masks`, `bboxes` and `color_map`.
 
 ## Tools
@@ -443,9 +474,10 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - The mouse wheel zooms, middle-drag or Space+drag pans, Fit (Home) resets the view, and Alt+wheel or `[` `]` changes brush size.
   - This is the same in Nodes 2.0: the wheel zooms the canvas, not the graph, while the pointer is over it.
 - **Labels** (the eye button, on by default): each region's output index and prompt are written **inside the region**, as much of the prompt as fits.
-  - A small filled **person** before the prompt marks a *character* region, and in Edit Mode a filled **lock** marks a region kept as it is; both are in the text's own color.
+  - The region's number and a mark for its type (a person, a box or a letter T) are on a line of their own above the prompt, centred over it; in Edit Mode a **lock** before the mark is a region kept as it is. A region too low for that line has them before the text.
   - In Edit Mode the label of a kept region lies on a dark plate (the region is only an outline over the picture it keeps, so the text would otherwise sit on the picture itself).
   - The text goes into the largest upright rectangle that lies inside the part of the region you can see (so it never runs over a neighbour or a region drawn on top), with a margin, centred; zooming in gives it more room.
+    - The margin is a setting (*room between a label and its region's edge*, 3% of the region's shorter side at first), and so is how the lines are lined up (*label text*: left-aligned at first, or centered).
   - It is white with a dark shadow, or black with a white glow where the region is light enough at its present opacity. There is no box behind it.
   - Its size is a setting (Settings > Region Genie > Text, *On the canvas: region labels*, 11 px at first): its size with the whole image in view.
     - Zooming in enlarges it with the image, up to *region labels, largest when zoomed in* (16 px at first; a value under the text size counts as the text size). Zooming out never makes it smaller.
@@ -455,7 +487,7 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - Double-click the text to open the **region editor**, all live:
     - Object / Character / Text buttons (the current type is highlighted).
     - A multi-line Prompt, and a multi-line Text for text regions.
-    - The region's feather, palette and LoRAs (with trigger-word chips).
+    - The region's LoRAs, layers, palette and options on their own tabs (see *A region's pop-up*).
   - Enter or a click outside closes it, Shift+Enter adds a line, Esc closes it and undoes the text you were editing. Each change is one undo step.
 
 ## Working from an image
@@ -498,13 +530,11 @@ Every text field of the node opens in a **pop-up editor**: a large text box that
 | | The bar itself | Drag to move the pop-up; double-click to put it back next to its field |
 | Region only | The color square | The region's color |
 | | Object / Character / Text | The region's type (Text adds a box for the text to render) |
-| | Color palette (left of the bottom row) | On / off, the colors, **+** |
-| | Feather | The value, the chain that links it to other regions, and edges on the image border |
-| | Kept / changed | Edit Mode only |
+| | Tabs | Prompt, LoRAs, Layers, Palette, Options (see *A region's pop-up*) |
 | Bottom row | Tag autocomplete | On / off |
 | | Wildcards | The wildcard list (ComfyUI Impact Pack) |
 | | LLM Prompt Enhancer | On / off for this field (not on `scene_prompt_negative`) |
-| | ＋LoRA | A LoRA for this region; for the whole image on `scene_prompt_positive`. Each LoRA row: on / off, file, strength, remove, trigger-word chips |
+| LoRAs tab | ＋LoRA | A LoRA for this region; for the whole image on `scene_prompt_positive`. Each LoRA row: grip, on / off, file, strength, remove, trigger-word chips |
 | Corner | ◢ grip | Drag to resize; double-click for the default size |
 
 The details:
@@ -528,13 +558,16 @@ The details:
   - They act on the text box you're typing in, one step per word or per pause in typing, and a text set by something else (the LLM, a wildcard, a LoRA's trigger words, "use the filled text") is a step too.
   - The steps of each field are kept while the workflow is open: close the pop-up, open it again later, and Undo still goes back, all the way to the text the field had when you first opened it.
   - Outside a pop-up, the same keys undo the editor's last step as before (a whole prompt edit is one step there).
-- **The bottom row of a pop-up.**
-  - In a region's pop-up, the color palette is on the left: its on / off button, the colors and **+**.
-  - Everything else is on the right of the same row: kept / changed (Edit Mode), feather, the tag autocomplete switch, the wildcard list (when ComfyUI Impact Pack is installed), the LLM Prompt Enhancer button and ＋LoRA.
-  - The scene prompts' pop-ups have the same right-hand group (the LLM button and ＋LoRA on `scene_prompt_positive` only).
+- **The bottom row of the Prompt tab:** the tag autocomplete switch, the wildcard list (when ComfyUI Impact Pack is installed) and the LLM Prompt Enhancer button (not on `scene_prompt_negative`).
+- **Undo and Redo on the other tabs:** while no text has the cursor, the Undo / Redo keys take back the editor's last step (a LoRA moved, a layer deleted).
 - **Esc closes what is on top first:** with a list or menu open over a pop-up, Esc closes that; the next Esc closes the pop-up.
+- **The field whose pop-up is open is outlined** in the highlight color, so you can see at a glance which field the pop-up belongs to: a region's prompt in the list, a scene prompt's box, the box in the large editor.
+- **The pack's two colors are yours to choose** (Settings > Region Genie > Region Genie node):
+  - *Highlight color* (a blue at first): what is selected, in use or lit: the active tool, a selected row, a text field with the cursor, a pop-up's border, the field whose pop-up is open.
+  - *Switched-on color* (an amber at first): LoRAs that are on, the switches, notes.
+  - Click the swatch to pick a color; *Default* puts the built-in one back. Useful when the built-in blue and amber are hard to tell apart for you.
 - **The pop-up button of a text box (⤢)** sits in the box's bottom-right corner, left of the scroll bar when the box has one, and in the middle of a region's one-line prompt box.
-  - Text stops before it, so nothing you type is hidden under the button or the scroll bar.
+  - It is a solid tile in the box's own color, so no text shows under it, and it turns blue under the pointer.
 - **`scene_prompt_positive` shows its LLM Prompt Enhancer:** the sparkles button is also in the box's corner, left of ⤢.
   - It is dimmed when off, lit when on. A click switches it, exactly like the button in the *Whole image* row.
   - The box has a blue outline while the enhancer is on.

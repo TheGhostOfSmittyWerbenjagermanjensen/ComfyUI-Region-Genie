@@ -117,9 +117,11 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // ---- drag layers: within a region, and onto another region
     const knight = byPrompt(await st(), "a knight"), cliff = byPrompt(await st(), "a windswept");
     await page.evaluate((rid) => { const n = window.__node, s = n.__rgState(); const l = s.layers.find((x) => x.region === rid); s.layers.push({ ...JSON.parse(JSON.stringify(l)), id: 99, name: "Second" }); n.__rgRefresh(); }, knight.id);
-    await page.locator('[title^="Show or hide everything in the list"]').click(); await page.waitForTimeout(100);
-    if (!(await page.locator(".rg-row.layer").count())) { await page.locator('[title^="Show or hide everything in the list"]').click(); await page.waitForTimeout(100); }
-    const lrow = (lid) => page.locator(`.rg-row.layer[data-lid="${lid}"]`);
+    // round 88: a region's layers are on the Layers tab of its pop-up (they were rows under its row in the list).
+    // The pop-up is moved off the list here, so the other region's row can be dropped on
+    await page.evaluate((rid) => window.__node.__rgEditTab(rid, "layers"), knight.id); await page.waitForTimeout(200);
+    await page.evaluate(() => { const b = document.querySelector(".rg-pop"); b.style.left = "6px"; b.style.top = "6px"; }); await page.waitForTimeout(80);
+    const lrow = (lid) => page.locator(`.rg-pop .rg-row.layer[data-lid="${lid}"]`);
     const first = (await st()).layers.find((l) => l.region === knight.id && l.id !== 99).id;
     const stackOf = async (rid) => (await st()).layers.filter((l) => l.region === rid).map((l) => l.id);
     check("the copy is on top of the knight's layers", (await stackOf(knight.id)).join() === `${first},99`);
@@ -137,6 +139,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.mouse.up(); await page.waitForTimeout(150);
     const moved = (await st()).layers.find((l) => l.id === 99);
     check("dropped on another region's row: the layer moves into that region, on top of its layers", moved.region === cliff.id && (await stackOf(cliff.id)).at(-1) === 99);
+    await page.evaluate(() => window.__node.__rgCloseEditor()); await page.waitForTimeout(80);
 
     // ---- round 41: the marks before a label's prompt are drawn shapes, not emoji: a person for a character region,
     // a lock for a region kept as it is in Edit Mode. They take 14 px each before the text.
@@ -146,7 +149,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const l0 = await raw(cliff.id);
     await setReg(cliff.id, { type: "character" });
     const l1 = await raw(cliff.id);
-    check(`a character region's label carries the person mark and still fits its region (at most ${14 * dprNow} canvas px wider; ${Math.round(l0?.w)} -> ${Math.round(l1?.w)})`, !!l0 && !l0.marks.length && l1.marks.join() === "person" && l1.w > l0.w * 0.8 && l1.w <= l0.w + 14 * dprNow + 2);
+    check(`a character region's label carries the person mark and still fits its region (at most ${14 * dprNow} canvas px wider; ${Math.round(l0?.w)} -> ${Math.round(l1?.w)})`, !!l0 && l0.marks.join() === "object" && l1.marks.join() === "person" && l1.w > l0.w * 0.8 && l1.w <= l0.w + 14 * dprNow + 2);
     const drawn = await page.evaluate(() => { const calls = []; const P = CanvasRenderingContext2D.prototype, f = P.fillText, fl = P.fill; let fills = 0;
         P.fillText = function (t) { calls.push(String(t)); return f.apply(this, arguments); }; P.fill = function (p) { if (p instanceof Path2D) fills++; return fl.apply(this, arguments); };
         window.__node.__rgRefresh();
@@ -170,7 +173,22 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator(".rg-foot .rg-seg .rg-btn").first().click(); await page.waitForTimeout(200);
     check("back in Generate mode: the lock goes, the person stays, and so does the plate", (await raw(cliff.id)).marks.join() === "person" && (await raw(cliff.id)).plate === false);
     await setReg(cliff.id, { type: "object", keep: false });
-    check("an object region has no mark", (await raw(cliff.id)).marks.length === 0);
+    check("an object region carries the object mark (round 88: every type has one)", (await raw(cliff.id)).marks.join() === "object");
+    await setReg(cliff.id, { type: "text", text: "HI" });
+    check("a text region carries the text mark", (await raw(cliff.id)).marks.join() === "text");
+    // round 88: the handle between a text region's prompt and its text to render
+    const tw = () => page.evaluate((rid) => { const row = document.querySelector(`.rg-row.region[data-rid="${rid}"]`); return { t: Math.round(row.querySelector(".rg-twrap").getBoundingClientRect().width), p: Math.round(row.querySelector(".rg-pwrap:not(.rg-twrap)").getBoundingClientRect().width), saved: window.__node.properties?.rg_text_w?.[rid] ?? null, handle: !!row.querySelector(".rg-tsplit") }; }, cliff.id);
+    const w0 = await tw();
+    const hb = await page.locator(`.rg-row.region[data-rid="${cliff.id}"] .rg-tsplit`).boundingBox();
+    await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2); await page.mouse.down(); await page.mouse.move(hb.x - 80, hb.y + hb.height / 2, { steps: 5 }); await page.mouse.up(); await page.waitForTimeout(150);
+    const w1 = await tw();
+    check(`a text region's row has a handle between its two fields; dragged left, the text field gets the room the prompt gives up (${JSON.stringify(w0)} -> ${JSON.stringify(w1)})`,
+          w0.handle && w1.t >= w0.t + 60 && w1.p <= w0.p - 60 && w1.saved === w1.t);
+    await page.evaluate(() => window.__node.__rgRefresh()); await page.waitForTimeout(150);
+    check("the width is kept when the list is drawn again", (await tw()).t === w1.t);
+    await page.locator(`.rg-row.region[data-rid="${cliff.id}"] .rg-tsplit`).dblclick(); await page.waitForTimeout(150);
+    check("a double-click on the handle gives the usual width back", (await tw()).t === w0.t && (await tw()).saved == null);
+    await setReg(cliff.id, { type: "object" });
 
     await page.screenshot({ path: require("path").join(__dirname, "out", "ui_labels_colors_drag.png"), fullPage: false });
     await browser.close();

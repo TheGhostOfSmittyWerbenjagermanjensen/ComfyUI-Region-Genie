@@ -12,6 +12,9 @@ import "./rg_tooltip.js";                 // the pack's own tooltip takes over e
 // (markPerson, markLock below).
 export const LABEL_MARKS = {
     person: { fill: "M8 1.6a3.1 3.1 0 1 0 0 6.2a3.1 3.1 0 0 0 0-6.2zM2.3 14.7a5.7 5.7 0 0 1 11.4 0z" },
+    // round 88: an object (a box: its three faces) and a text region (a letter T) carry a mark too
+    object: { fill: "M8 1.5l5.7 3.2L8 7.9 2.3 4.7zM2.3 6.2l5 2.8v5.6l-5-2.8zM13.7 6.2v5.6l-5 2.8V9z" },
+    text: { fill: "M2.8 2.2h10.4v3.3h-1.8V4.2H9.1v8h1.7v1.9H5.2v-1.9h1.7v-8H4.6v1.3H2.8z" },
     lock: { fill: "M4.1 7.1h7.8a1.6 1.6 0 0 1 1.6 1.6v4.5a1.6 1.6 0 0 1-1.6 1.6H4.1a1.6 1.6 0 0 1-1.6-1.6V8.7a1.6 1.6 0 0 1 1.6-1.6z",
             stroke: "M5.1 7.3V4.9a2.9 2.9 0 0 1 5.8 0v2.4", width: 1.8 },
 };
@@ -120,6 +123,9 @@ export const LUCIDE = {
     up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',   // arrow-up
     down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',   // arrow-down
     chevronRight: '<path d="m9 18 6-6-6-6"/>',   // chevron-right
+    typeObject: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',   // box
+    typeCharacter: '<circle cx="12" cy="7" r="4"/><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>',   // user
+    typeText: '<path d="M12 4v16"/><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M9 20h6"/>',   // type
     chevronDown: '<path d="m6 9 6 6 6-6"/>',   // chevron-down
     copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',   // copy
     scissors: '<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>',   // scissors
@@ -277,7 +283,7 @@ const FB_CSS = `
 .rg-fb-item.sel { background:rgba(37,99,199,.45); }
 .rg-fb-item svg { width:16px; height:16px; flex:0 0 16px; opacity:.85; }
 .rg-fb-item .sz { margin-left:auto; opacity:.6; font-size:12px; }
-.rg-fb-msg { color:#d9a441; min-height:16px; }
+.rg-fb-msg { color:var(--rg-on,#d9a441); min-height:16px; }
 .rg-fb-foot { display:flex; gap:6px; justify-content:flex-end; align-items:center; }
 .rg-fb-foot span { flex:1 1 auto; opacity:.75; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 `;
@@ -771,7 +777,7 @@ export function regionColors() {
 const COLORS_CSS = `
 .rg-colors { display:flex; flex-wrap:wrap; align-items:center; gap:5px; max-width:420px; justify-content:flex-end; }
 .rg-colors .sw { width:22px; height:22px; padding:0; border-radius:4px; border:1px solid rgba(128,128,128,.7); cursor:pointer; }
-.rg-colors .sw:hover, .rg-colors .sw:focus-visible { outline:2px solid var(--p-primary-color, #5b8fd0); outline-offset:1px; }
+.rg-colors .sw:hover, .rg-colors .sw:focus-visible { outline:2px solid var(--p-primary-color, var(--rg-accent,#5b8fd0)); outline-offset:1px; }
 .rg-colors .act { height:24px; padding:0 8px; border-radius:4px; border:1px solid var(--border-color, #555); background:var(--comfy-input-bg, #222);
   color:inherit; font:inherit; cursor:pointer; }
 .rg-colors .act:disabled { opacity:.4; cursor:default; }`;
@@ -811,6 +817,50 @@ const regionColorsType = () => (name, setter, value) => {
         box.append(add, reset);
     };
     render();
+    return box;
+};
+// ---- the pack's two colors (round 91): the accent (selection, focus, lit buttons, a pop-up's border, the field whose
+// pop-up is open) and the "switched on" color (LoRAs that are on, the switches, notes). Both are Settings, for people
+// who see the built-in blue and amber badly, or just like others better. The style sheets take them from CSS variables
+// (--rg-accent, --rg-on and the shades worked out from them); what is drawn on a canvas asks accentColor().
+const ACCENT_DEFAULT = "#5B8FD0", ON_DEFAULT = "#D9A441";
+const hex6 = (v, d) => { const m = /^#?([0-9a-f]{6})$/i.exec(String(v ?? "").trim()); return m ? "#" + m[1].toUpperCase() : d; };
+export const accentColor = () => hex6(getSetting(SET.accentColor, ACCENT_DEFAULT), ACCENT_DEFAULT);
+export const onColor = () => hex6(getSetting(SET.onColor, ON_DEFAULT), ON_DEFAULT);
+const rgbOf = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixHex = (h, to, t) => "#" + rgbOf(h).map((c, i) => Math.round(c + (rgbOf(to)[i] - c) * t).toString(16).padStart(2, "0")).join("");
+export function applyPackColors() {
+    if (typeof document === "undefined") return;
+    const st = document.documentElement.style, a = accentColor(), o = onColor();
+    const set = (k, v) => { if (v == null) st.removeProperty(k); else st.setProperty(k, v); };
+    const own = a !== ACCENT_DEFAULT, ownOn = o !== ON_DEFAULT;
+    set("--rg-accent", own ? a : null);
+    set("--rg-accent-fill", own ? mixHex(a, "#000000", 0.25) : null);          // a lit button's fill: darker, white text on it
+    const [r, g, b] = rgbOf(o), light = r * 0.299 + g * 0.587 + b * 0.114 > 140;
+    set("--rg-on", ownOn ? o : null);
+    set("--rg-on-soft", ownOn ? mixHex(o, "#ffffff", 0.3) : null);              // text in that color on a dark ground
+    set("--rg-on-pale", ownOn ? mixHex(o, "#ffffff", 0.6) : null);
+    set("--rg-on-bg", ownOn ? mixHex(o, "#000000", 0.66) : null);               // a dark fill of that hue
+    set("--rg-on-ink", ownOn ? (light ? "#1c1c1c" : "#ffffff") : null);         // text on the color itself
+}
+if (typeof document !== "undefined") { setTimeout(applyPackColors, 0); setTimeout(applyPackColors, 2500); }
+// one color as a Setting: a swatch that opens the pack's color picker, and a button for the built-in color
+const oneColorType = (id, def, what) => (name, setter, value) => {
+    if (!document.getElementById("rg-colors-style")) { const s = document.createElement("style"); s.id = "rg-colors-style"; s.textContent = COLORS_CSS; document.head.appendChild(s); }
+    const box = document.createElement("div"); box.className = "rg-colors";
+    let cur = hex6(value, def);
+    const sw = document.createElement("button"); sw.type = "button"; sw.className = "sw";
+    const reset = document.createElement("button"); reset.type = "button"; reset.className = "act"; reset.textContent = "Default";
+    reset.title = "Put the built-in color back.";
+    const show = () => { sw.style.background = cur; sw.dataset.color = cur; sw.title = `${cur}: ${what}\nClick: Change it.`; reset.disabled = cur === def; };
+    const save = (v) => { cur = hex6(v, def); try { setter(cur); } catch (e) { /* the dialog is gone */ } setSetting(id, cur); applyPackColors(); show(); };
+    sw.addEventListener("click", (e) => {
+        e.preventDefault();
+        openColorPicker(sw, cur, { onInput: (hex) => { sw.style.background = hex; }, onClose: (hex, changed) => { if (changed) save(hex); else show(); } });
+    });
+    reset.addEventListener("click", () => save(def));
+    box.append(sw, reset);
+    show();
     return box;
 };
 const checkFilesType = () => () => {
@@ -1117,7 +1167,7 @@ export const CHIP_CSS = `
 .rg-chip-hint { opacity:.65; font-size:10px; }
 .rg-chip { font-size:10px; line-height:14px; padding:0 6px; border-radius:8px; border:1px solid #666; cursor:pointer;
   background:#2a2a2a; color:#ddd; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
-.rg-chip:hover { border-color:#5b8fd0; }
+.rg-chip:hover { border-color:var(--rg-accent,#5b8fd0); }
 .rg-chip.used { border-color:#4a8a5a; color:#9fd8a8; cursor:default; }
 `;
 
@@ -1210,7 +1260,7 @@ function wcUpdate(el) {
             + "border-radius:4px;font:12px sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.5);";
         const st = document.createElement("style");
         st.textContent = ".rg-wc-item{padding:2px 8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
-            + ".rg-wc-item.sel,.rg-wc-item:hover{background:#3a6ea5;color:#fff}";
+            + ".rg-wc-item.sel,.rg-wc-item:hover{background:var(--rg-accent-fill,#3a6ea5);color:#fff}";
         document.head.appendChild(st);
         document.body.appendChild(wcAc.box);
     }
@@ -1364,7 +1414,8 @@ const recentSet = (id, v) => { RECENT.set(id, v); setSetting(id, v); setTimeout(
 // field.__rgPlaceExpand(), puts everything in place again (call it when the field's text was set by code: no event
 // tells).
 const OSB_W = 14, EXP_W = 16, EXP_GAP = 2;
-export function addExpandButton(t, title, onOpen, extras = []) {
+// inset: px kept free at the field's right edge (the large editor's scene boxes: the browser's own resize grip is there)
+export function addExpandButton(t, title, onOpen, extras = [], inset = 0) {
     let host = t?.parentElement;
     if (!host) return null;
     const old = host.querySelector(":scope > .rg-expand");
@@ -1385,7 +1436,7 @@ export function addExpandButton(t, title, onOpen, extras = []) {
         const right0 = host.clientWidth - (t.offsetLeft + t.offsetWidth) + (t.clientLeft || 0);     // the field's inner right edge
         const bottom0 = host.clientHeight - (t.offsetTop + t.offsetHeight) + (t.clientTop || 0);
         const items = [b, ...extras.filter((x) => x.isConnected && x.style.display !== "none")];
-        let x = bar + EXP_GAP;
+        let x = bar + EXP_GAP + inset;
         for (const el of items) {
             const w = el === b ? EXP_W : el.offsetWidth || EXP_W, h = el === b ? EXP_W : el.offsetHeight || EXP_W;
             el.style.right = Math.round(right0 + x) + "px";
@@ -1672,16 +1723,18 @@ export function openFloatPopup(o) {
         fpop = null;
         clearInterval(watch);
         box.remove();
+        if (o.anchor?.tagName === "TEXTAREA") o.anchor.classList.remove("rg-pop-open");
         o.onClose?.();
     }
     const api_ = { close, box, ta, history: hist };
     fpop = api_;
+    if (o.anchor?.tagName === "TEXTAREA") o.anchor.classList.add("rg-pop-open");       // the field it belongs to is outlined while it is open
     ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
     return api_;
 }
 export const FPOP_CSS = `
 .rg-fpop { position:fixed; z-index:10000; box-sizing:border-box; display:flex; flex-direction:column; gap:5px; padding:6px 8px 5px;
-  background:#1a1a1a; color:#eee; border:2px solid #5b8fd0; border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,.65); font:12px sans-serif; }
+  background:#1a1a1a; color:#eee; border:2px solid var(--rg-accent,#5b8fd0); border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,.65); font:12px sans-serif; }
 .rg-fpop-head { display:flex; align-items:center; gap:6px; font-weight:600; cursor:move; user-select:none; touch-action:none; }
 .rg-fpop-title { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .rg-fpop .rg-btn { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px;
@@ -1690,7 +1743,7 @@ export const FPOP_CSS = `
 .rg-fpop .rg-btn.icon svg { width:14px; height:14px; display:block; }
 .rg-fpop textarea { width:100%; box-sizing:border-box; resize:none; background:var(--comfy-input-bg,#222); color:inherit;
   border:1px solid var(--border-color,#555); border-radius:4px; padding:3px 5px; font-family:inherit; scrollbar-width:thin; }
-.rg-fpop textarea:focus { border-color:#5b8fd0; outline:none; }
+.rg-fpop textarea:focus { border-color:var(--rg-accent,#5b8fd0); outline:none; }
 .rg-fpop.sized textarea { flex:1 1 auto; min-height:40px; }
 .rg-fpop-foot { font-size:10px; opacity:.5; }
 .rg-fpop-ctl { display:flex; align-items:center; justify-content:flex-end; gap:6px; }
@@ -1701,11 +1754,13 @@ export const FPOP_CSS = `
 .rg-fpop-head .rg-btn::before, .rg-fpop-ctl .rg-btn::before, .rg-fpop-ctl .rg-ac-btn::before {
   content:""; position:absolute; z-index:-1; left:-4px; right:-4px; top:50%; height:max(100%, 24px); transform:translateY(-50%); }   /* 1 px border + half the gap */
 .rg-fpop-grip { position:absolute; right:1px; bottom:1px; width:14px; height:14px; cursor:nwse-resize; touch-action:none; opacity:.7;
-  background:linear-gradient(135deg, transparent 52%, #5b8fd0 52% 60%, transparent 60% 70%, #5b8fd0 70% 78%, transparent 78%); }
-.rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:transparent;
-  color:var(--input-text,#ddd); opacity:.3; cursor:pointer; line-height:0; }
+  background:linear-gradient(135deg, transparent 52%, var(--rg-accent,#5b8fd0) 52% 60%, transparent 60% 70%, var(--rg-accent,#5b8fd0) 70% 78%, transparent 78%); }
+.rg-expand { position:absolute; z-index:3; width:16px; height:16px; padding:0; margin:0; border:0; border-radius:3px; background:var(--comfy-input-bg,#222);
+  box-shadow:-5px 0 4px var(--comfy-input-bg,#222); color:color-mix(in srgb, var(--input-text,#ddd) 70%, transparent); cursor:pointer; line-height:0; }
 .rg-expand svg { width:12px; height:12px; display:block; margin:2px; }
-.rg-expand:hover { opacity:1; background:rgba(91,143,208,.35); }
+.rg-expand:hover { color:#fff; background:var(--rg-accent-fill,#3a6ea5); box-shadow:none; }
+/* the text field whose pop-up editor is open (round 91) */
+textarea.rg-pop-open.rg-pop-open { outline:2px solid var(--rg-accent,#5b8fd0) !important; outline-offset:-1px !important; }
 *:hover > .rg-expand { opacity:.75; }
 `;
 
@@ -1993,6 +2048,10 @@ export const SET = {
     cmLabelMax: "RegionGenie.Main.LabelMax",
     cmLabelShadow: "RegionGenie.Main.LabelShadow",
     cmLabelShadowStrength: "RegionGenie.Main.LabelShadowStrength",
+    cmLabelPad: "RegionGenie.Main.LabelPad",
+    cmLabelAlign: "RegionGenie.Main.LabelAlign",
+    accentColor: "RegionGenie.Main.AccentColor",
+    onColor: "RegionGenie.Main.OnColor",
     cmGridShow: "RegionGenie.Main.GridShow",
     cmGridLines: "RegionGenie.Main.GridLines",
     regionColors: "RegionGenie.Main.RegionColors",
@@ -2325,6 +2384,8 @@ const SETTINGS = [
         { id: SET.cmLabelMax, name: "On the canvas: region labels, largest when zoomed in", type: "number", defaultValue: 16, attrs: { min: 8, max: 64, step: 1 }, tooltip: "Text size in px the region prompts on the canvas grow to at most when zooming in. A value under the size above counts as that size: The text then doesn't grow. Applies to every node.", category: CAT("Text", "8 labelMax") },
         { id: SET.cmLabelShadow, name: "On the canvas: label shadow size (px)", type: "number", defaultValue: 4, attrs: { min: 0, max: 12, step: 0.5 }, tooltip: "How far the dark shadow around the region prompts on the canvas spreads (a white glow around dark text on a light region). 0: None.", category: CAT("Text", "9 labelShadow") },
         { id: SET.cmLabelShadowStrength, name: "On the canvas: label shadow strength (%)", type: "number", defaultValue: 200, attrs: { min: 0, max: 300, step: 10 }, tooltip: "How dense the shadow or glow around the region prompts on the canvas is. 0: None.", category: CAT("Text", "91 labelShadowStrength") },
+        { id: SET.cmLabelPad, name: "On the canvas: room between a label and its region's edge (%)", type: "number", defaultValue: 3, attrs: { min: 0, max: 20, step: 1 }, tooltip: "How much room a region prompt on the canvas keeps to the edge of its region, in % of the region's shorter side. Less room lets more of the prompt show. 8 was the fixed value before.", category: CAT("Text", "92 labelPad") },
+        { id: SET.cmLabelAlign, name: "On the canvas: label text", type: "combo", defaultValue: "left", options: [{ text: "Left-aligned", value: "left" }, { text: "Centered", value: "center" }], tooltip: "How the lines of a region prompt on the canvas are lined up under its number. The number and the type mark are always centered over the text.", category: CAT("Text", "93 labelAlign") },
         { id: SET.popSizes, name: "Pop-up editor sizes", type: "hidden", defaultValue: "{}" },
         // the keys that step to the previous / next text field in a pop-up editor: changed in the shortcut list (round 39;
         // they were two rows here), still saved under their own ids
@@ -2438,6 +2499,10 @@ const SETTINGS = [
         { id: SET.cmFillImage, name: "Region opacity over an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while a connected image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "101 fill image") },
         { id: SET.cmFill, name: "Region opacity without an image (%)", type: "number", defaultValue: 50, attrs: { min: 0, max: 100, step: 5 }, tooltip: "How solid the regions' colors are drawn while no image is shown under them, until it is changed on a node (the opacity button in the canvas's top right corner). Below 100% a line along each region's edge stays solid.", category: CAT("Region Genie node", "102 fill") },
         { id: SET.cmEdge, name: "Region edge line (px)", type: "number", defaultValue: 3.5, attrs: { min: 0, max: 10, step: 0.5 }, tooltip: "How wide the solid line along each region's edge is while the regions are see-through, on every Region Genie node. A line wider than a shape fills it. 0: No line.", category: CAT("Region Genie node", "103 edge") },
+        { id: SET.accentColor, name: "Highlight color", type: oneColorType(SET.accentColor, ACCENT_DEFAULT, "The pack's highlight color."), defaultValue: ACCENT_DEFAULT, onChange: () => applyPackColors(),
+          tooltip: "The color of what is selected, in use or lit in every node of the pack. That is the active tool, a selected row, a text field with the cursor, a pop-up's border, and the text field whose pop-up is open.", category: CAT("Region Genie node", "104 accent") },
+        { id: SET.onColor, name: "Switched-on color", type: oneColorType(SET.onColor, ON_DEFAULT, "The pack's color for what is switched on."), defaultValue: ON_DEFAULT, onChange: () => applyPackColors(),
+          tooltip: "The color of what is switched on: LoRAs that are on (their buttons, chips and the edge of their row), the switches, and notes.", category: CAT("Region Genie node", "105 on") },
         ...CONTROL_FILES.map(([key, name, folder, model, tag], i) => ({
             // the file field: ComfyUI's menu on the model folders (round 23), Browse… with SET.filePickers
             id: SET.control + "." + key, name, type: fileSettingType(MODEL_ROOTS, CONTROL_NONE, SET.control + "." + key, folder), defaultValue: CONTROL_NONE,
@@ -2636,7 +2701,7 @@ body:has(.rg-pop, .rg-fpop, .rg-big):not(:has(.rg-llm-pop)) .litegraph.liteconte
   border-radius:4px; padding:2px 4px; line-height:0; cursor:pointer; flex:0 0 auto; }
 .rg-ac-btn svg { width:16px; height:16px; display:block; }
 .rg-ac-btn:not(.on) { opacity:.55; }
-.rg-ac-btn.on { background:#3a6ea5; border-color:#5b8fd0; color:#fff; }
+.rg-ac-btn.on { background:var(--rg-accent-fill,#3a6ea5); border-color:var(--rg-accent,#5b8fd0); color:#fff; }
 .rg-pop .rg-ac-btn, .rg-fpop .rg-ac-btn { padding:1px 3px; }
 .rg-pop .rg-ac-btn svg, .rg-fpop .rg-ac-btn svg { width:14px; height:14px; }
 `;

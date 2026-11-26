@@ -211,7 +211,7 @@ const CSS = `.rg-keys { position:fixed; z-index:100003; box-sizing:border-box; w
   background:color-mix(in srgb, currentColor 9%, transparent); white-space:nowrap; }
 .rg-keys kbd { opacity:.6; border-style:dashed; }
 .rg-keys .rg-key { cursor:pointer; }
-.rg-keys .rg-key:hover, .rg-keys .rg-key:focus-visible { border-color:#5b8fd0; background:rgba(91,143,208,.25); outline:none; }
+.rg-keys .rg-key:hover, .rg-keys .rg-key:focus-visible { border-color:var(--rg-accent,#5b8fd0); background:color-mix(in srgb, var(--rg-accent,#5b8fd0) 25%, transparent); outline:none; }
 .rg-keys .rg-key.rec { border-color:#e8b339; background:rgba(232,179,57,.22); font-weight:600; }
 .rg-keys .rg-key.none { opacity:.55; font-weight:400; border-style:dotted; }
 .rg-keys .rg-key-act { width:17px; height:17px; padding:0; display:inline-flex; align-items:center; justify-content:center; border:0; border-radius:3px;

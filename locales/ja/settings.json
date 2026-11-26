@@ -676,17 +676,9 @@
     "name": "画像サイズ",
     "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px ": {
-    "name": "Region Genie ノード",
-    "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
-  },
   "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
     "name": "キャンバスツール",
     "tooltip": "投げ縄、マジックワンド、塗りつぶしの各ボタンが最初に使うバージョン、ワンドの許容値、塗りつぶしの隙間サイズ、キャンバス上のヒント。\nEdit…: このページで Region Genie の設定を開きます。"
-  },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength ": {
-    "name": "テキスト",
-    "tooltip": "ノード上とポップアップエディターでのプロンプト欄の文字サイズと、キャンバス上の領域ラベルのサイズと影。\nEdit…: このページで Region Genie の設定を開きます。"
   },
   "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "コントロール",
@@ -731,5 +723,33 @@
   "RegionGenie_Main_LabelShadowStrength": {
     "name": "キャンバス上：ラベルの影の強さ (%)",
     "tooltip": "キャンバス上の領域プロンプトの周りの影や光彩の濃さ。0：なし。"
+  },
+  "RegionGenie_Main_LabelPad": {
+    "name": "キャンバス上：ラベルと領域の端との余白 (%)",
+    "tooltip": "キャンバス上の領域プロンプトが領域の端との間に空ける余白。領域の短い辺に対する % で指定します。余白が小さいほどプロンプトが多く表示されます。以前は 8 で固定でした。"
+  },
+  "RegionGenie_Main_LabelAlign": {
+    "name": "キャンバス上：ラベルの文字",
+    "tooltip": "キャンバス上の領域プロンプトの各行を番号の下でどう揃えるか。番号と種類のマークは常に文字の上で中央に置かれます。",
+    "options": {
+      "Left-aligned": "左揃え",
+      "Centered": "中央揃え"
+    }
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge , On the canvas: label text": {
+    "name": "テキスト",
+    "tooltip": "ノード上とポップアップエディターでのプロンプト欄の文字サイズと、キャンバス上の領域ラベルのサイズと影。\nEdit…: このページで Region Genie の設定を開きます。"
+  },
+  "RegionGenie_Main_AccentColor": {
+    "name": "ハイライトの色",
+    "tooltip": "パック内のすべてのノードで、選択中・使用中・点灯中のものの色です。使用中のツール、選択した行、カーソルのあるテキスト欄、ポップアップの枠、ポップアップを開いているテキスト欄に使われます。"
+  },
+  "RegionGenie_Main_OnColor": {
+    "name": "オン状態の色",
+    "tooltip": "オンになっているものの色です。オンの LoRA（ボタン、チップ、行の端）、スイッチ、注記に使われます。"
+  },
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px , Highlight color, Switched-on color": {
+    "name": "Region Genie ノード",
+    "tooltip": "新しい Region Genie ノードの初期設定（画像モード、フェザー、分離、グリッド、領域の色、タグ自動補完、ワイルドカード）。\nEdit…: このページで Region Genie の設定を開きます。"
   }
 }

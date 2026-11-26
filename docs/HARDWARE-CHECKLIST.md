@@ -141,7 +141,7 @@ Check once in legacy mode and once in Nodes 2.0.
 
 ## 12. Region rows (round 34)
 
-- On the 4K display, both node modes: a region's prompt gets most of its row; ▶ opens the region to its options line (feather, palette, merge, move, delete) above its layers; feather and the palette set there act on the run as before.
+- On the 4K display, both node modes (round 88): a region's prompt gets most of its row; the type icon, the layer count, the palette dots and the LoRAs button are readable and easy to hit; each opens the region's pop-up on its tab, and the pop-up keeps its size and place over all five tabs
 
 ## 13. Labels, colors, dragging (round 35)
 
@@ -177,7 +177,7 @@ Check once in legacy mode and once in Nodes 2.0.
 
 ## 17. Click areas, your own shortcuts (round 39)
 
-- **Click areas, on the 4K display, both node modes:** click a row's small buttons (eye, ↑ ↓, ✕, the ▶ and the grip) slightly off: just above or below still counts; a click between two buttons goes to the nearer one, never to both. A tool button's small arrow still opens its list.
+- **Click areas, on the 4K display, both node modes:** click a row's small buttons (eye, the type icon, ✕ and the grip) slightly off: just above or below still counts; a click between two buttons goes to the nearer one, never to both. A tool button's small arrow still opens its list.
 - **Changing a key on a real keyboard:** press ? over a node, click a key, press a new one: a letter, a function key, a combination with Ctrl / Alt / Shift, and (on macOS) one with ⌘. The new key works on the canvas at once and the old one doesn't; the tooltip and the hint line show it. Try a key ComfyUI itself uses (R, Ctrl+S): it acts in the editor only while the pointer is over the node.
 - A non-US keyboard layout: the keys with symbols ([ ] ?) can be reached, or can be given keys that can.
 - **Settings > Region Genie > Shortcuts > Edit…:** the list opens over the Settings dialog, takes a new key there, and closing it leaves the dialog open. After reloading ComfyUI the keys are still yours.
@@ -297,3 +297,16 @@ Nothing here has run on a real model yet.
 - [ ] The "More settings" line on the 4K display, both node modes, and in Firefox: folds and shows the six settings, the node's height follows, "N changed" is readable
 - [ ] Regions in a tiled upscale (round 76's step 2): regional LoRAs stay in their regions in the upscale; at denoise 0.4+ tiles don't draw other regions' prompts; Anima, SDXL, Flux, Krea 2
 
+## Regions list without sub-rows; a region's pop-up with tabs (rounds 87-88)
+
+- [ ] A real run after "all LoRAs off" in the header: no LoRA is applied; the next click brings the same ones back and the run uses them
+- [ ] The LoRAs tab with a real LoRA folder: the file list opens above the pop-up with its folders; trigger-word chips show and add their word
+- [ ] A long LoRA list on *Whole image*: the chips are cut to what fits and "+N" counts the rest, at your usual node width
+- [ ] The Palette tab: the picker in the tab follows the pointer smoothly; one drag is one Undo step
+- [ ] Dragging a layer from the Layers tab onto another region's row in the list
+- [ ] The handle between a text region's prompt and its text to render, in both node modes
+- [ ] Canvas labels: the number and the type's mark above the prompt read well at 11 px on the 4K display; the box and the T are clear
+- [ ] The large editor: the scene boxes' pop-up buttons sit left of the browser's resize grip and both can be used
+- [ ] Firefox: the switch (a styled checkbox), the tabs, and dragging rows by their grips
+- [ ] Settings > Region Genie > Region Genie node: *Highlight color* and *Switched-on color* (round 91): the swatch opens the picker over the Settings window; a changed color shows at once on the node, in an open pop-up and in the large editor; *Default* puts it back; colors you can tell apart well read well on the canvas's dark ground
+- [ ] A pop-up opened from a field near the bottom of the window opens above the field, not over it; from a field near the top, below it

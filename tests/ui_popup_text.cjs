@@ -76,27 +76,49 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const byCode = await popTa.inputValue();
     await undoB.click(); await page.waitForTimeout(60);
     check(`a text set by code is one step: Undo puts the typed text back (${JSON.stringify(byCode)} -> ${JSON.stringify(await popTa.inputValue())})`, byCode === "set by code" && /!$/.test(await popTa.inputValue()));
-    // the bottom row: tag switch (hidden here: no autocomplete pack in the stub page), wildcard button, LLM, ＋LoRA
+    // the bottom row: tag switch (hidden here: no autocomplete pack in the stub page), wildcard button, LLM (＋LoRA is on the LoRAs tab since round 87)
     const bottom = await page.evaluate(() => [...document.querySelectorAll(".rg-pop .pop-ctl > *")].map((e) => e.classList.contains("rg-ac-btn") ? "tag" : e.classList.contains("rg-wc-pick") ? "wildcard" : e.classList.contains("rg-llm-btn") ? "llm" : e.classList.contains("rg-pop-gap") ? "gap" : e.textContent.trim()));
-    // round 43: one row. Left: the palette (its on / off button first, then the colors and +). Right: everything else
-    const row = await page.evaluate(() => { const r = document.querySelector(".rg-pop .pop-ctl"), kids = [...r.children], gap = kids.findIndex((e) => e.classList.contains("rg-pop-gap")), rr = r.getBoundingClientRect();
+    // round 88: the Prompt tab's bottom row holds what belongs to the text, on the right; the palette, feather and the
+    // rest are on their own tabs (round 43 had them all in this one row)
+    const row = await page.evaluate(() => { const r = document.querySelector(".rg-pop .pop-ctl"), kids = [...r.children], rr = r.getBoundingClientRect();
         const mid = (e) => { const b = e.getBoundingClientRect(); return (b.top + b.bottom) / 2; };
         const shown = kids.filter((e) => e.getClientRects().length && !e.classList.contains("rg-pop-gap"));
-        return { first: kids[0].classList.contains("toggle") && !!kids[0].querySelector("svg"), palIcons: document.querySelectorAll(".rg-pop .rg-palico").length, rows: document.querySelectorAll(".rg-pop .rg-pop-dyn > .rg-row").length,
-            left: kids.slice(0, gap).every((e) => e.classList.contains("toggle") || e.classList.contains("rg-sw") || e.classList.contains("rg-paladd")), feather: kids.slice(gap).some((e) => e.classList.contains("rg-feather")),
-            oneLine: Math.max(...shown.map(mid)) - Math.min(...shown.map(mid)) < 3, rightEnd: rr.right - shown[shown.length - 1].getBoundingClientRect().right < 4, leftEnd: shown[0].getBoundingClientRect().left - rr.left < 4 }; });
-    check(`bottom row: the palette on the left (its on / off button, no second palette icon), every other control on the right, all on one line (${bottom.join(" | ")}; ${JSON.stringify(row)})`,
-        bottom.slice(-4).join("|") === "tag|wildcard|llm|＋LoRA" && row.first && row.palIcons === 0 && row.rows === 1 && row.left && row.feather && row.oneLine && row.rightEnd && row.leftEnd);
+        return { pal: !!r.querySelector(".toggle, .rg-sw.pal, .rg-paladd"), feather: !!r.querySelector(".rg-feather"), rows: document.querySelectorAll(".rg-pop .rg-pop-dyn > .rg-row").length,
+            oneLine: Math.max(...shown.map(mid)) - Math.min(...shown.map(mid)) < 3, rightEnd: rr.right - shown[shown.length - 1].getBoundingClientRect().right < 4,
+            palTab: !!document.querySelector(".rg-pop .rg-pop-pal input.rg-switch"), optFeather: !!document.querySelector(".rg-pop .rg-pop-opts .rg-feather input") }; });
+    check(`the Prompt tab's bottom row: the tag list, the wildcard list and the LLM, on the right, on one line; the palette and feather are on their tabs (${bottom.join(" | ")}; ${JSON.stringify(row)})`,
+        bottom.join("|") === "gap|tag|wildcard|llm" && !row.pal && !row.feather && row.rows === 1 && row.oneLine && row.rightEnd && row.palTab && row.optFeather);
+    // round 91: the field whose pop-up is open is outlined in the pack's highlight color, and that color is a Setting
+    const hl = () => page.evaluate(() => { const rid = window.__node.__rgState().regions[0].id, t = document.querySelector(`.rg-row.region[data-rid="${rid}"] textarea.rg-prompt`), cs = getComputedStyle(t);
+        return { cls: t.classList.contains("rg-pop-open"), w: cs.outlineWidth, color: cs.outlineColor, style: cs.outlineStyle, others: document.querySelectorAll("textarea.rg-pop-open").length,
+                 border: getComputedStyle(document.querySelector(".rg-pop textarea")).borderColor }; });
+    const h1 = await hl();
+    check(`while a region's pop-up is open, its prompt field in the list is outlined in the highlight color (${JSON.stringify(h1)})`,
+          h1.cls && h1.w === "2px" && h1.style === "solid" && h1.color === "rgb(91, 143, 208)" && h1.others === 1);
+    await page.evaluate(() => window.__node.__rgRefresh()); await page.waitForTimeout(150);
+    check("…and still after the list is drawn again", (await hl()).cls);
+    await page.evaluate(() => { window.__settings["RegionGenie.Main.AccentColor"] = "#C2185B"; window.__settingsExt.settings.find((x) => x.id === "RegionGenie.Main.AccentColor").onChange("#C2185B"); });
+    await page.waitForTimeout(150);
+    const h2 = await hl();
+    check(`the highlight color is a Setting: the outline follows it (${h2.color})`, h2.color === "rgb(194, 24, 91)");
+    await page.evaluate(() => { window.__settings["RegionGenie.Main.OnColor"] = "#1B5E20"; window.__settingsExt.settings.find((x) => x.id === "RegionGenie.Main.OnColor").onChange("#1B5E20"); });
+    await page.waitForTimeout(100);
+    const onVars = await page.evaluate(() => { const st = document.documentElement.style; return [st.getPropertyValue("--rg-on"), st.getPropertyValue("--rg-on-ink")].join(); });
+    check(`the switched-on color is a Setting too; text on a dark one turns white (${onVars})`, onVars.toLowerCase() === "#1b5e20,#ffffff");
+    await page.evaluate(() => { for (const [k, v] of [["RegionGenie.Main.AccentColor", "#5B8FD0"], ["RegionGenie.Main.OnColor", "#D9A441"]]) { window.__settings[k] = v; window.__settingsExt.settings.find((x) => x.id === k).onChange(v); } });
+    await page.waitForTimeout(100);
+    check("back at the built-in colors, the variables are gone again", await page.evaluate(() => !document.documentElement.style.getPropertyValue("--rg-accent") && !document.documentElement.style.getPropertyValue("--rg-on")));
     check("no tag switch or wildcard button is left in the title bar", await page.locator(".rg-pop-head .rg-ac-btn, .rg-pop-head .rg-wc-pick").count() === 0);
     // the palette's last color removed (right-click): the palette is off again, its button no longer lit
     await page.evaluate(() => { const n = window.__node, r = n.__rgState().regions[0]; r.palette = ["#FF0000", "#00FF00"]; r.paletteOn = true; n.__rgRefresh(); });
     await page.waitForTimeout(150);
-    const palOn = () => page.evaluate(() => ({ btn: document.querySelector(".rg-pop .pop-ctl > .toggle").classList.contains("on"), sw: document.querySelectorAll(".rg-pop .pop-ctl .rg-sw.pal").length,
+    const palOn = () => page.evaluate(() => ({ btn: document.querySelector(".rg-pop .rg-pop-pal input.rg-switch").checked, sw: document.querySelectorAll(".rg-pop .rg-pop-pal .rg-sw.pal").length,
         on: !!window.__node.__rgState().regions[0].paletteOn, list: [...document.querySelectorAll(".rg-row.region .rg-btn.toggle.on svg")].length }));
+    await page.locator('.rg-pop .rg-pop-tabs [data-tab="palette"]').click(); await page.waitForTimeout(100);
     const p0 = await palOn();
-    await page.locator(".rg-pop .pop-ctl .rg-sw.pal").first().click({ button: "right" }); await page.waitForTimeout(120);
+    await page.locator(".rg-pop .rg-pop-pal .rg-sw.pal").first().click({ button: "right" }); await page.waitForTimeout(120);
     const p1 = await palOn();
-    await page.locator(".rg-pop .pop-ctl .rg-sw.pal").first().click({ button: "right" }); await page.waitForTimeout(120);
+    await page.locator(".rg-pop .rg-pop-pal .rg-sw.pal").first().click({ button: "right" }); await page.waitForTimeout(120);
     const p2 = await palOn();
     check(`pop-up palette: with two colors the button is lit; one removed, still lit; the last removed, it goes off (${JSON.stringify([p0, p1, p2])})`,
         p0.btn && p0.sw === 2 && p1.btn && p1.sw === 1 && p1.on && !p2.btn && p2.sw === 0 && !p2.on);
@@ -104,6 +126,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const p3 = await palOn();
     check("…Undo brings the color back and the palette is on again", p3.btn && p3.sw === 1 && p3.on);
     await page.evaluate(() => { const n = window.__node, r = n.__rgState().regions[0]; delete r.palette; delete r.paletteOn; n.__rgRefresh(); });
+    await page.locator('.rg-pop .rg-pop-tabs [data-tab="prompt"]').click(); await page.waitForTimeout(100);
     await page.waitForTimeout(100);
     check("the line at the bottom says what Esc does now", /Esc: close \(the text stays\)/.test(await page.locator(".rg-pop-foot").innerText()) && !/Enter/.test(await page.locator(".rg-pop-foot").innerText()));
 

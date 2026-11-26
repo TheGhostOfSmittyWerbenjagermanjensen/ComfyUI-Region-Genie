@@ -7,7 +7,7 @@
 // Layout (the owner's choice, B): the tools in their row and the canvas on the left; on the right the size row,
 // the scene prompts, the region list and the bottom bar. The size row is the node's own (moved too). The scene
 // prompts are ComfyUI's fields and stay on the node; the window shows text boxes kept in step with them.
-import { getSetting, SET, keyHit, keyLabel, nodeOffCanvas, autocompleteOnFocus, textHistory } from "../rg_shared.js";
+import { getSetting, SET, keyHit, keyLabel, nodeOffCanvas, autocompleteOnFocus, textHistory, addExpandButton } from "../rg_shared.js";
 import { chain } from "./graph.js";
 
 let current = null;                                  // the editor that is open large: one at a time, on the whole page
@@ -49,7 +49,11 @@ export function* big(E) {
             // Esc leaves the box (the keys are the editor's again); every other key is text
             ta.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Escape") { e.preventDefault(); ta.blur(); E.focusSink(); } });
             fields.push({ which, w, ta });
-            box.appendChild(ta);
+            // round 88: each box has the pop-up button in its corner, as the node's own fields have (the pop-up holds the
+            // whole image's LoRAs on a tab); left of the browser's resize grip
+            const fld = E.el("div", "rg-big-fld"); fld.appendChild(ta);
+            box.appendChild(fld);
+            addExpandButton(ta, "Open in the pop-up editor", () => E.editScene(which), [], 14);
         }
         return { box, fields };
     }
@@ -60,7 +64,7 @@ export function* big(E) {
             const v = String(f.w()?.value ?? "");
             if (document.activeElement !== f.ta && f.ta.value !== v) f.ta.value = v;
             const show = f.which !== "background" || E.sceneBgW?.__rgShown !== false ? "" : "none";
-            if (f.ta.style.display !== show) f.ta.style.display = show;
+            if (f.ta.style.display !== show) { f.ta.style.display = show; f.ta.parentElement.style.display = show; f.ta.__rgPlaceExpand?.(); }
         }
         const t = E.node.title || "Region Genie";
         if (E.big.title.textContent !== t) E.big.title.textContent = t;

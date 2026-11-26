@@ -43,7 +43,7 @@ const CSS = `
   color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; font-family:inherit; font-size:var(--rg-rl-fs,12px);
   padding:1px 18px 1px 4px; height:calc(var(--rg-rl-lh,16px) + 4px); line-height:var(--rg-rl-lh,16px); overflow:hidden; white-space:nowrap;
   text-overflow:ellipsis; }
-.rg-rl-prompt:focus { height:calc(var(--rg-rl-lh,16px) * 4); white-space:pre-wrap; overflow-y:auto; scrollbar-width:thin; outline:none; border-color:#5b8fd0; }
+.rg-rl-prompt:focus { height:calc(var(--rg-rl-lh,16px) * 4); white-space:pre-wrap; overflow-y:auto; scrollbar-width:thin; outline:none; border-color:var(--rg-accent,#5b8fd0); }
 .rg-rl-trig { display:flex; flex-wrap:wrap; gap:3px; align-items:center; font-size:10px; min-height:0; }
 .rg-rl-trig:empty { display:none; }
 `;

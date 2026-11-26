@@ -27,14 +27,74 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         "RegionGenie.LLM.CacheDays", "RegionGenie.LLM.CacheMaxEntries", "RegionGenie.Edit.MaskGrow", "RegionGenie.Edit.MaskFeather",
         "RegionGenie.Main.ShareBackground", "RegionGenie.RegionalLoRAs.ShareBackground"].every((i) => ids.includes(i)));
 
-    // Whole image row: a click anywhere on it (not its buttons) opens it; empty -> a hint row
-    const sceneLabel = page.locator(".rg-row.scene .rg-pseudo");
-    await sceneLabel.click();
-    check("click on the Whole image row opens it (hint when empty)", await page.locator(".rg-list .rg-row.lora .rg-hint", { hasText: "No whole-image LoRAs yet" }).count() === 1);
-    await page.locator(".rg-row.scene").click({ position: { x: 300, y: 5 } });
-    check("a second click closes it", await page.locator(".rg-list .rg-hint", { hasText: "No whole-image LoRAs yet" }).count() === 0);
-    await page.locator(".rg-row.scene .rg-llm-btn").click();
-    check("the sparkle button doesn't toggle the row", await page.locator(".rg-list .rg-hint", { hasText: "No whole-image LoRAs yet" }).count() === 0);
+    // round 87: LoRAs at a glance. One LoRAs button per row; the LoRAs are on a tab of the row's pop-up
+    const lstate = () => page.evaluate(() => ({ btns: [...document.querySelectorAll(".rg-list .rg-lbtn")].map((b) => b.textContent + ":" + ["none", "some", "alloff"].find((c) => b.classList.contains(c))),
+        chips: [...document.querySelectorAll(".rg-list .rg-row.scene .rg-lchip")].filter((c) => c.style.display !== "none").map((c) => c.textContent),
+        all: document.querySelector(".rg-lall")?.style.display === "none" ? null : document.querySelector(".rg-lall")?.textContent + ":" + ["some", "back"].filter((c) => document.querySelector(".rg-lall").classList.contains(c)).join(""),
+        edge: [...document.querySelectorAll(".rg-list .rg-row.has-lora")].length, subRows: document.querySelectorAll(".rg-list .rg-row.lora").length }));
+    let ls = await lstate();
+    check(`no LoRAs: the Whole image row has a grey ＋LoRA button, no chips, and the header has no LoRA switch (${JSON.stringify(ls)})`,
+          ls.btns[0] === "＋LoRA:none" && ls.chips.length === 0 && ls.all == null && ls.edge === 0);
+    await page.locator(".rg-row.scene .rg-pseudo").click();
+    check("a click on the Whole image row opens nothing under it any more", (await lstate()).subRows === 0 && await page.locator(".rg-pop").count() === 0);
+    await page.evaluate(() => { const n = window.__node, s = n.__rgState();
+        s.sceneLoras = [{ lora: "styles/a_very_long_lora_file_name_that_goes_on_and_on_v12.safetensors", strength: 1, on: true }, { lora: "b.safetensors", strength: 0.6, on: true }, { lora: "c.safetensors", strength: 0.4, on: false }];
+        n.__rgRefresh(); });
+    await page.waitForTimeout(200);
+    ls = await lstate();
+    const chipW = await page.evaluate(() => Math.round(document.querySelector(".rg-list .rg-row.scene .rg-lchip").getBoundingClientRect().width));
+    check(`three whole-image LoRAs, one off: the button is amber "LoRAs (2/3)", the ones that are on are chips, the header says "LoRAs (2)" (${JSON.stringify(ls)})`,
+          ls.btns[0] === "LoRAs (2/3):some" && ls.chips.length >= 1 && !ls.chips.join().includes("c0.4") && ls.all === "LoRAs (2):some" && ls.edge === 1 && ls.subRows === 0);
+    check(`a chip with a long file name has a fixed greatest width and is cut short (${chipW} px)`, chipW <= 190);
+    await page.locator(".rg-list .rg-row.scene .rg-lbtn").click(); await page.waitForTimeout(250);
+    const lp = () => page.evaluate(() => { const b = document.querySelector(".rg-pop"); if (!b) return null; const r = b.getBoundingClientRect();
+        return { tab: b.querySelector(".rg-pop-tabs .on")?.dataset.tab, cnt: b.querySelector('.rg-pop-tabs [data-tab="loras"] em').textContent, rows: b.querySelectorAll(".rg-pop-lorarows > .rg-row.lora").length,
+                 grips: b.querySelectorAll(".rg-pop-lorarows .rg-grip").length, sw: b.querySelectorAll(".rg-pop-lorarows input.rg-switch").length, add: !!b.querySelector(".rg-pop-addl .rg-btn"),
+                 size: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)], scroll: b.scrollHeight - b.clientHeight, bar: getComputedStyle(b.querySelector(".rg-pop-tabs")).display }; });
+    let p1 = await lp();
+    check(`the LoRAs button opens the scene prompt's pop-up on its LoRAs tab: a row per LoRA with a grip and a switch, ＋LoRA, no scroll bar (${JSON.stringify(p1)})`,
+          p1 && p1.tab === "loras" && p1.cnt === "(2/3)" && p1.rows === 3 && p1.grips === 3 && p1.sw === 3 && p1.add && p1.scroll <= 1);
+    await page.locator('.rg-pop .rg-pop-tabs [data-tab="prompt"]').click(); await page.waitForTimeout(150);
+    const p2 = await lp();
+    check(`switching to the Prompt tab keeps the pop-up's place and size (${p1.size} -> ${p2.size})`, p2.tab === "prompt" && JSON.stringify(p1.size) === JSON.stringify(p2.size)
+          && await page.evaluate(() => document.activeElement?.tagName === "TEXTAREA"));
+    await page.locator('.rg-pop .rg-pop-tabs [data-tab="loras"]').click(); await page.waitForTimeout(150);
+    // drag the first LoRA to the end by its grip
+    const gr = await page.evaluate(() => { const g = document.querySelector(".rg-pop-lorarows .rg-grip").getBoundingClientRect(), b = document.querySelector(".rg-pop-lorarows").getBoundingClientRect(); return { x: g.x + g.width / 2, y: g.y + g.height / 2, end: b.bottom - 1 }; });
+    await page.mouse.move(gr.x, gr.y); await page.mouse.down(); await page.mouse.move(gr.x, gr.end, { steps: 5 });
+    const lineShown = await page.locator(".rg-pop .rg-lora-drop").count();
+    await page.mouse.up(); await page.waitForTimeout(200);
+    const order = await page.evaluate(() => window.__node.__rgState().sceneLoras.map((x) => x.lora[0]));
+    check(`dragging a LoRA row by its grip moves it in the list, with a line that shows where (${order})`, lineShown === 1 && order.join("") === "bcs");
+    await page.keyboard.press("Control+z"); await page.waitForTimeout(150);
+    check("…and that is one undo step", (await page.evaluate(() => window.__node.__rgState().sceneLoras.map((x) => x.lora[0]))).join("") === "sbc");
+    // round 90: the switch at the top of the LoRAs tab, for all of this list's LoRAs
+    const swUi = () => page.evaluate(() => { const h = document.querySelector(".rg-pop .rg-pop-lorasw"); if (!h) return null;
+        return { label: h.querySelector(".rg-pop-palname").textContent, state: h.querySelector(".rg-pop-palstate").textContent, sw: h.querySelector("input.rg-switch").checked, lit: h.classList.contains("on"), note: h.querySelector(".rg-hint").textContent,
+                 on: window.__node.__rgState().sceneLoras.map((x) => x.on !== false).join() }; });
+    let su = await swUi();
+    check(`the LoRAs tab has a switch for all of the list's LoRAs: "The whole image's LoRAs", On while any is on (${JSON.stringify(su)})`,
+          su && su.label === "The whole image's LoRAs" && su.state === "On" && su.sw && su.lit && /2 of 3/.test(su.note) && su.on === "true,true,false");
+    await page.locator(".rg-pop .rg-pop-lorasw input.rg-switch").click(); await page.waitForTimeout(200);
+    su = await swUi();
+    check(`switched off: every LoRA of the list is off, it says Off, and the row's button is an outline (${JSON.stringify(su)})`,
+          su.state === "Off" && !su.sw && !su.lit && su.on === "false,false,false" && (await lstate()).btns[0] === "LoRAs (0/3):alloff");
+    await page.locator(".rg-pop .rg-pop-lorasw input.rg-switch").click(); await page.waitForTimeout(200);
+    su = await swUi();
+    check(`switched on again: the same two are back, not the one that was off before (${su.on})`, su.state === "On" && su.on === "true,true,false");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(150);
+    check("Esc closes the pop-up from its LoRAs tab", await page.locator(".rg-pop").count() === 0);
+    // the header's switch: all off, then the same ones back on
+    await page.locator(".rg-lall").click(); await page.waitForTimeout(150);
+    ls = await lstate();
+    const offState = await page.evaluate(() => window.__node.__rgState().sceneLoras.map((x) => x.on !== false));
+    check(`the header's switch turns every LoRA off: the row's button is an amber outline "LoRAs (0/3)", no chips; the header says "LoRAs off" (${JSON.stringify(ls)})`,
+          offState.every((v) => !v) && ls.btns[0] === "LoRAs (0/3):alloff" && ls.chips.length === 0 && ls.all === "LoRAs off:back" && ls.edge === 0);
+    await page.locator(".rg-lall").click(); await page.waitForTimeout(150);
+    const onState = await page.evaluate(() => window.__node.__rgState().sceneLoras.map((x) => x.on !== false));
+    check(`…and the next click puts back the ones that were on, not the one that was off (${onState})`, onState.join() === "true,true,false" && (await lstate()).all === "LoRAs (2):some");
+    await page.evaluate(() => { const n = window.__node; delete n.__rgState().sceneLoras; n.__rgRefresh(); });
+    await page.waitForTimeout(150);
 
     // Edit Mode: keep toggle, header grow / feather, hatching
     check("grow / feather hidden in generate", await page.locator(".rg-editmask").isHidden());

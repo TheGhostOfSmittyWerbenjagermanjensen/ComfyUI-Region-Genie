@@ -26,7 +26,7 @@ const CSS = `.rg-setwin { position:absolute; inset:0; z-index:5; display:flex; f
   background:var(--comfy-input-bg,#1a1a1a); color:inherit; font:inherit; }
 .rg-setwin button { font:inherit; color:inherit; cursor:pointer; }
 .rg-setwin-btn { background:var(--comfy-input-bg,#222); border:1px solid var(--border-color,#555); border-radius:5px; padding:4px 12px; }
-.rg-setwin-btn:hover { border-color:#5b8fd0; }
+.rg-setwin-btn:hover { border-color:var(--rg-accent,#5b8fd0); }
 .rg-setwin-btn.warn { border-color:#c0504d; color:#ffb3ae; }
 .rg-setwin-x { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:5px; background:none; border:1px solid transparent; }
 .rg-setwin-x:hover { border-color:var(--border-color,#555); }
@@ -36,7 +36,7 @@ const CSS = `.rg-setwin { position:absolute; inset:0; z-index:5; display:flex; f
 .rg-setwin-nav button { display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; text-align:left; padding:7px 14px;
   background:none; border:0; border-left:3px solid transparent; }
 .rg-setwin-nav button:hover { background:rgba(255,255,255,.06); }
-.rg-setwin-nav button.on { background:rgba(91,143,208,.22); border-left-color:#5b8fd0; }
+.rg-setwin-nav button.on { background:color-mix(in srgb, var(--rg-accent,#5b8fd0) 22%, transparent); border-left-color:var(--rg-accent,#5b8fd0); }
 .rg-setwin-nav button span { opacity:.6; font-size:11px; white-space:nowrap; }
 .rg-setwin-page { flex:1 1 auto; min-width:0; overflow:auto; padding:10px 18px 16px; }
 .rg-setwin-grp { font-weight:700; margin:16px 0 4px; padding-top:10px; border-top:1px solid var(--border-color,#444); }

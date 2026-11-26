@@ -1,5 +1,5 @@
-// The README's pictures: docs/images/editor.png (the whole node), editor-numbered.png (its parts numbered), lora.png (a
-// region with a LoRA), pose.png (pose figures), popup-scene.png and popup-region.png (the pop-up editors), large-editor.png, rows.png (a Control row and an Edit row under Whole image), model-menu.png (a model file's menu with a search), settings-tab.png, settings-window.png and save-image.png
+// The README's pictures: docs/images/editor.png (the whole node), editor-numbered.png (its parts numbered), lora.png (the
+// LoRAs tab of a region's pop-up), popup-layers.png, popup-palette.png, popup-options.png (its other tabs), pose.png (pose figures), popup-scene.png and popup-region.png (the pop-up editors), large-editor.png, rows.png (a Control row and an Edit row under Whole image), model-menu.png (a model file's menu with a search), settings-tab.png, settings-window.png and save-image.png
 // (Save Image after a run; it uses input/rg_demo.png when there is one). Needs a running ComfyUI with this pack (legacy mode, English, dark palette):
 //   COMFY_DIR=<the ComfyUI folder> node tests/shot_readme.cjs
 // Rules for the pictures (the owner's): a LoRA is shown with trigger-word chips, and no model name in red (not found).
@@ -48,9 +48,16 @@ if (process.env.COMFY_DIR) {
   }
   const sc = page.locator("textarea.rg-scene-ta").first(); await sc.click(); await page.keyboard.type("a fantasy battle on a cliff at sunset, dramatic lighting");
   await page.mouse.move(x + w * 0.5, y + h * 0.03); await page.mouse.click(x + w * 0.5, y + h * 0.03); await page.keyboard.press("v");
-  await page.locator('[title^="Show or hide everything in the list"]').click(); await page.waitForTimeout(150);
-  if (await page.locator(".rg-row.opts").count()) { await page.locator('[title^="Show or hide everything in the list"]').click(); await page.waitForTimeout(150); }
-  await page.locator(".rg-row.region .rg-chev").nth(1).click(); await page.waitForTimeout(400);
+  // round 88: the rows are one line each; what a region holds shows as small buttons. The pictures show a region
+  // with a LoRA and a palette, and a LoRA on the whole image (real files: no red "not found" name)
+  await page.evaluate(async () => { try { const r = await (await fetch("/object_info/LoraLoaderModelOnly")).json(); window.__loras = r.LoraLoaderModelOnly.input.required.lora_name[0]; } catch (e) { window.__loras = []; } });
+  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), L = window.__loras || [], lo = L.find((x) => /rg_demo.red_dragon/.test(x)) || L[0], sc = L.find((x) => /rg_demo.oil_painting/.test(x)) || L[0];
+    if (!lo) throw new Error("no LoRA file in ComfyUI: run with COMFY_DIR set");
+    s.loraOpts = { ...(s.loraOpts || {}), separation: 0.85, until: 0.1 };          // the defaults, whatever this ComfyUI has in its Settings
+    s.regions[1].loras = [{ lora: lo, strength: 0.8, on: true }];
+    s.sceneLoras = [{ lora: sc, strength: 0.6, on: true }];
+    s.regions[1].palette = ["#b3261e", "#f2a23a", "#3b2a1a"]; s.regions[1].paletteOn = true; n.__rgRefresh(); });
+  await page.waitForTimeout(400);
   const clip = await page.evaluate(() => { const n = window.__rg, ds = window.app.canvas.ds, r = window.app.canvas.canvas.getBoundingClientRect(); return { x: r.x + (n.pos[0] + ds.offset[0]) * ds.scale - 8, y: r.y + (n.pos[1] - 34 + ds.offset[1]) * ds.scale, width: n.size[0] * ds.scale + 16, height: (n.size[1] + 42) * ds.scale }; });
   await page.mouse.move(4, 4); await page.waitForTimeout(700);        // the pointer away: no tooltip in the picture
   await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "editor.png"), clip });
@@ -66,25 +73,6 @@ if (process.env.COMFY_DIR) {
   // the same picture is the help page's (js/docs/Region-Genie_Main.md, shown under Node Info)
   require("fs").copyFileSync(path.join(__dirname, "..", "docs", "images", "editor-numbered.png"), path.join(__dirname, "..", "js", "docs", "region-genie-parts.png"));
   await page.evaluate(() => document.querySelectorAll(".rg-shot-num").forEach((e) => e.remove()));
-  // lora.png: a region opened, with a LoRA of its own
-  // a LoRA that is really there (no red "not found" name in the picture): the first one ComfyUI lists
-  await page.evaluate(async () => { try { const r = await (await fetch("/object_info/LoraLoaderModelOnly")).json(); window.__loras = r.LoraLoaderModelOnly.input.required.lora_name[0]; } catch (e) { window.__loras = []; } });
-  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || []).find((x) => /rg_demo.red_dragon/.test(x)) || (window.__loras || [])[0];
-    if (!lo) throw new Error("no LoRA file in ComfyUI: run with COMFY_DIR set");
-    s.loraOpts = { ...(s.loraOpts || {}), separation: 0.85, until: 0.1 };          // the defaults, whatever this ComfyUI has in its Settings
-    s.regions[1].loras = [{ lora: lo, strength: 0.8, on: true }]; n.__rgRefresh(); });
-  await page.waitForTimeout(300);
-  await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(400);
-  const loraClip = await page.evaluate(() => { const head = document.querySelector(".rg-head").getBoundingClientRect(), list = document.querySelector(".rg-list").getBoundingClientRect(), rows = [...document.querySelectorAll(".rg-list .rg-row")], lr = [...document.querySelectorAll(".rg-list .rg-row.lora, .rg-list .rg-lora")].pop(), last = (lr || rows[Math.min(rows.length - 1, 6)]).getBoundingClientRect();
-    return { x: list.x - 6, y: head.y - 6, width: list.width + 12, height: last.bottom - head.y + 30 }; });
-  await page.mouse.move(4, 4); await page.waitForTimeout(500);
-  await page.screenshot({ path: path.join(__dirname, "..", "docs", "images", "lora.png"), clip: loraClip });
-  await page.locator(".rg-head .rg-btn", { hasText: "LoRAs" }).click(); await page.waitForTimeout(200);
-  // popup-scene.png, popup-region.png: the pop-up editors of scene_prompt_positive and of a region's prompt
-  await page.evaluate(() => { const n = window.__rg, s = n.__rgState(), lo = (window.__loras || []).find((x) => /rg_demo.oil_painting/.test(x)) || (window.__loras || [])[0];
-    s.sceneLoras = [{ lora: lo, strength: 0.6, on: true }];
-    s.regions[1].palette = ["#b3261e", "#f2a23a", "#3b2a1a"]; s.regions[1].paletteOn = true; n.__rgRefresh(); });
-  await page.waitForTimeout(300);
   const popShot = async (name) => {
     await page.waitForTimeout(500); await page.mouse.move(4, 4); await page.waitForTimeout(600);
     const c = await page.evaluate(() => { const r = document.querySelector(".rg-pop").getBoundingClientRect(); return { x: r.x - 2, y: r.y - 2, width: r.width + 4, height: r.height + 4 }; });
@@ -93,6 +81,10 @@ if (process.env.COMFY_DIR) {
   await page.locator(".rg-expand").first().click(); await popShot("popup-scene.png");
   await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   await page.locator(".rg-row.region").nth(1).locator(".rg-expand").first().click(); await popShot("popup-region.png");
+  // lora.png, popup-layers.png, popup-palette.png, popup-options.png: the other tabs of the same pop-up
+  for (const [tab, name] of [["loras", "lora.png"], ["layers", "popup-layers.png"], ["palette", "popup-palette.png"], ["options", "popup-options.png"]]) {
+    await page.locator(`.rg-pop .rg-pop-tabs [data-tab="${tab}"]`).click(); await popShot(name);
+  }
   await page.keyboard.press("Escape"); await page.waitForTimeout(300);
   // pose.png: two pose figures drawn with the Pose tool (README "Poses")
   await page.locator('.rg-bar button[title^="Pose"]').click(); await page.waitForTimeout(300);

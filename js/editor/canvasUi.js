@@ -183,6 +183,7 @@ export function* canvasUi(E) {
         openSub(rid, "layers");
         E.refreshUI();
     });
+    E.addLayerBtn = addLayerBtn;
     for (const [b, ic] of [[addRegionBtn, "regionAdd"], [addLayerBtn, "layerAdd"]]) { b.innerHTML = svgIcon(ic); b.classList.add("icon"); }
     const expandBtns = {
         layers: E.btn("▼ Layers", "Show or hide the layers of every region", () => E.toggleKind("layers")),
@@ -306,7 +307,9 @@ export function* canvasUi(E) {
         if (editMaskBox.style.display !== show) editMaskBox.style.display = show;
     }
     E.editMaskBox = editMaskBox;                   // on the Edit Mode line of the list (rows.js); it was in this header until round 40
-    treeHead.append(treeTitle, addRegionBtn, addLayerBtn, expandBtns.layers, expandBtns.loras, expandBtns.palette, expandBtns.all,
+    // every LoRA of the node off with one click, and back on with the next (round 87)
+    const loraAllBtn = E.btn("", "", () => E.toggleAllLoras()); loraAllBtn.classList.add("rg-lall"); E.loraAllBtn = loraAllBtn;
+    treeHead.append(treeTitle, addRegionBtn, addLayerBtn, expandBtns.layers, expandBtns.loras, expandBtns.palette, expandBtns.all, loraAllBtn,
                     statusLbl, loraOptsBox);
     loraOptsBox.append(allSeparateBtn);           // always at the right end; the number fields come and go
     const regList = E.el("div", "rg-list"); E.regList = regList;

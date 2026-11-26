@@ -35,7 +35,7 @@ const TOP_H = 0;                                     // the height of the row th
 const CSS = `
 .rg-save-out { display:flex; align-items:center; gap:6px; height:20px; padding:0 4px; box-sizing:border-box; overflow:hidden;
   white-space:nowrap; text-overflow:ellipsis; font:12px sans-serif; color:var(--input-text,#ddd); opacity:.85; }
-.rg-save-out .rg-save-note { color:#d9a441; overflow:hidden; text-overflow:ellipsis; }
+.rg-save-out .rg-save-note { color:var(--rg-on,#d9a441); overflow:hidden; text-overflow:ellipsis; }
 .rg-save-out.stale { opacity:.45; }
 .rg-save-text { display:flex; align-items:center; gap:6px; flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .rg-save-top { position:relative; height:0; overflow:visible; pointer-events:none; }
@@ -43,7 +43,7 @@ const CSS = `
 .rg-save-socks { flex:0 0 auto; margin-left:auto; width:20px; height:18px; padding:0; display:inline-flex; align-items:center; justify-content:center;
   background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555); border-radius:4px; cursor:pointer; }
 .rg-save-socks svg { width:13px; height:13px; display:block; pointer-events:none; }
-.rg-save-socks.on { background:#3a6ea5; border-color:#5b8fd0; color:#fff; }
+.rg-save-socks.on { background:var(--rg-accent-fill,#3a6ea5); border-color:var(--rg-accent,#5b8fd0); color:#fff; }
 `;
 
 // 1024-based sizes: B, KB, MB (2 decimals from 1 MB)

@@ -8,7 +8,7 @@
 // / knee / ankle, 11-13 left leg, 14 right eye, 15 left eye, 16 right ear, 17 left ear.
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { svgIcon, getSetting, SET, SDPOSE_DEFAULT } from "../rg_shared.js";
+import { svgIcon, getSetting, SET, SDPOSE_DEFAULT, accentColor } from "../rg_shared.js";
 import { UNSPEC } from "./shared.js";
 
 export const POSE_LIMBS = [[1, 2], [1, 5], [2, 3], [3, 4], [5, 6], [6, 7], [1, 8], [8, 9], [9, 10], [1, 11], [11, 12], [12, 13],
@@ -426,7 +426,7 @@ export function* pose(E) {
             ctx.setLineDash([5 * dpr, 4 * dpr]); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.2 * dpr; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0); ctx.setLineDash([]);
             ctx.beginPath(); ctx.moveTo((x0 + x1) / 2, y0); ctx.lineTo((x0 + x1) / 2, y0 - 20 * dpr); ctx.stroke();
             for (const h of handles(sel)) {
-                ctx.fillStyle = h.kind === "rotate" ? "#5b8fd0" : "#fff"; ctx.strokeStyle = "#1d3d66"; ctx.lineWidth = 1.5 * dpr;
+                ctx.fillStyle = h.kind === "rotate" ? accentColor() : "#fff"; ctx.strokeStyle = "#1d3d66"; ctx.lineWidth = 1.5 * dpr;
                 ctx.beginPath();
                 if (h.kind === "rotate") ctx.arc(h.x, h.y, 5 * dpr, 0, Math.PI * 2); else ctx.rect(h.x - 4 * dpr, h.y - 4 * dpr, 8 * dpr, 8 * dpr);
                 ctx.fill(); ctx.stroke();

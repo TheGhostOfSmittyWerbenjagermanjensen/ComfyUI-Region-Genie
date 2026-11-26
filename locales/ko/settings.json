@@ -676,17 +676,9 @@
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px ": {
-    "name": "Region Genie 노드",
-    "tooltip": "새 Region Genie 노드의 초기 설정(이미지 모드, 페더, 분리, 그리드, 영역 색상, 태그 자동 완성, 와일드카드).\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
-  },
   "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
     "name": "캔버스 도구",
     "tooltip": "올가미, 마술봉, 채우기 버튼이 처음에 사용하는 버전, 마술봉 허용 오차, 채우기 틈 크기, 캔버스의 힌트.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
-  },
-  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength ": {
-    "name": "텍스트",
-    "tooltip": "노드와 팝업 편집기에서 프롬프트 상자의 글자 크기, 그리고 캔버스의 영역 라벨 크기와 그림자.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
   "RegionGenie_Page_control: Pose from the image: SDPose model, MOSS-Image: color depth control LoRA, Flux_1: depth LoRA e_g_ flux1-depth-dev-lora , Flux_1: canny LoRA e_g_ flux1-canny-dev-lora , Flux_1: depth ControlNet, Flux_1: canny ControlNet, Flux_1: pose ControlNet OpenPose or union , Flux_1: ControlNet for your control_image pose, lineart, union , SDXL: depth ControlNet, SDXL: canny ControlNet, SDXL: pose ControlNet OpenPose or union , SDXL: ControlNet for your control_image pose, lineart, union , SD1_5: depth ControlNet, SD1_5: canny ControlNet, SD1_5: pose ControlNet OpenPose or union , SD1_5: ControlNet for your control_image pose, lineart, union , Anima: depth LLLite patch, Anima: canny LLLite patch, Anima: pose LLLite patch, Anima: LLLite patch for your control_image, Depth Anything 3 model makes depth maps from image ": {
     "name": "컨트롤",
@@ -731,5 +723,33 @@
   "RegionGenie_Main_LabelShadowStrength": {
     "name": "캔버스: 라벨 그림자 강도 (%)",
     "tooltip": "캔버스의 영역 프롬프트 주위 그림자나 광채의 진하기입니다. 0: 없음."
+  },
+  "RegionGenie_Main_LabelPad": {
+    "name": "캔버스: 레이블과 영역 가장자리 사이의 여백 (%)",
+    "tooltip": "캔버스의 영역 프롬프트가 영역 가장자리와 두는 여백으로, 영역의 짧은 변에 대한 %입니다. 여백이 작을수록 프롬프트가 더 많이 보입니다. 이전에는 8로 고정되어 있었습니다."
+  },
+  "RegionGenie_Main_LabelAlign": {
+    "name": "캔버스: 레이블 글자",
+    "tooltip": "캔버스의 영역 프롬프트 줄을 번호 아래에서 어떻게 정렬할지 정합니다. 번호와 유형 표시는 항상 글자 위 가운데에 놓입니다.",
+    "options": {
+      "Left-aligned": "왼쪽 정렬",
+      "Centered": "가운데 정렬"
+    }
+  },
+  "RegionGenie_Page_text: In the node: scene prompts, In the node: region prompts, In the node: text to render, Pop-up editor: scene prompts, Pop-up editor: region prompts, Pop-up editor: text to render, On the canvas: region labels, On the canvas: region labels, largest when zoomed in, On the canvas: label shadow size px , On the canvas: label shadow strength , On the canvas: room between a label and its region s edge , On the canvas: label text": {
+    "name": "텍스트",
+    "tooltip": "노드와 팝업 편집기에서 프롬프트 상자의 글자 크기, 그리고 캔버스의 영역 라벨 크기와 그림자.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
+  },
+  "RegionGenie_Main_AccentColor": {
+    "name": "강조 색",
+    "tooltip": "팩의 모든 노드에서 선택됨, 사용 중, 켜짐을 나타내는 색입니다. 사용 중인 도구, 선택한 행, 커서가 있는 텍스트 필드, 팝업의 테두리, 팝업이 열려 있는 텍스트 필드에 쓰입니다."
+  },
+  "RegionGenie_Main_OnColor": {
+    "name": "켜짐 색",
+    "tooltip": "켜져 있는 것을 나타내는 색입니다. 켜진 LoRA(버튼, 칩, 행의 가장자리), 스위치, 알림에 쓰입니다."
+  },
+  "RegionGenie_Page_node: Tag autocomplete on in new Region Genie nodes, A seed per field, image_mode, Color map: min region pixels, import_json when the canvas isn t empty, Pose import: a figure you changed, Pose import: a figure the input changed, Region colors, Feather px, linked regions , separation, until, Keep all regions separate not only those with LoRAs , Keep regions separate: share the background, Snap to grid on, Grid size image px , Show the grid without snapping, Grid lines, Region opacity over an image , Region opacity without an image , Region edge line px , Highlight color, Switched-on color": {
+    "name": "Region Genie 노드",
+    "tooltip": "새 Region Genie 노드의 초기 설정(이미지 모드, 페더, 분리, 그리드, 영역 색상, 태그 자동 완성, 와일드카드).\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   }
 }

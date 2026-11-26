@@ -3,7 +3,7 @@
 import { UNSPEC } from "./shared.js";
 import { shapeVerts, bitmapCanvas } from "./geometry.js";
 import { hexRgb } from "./colors.js";
-import { LABEL_MARKS } from "../rg_shared.js";
+import { LABEL_MARKS, accentColor } from "../rg_shared.js";
 
 // The marks before a label's prompt (a person: a character region; a lock: kept as it is in Edit Mode): filled
 // shapes in the label's text color, MARK_SIZE px tall at 100 %, MARK_STEP px from one to the next / to the text.
@@ -423,7 +423,7 @@ export function* render(E) {
                 poly.pts.forEach(([x, y], i) => {
                     const [a, b] = E.toScr(x, y);
                     E.ctx.beginPath(); E.ctx.arc(a, b, (i ? 3 : 6) * dpr, 0, Math.PI * 2);
-                    E.ctx.fillStyle = i ? "#fff" : "#5b8fd0"; E.ctx.fill(); E.ctx.stroke();
+                    E.ctx.fillStyle = i ? "#fff" : accentColor(); E.ctx.fill(); E.ctx.stroke();
                 });
             }
             E.ctx.restore();
@@ -435,9 +435,9 @@ export function* render(E) {
         if (L && E.isShown(L) && E.hiddenSel !== E.selId) {
             const cs = E.boxCornersImg(L);
             if (cs) {
-                outline(cs, "#5b8fd0", E.tool !== "select");
+                outline(cs, accentColor(), E.tool !== "select");
                 if (E.tool === "select") for (const hd of handles(L)) {
-                    E.ctx.fillStyle = hd.kind === "rotate" ? "#5b8fd0" : "#fff";
+                    E.ctx.fillStyle = hd.kind === "rotate" ? accentColor() : "#fff";
                     E.ctx.strokeStyle = "#1d3d66"; E.ctx.lineWidth = 1.5;
                     E.ctx.beginPath();
                     if (hd.kind === "rotate") E.ctx.arc(hd.x, hd.y, 5 * dpr, 0, Math.PI * 2);
@@ -734,7 +734,8 @@ export function* render(E) {
             if (rg.type === "text" && rg.text) text += `  "${rg.text}"`;
             // marks before the prompt, drawn (not emoji): a lock for a region kept as it is in Edit Mode, a person for
             // a character region. They take room at the start of every line, like the index badge.
-            const marks = [...(rg.keep && E.isEdit() ? ["lock"] : []), ...(rg.type === "character" ? ["person"] : [])];
+            // (round 88: every type has its mark, an object and a text region too)
+            const marks = [...(rg.keep && E.isEdit() ? ["lock"] : []), { character: "person", text: "text" }[rg.type] || "object"];
             const mw = marks.length * MARK_STEP * dpr;
             const [cx, cy] = E.toScr((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2);
             const [rx0, ry0] = E.toScr(b.x0, b.y0), [rx1, ry1] = E.toScr(b.x1, b.y1);
@@ -747,7 +748,19 @@ export function* render(E) {
             // text gets the compact label instead (index and up to three lines on a dark plate), as before.
             const [qx0, qy0] = E.toScr(b.in.x0, b.in.y0), [qx1, qy1] = E.toScr(b.in.x1, b.in.y1);
             const vx0 = Math.max(qx0, 0), vy0 = Math.max(qy0, 0), vx1 = Math.min(qx1, E.cv.width), vy1 = Math.min(qy1, E.cv.height);
-            const iw = vx1 - vx0, ih = vy1 - vy0, mg = Math.max(4 * dpr, Math.min(iw, ih) * 0.08);
+            const iw = vx1 - vx0, ih = vy1 - vy0, mg = Math.max(2 * dpr, Math.min(iw, ih) * E.labelPad());       // (a Setting since round 88; 8% and at least 4 px until then)
+            // round 88: the number and the marks go on a line of their own above the text, centred over it, so the
+            // text has the region's whole width. Where the region isn't tall enough for that line and a line of text,
+            // they stay before the text as they were.
+            const headW = nw + (num && mw ? 3 * dpr : 0) + mw, headH = headW ? lh + 2 * dpr : 0;
+            const topW = iw - 2 * mg, topLines = Math.floor((ih - 2 * mg - headH) / lh);
+            if (headW && topW >= 44 * dpr && topLines >= 1) {
+                const lines = wrapText(E.ctx, text, topW, topLines);
+                const tw = Math.max(...lines.map((l) => E.ctx.measureText(l).width));
+                const w = Math.max(tw, headW), h = headH + lines.length * lh;
+                items.push({ k: b.k, rg, lines, num, nw, gap, marks, mw, bw: tw, w, h, dx: vx0 + (iw - w) / 2, dy: vy0 + (ih - h) / 2, rx0, ry0, rx1, ry1, inside: true, top: { headW, headH } });
+                continue;
+            }
             const availW = iw - 2 * mg - nw - gap - mw, maxLines = Math.floor((ih - 2 * mg) / lh);
             if (availW >= 44 * dpr && maxLines >= 1) {
                 const lines = wrapText(E.ctx, text, availW, maxLines);
@@ -782,7 +795,9 @@ export function* render(E) {
         const plateAll = E.controlShowK >= 0, fillNow = E.fillNow();
         for (const it of order) {
             const { rg, lines, num, nw, gap, bw, h: bh, marks, mw } = it;
-            const x0 = it.x + nw + gap, y0 = it.y;
+            // where the number's badge, the marks and the text go: side by side, or (it.top) the first two centred above the text
+            const top = it.top, headX = top ? it.x + (it.w - top.headW) / 2 : it.x;
+            const x0 = top ? headX + nw + (num && mw ? 3 * dpr : 0) : it.x + nw + gap, y0 = it.y;
             const shown = E.colorOf(rg.id), [rr, gg, bb] = hexRgb(shown), light = rr * 0.299 + gg * 0.587 + bb * 0.114 > 140;
             const badgeH = it.inside ? lh : bh;
             const plate = plateAll || (!!rg.keep && E.isEdit());
@@ -792,11 +807,11 @@ export function* render(E) {
                 E.ctx.globalAlpha = 1;
             }
             if (num) {                                   // index badge right before the prompt
-                E.ctx.globalAlpha = 0.9; E.ctx.fillStyle = shown; E.ctx.fillRect(it.x, y0, nw, badgeH);
-                E.ctx.globalAlpha = 1; E.ctx.strokeStyle = it.inside && light && !plate ? "#000" : "#fff"; E.ctx.lineWidth = 1.5 * dpr; E.ctx.strokeRect(it.x, y0, nw, badgeH);
+                E.ctx.globalAlpha = 0.9; E.ctx.fillStyle = shown; E.ctx.fillRect(headX, y0, nw, badgeH);
+                E.ctx.globalAlpha = 1; E.ctx.strokeStyle = it.inside && light && !plate ? "#000" : "#fff"; E.ctx.lineWidth = 1.5 * dpr; E.ctx.strokeRect(headX, y0, nw, badgeH);
                 E.ctx.fillStyle = light ? "#000" : "#fff";
                 E.ctx.font = `bold ${11 * dpr}px sans-serif`; E.ctx.textAlign = "center";
-                E.ctx.fillText(num, it.x + nw / 2, y0 + (badgeH - 11 * dpr) / 2);
+                E.ctx.fillText(num, headX + nw / 2, y0 + (badgeH - 11 * dpr) / 2);
                 E.ctx.textAlign = "left"; E.ctx.font = `${11 * dpr}px sans-serif`;
             }
             if (it.inside) {
@@ -815,7 +830,9 @@ export function* render(E) {
                 for (let left = shadowPx > 0 ? shadowUnits : 0, first = true; first || left > 0; left -= 1, first = false) {
                     const a = Math.max(0, Math.min(1, left));
                     E.ctx.shadowColor = dark ? `rgba(255,255,255,${0.9 * a})` : `rgba(0,0,0,${0.95 * a})`;
-                    lines.forEach((l, i) => E.ctx.fillText(l, x0 + mw, y0 + 1 * dpr + i * lh));
+                    if (top && E.labelCentered()) { E.ctx.textAlign = "center"; lines.forEach((l, i) => E.ctx.fillText(l, it.x + it.w / 2, y0 + top.headH + 1 * dpr + i * lh)); E.ctx.textAlign = "left"; }
+                    else if (top) lines.forEach((l, i) => E.ctx.fillText(l, it.x + (it.w - it.bw) / 2, y0 + top.headH + 1 * dpr + i * lh));       // left-aligned (a Setting), as a block under the number
+                    else lines.forEach((l, i) => E.ctx.fillText(l, x0 + mw, y0 + 1 * dpr + i * lh));
                 }
                 E.ctx.restore();
                 continue;
