@@ -47,7 +47,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator(".rg-toolopts").first().hover().catch(() => {});      // folded to an icon until hovered (round 12)
     const findVis = await page.locator(".rg-toolopts .rg-find").first().isVisible();
     check("find field visible", findVis);
-    const respP = page.waitForResponse((r) => r.url().includes("/region_genie/sam_select"), { timeout: 240000 });
+    const respP = page.waitForResponse((r) => r.url().includes("/region_genie/sam_select"), { timeout: 600000 });      // a cold stand-in model (1.75 GB, CPU) took over 4 minutes on a cloud machine three times in one day
     const [cx, cy] = await page.evaluate(() => window.__rg.__rgToClient(120, 300));
     await page.mouse.click(cx, cy);
     await page.waitForTimeout(300);

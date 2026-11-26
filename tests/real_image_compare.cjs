@@ -149,6 +149,19 @@ const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];          // image_1 …
     await hover(0.5); await page.mouse.wheel(0, 240); await sleep(400); const sc2 = await scale();
     check(`${M}: the wheel over the node's picture zooms ComfyUI's graph in and out again (${sc0.toFixed(2)} > ${sc1.toFixed(2)} > ${sc2.toFixed(2)})`, sc1 > sc0 * 1.05 && sc2 < sc1 * 0.97);
     await page.evaluate(() => { const c = window.app.canvas; c.ds.scale = 1; c.ds.offset = [0, 0]; c.setDirty(true, true); }); await sleep(300);
+    // round 96: a middle-button drag over the node moves the graph, on the picture and on the row of numbers
+    const offs = () => page.evaluate(() => [...window.app.canvas.ds.offset].map((v) => Math.round(v)));
+    for (const [what, loc] of [["picture", ".rg-ic-view"], ["row of numbers", ".rg-ic-bar"]]) {
+        await page.evaluate(() => { const c = window.app.canvas; c.ds.scale = 1; c.ds.offset = [0, 0]; c.setDirty(true, true); }); await sleep(250);
+        const b = await page.locator(loc).first().boundingBox(), x = b.x + b.width * 0.4, y = b.y + b.height / 2;
+        await page.mouse.move(x, y, { steps: 2 }); await page.mouse.down({ button: "middle" });
+        await page.mouse.move(x + 60, y + 40, { steps: 6 }); await page.mouse.move(x + 120, y + 80, { steps: 6 }); await page.mouse.up({ button: "middle" }); await sleep(300);
+        const o = await offs();
+        check(`${M}: a middle-button drag over the node's ${what} moves ComfyUI's graph (by ${o.join(", ")})`, o[0] > 80 && o[0] < 135 && o[1] > 50 && o[1] < 95);
+        await page.mouse.move(x + 200, y + 120, { steps: 4 }); await sleep(150);
+        check(`${M}: and lets go of it when the button is released`, (await offs()).join() === o.join());
+    }
+    await page.evaluate(() => { const c = window.app.canvas; c.ds.scale = 1; c.ds.offset = [0, 0]; c.setDirty(true, true); }); await sleep(300);
     // the Large view
     await page.locator(".rg-ic-opts .rg-ic-bigbtn").first().click(); await sleep(300);
     const bigView = page.locator(".rg-ic-big .rg-ic-view");

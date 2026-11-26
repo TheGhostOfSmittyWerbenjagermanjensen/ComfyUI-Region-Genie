@@ -111,6 +111,28 @@ function wheelToGraph(e) {
     setTimeout(() => { if (`${ds.scale}|${ds.offset[0]}|${ds.offset[1]}` === before) cv.dispatchEvent(new WheelEvent("wheel", copy)); }, 0);
 }
 
+// a middle-button drag over the node moves ComfyUI's graph, as it does over any other part of a node. As with the
+// wheel: where ComfyUI already does it by itself nothing is added. When the first movement did not move the graph,
+// the press is handed to the graph's canvas (at the place it happened), and the canvas follows the pointer from there
+function middleToGraph(e) {
+    if (e.button !== 1) return;
+    const c = app.canvas, cv = c?.canvas, ds = c?.ds;
+    if (!cv || !ds) return;
+    e.preventDefault();                                              // no autoscroll of the browser
+    const before = `${ds.offset[0]}|${ds.offset[1]}`, at = { x: e.clientX, y: e.clientY };
+    const init = { clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY, button: 1, buttons: 4, pointerId: e.pointerId, pointerType: e.pointerType || "mouse",
+                   isPrimary: true, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey, bubbles: true, cancelable: true };
+    const onMove = (m) => {
+        if (Math.hypot(m.clientX - at.x, m.clientY - at.y) < 3) return;
+        stop();
+        if (`${ds.offset[0]}|${ds.offset[1]}` !== before) return;    // ComfyUI is already moving the graph
+        cv.dispatchEvent(new PointerEvent("pointerdown", init));
+        cv.dispatchEvent(new PointerEvent("pointermove", { ...init, clientX: m.clientX, clientY: m.clientY, button: -1 }));
+    };
+    const stop = () => { window.removeEventListener("pointermove", onMove, true); window.removeEventListener("pointerup", stop, true); };
+    window.addEventListener("pointermove", onMove, true); window.addEventListener("pointerup", stop, true);
+}
+
 function setup(node) {
     const P = () => { node.properties = node.properties || {}; const p = (node.properties.rg_compare = node.properties.rg_compare || {});
         if (!Array.isArray(p.hidden)) p.hidden = []; if (p.wrap === undefined) p.wrap = true; if (p.labels === undefined) p.labels = true; return p; };
@@ -232,6 +254,9 @@ function setup(node) {
         } else {
             view.addEventListener("wheel", wheelToGraph, { passive: true });
             bar.addEventListener("wheel", wheelToGraph, { passive: true });
+            wrap.addEventListener("pointerdown", middleToGraph);
+            wrap.addEventListener("mousedown", (e) => { if (e.button === 1) e.preventDefault(); });
+            wrap.addEventListener("auxclick", (e) => { if (e.button === 1) e.preventDefault(); });
         }
         for (const b of [wrapBtn, tagBtn, bigBtn]) for (const ev of ["pointerdown", "mousedown", "dblclick"]) b.addEventListener(ev, (e) => e.stopPropagation());
         chips.addEventListener("pointerdown", (e) => e.stopPropagation());
