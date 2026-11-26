@@ -11,7 +11,7 @@ import re
 
 LOG = "[Region Genie]"
 _NAME = re.compile(r"^image_(\d+)$")
-TIP = "An image, or a batch of images: every image of a batch counts as a picture of its own. A free input is added when the last one gets a cable."
+TIP = "An image, or a batch of images: Every image of a batch counts as a picture of its own. A free input is added when the last one gets a cable."
 
 
 class _Images(dict):
@@ -50,7 +50,7 @@ class ImageCompareRG:
     FUNCTION = "run"
     OUTPUT_NODE = True
     CATEGORY = "Region Genie"
-    DESCRIPTION = ("Shows two or more images in one node to compare them. Move the pointer across the picture: the "
+    DESCRIPTION = ("Shows two or more images in one node to compare them. Move the pointer across the picture: The "
                    "picture before the chosen one is left of the pointer, the chosen one right of it. The number keys "
                    "and the arrow keys choose the picture while the pointer is over the node.")
 
