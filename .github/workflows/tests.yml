@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: pip install numpy Pillow scipy
+      - run: pip install numpy Pillow scipy hypothesis
       - name: Syntax
         run: python -m py_compile *.py tests/*.py
       - name: Python tests (stubbed torch / comfy)

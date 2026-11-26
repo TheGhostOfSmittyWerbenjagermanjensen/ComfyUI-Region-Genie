@@ -2,6 +2,15 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 92 (Nov 26): one verify command, property tests, and the four defects they found (0.58.1)
+- Asked: the owner read Anthropic's post on how the Claude Code team verifies changes and asked how this project compares; then to build what was missing: a verify command and skill, test changes named in reports, property tests, and a shorter check list in CLAUDE.md.
+- Built: `tests/verify.py` (the checks for the changed files, one line each, logs in `tests/out/verify/`; it starts the test ComfyUI) and the `verify` skill in `.claude/skills/verify/`; `tests/test_properties.py` (Hypothesis) and `tests/ui_properties.cjs` (a seeded generator in the stub page).
+- Found by the property tests and fixed:
+  - Tiled Diffusion: with a latent of an odd number of cells along one side (a picture whose side is 8 px times an odd number, with a model of one cell per patch such as SDXL), the last row or column could lie outside every tile and came out empty. The last tile now always ends at the edge. Tiled Upscale was not affected (it sizes pictures to an even number of cells).
+  - Saved data whose `regions`, `ops` or `layers` is not a list (damaged or hand-edited) stopped the node from loading (editor) or the run (Python). It is read as empty now.
+  - A region whose color, prompt or text is not a text was kept as it was and changed again at the next load; an import mark that is not a text likewise. They are cleaned at the first read.
+- Tested: `verify.py --all`; the property tests with 4000 examples / 40 sequences; each fix was confirmed by its test failing on the code before the fix.
+
 ## Round 91 (Nov 26): where a pop-up opens; the open field's outline; the pack's colors as Settings
 - Asked: pop-ups appeared higher on the page than before (look into it); a mock-up of outlining the text field whose pop-up is open. The owner also said: "never a scroll bar" is a guideline, not a law (avoid them, never a horizontal one, ask when a design hangs on it).
 - Found: with default sizes nothing had moved. A pop-up whose saved size was smaller than its fullest tab grew after it was placed and was pushed up over its field; the owner's sizes dated from before the tabs.

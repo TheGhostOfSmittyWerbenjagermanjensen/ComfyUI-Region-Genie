@@ -401,6 +401,14 @@ The owner's choices on the six items left from the round-33 review (see the chan
 
 ## 6. How it was tested (for the next session)
 
+**Since round 92, start here:** `python3 tests/verify.py` (the `verify` skill in `.claude/skills/verify/` says how to use it).
+- It picks the checks from the changed files with the table `RULES` at its top (path patterns, and for some rules a pattern in the changed lines). The patterns are loose on purpose: a check too many costs minutes. `--list` shows the plan and the reason for every check.
+- It starts the test ComfyUI (`COMFY_DIR`, else `/tmp/comfy_src`), restarts it when Python or locale files changed, starts it again when it is found down, and makes Select object's stand-in model when it is missing (`RG_MODELS`: the models folder that has it).
+- It never runs a failed check again. Don't run other heavy work on the machine while it runs: `real_smoke.cjs` waits 240 s for the stand-in SAM model to load on the CPU and failed once when the property tests ran beside it.
+- Measured on a 4-CPU cloud machine: `run_ui.sh` about 5 minutes, `--all` about an hour.
+- **Property tests** (round 92): `tests/test_properties.py` (Hypothesis; `prop(name, strategies…)` wraps a rule and prints one PASS / FAIL line with the smallest failing input) and `tests/ui_properties.cjs` (a seeded generator inside the stub page: `parseState` on generated data, and generated action sequences against Undo / Redo). Ideas not yet built: the same for the sockets list (shown outputs > output numbers), for Arrange (flip twice = unchanged), for the Regional LoRAs node's rows, and a differential test of the editor's preview masks against Python's `layer_mask`.
+- What a property test found is fixed with the test left in place; a rule that turns out to be wrong for inputs the code never gets is narrowed to the caller's contract with a comment (the tile grid: even tiles only, as `TileGrid` passes them).
+
 **Network (Nov 11):** the user enabled network egress. GitHub, PyPI and npm work; **huggingface.co and download.pytorch.org are blocked by policy** (don't look for mirrors or workarounds: that was refused as a policy bypass).
 
 - **Real ComfyUI in the sandbox (round 7):**

@@ -2,6 +2,10 @@
 
 None of these need a GPU. Screenshots go to `tests/out/` (not committed).
 
+**One command for "check what I changed":** `python3 tests/verify.py`. It looks at the files that differ from `origin/main`, picks the checks that belong to them (the table `RULES` at its top), runs them and prints one line per check; each check's full output is in `tests/out/verify/`. `--list` only says what would run and why, `--quick` leaves out everything that needs a ComfyUI, `--all` runs every check (about an hour). It starts and restarts the test ComfyUI itself (`COMFY_DIR`, else `/tmp/comfy_src`; `bash tests/setup_real_comfy.sh` installs one). A new check file gets a line in `RULES`. The table below says what each check covers.
+
+**Property tests** (`test_properties.py` in `run_py.sh`, needs the `hypothesis` package; `ui_properties.cjs` in `run_ui.sh`): rules that must hold for every input, tried with generated inputs: the tile grid covers every cell; masks, colors, boxes and texts survive their round trips; any saved data, import text or bbox JSON is read without an error and reading it twice changes nothing; the settings text is read back from every file format; after any sequence of editor actions Undo and Redo walk through exactly the states the actions left. `RG_EXAMPLES=3000` / `RG_SEEDS=40` search longer. A failure prints the smallest input (Python) or the seed and input (editor) that breaks the rule.
+
 | What | How | Needs |
 |---|---|---|
 | Python, stubbed (`test_edit_mode.py`, `test_shapes_import.py`, `test_hidden_regions.py`, `test_prompt_format.py`, `test_save_image.py`, `test_gen_params.py` (the A1111-style settings text of Save Image: reading sampler, model, LoRAs and prompts out of a workflow in API form, the text, hashes from metadata files, the text in each file format), `test_model_paths.py`: model files by full path, the folder browser's listing; `test_i18n.py`: every language in `locales/` against the English reference `tests/i18n_en/`) | `bash tests/run_py.sh` | numpy, Pillow, scipy |

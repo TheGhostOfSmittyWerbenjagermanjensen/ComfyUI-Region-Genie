@@ -41,7 +41,8 @@ GAUSS_VAR = 0.01                 # the paper's variance of the tile weights (on 
 
 def tile_starts(size, tile, overlap):
     """Where the tiles start along one axis of `size` cells: as few tiles of `tile` cells as cover it with at least
-    `overlap` cells shared by neighbours, spread evenly, the last one ending at the edge. Even positions."""
+    `overlap` cells shared by neighbours, spread evenly, the last one ending at the edge. Even positions, but for the last tile of an odd-sized rest: it
+    ends at the edge all the same (an even position there left the last row or column outside every tile)."""
     if tile >= size:
         return [0]
     step = max(1, tile - overlap)
@@ -51,7 +52,7 @@ def tile_starts(size, tile, overlap):
     last = size - tile
     out = []
     for i in range(n):
-        p = int(round(i * last / (n - 1) / 2)) * 2
+        p = last if i == n - 1 else int(round(i * last / (n - 1) / 2)) * 2
         out.append(min(max(p, 0), last))
     return sorted(set(out))
 

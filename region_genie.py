@@ -144,9 +144,10 @@ def parse_paint_data(text):
         data = {}
     if not isinstance(data, dict):
         data = {}
-    regions = [r for r in data.get("regions", []) if isinstance(r, dict) and "id" in r]
-    ops = [o for o in data.get("ops", []) if isinstance(o, dict)]
-    layers = [l for l in data.get("layers", []) if isinstance(l, dict)] if "layers" in data else None
+    rows = lambda k: data.get(k) if isinstance(data.get(k), list) else []          # noqa: E731  (damaged data: not a list)
+    regions = [r for r in rows("regions") if isinstance(r, dict) and "id" in r]
+    ops = [o for o in rows("ops") if isinstance(o, dict)]
+    layers = [l for l in rows("layers") if isinstance(l, dict)] if "layers" in data else None
     return regions, ops, layers
 
 
