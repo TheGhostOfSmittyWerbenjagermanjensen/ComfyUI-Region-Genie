@@ -43,6 +43,14 @@ mkdir -p "$SCRIPTS/user" "$DIR/models/loras"
 [ -s "$SCRIPTS/user/autocomplete.txt" ] || printf "blue_sky\nblack_cat\nblonde_hair\nblush\nblurry_background\n" > "$SCRIPTS/user/autocomplete.txt"
 [ -e "$DIR/models/loras/rgtest_layering.safetensors" ] || : > "$DIR/models/loras/rgtest_layering.safetensors"
 
+echo "== rgthree-comfy with its menu folders on, and LoRA files in sub-folders (tests/real_menu_search.cjs)"
+RGTHREE="$DIR/custom_nodes/rgthree-comfy"
+[ -d "$RGTHREE/.git" ] || git clone -q --depth 1 https://github.com/rgthree/rgthree-comfy.git "$RGTHREE"
+[ -s "$RGTHREE/rgthree_config.json" ] || printf '{\n  "features": { "menu_auto_nest": { "subdirs": true, "threshold": 20 } }\n}\n' > "$RGTHREE/rgthree_config.json"
+mkdir -p "$DIR/models/loras/Flux/Styles" "$DIR/models/loras/SDXL"
+for n in 1 2 3; do : > "$DIR/models/loras/Flux/Styles/flux_style_$n.safetensors"; : > "$DIR/models/loras/SDXL/sdxl_lora_$n.safetensors"; done
+for n in $(seq 1 24); do [ -e "$DIR/models/loras/style_$n.safetensors" ] || : > "$DIR/models/loras/style_$n.safetensors"; done   # past rgthree's threshold of 20
+
 echo "== a test image in the input folder (real_smoke.cjs, real_sockets.cjs)"
 mkdir -p "$DIR/input"
 [ -e "$DIR/input/rg_test.png" ] || python3 -c "from PIL import Image; Image.new('RGB', (768, 512), (90, 140, 200)).save('$DIR/input/rg_test.png')"

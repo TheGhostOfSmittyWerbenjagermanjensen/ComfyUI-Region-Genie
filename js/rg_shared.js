@@ -410,7 +410,10 @@ const FF_CSS = `
 .rg-ff-browse { flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:34px; height:32px; padding:0; cursor:pointer;
   color:var(--input-text,#ddd); background:var(--comfy-input-bg,#2a2a2a); border:1px solid var(--border-color,#4a4a4a); border-radius:6px; }
 .rg-ff-browse svg { width:18px; height:18px; }
-.litecontextmenu .rg-ff-hit { white-space:nowrap; }
+.litecontextmenu .rg-ff-hit { white-space:nowrap; display:flex; align-items:baseline; gap:14px; }
+.litecontextmenu .rg-ff-hit .rg-ff-n { flex:1 1 auto; }
+.litecontextmenu .rg-ff-hit .rg-ff-d { flex:0 0 auto; margin-left:auto; font-size:.88em; opacity:.6; }
+.litecontextmenu .rg-ff-hit.selected .rg-ff-d, .litecontextmenu .rg-ff-hit:hover .rg-ff-d { opacity:.85; }
 .litecontextmenu .rg-ff-more { opacity:.6; font-style:italic; pointer-events:none; }
 `;
 function ffCss() {
@@ -438,7 +441,11 @@ function keepMenusIn(dlg) {
     const t = setInterval(() => { if (!document.querySelector(".litecontextmenu")) { obs.disconnect(); clearInterval(t); } }, 400);
 }
 // the search through every level: while the filter has text, the menu lists the matching files of all folders
+// A hit shows the file's name, and after it (dimmed) the folder it is in: "📁 characters › anime".
 function deepSearch(root, entries, pick) {
+    if (root.__rgDeep) return;
+    root.__rgDeep = true;
+    ffCss();
     const nested = [...root.querySelectorAll(".litemenu-entry")].some((e) => e.textContent.trim().startsWith("📁"));
     let input = root.querySelector(".comfy-context-menu-filter");
     if (!nested && input) return;                          // a flat list: ComfyUI's own filter already searches all of it
@@ -458,11 +465,18 @@ function deepSearch(root, entries, pick) {
         if (!q) { box.remove(); return; }
         for (const e of originals()) e.style.display = "none";
         const words = q.split(/\s+/);
+        const parts = (t) => { const k = Math.max(t.lastIndexOf("/"), t.lastIndexOf("\\")); return k < 0 ? ["", t] : [t.slice(0, k), t.slice(k + 1)]; };
         hits = entries.filter((t) => { const l = t.toLowerCase(); return words.every((w) => l.includes(w)); });
+        // files whose own name has every word come first, then those found by their folder's name
+        const byName = (t) => { const l = parts(t)[1].toLowerCase(); return words.every((w) => l.includes(w)); };
+        hits = [...hits.filter(byName), ...hits.filter((t) => !byName(t))];
         sel = 0;
         hits.slice(0, 60).forEach((t, k) => {
             const e = document.createElement("div"); e.className = "litemenu-entry submenu rg-ff-hit" + (k === sel ? " selected" : "");
-            e.textContent = t;
+            const [dir, name] = parts(t);
+            const n = document.createElement("span"); n.className = "rg-ff-n"; n.textContent = name;
+            e.appendChild(n); e.title = t;
+            if (dir) { const d = document.createElement("span"); d.className = "rg-ff-d"; d.textContent = "📁 " + dir.split(/[\\/]/).join(" › "); e.appendChild(d); }
             e.addEventListener("click", (ev) => { ev.stopPropagation(); pick(t); });
             box.appendChild(e);
         });
@@ -483,6 +497,47 @@ function deepSearch(root, entries, pick) {
         else return;
         e.preventDefault(); e.stopImmediatePropagation();
     }, true);
+}
+// ---- the same search in every menu that is sorted into folders (round 93) ---------------------------------------
+// rgthree-comfy's "Auto Nest Subdirectories in Menus" turns a long list of files (a Load LoRA node's, a checkpoint
+// loader's, this pack's LoRA list) into folders, and ComfyUI's filter box then only searches the folder that is open.
+// With the Setting on, typing in the filter box of such a menu lists the matching files of every folder.
+// How: LiteGraph.ContextMenu is wrapped once. rgthree wraps it too, in its own setup(), before or after this pack:
+// wrapped first, this function gets the list as rgthree made it (folders, each file with rgthree_originalValue);
+// wrapped last, it gets the plain list of names. Both are read. A menu that isn't nested is left alone.
+export const menuSearchOn = () => getSetting(SET.menuSearch, true) !== false;
+function menuLeaves(values) {
+    const out = [];
+    const add = (v) => { const t = typeof v === "string" ? v : typeof v?.rgthree_originalValue === "string" ? v.rgthree_originalValue : null; if (t) out.push(t); return !!t; };
+    for (const v of Array.isArray(values) ? values : []) {
+        if (v && typeof v === "object" && Array.isArray(v.submenu?.options) && /^📁/.test(v.content || "")) v.submenu.options.forEach(add);
+        else add(v);
+    }
+    return out;
+}
+export function installMenuSearch() {
+    const LG = globalThis.LiteGraph, Inner = LG?.ContextMenu;
+    if (!Inner || Inner.__rgMenuSearch) return;
+    const Outer = function (values, options) {
+        const isRoot = !options?.parentMenu, cb0 = options?.callback;
+        const leaves = isRoot ? menuLeaves(values) : [];
+        const before = isRoot ? new Set(document.querySelectorAll(".litecontextmenu")) : null;
+        const ret = Inner.apply(this, arguments);
+        try {
+            if (isRoot && leaves.length && (menuSearchOn() || options?.extra?.rg_deep)) {
+                const root = [...document.querySelectorAll(".litecontextmenu")].find((m) => !before.has(m));
+                const cb = options?.rgthree_originalCallback || cb0;
+                if (root && typeof cb === "function") {
+                    deepSearch(root, leaves, (t) => { const ev = options?.event; closeMenus(); cb.call(ret ?? this, t, options, ev, undefined, options?.node); });
+                }
+            }
+        } catch (e) { console.warn("[Region Genie] menu search:", e); }
+        return ret;
+    };
+    Outer.prototype = Inner.prototype;
+    Outer.__rgMenuSearch = true;
+    for (const k of Object.keys(Inner)) { try { Outer[k] = Inner[k]; } catch (e) { /* read-only */ } }
+    LG.ContextMenu = Outer;
 }
 const closeMenus = () => {
     try { LiteGraph.closeAllContextMenus?.(window); } catch (e) { /* older litegraph */ }
@@ -514,6 +569,7 @@ export async function openModelMenu(ev, { roots, home, none, noneLabel, title, o
     const at = ar ? new MouseEvent("click", { clientX: ar.left, clientY: ar.bottom + 2 }) : ev;
     new LiteGraph.ContextMenu(items, {
         event: at, className: "dark", title, scale: Math.max(1, dlg ? 1 : (app.canvas?.ds?.scale || 1)),
+        extra: { rg_deep: true },                             // the pack's own model fields search every folder, whatever the Setting says
         callback: (v) => {
             const t = typeof v === "string" ? v : (v?.rgthree_originalValue ?? v?.content);
             const s2 = typeof t === "string" ? t : t?.content;
@@ -2070,6 +2126,7 @@ export const SET = {
     samModel: "RegionGenie.Select.Model",
     poseModel: "RegionGenie.Pose.Model",
     filePickers: "RegionGenie.ModelFiles.Browse",
+    menuSearch: "RegionGenie.ModelFiles.SearchAllFolders",
     checkFiles: "RegionGenie.ModelFiles.Check",
     samKeep: "RegionGenie.Select.KeepLoaded",
     samThreshold: "RegionGenie.Select.Threshold",
@@ -2212,6 +2269,14 @@ const SETTINGS = [
                 + "path), in these Settings (once the dialog is opened again), on the node's Edit rows and in the LLM Settings pop-up. "
                 + "Files picked with it keep working when it is off.",
             category: CAT("Model files", "1 browse"),
+        },
+        {
+            id: SET.menuSearch, name: "Search all folders in nested menus", type: "boolean", defaultValue: true,
+            tooltip: "On (default): In a menu that is sorted into folders, typing in its filter box finds the files of every folder, each shown with the folder it is in.\n"
+                + "Off: The filter box only searches the folder that is open.\n"
+                + "Which menus: Every list of files that rgthree-comfy's 'Auto Nest Subdirectories in Menus' sorts into folders, on any node (a Load LoRA node's list, this pack's LoRA list). "
+                + "The pack's own model-file fields search every folder either way.",
+            category: CAT("Model files", "2 search"),
         },
         {
             id: SET.checkFiles, name: "Check model files", type: checkFilesType(), defaultValue: "",
@@ -2650,7 +2715,7 @@ const pageRowType = (key) => () => {
 (() => {
     // which rows stay in the tab (they are on their page too), and where
     const stay = new Map([[SET.toolHints, ["node", "01"]], [SET.cmSnap, ["node", "02"]], [SET.acDefault, ["node", "03"]], [SET.llmNewRegions, ["node", "04"]],
-        [SET.cmAutoSeparate, ["node", "05"]], [SET.shortcuts, ["node", "06"]], [SET.filePickers, ["files", "80"]], [SET.checkFiles, ["files", "81"]]]);
+        [SET.cmAutoSeparate, ["node", "05"]], [SET.shortcuts, ["node", "06"]], [SET.filePickers, ["files", "80"]], [SET.menuSearch, ["files", "805"]], [SET.checkFiles, ["files", "81"]]]);
     const names = {};
     SETTINGS.forEach((d, i) => { d.rgIndex = i; });                         // a page lists its settings in the order they are written above
     for (const d of SETTINGS) {
@@ -2682,6 +2747,8 @@ app.registerExtension({
     settings: SETTINGS,
     setup() {
         loadAutocompleteEngines(); getLoras();
+        installMenuSearch();
+        setTimeout(installMenuSearch, 1500);       // once more, in case something replaced LiteGraph.ContextMenu after this
         settingsReady = true;
         postLlmCache({});                     // the server learns the LLM cache settings (and deletes the file when off)
     },
