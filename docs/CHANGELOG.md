@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 97 (Nov 26): the Whole image row's pop-up opens by its row (0.59.1)
+- Reported by the owner: the pop-up that the Whole image row's LoRAs button opens appeared near the top, above the canvas, not just above or below the row.
+- Found: that pop-up is the scene prompt's (on its LoRAs tab), and it was always placed by the scene prompt's text box, which is above the canvas. Reproduced in the real ComfyUI before the fix.
+- Fixed: opened from the row (the LoRAs button, a LoRA chip), it goes just below the row, or just above it when there is no room below, as a region's pop-up does with its row. Opened from the scene text box's own button it is by the text box as before.
+- New test: `real_scene_popup_place.cjs [vue]` (it fails on the code before the fix).
+
 ## Round 96 (Nov 26): Image Compare: a middle-button drag over the node moves the graph (0.59.0)
 - Asked: the middle mouse button should grab and move ComfyUI's graph anywhere over the node; the node takes over nothing but its own keys.
 - Built: `middleToGraph` (the press is handed to the graph's canvas when the first movement did not move the graph by itself; no autoscroll of the browser).

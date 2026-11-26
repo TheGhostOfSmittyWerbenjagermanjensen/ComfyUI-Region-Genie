@@ -480,7 +480,9 @@ export function* popups(E) {
     // pop-up editor for scene_prompt_positive / _negative / _background (double-click the text box).
     // Positive: also the LLM Prompt Enhancer and the whole-image LoRAs. Esc or the close button closes it (the text
     // stays), Enter is a new line.
-    function editScene(which, at = null, tab = "prompt") {
+    // fromRow: opened from the Whole image row of the Regions list (its LoRAs button, a LoRA chip): the pop-up goes
+    // below (else above) that row, as a region's does with its row, not up to the scene prompt's text box (round 97)
+    function editScene(which, at = null, tab = "prompt", fromRow = false) {
         closeEditor(true);
         const pos = which === "positive";
         const w = { positive: E.sceneW, negative: E.sceneNegW, background: E.sceneBgW }[which];
@@ -582,6 +584,8 @@ export function* popups(E) {
             },
             placed: false,
             place() { popLayout(ed, "scene", (wd, h, W, H) => {
+                const row = fromRow && (E.regList.querySelector(".rg-row.scene") || E.wrap.querySelector(".rg-row.scene"));
+                if (row && row.offsetParent) { placeBy(box, row.getBoundingClientRect(), wd, h, W, H); return; }
                 // in the large editor: left of its scene box (the node's own field is behind the window)
                 const bf = E.big?.fields?.find((f) => f.which === which)?.ta;
                 if (bf?.isConnected && bf.offsetWidth) {

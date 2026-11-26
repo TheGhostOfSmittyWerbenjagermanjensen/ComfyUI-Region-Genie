@@ -233,7 +233,7 @@ export function* llm(E) {
         sl.title = "LoRAs here act on the whole picture (and all text), like a normal LoRA";
         // round 87: the row shows its LoRAs that are on as chips, and one LoRAs button; both open the scene prompt's
         // pop-up on its LoRAs tab (the LoRA rows were a part of the list that opened under this row)
-        const openSceneLoras = () => E.editScene("positive", null, "loras");
+        const openSceneLoras = () => E.editScene("positive", null, "loras", true);
         const sceneAdd = E.loraButton(E.state.sceneLoras, "the whole image", openSceneLoras);
         const sceneChips = E.loraChips(E.state.sceneLoras, openSceneLoras);
         // round 18: Control is a row you add (and remove with its ✕), not an always-there switch
