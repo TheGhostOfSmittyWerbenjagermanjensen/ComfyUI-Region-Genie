@@ -2,6 +2,11 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 90 (Nov 26): a switch for all of one list's LoRAs
+- Asked: like the header's button, a switch for all of one region's LoRAs. Shown as a mock-up at the top of the LoRAs tab; the owner confirmed it, with the same line for the whole image under its own label, On while any LoRA is on, and no line for an empty list. The owner also added `release.yml` to `main` by hand and made the 0.57.0 release with it; `main` was merged into the working branch.
+- Built: `loraSwitch`; "This region's LoRAs" / "The whole image's LoRAs".
+- Tested: `run_ui.sh` (new checks in `ui_editor.cjs`), tooltips and layering on real ComfyUI.
+
 ## Round 89 (Nov 26): the header's LoRA switch as words; counts in brackets
 - Asked: other signs than the power icon for the header's switch; later a switch per region too.
 - Shown: six options (power, power crossed out when off, lightning, a switch, a plug, the word). The owner chose the word, and asked for every count on a LoRA button to stand in brackets.

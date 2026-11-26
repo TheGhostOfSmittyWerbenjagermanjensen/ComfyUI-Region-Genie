@@ -120,6 +120,12 @@ export function* popups(E) {
         return true;
     }
     // never a scroll bar: when what a pop-up holds is taller than the pop-up (a LoRA was added), it grows, up to the window
+    // A control of a pop-up that is redrawn by its own click (a switch, a LoRA row) loses the keyboard focus with its
+    // old element: the pop-up takes it, so Esc and the Undo keys still reach it. Only when nothing else has the focus.
+    function popKeepFocus(box) {
+        const a = document.activeElement;
+        if (box.isConnected && (!a || a === document.body)) box.focus({ preventScroll: true });
+    }
     function popFit(box) {
         const over = box.scrollHeight - box.clientHeight, H = window.innerHeight;
         if (over <= 1) return;
@@ -127,7 +133,11 @@ export function* popups(E) {
         if (box.offsetTop + box.offsetHeight > H - 6) box.style.top = Math.max(6, H - 6 - box.offsetHeight) + "px";
     }
     // the LoRAs tab of a pop-up: the rows (or a line that says there are none), and ＋LoRA under them
-    function fillLoraTab(rowsBox, addBox, list, rows, tip, onAdd) {
+    // headBox, label: the switch for all of the list's LoRAs (round 90), above the rows while there are any
+    function fillLoraTab(headBox, label, rowsBox, addBox, list, rows, tip, onAdd) {
+        const sw = E.loraSwitch(list, label);
+        headBox.replaceChildren(...(sw ? [sw] : []));
+        headBox.style.display = sw ? "" : "none";
         if (E.ownLoras(list).length) rowsBox.replaceChildren(rows());
         else { const h = E.el("span", "rg-hint"); h.textContent = "No LoRAs here yet."; rowsBox.replaceChildren(h); }
         addBox.replaceChildren(E.ico("＋LoRA", tip, onAdd, "txt"));
@@ -325,11 +335,11 @@ export function* popups(E) {
         const tabs = popTabs([["prompt", "Prompt", TAB_TIPS.prompt], ["loras", "LoRAs", TAB_TIPS.loras], ["layers", "Layers", TAB_TIPS.layers],
                               ["palette", "Palette", TAB_TIPS.palette], ["options", "Options", TAB_TIPS.options]], tab,
                              (id) => { if (id === "prompt") prompt.ta.focus(); else box.focus(); });
-        const loraRowsBox = E.el("div", "rg-pop-lorarows"), loraAddBox = E.el("div", "rg-row rg-pop-addl");
+        const loraRowsBox = E.el("div", "rg-pop-lorarows"), loraAddBox = E.el("div", "rg-row rg-pop-addl"), loraHeadBox = E.el("div", "rg-pop-lorahead");
         const layerRowsBox = E.el("div", "rg-pop-layers"), layerBar = E.el("div", "rg-row rg-pop-addl");
         const palBox = E.el("div", "rg-pop-pal"), optBox = E.el("div", "rg-pop-opts");
         tabs.pane.prompt.append(types, prompt.wrapF, text.wrapF, dyn);
-        tabs.pane.loras.append(loraRowsBox, loraAddBox);
+        tabs.pane.loras.append(loraHeadBox, loraRowsBox, loraAddBox);
         tabs.pane.layers.append(layerRowsBox, layerBar);
         tabs.pane.palette.append(palBox);
         tabs.pane.options.append(optBox);
@@ -410,7 +420,7 @@ export function* popups(E) {
                 // the LoRAs tab (round 87; they were rows under the prompt)
                 const n = E.loraCount(rr.loras);
                 tabs.count("loras", n.all ? (n.on === n.all ? String(n.on) : `${n.on}/${n.all}`) : "", n.on > 0);
-                fillLoraTab(loraRowsBox, loraAddBox, rr.loras, () => E.regionLoraRows(rr, true),
+                fillLoraTab(loraHeadBox, "This region's LoRAs", loraRowsBox, loraAddBox, rr.loras, () => E.regionLoraRows(rr, true),
                     "Apply a LoRA to this region (model output; MOSS-Image, Krea 2, Ideogram 4, Flux, Anima, SDXL / SD1.5)",
                     (e) => { rr.loras = rr.loras || []; E.addLoraTo(rr.loras, e); });
                 ed.place();
@@ -424,7 +434,7 @@ export function* popups(E) {
                 if (!rect) { placeBy(box, { left: cr.left, right: cr.right, top: cr.top - 4, bottom: cr.top - 4 }, w, h, W, H, true); return; }
                 placeBy(box, { left: cr.left + rect.x0 * k, right: cr.left + rect.x1 * k, top: cr.top + rect.y0 * k - 2,
                                bottom: cr.top + rect.y1 * k + 2 }, w, h, W, H, true);
-            }); popFit(box); },
+            }); popFit(box); popKeepFocus(box); },
         };
         E.editor = ed;
         popFrame(ed, "region", head, () => (lastTa === text.ta ? "text" : "prompt"),
@@ -496,9 +506,9 @@ export function* popups(E) {
         // the scene prompt's pop-up has the whole image's LoRAs on a tab of their own (round 87); the others have one pane
         const tabs = popTabs(pos ? [["prompt", "Prompt", TAB_TIPS.prompt], ["loras", "LoRAs", TAB_TIPS.loras]] : [["prompt", "Prompt", TAB_TIPS.prompt]], tab,
                              (id) => { if (id === "prompt") ta.focus(); else box.focus(); });
-        const loraRowsBox = E.el("div", "rg-pop-lorarows"), loraAddBox = E.el("div", "rg-row rg-pop-addl");
+        const loraRowsBox = E.el("div", "rg-pop-lorarows"), loraAddBox = E.el("div", "rg-row rg-pop-addl"), loraHeadBox = E.el("div", "rg-pop-lorahead");
         tabs.pane.prompt.append(useRow, wrapF, dyn);
-        if (pos) tabs.pane.loras.append(loraRowsBox, loraAddBox);
+        if (pos) tabs.pane.loras.append(loraHeadBox, loraRowsBox, loraAddBox);
         box.tabIndex = -1;
         box.append(head, tabs.bar, tabs.panes, foot);
         document.body.appendChild(box);
@@ -526,7 +536,7 @@ export function* popups(E) {
                 dyn.replaceChildren(ctl);
                 const n = E.loraCount(E.state.sceneLoras);
                 tabs.count("loras", n.all ? (n.on === n.all ? String(n.on) : `${n.on}/${n.all}`) : "", n.on > 0);
-                fillLoraTab(loraRowsBox, loraAddBox, E.state.sceneLoras, () => E.loraRows(E.state.sceneLoras, {
+                fillLoraTab(loraHeadBox, "The whole image's LoRAs", loraRowsBox, loraAddBox, E.state.sceneLoras, () => E.loraRows(E.state.sceneLoras, {
                     pop: true, sceneOnly: true,
                     prompt: () => String(E.sceneW?.value ?? ""),
                     append: (words) => {
@@ -553,7 +563,7 @@ export function* popups(E) {
                 if (r && r.width) { placeBy(box, r, wd, h, W, H); return; }
                 const cr = E.cv.getBoundingClientRect();
                 placeBy(box, { left: cr.left, right: cr.right, top: cr.top - 4, bottom: cr.top - 4 }, wd, h, W, H, true);
-            }); popFit(box); },
+            }); popFit(box); popKeepFocus(box); },
         };
         E.editor = ed;
         popFrame(ed, "scene", head, () => "scene", () => applyPopFont(ta, "scene"), () => hist);

@@ -204,6 +204,7 @@ input.rg-switch:checked::after { left:14px; background:#1c1c1c; }
 .rg-pop-palstate { font-weight:600; padding:0 7px; border-radius:8px; border:1px solid var(--border-color,#555); opacity:.75; }
 .rg-pop-palhead.on .rg-pop-palstate { background:#d9a441; border-color:#d9a441; color:#1c1c1c; opacity:1; }
 .rg-pop-palhead .rg-hint { white-space:normal; }
+.rg-pop-lorahead { padding:1px 0 4px; border-bottom:1px solid var(--border-color,#3a3a3a); }
 .rg-pop-palrow { display:flex; align-items:center; gap:6px; }
 .rg-pop-palrow.off .rg-sw.pal { opacity:.4; }
 .rg-pop-palrow .rg-sw.pal.big { width:30px; height:22px; border-radius:4px; border:1px solid rgba(0,0,0,.6); padding:0; cursor:pointer; flex:0 0 auto; }

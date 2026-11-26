@@ -8,7 +8,7 @@ import { PAL_MAX, normPalette, activePalette } from "./colors.js";
 export function* list(E) {
     Object.assign(E, {
         activateRegion, refreshUI, ico, chevron, grip, subHeader, toggleKind, updateExpandButtons, loraRows, addLoraTo, layerRows,
-        ownLoras, loraCount, loraButton, loraChips, toggleAllLoras, syncLoraAll, paletteTab,
+        ownLoras, loraCount, loraButton, loraChips, toggleAllLoras, syncLoraAll, paletteTab, loraSwitch,
         regionSwatch, featherBox, paletteToggle, paletteRow,
     });
     yield;
@@ -297,6 +297,33 @@ export function* list(E) {
         const on = own.filter((x) => x.on !== false);
         if (on.length) E.change(() => { for (const x of own) delete x.wasOn; for (const x of on) { x.on = false; x.wasOn = true; } });
         else if (own.some((x) => x.wasOn)) E.change(() => { for (const x of own) if (x.wasOn) { x.on = true; delete x.wasOn; } });
+    }
+    // The switch at the top of a pop-up's LoRAs tab (round 90): all LoRAs of that list off, and the same ones back on,
+    // as the header's button does for the whole node. On while any LoRA of the list is on (a click then turns the rest
+    // off too). With nothing switched off by a switch to bring back, On turns every LoRA of the list on.
+    // label: "This region's LoRAs" / "The whole image's LoRAs". Returns null for a list without LoRAs.
+    function loraSwitch(list, label) {
+        const own = ownLoras(list);
+        if (!own.length) return null;
+        const on = own.filter((x) => x.on !== false), back = own.filter((x) => x.wasOn).length, isOn = on.length > 0;
+        const head = E.el("label", "rg-pop-palhead rg-pop-lorasw" + (isOn ? " on" : ""));
+        const sw = E.el("input", "rg-switch"); sw.type = "checkbox"; sw.checked = isOn;
+        sw.title = isOn ? "Click to switch every LoRA of this list off. The next click switches the same ones back on."
+            : back ? "Click to switch the LoRAs back on that this switch (or the list's LoRAs button) switched off."
+            : "Click to switch every LoRA of this list on.";
+        sw.addEventListener("change", () => E.change(() => {
+            if (isOn) { for (const x of own) delete x.wasOn; for (const x of on) { x.on = false; x.wasOn = true; } }
+            else if (back) { for (const x of own) if (x.wasOn) { x.on = true; delete x.wasOn; } }
+            else for (const x of own) x.on = true;
+        }));
+        const name = E.el("span", "rg-pop-palname"); name.textContent = label;
+        const state = E.el("span", "rg-pop-palstate"); state.textContent = isOn ? "On" : "Off";
+        const note = E.el("span", "rg-hint"), n = own.length;
+        note.textContent = isOn ? `${on.length} of ${n} ${on.length === 1 && n === 1 ? "is" : "are"} on; the switch turns ${n === 1 ? "it" : "them all"} off`
+            : back ? (back === n ? `${n === 1 ? "it is" : `all ${n} are`} off; the switch turns ${n === 1 ? "it" : "them"} back on` : `all ${n} are off; the switch turns the ${back} back on that it switched off`)
+            : `${n === 1 ? "it is" : `all ${n} are`} off; the switch turns ${n === 1 ? "it" : "them all"} on`;
+        head.append(sw, name, state, note);
+        return head;
     }
     function syncLoraAll() {
         const b = E.loraAllBtn;

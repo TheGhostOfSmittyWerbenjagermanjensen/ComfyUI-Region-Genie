@@ -261,6 +261,7 @@ Everything a region holds is in its pop-up, on five tabs. Open it with the **⤢
 - A number on a tab says how much is there (*LoRAs (2/3)*: two of three are on); amber means something there is switched on.
 - **Lists are reordered by their grips:** drag a LoRA or a layer by the six dots at the start of its row.
 - *Whole image* has no layers or palette: its LoRAs are on a **LoRAs** tab in the pop-up of `scene_prompt_positive`. Its row shows the LoRAs that are on as chips (name and strength; a long name is cut short, a *+2* chip stands for those that don't fit), and the same LoRAs button as a region's row.
+- **A list's LoRAs off:** the switch at the top of a LoRAs tab (*This region's LoRAs*, or *The whole image's LoRAs*) turns every LoRA of that list off; the next click turns the same ones back on. It says *On* while any of them is on.
 - **All LoRAs off:** the amber *LoRAs (7)* button in the list's header shows how many LoRAs are on in the node (*LoRAs off* when none is). A click switches every one off; the next click switches the same ones back on.
 
 ### Feather

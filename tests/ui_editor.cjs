@@ -68,6 +68,20 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`dragging a LoRA row by its grip moves it in the list, with a line that shows where (${order})`, lineShown === 1 && order.join("") === "bcs");
     await page.keyboard.press("Control+z"); await page.waitForTimeout(150);
     check("…and that is one undo step", (await page.evaluate(() => window.__node.__rgState().sceneLoras.map((x) => x.lora[0]))).join("") === "sbc");
+    // round 90: the switch at the top of the LoRAs tab, for all of this list's LoRAs
+    const swUi = () => page.evaluate(() => { const h = document.querySelector(".rg-pop .rg-pop-lorasw"); if (!h) return null;
+        return { label: h.querySelector(".rg-pop-palname").textContent, state: h.querySelector(".rg-pop-palstate").textContent, sw: h.querySelector("input.rg-switch").checked, lit: h.classList.contains("on"), note: h.querySelector(".rg-hint").textContent,
+                 on: window.__node.__rgState().sceneLoras.map((x) => x.on !== false).join() }; });
+    let su = await swUi();
+    check(`the LoRAs tab has a switch for all of the list's LoRAs: "The whole image's LoRAs", On while any is on (${JSON.stringify(su)})`,
+          su && su.label === "The whole image's LoRAs" && su.state === "On" && su.sw && su.lit && /2 of 3/.test(su.note) && su.on === "true,true,false");
+    await page.locator(".rg-pop .rg-pop-lorasw input.rg-switch").click(); await page.waitForTimeout(200);
+    su = await swUi();
+    check(`switched off: every LoRA of the list is off, it says Off, and the row's button is an outline (${JSON.stringify(su)})`,
+          su.state === "Off" && !su.sw && !su.lit && su.on === "false,false,false" && (await lstate()).btns[0] === "LoRAs (0/3):alloff");
+    await page.locator(".rg-pop .rg-pop-lorasw input.rg-switch").click(); await page.waitForTimeout(200);
+    su = await swUi();
+    check(`switched on again: the same two are back, not the one that was off before (${su.on})`, su.state === "On" && su.on === "true,true,false");
     await page.keyboard.press("Escape"); await page.waitForTimeout(150);
     check("Esc closes the pop-up from its LoRAs tab", await page.locator(".rg-pop").count() === 0);
     // the header's switch: all off, then the same ones back on
