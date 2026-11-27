@@ -124,7 +124,6 @@ const STYLE = `
 .rg-arrange { position:fixed; z-index:10000; display:flex; flex-direction:column; gap:4px; padding:6px 8px;
   background:var(--comfy-menu-bg,#1a1a1a); color:var(--input-text,#eee); border:1px solid var(--rg-accent,#5b8fd0); border-radius:6px; box-shadow:0 4px 18px rgba(0,0,0,.65); font:12px sans-serif; }
 .rg-arrange-row { display:flex; align-items:center; gap:3px; }
-
 .rg-arrange .rg-num { width:48px; }
 .rg-arrange-row > .rg-hint:first-child { flex:0 0 auto; width:52px; }
 .rg-arrange-seg { display:inline-flex; }

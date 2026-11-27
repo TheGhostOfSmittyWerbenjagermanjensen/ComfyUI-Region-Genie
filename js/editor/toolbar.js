@@ -269,7 +269,8 @@ export function* toolbar(E) {
                 : `Flipping ${name} ${dir}${each ? ", each in its place" : ""}`)
             : E.arrangeAlign(groups, arg, `Aligning ${name}${each ? ", each" : ""} ${SIDES[arg]}`);
         // what lies under the regions comes from outside the node: a mirror moves the regions, not that picture
-        if (done && op === "flip" && (E.isEdit?.() || E.backdrop)) E.hint("Mirrored: The regions moved; the image under them is an input of the node and stays as it was");
+        // (not for one layer flipped where it stands: nothing went to another place)
+        if (done && op === "flip" && (about === "image" || t.kind !== "layer") && (E.isEdit?.() || E.backdrop)) E.hint("Mirrored: The regions moved; the image under them is an input of the node and stays as it was");
         if (!done && op === "align") E.hint("Already there");
     }
     // the canvas's right-click menu: "Mirror the whole picture" (left to right)
@@ -283,12 +284,16 @@ export function* toolbar(E) {
         const pop = E.el("div", "rg-arrange");
         pop.addEventListener("pointerdown", (e) => e.stopPropagation());
         E.arrangePop = pop; arrangeBtn.classList.add("on");
-        fillArrange();
         document.body.appendChild(pop);
-        const r = arrangeBtn.getBoundingClientRect();
-        pop.style.left = `${Math.max(4, Math.min(window.innerWidth - pop.offsetWidth - 4, r.left))}px`;
-        pop.style.top = `${Math.min(window.innerHeight - pop.offsetHeight - 4, r.bottom + 4)}px`;
+        fillArrange();
         window.addEventListener("pointerdown", arrangeOutside, true);
+    }
+    // under its button, inside the window: again whenever its rows change (the Pick row and "Multiple" make it taller)
+    function placeArrange() {
+        const pop = E.arrangePop, r = arrangeBtn.getBoundingClientRect();
+        if (!pop?.isConnected) return;
+        pop.style.left = `${Math.max(4, Math.min(window.innerWidth - pop.offsetWidth - 4, r.left))}px`;
+        pop.style.top = `${Math.max(4, Math.min(window.innerHeight - pop.offsetHeight - 4, r.bottom + 4))}px`;
     }
     // what the pop-up shows depends on: the selected layer, the active region, the regions (render.js fills it again
     // when this changes while it is open: a key, a click in the list)
@@ -345,10 +350,12 @@ export function* toolbar(E) {
             return b;
         };
         const what = !t ? "What Apply to names" : t.kind === "layer" ? "The layer" : t.kind === "all" ? "The whole picture" : t.ids.length > 1 ? "The regions" : "The region";
-        const inPlace = t?.kind === "all" && !(manyRegions(t) && E.arrangeEach) ? "across the image's centre line (for All)" : manyRegions(t) && E.arrangeEach ? "each in its own place" : "in place";
+        // All, as one block: its two flips mirror across the image's centre lines ("Each" only counts while its switch shows)
+        const acrossImg = t?.kind === "all" && !(manyRegions(t) && E.arrangeEach);
+        const inPlace = acrossImg ? "across the image's centre line (for All)" : manyRegions(t) && E.arrangeEach ? "each in its own place" : "in place";
         row("Flip").append(
-            act("flipH", `Flip horizontally (mirror left-right), ${inPlace}. ${what}.`, () => arrangeRun("flip", "h", t?.kind === "all" && !E.arrangeEach ? "image" : "self")),
-            act("flipV", `Flip vertically (upside down), ${inPlace}. ${what}.`, () => arrangeRun("flip", "v", t?.kind === "all" && !E.arrangeEach ? "image" : "self")),
+            act("flipH", `Flip horizontally (mirror left-right), ${inPlace}. ${what}.`, () => arrangeRun("flip", "h", acrossImg ? "image" : "self")),
+            act("flipV", `Flip vertically (upside down), ${inPlace}. ${what}.`, () => arrangeRun("flip", "v", acrossImg ? "image" : "self")),
             E.el("span", "rg-sep"),
             act("mirrorImgH", `Mirror horizontally across the image's vertical centre line: What is on the left goes to the right. ${what}.`, () => arrangeRun("flip", "h", "image")),
             act("mirrorImgV", `Mirror vertically across the image's horizontal centre line: What is at the top goes to the bottom. ${what}.`, () => arrangeRun("flip", "v", "image")));
@@ -376,6 +383,7 @@ export function* toolbar(E) {
             act("layerShrink", "Shrink the layer by this many pixels on every side." + GROW_NOTE, () => grow(-growPx), layerOnly),
             pxIn);
         const hintPx = E.el("span", "rg-hint"); hintPx.textContent = "px"; edge.appendChild(hintPx);
+        placeArrange();
     }
 
     // snap to grid: magnet (on, highlighted) / slashed magnet (off), like the labels eye

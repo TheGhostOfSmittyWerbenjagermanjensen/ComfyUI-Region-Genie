@@ -167,6 +167,58 @@ const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name)
     check(`Undo: ${await tip("Undo")}`, /^Undo: Mirroring layer "L30" horizontally across the image \(/.test(await tip("Undo")));
     await undo();
 
+    // ---- (review of round 102) a region upside down in place: about the middle of its shown layers, the turned ellipse too
+    await page.evaluate(() => window.__node.__rgSelectLayer(10));
+    await applyTo("Region");
+    await keepBefore();
+    await page.evaluate((ids) => { const T = window.__T, b = T.box(T.union(ids)); T.cy = (b[1] + b[3]) / 2; }, [10, 11, 12]);
+    await press("Flip vertically");
+    // (the editor's box and the test's can differ by a pixel, which puts the mirror line half a pixel up or down: the
+    // line is taken from the largest layer, and every layer must be mirrored about that same line)
+    await page.evaluate(() => { const T = window.__T, got = T.mask(12); let best = -1, at = T.cy;
+        for (const c of [T.cy - 0.5, T.cy, T.cy + 0.5]) { const q = T.iou(T.mirror(T.before[12], "v", c), got); if (q > best) { best = q; at = c; } } T.cy = at; });
+    await expect("region 0 flipped upside down in place: each layer mirrored about the middle of its shown layers", "T.mirror(before[id], 'v', T.cy)", A_ALL);
+    await undo();
+
+    // ---- All with Each: every region flipped in its own place
+    await applyTo("All");
+    await pop.locator(".rg-arrange-seg .rg-btn", { hasText: "Each" }).click(); await page.waitForTimeout(120);
+    await keepBefore();
+    await page.evaluate(() => { const T = window.__T, a = T.box(T.union([10, 11, 12])), b = T.box(T.union([30])); T.cxA = (a[0] + a[2]) / 2; T.cxB = (b[0] + b[2]) / 2; });
+    check("All with Each: the flip's tooltip says each in its own place", /each in its own place/.test(await pop.locator('button[title^="Flip horizontally"]').getAttribute("title")));
+    await press("Flip horizontally");
+    await expect("All with Each: region 0 flipped about its own middle", "T.mirror(before[id], 'h', T.cxA)", A_ALL);
+    await expect("All with Each: region 1 flipped about its own middle", "T.mirror(before[id], 'h', T.cxB)", [30]);
+    await undo();
+    // ---- "Each" left on, then only one region with something in it: the switch is gone and counts for nothing; All's
+    // flip does what its tooltip says (across the image's centre line)
+    await page.evaluate(() => { const st = window.__node.__rgState(); window.__T.l30 = st.layers.find((L) => L.id === 30); st.layers = st.layers.filter((L) => L.id !== 30); window.__node.__rgRefresh(); });
+    await page.waitForTimeout(200);
+    await applyTo("All");
+    check("with one region left there is no Together / Each switch", !/Multiple/.test(await rowNames()));
+    const oneTip = await pop.locator('button[title^="Flip horizontally"]').getAttribute("title");
+    await keepBefore();
+    await press("Flip horizontally");
+    check(`…and All's flip says across the image's centre line (${oneTip})`, /across the image's centre line/.test(oneTip));
+    await expect("…and does that, although Each was on before", `T.mirror(before[id], 'h', ${W / 2})`, A_ALL);
+    await undo();
+    await page.evaluate(() => { const st = window.__node.__rgState(); st.layers.unshift(window.__T.l30); window.__node.__rgRefresh(); });
+    await page.waitForTimeout(200);
+    await applyTo("All");
+    await pop.locator(".rg-arrange-seg .rg-btn", { hasText: "Together" }).click(); await page.waitForTimeout(120);
+
+    // ---- one layer flipped where it stands, over a picture: nothing went anywhere, so no note about the picture
+    // (the turned ellipse: a flip changes it, so there is a step to undo)
+    await page.evaluate(() => window.__node.__rgHint?.(""));
+    await page.evaluate(() => window.__node.__rgSelectLayer(11));
+    await applyTo("Layer");
+    await page.evaluate(() => { const c = document.createElement("canvas"); c.width = 4; c.height = 3; window.__node.__rgSetBackdrop(c);
+        document.querySelector('.rg-arrange button[title^="Flip horizontally"]').click(); });
+    await page.waitForTimeout(150);
+    { const h = await page.evaluate(() => document.querySelector(".rg-status")?.textContent || "");
+      check(`one layer flipped in place over a picture: no note that the regions moved (${h})`, !/image under them is an input/.test(h)); }
+    await undo();
+
     // ---- an image under the regions (Edit Mode's source, the backdrop) is an input: the hint says it stays
     await applyTo("All");
     // (the stub node has no image input, so the editor drops a backdrop at its next look: set and pressed in one go)
@@ -177,6 +229,18 @@ const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name)
     check(`with a picture under the regions, a mirror says it stays as it was (${hint})`, /image under them is an input/.test(hint));
     await undo();
     await page.evaluate(() => window.__node.__rgSetBackdrop(null));
+
+    // ---- the pop-up stays inside the window when its rows are added (Pick's chips, "Multiple")
+    await closeArrange();
+    await page.evaluate(() => window.__node.__rgSelectLayer(30));
+    await applyTo("Layer");
+    // (a window with room for the taller pop-up, but not under its button)
+    { const r = await pop.boundingBox(); await page.setViewportSize({ width: 900, height: Math.ceil(r.y + r.height + 24) }); await page.waitForTimeout(300); }
+    await closeArrange();
+    await applyTo("Pick");
+    for (const c of await pop.locator(".rg-arrange-chip:not(.on):not([disabled])").all()) { await c.click(); await page.waitForTimeout(100); }
+    { const r = await pop.boundingBox(), vh = page.viewportSize().height;
+      check(`the pop-up, taller with the Pick row and "Multiple", is still inside the window (${Math.round(r.y)} to ${Math.round(r.y + r.height)} of ${vh}; rows ${await rowNames()})`, /Multiple/.test(await rowNames()) && r.y >= 0 && r.y + r.height <= vh); }
 
     console.log(fails.length ? `\n${fails.length} FAILED` : "\nALL PASS");
     await browser.close();
