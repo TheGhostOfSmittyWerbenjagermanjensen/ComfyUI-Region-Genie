@@ -70,7 +70,12 @@ const STYLE = `
 .rg-start span { display:flex; gap:7px; align-items:baseline; }
 .rg-start i { flex:0 0 auto; font-style:normal; font-weight:700; color:#8fb8e8; }
 .rg-start .more { opacity:.7; font-size:11px; }
-.rg-cv.over .rg-start { opacity:0; }
+.rg-cv.over .rg-start, .rg-cv.over .rg-start-arrows { opacity:0; }
+.rg-start-arrows { position:absolute; inset:0; z-index:2; pointer-events:none; user-select:none; transition:opacity .15s; }
+.rg-start-arrow { position:absolute; display:flex; align-items:center; gap:3px; padding:1px 6px 1px 3px; border-radius:4px; white-space:nowrap;
+  background:rgba(28,28,28,.86); border:1px solid color-mix(in srgb, var(--rg-accent,#5b8fd0) 70%, transparent); color:#e8e8e8; font:11px/1.4 sans-serif; }
+.rg-start-arrow i { display:flex; color:var(--rg-accent,#8fb8e8); }
+.rg-start-arrow i svg { width:13px; height:13px; display:block; }
 .rg-cv.held .rg-start { display:none; }
 /* Click areas (round 39): the small controls keep their look; an unseen area around each takes the click too, at least
    24 px tall and out to the middle of the 3 px gap to its neighbour. It lies behind the control's own content, so a

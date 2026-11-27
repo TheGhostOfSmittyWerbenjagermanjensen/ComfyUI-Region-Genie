@@ -2134,6 +2134,7 @@ export const SET = {
     toolFill: "RegionGenie.Tools.Fill",
     toolFillGap: "RegionGenie.Tools.FillGap",
     toolHints: "RegionGenie.Tools.Hints",
+    startCard: "RegionGenie.Tools.StartCard",
     samModel: "RegionGenie.Select.Model",
     poseModel: "RegionGenie.Pose.Model",
     filePickers: "RegionGenie.ModelFiles.Browse",
@@ -2416,9 +2417,16 @@ const SETTINGS = [
         },
         {
             id: SET.toolHints, name: "Hints on the canvas", type: "boolean", defaultValue: true,
-            tooltip: "On: The canvas shows the active tool's keys and gestures along its bottom edge, and the first steps while it is empty.\n"
+            tooltip: "On: The canvas shows the active tool's keys and gestures along its bottom edge.\n"
                 + "Off: No hints on the canvas.\nApplies to every Region Genie node right away.",
             category: CAT("Canvas tools", "7 hints"),
+            onChange: () => { for (const f of hintsListeners) f(); },
+        },
+        {
+            id: SET.startCard, name: "Start card on an empty canvas", type: "boolean", defaultValue: true,
+            tooltip: "On: Whenever a canvas has no regions, it shows the first steps, with arrows to the buttons they name.\n"
+                + "Off: An empty canvas stays empty.\nApplies to every Region Genie node right away.",
+            category: CAT("Canvas tools", "75 start card"),
             onChange: () => { for (const f of hintsListeners) f(); },
         },
         {

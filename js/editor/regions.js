@@ -369,7 +369,10 @@ export function* regions(E) {
         if (group.length < 2) { hint("Nothing to merge: this region has fewer than two visible layers"); return; }
         change(() => mergeInto(group, `${regionLabel(rid)} (merged)`.slice(0, 40)));
     }
-    function setTool(t) {
+    // auto: the editor chose the tool itself (a new node, a shape just drawn); else the user did, and from then on an
+    // empty canvas no longer starts with the Rectangle tool (round 100)
+    function setTool(t, auto = false) {
+        if (!auto) E.toolPicked = true;
         if (E.clickPoly && t !== E.tool) E.clickPoly = null;
         if (E.pick && t !== "object") E.pickSettle();
         else if (E.pick && t === "object") E.pick.acceptOnAnswer = false;
