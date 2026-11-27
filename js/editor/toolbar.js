@@ -230,10 +230,16 @@ export function* toolbar(E) {
     refreshVariantButtons();
     addTool("pose", "Pose: Stick figures for pose control (P). Drag a box to draw a figure in the pose picked on the canvas, then drag "
         + "its joints. Drag a bone to move the figure; the handles resize and turn it.\nA Control row set to pose makes the model follow the figures.");
-    // arrange the selected layer: flip, align to the image, grow / shrink
-    const arrangeBtn = iconBtn("arrange", "Arrange the selected layer: Flip, align to the image, grow or shrink", () => toggleArrange()); E.arrangeBtn = arrangeBtn;
+    // Arrange: flip, align to the image, grow / shrink. Round 102: on the selected layer, the active region, picked
+    // regions or the whole picture ("Apply to"), with "Together / Each" for more than one region (one block, or each
+    // region on its own), and two more flips that mirror across the image's centre lines (selectTools.js does the work)
+    const ARRANGE_TIP = "Arrange: Flip, align to the image, or grow and shrink the selected layer, a region, several regions or the whole picture";
+    const arrangeBtn = iconBtn("arrange", ARRANGE_TIP, () => toggleArrange()); E.arrangeBtn = arrangeBtn;
     bar1.appendChild(arrangeBtn);
     E.arrangePop = null; let growPx = 8;
+    E.arrangeTo = null;                 // "layer" | "region" | "all" | "pick": what the pop-up acts on (kept while the page is open)
+    E.arrangePick = new Set();          // the regions picked under "Pick…"
+    E.arrangeEach = false;              // more than one region: each on its own (true) or together as one block
     function closeArrange() {
         if (!E.arrangePop) return;
         E.arrangePop.remove(); E.arrangePop = null;
@@ -241,43 +247,135 @@ export function* toolbar(E) {
         arrangeBtn.classList.remove("on");
     }
     function arrangeOutside(e) { if (E.arrangePop && !E.arrangePop.contains(e.target) && !arrangeBtn.contains(e.target)) closeArrange(); }
+    const arrangeable = () => E.state.regions.filter((r) => !r.fromImage && (E.listedOf(r.id).length || E.posesOf?.(r.id).length));
+    // what "Apply to" stands for now: { kind, layer?, ids? } (null: nothing there)
+    function arrangeTarget() {
+        if (E.arrangeTo === "layer") { const L = E.selLayer(); return L ? { kind: "layer", layer: L } : null; }
+        if (E.arrangeTo === "region") return E.curRegion != null && E.regionById(E.curRegion) ? { kind: "regions", ids: [E.curRegion] } : null;
+        if (E.arrangeTo === "pick") { const ids = E.state.regions.filter((r) => E.arrangePick.has(r.id)).map((r) => r.id); return ids.length ? { kind: "regions", ids } : null; }
+        return { kind: "all" };
+    }
+    const manyRegions = (t) => !!t && (t.kind === "all" ? arrangeable().length > 1 : t.kind === "regions" && t.ids.length > 1);
+    // run a flip or an align on what "Apply to" stands for, with the words for the Undo tooltip
+    const SIDES = { l: "to the left edge", ch: "to the horizontal centre", r: "to the right edge", t: "to the top edge", cv: "to the vertical centre", b: "to the bottom edge", c: "to the centre" };
+    function arrangeRun(op, arg, about, forced = null) {
+        const t = forced || arrangeTarget();
+        if (!t) { E.hint(E.arrangeTo === "layer" ? "Select a layer first" : E.arrangeTo === "pick" ? "Pick one or more regions first" : "Make a region the active one first"); return; }
+        const each = !forced && manyRegions(t) && E.arrangeEach, groups = E.arrangeGroups(t, each), name = E.arrangeName(t);
+        if (!groups.length) { E.hint("Nothing to arrange there yet"); return; }
+        const dir = arg === "h" ? "horizontally" : "vertically";
+        const done = op === "flip"
+            ? E.arrangeFlip(groups, arg, about, about === "image" ? (t.kind === "all" ? `Mirroring the whole picture ${dir}` : `Mirroring ${name} ${dir} across the image`)
+                : `Flipping ${name} ${dir}${each ? ", each in its place" : ""}`)
+            : E.arrangeAlign(groups, arg, `Aligning ${name}${each ? ", each" : ""} ${SIDES[arg]}`);
+        // what lies under the regions comes from outside the node: a mirror moves the regions, not that picture
+        if (done && op === "flip" && (E.isEdit?.() || E.backdrop)) E.hint("Mirrored: The regions moved; the image under them is an input of the node and stays as it was");
+        if (!done && op === "align") E.hint("Already there");
+    }
+    // the canvas's right-click menu: "Mirror the whole picture" (left to right)
+    E.mirrorWholePicture = () => arrangeRun("flip", "h", "image", { kind: "all" });
     function toggleArrange() {
         if (E.arrangePop) { closeArrange(); return; }
+        // what it opens on: the last choice while it still stands for something, else the selected layer, else the
+        // active region, else the whole picture
+        if (!E.arrangeTo || (E.arrangeTo === "layer" && !E.selLayer()) || (E.arrangeTo === "region" && E.curRegion == null)) E.arrangeTo = E.selLayer() ? "layer" : E.curRegion != null ? "region" : "all";
+        if (!E.arrangePick.size && E.curRegion != null) E.arrangePick.add(E.curRegion);
         const pop = E.el("div", "rg-arrange");
-        const row = (label) => { const r = E.el("div", "rg-arrange-row"); if (label) { const t = E.el("span", "rg-hint"); t.textContent = label; r.appendChild(t); } pop.appendChild(r); return r; };
-        const act = (icon, title, fn) => {
-            const b = iconBtn(icon, title, () => { const L = E.selLayer(); if (!L) { E.hint("Select a layer first"); return; } fn(L); });
-            b.addEventListener("pointerdown", (e) => e.stopPropagation());
-            return b;
-        };
-        row("Flip").append(
-            act("flipH", "Flip horizontally (mirror left-right), in place", (L) => E.flipLayer(L, "h")),
-            act("flipV", "Flip vertically (upside down), in place", (L) => E.flipLayer(L, "v")));
-        row("Align").append(
-            act("alignL", "Align to the left edge of the image (by the layer's own pixels)", (L) => E.alignLayer(L, "l")),
-            act("alignCH", "Centre horizontally in the image", (L) => E.alignLayer(L, "ch")),
-            act("alignR", "Align to the right edge of the image", (L) => E.alignLayer(L, "r")),
-            act("alignT", "Align to the top edge of the image", (L) => E.alignLayer(L, "t")),
-            act("alignCV", "Centre vertically in the image", (L) => E.alignLayer(L, "cv")),
-            act("alignB", "Align to the bottom edge of the image", (L) => E.alignLayer(L, "b")),
-            act("alignCenter", "Centre in the image", (L) => E.alignLayer(L, "c")));
-        const pxIn = E.el("input", "rg-num"); pxIn.type = "number"; pxIn.min = "1"; pxIn.max = "512"; pxIn.step = "1"; pxIn.value = String(growPx);
-        pxIn.title = "How many image pixels to grow or shrink by";
-        pxIn.addEventListener("keydown", (e) => e.stopPropagation());
-        pxIn.addEventListener("change", () => { growPx = Math.max(1, Math.min(512, parseInt(pxIn.value) || 8)); pxIn.value = String(growPx); });
-        const GROW_NOTE = "\nA shape with nothing painted on it: Stays that shape; its sides move and its corners stay as they are.\n"
-            + "Anything painted (brush, lasso, fill, a selection, a shape painted or erased on): Becomes pixels.";
-        row("Edge").append(
-            act("layerGrow", "Grow the layer by this many pixels on every side." + GROW_NOTE, (L) => E.growLayer(L, growPx)),
-            act("layerShrink", "Shrink the layer by this many pixels on every side." + GROW_NOTE, (L) => E.growLayer(L, -growPx)),
-            pxIn);
-        const hintPx = E.el("span", "rg-hint"); hintPx.textContent = "px"; pop.lastChild.appendChild(hintPx);
+        pop.addEventListener("pointerdown", (e) => e.stopPropagation());
+        E.arrangePop = pop; arrangeBtn.classList.add("on");
+        fillArrange();
         document.body.appendChild(pop);
         const r = arrangeBtn.getBoundingClientRect();
         pop.style.left = `${Math.max(4, Math.min(window.innerWidth - pop.offsetWidth - 4, r.left))}px`;
         pop.style.top = `${Math.min(window.innerHeight - pop.offsetHeight - 4, r.bottom + 4)}px`;
-        E.arrangePop = pop; arrangeBtn.classList.add("on");
         window.addEventListener("pointerdown", arrangeOutside, true);
+    }
+    // what the pop-up shows depends on: the selected layer, the active region, the regions (render.js fills it again
+    // when this changes while it is open: a key, a click in the list)
+    const arrangeSig = () => `${E.selId}|${E.curRegion}|${E.state.regions.map((r) => r.id).join(",")}|${E.state.layers.length}`;
+    E.arrangeStale = () => !!E.arrangePop && E.arrangeSig !== arrangeSig();
+    E.fillArrange = () => fillArrange();
+    // the pop-up's rows, again whenever "Apply to", the picked regions or "Together / Each" change
+    function fillArrange() {
+        const pop = E.arrangePop;
+        if (!pop) return;
+        E.arrangeSig = arrangeSig();
+        pop.replaceChildren();
+        const row = (label, cls = "") => { const r = E.el("div", "rg-arrange-row" + (cls ? " " + cls : "")); if (label != null) { const t = E.el("span", "rg-hint"); t.textContent = label; r.appendChild(t); } pop.appendChild(r); return r; };
+        const seg = (choices, cur, onPick) => {
+            const box = E.el("span", "rg-arrange-seg");
+            for (const [v, text, title, off] of choices) {
+                const b = E.el("button", "rg-btn" + (v === cur ? " on" : "")); b.type = "button"; b.textContent = text; b.title = title; b.disabled = !!off;
+                b.addEventListener("click", (e) => { e.preventDefault(); onPick(v); });
+                box.appendChild(b);
+            }
+            return box;
+        };
+        const ri = E.curRegion != null ? E.state.regions.findIndex((r) => r.id === E.curRegion) : -1;
+        row("Apply to").append(seg([
+            ["layer", "Layer", "Layer: The selected layer only.", !E.selLayer()],
+            ["region", ri >= 0 ? `Region ${ri}` : "Region", "Region: The active region (its row is marked in the list), all its layers as one, hidden ones and its pose figures too.", ri < 0],
+            ["all", "All", "All: Every region, and what belongs to no region: the whole picture. Its flips mirror across the image's centre lines."],
+            ["pick", "Pick…", "Pick: Choose the regions below."],
+        ], E.arrangeTo, (v) => { E.arrangeTo = v; fillArrange(); }));
+        if (E.arrangeTo === "pick") {
+            const chips = row("", "rg-arrange-picks");
+            E.state.regions.forEach((r, i) => {
+                const b = E.el("button", "rg-btn rg-arrange-chip" + (E.arrangePick.has(r.id) ? " on" : "")); b.type = "button";
+                const sw = E.el("i"); sw.style.background = E.colorOf ? E.colorOf(r.id) : r.color; b.append(sw, String(i));
+                const empty = r.fromImage || !(E.listedOf(r.id).length || E.posesOf?.(r.id).length);
+                b.disabled = empty;
+                b.title = empty ? `Region ${i}: Nothing to arrange (no layers${r.fromImage ? "; it is a color of the input image" : ""}).` : `Region ${i}: Click to pick it, or to leave it out.`;
+                b.addEventListener("click", (e) => { e.preventDefault(); if (E.arrangePick.has(r.id)) E.arrangePick.delete(r.id); else E.arrangePick.add(r.id); fillArrange(); });
+                chips.appendChild(b);
+            });
+            const link = (text, title, fn) => { const a = E.el("button", "rg-btn rg-arrange-link"); a.type = "button"; a.textContent = text; a.title = title; a.addEventListener("click", (e) => { e.preventDefault(); fn(); fillArrange(); }); return a; };
+            chips.append(link("All", "Pick every region", () => { for (const r of arrangeable()) E.arrangePick.add(r.id); }), link("None", "Pick none", () => E.arrangePick.clear()));
+        }
+        const t = arrangeTarget();
+        if (manyRegions(t)) {
+            row("Several").append(seg([
+                [false, "Together", "Together: The regions move as one block (centre the whole scene, flip it in place)."],
+                [true, "Each", "Each: Every region on its own (each centred, each flipped in its own place)."],
+            ], E.arrangeEach, (v) => { E.arrangeEach = v; fillArrange(); }));
+        }
+        const act = (icon, title, fn, off) => {
+            const b = iconBtn(icon, title, () => fn()); b.disabled = !!off;
+            b.addEventListener("pointerdown", (e) => e.stopPropagation());
+            return b;
+        };
+        const what = !t ? "What Apply to names" : t.kind === "layer" ? "The layer" : t.kind === "all" ? "The whole picture" : t.ids.length > 1 ? "The regions" : "The region";
+        const inPlace = t?.kind === "all" && !(manyRegions(t) && E.arrangeEach) ? "across the image's centre line (for All)" : manyRegions(t) && E.arrangeEach ? "each in its own place" : "in place";
+        row("Flip").append(
+            act("flipH", `Flip horizontally (mirror left-right), ${inPlace}. ${what}.`, () => arrangeRun("flip", "h", t?.kind === "all" && !E.arrangeEach ? "image" : "self")),
+            act("flipV", `Flip vertically (upside down), ${inPlace}. ${what}.`, () => arrangeRun("flip", "v", t?.kind === "all" && !E.arrangeEach ? "image" : "self")),
+            E.el("span", "rg-sep"),
+            act("mirrorImgH", `Mirror horizontally across the image's vertical centre line: What is on the left goes to the right. ${what}.`, () => arrangeRun("flip", "h", "image")),
+            act("mirrorImgV", `Mirror vertically across the image's horizontal centre line: What is at the top goes to the bottom. ${what}.`, () => arrangeRun("flip", "v", "image")));
+        const by = t?.kind === "layer" ? " (by the layer's own pixels)" : " (by the shown layers' pixels)";
+        row("Align").append(
+            act("alignL", `Align to the left edge of the image${by}`, () => arrangeRun("align", "l")),
+            act("alignCH", "Centre horizontally in the image", () => arrangeRun("align", "ch")),
+            act("alignR", "Align to the right edge of the image", () => arrangeRun("align", "r")),
+            act("alignT", "Align to the top edge of the image", () => arrangeRun("align", "t")),
+            act("alignCV", "Centre vertically in the image", () => arrangeRun("align", "cv")),
+            act("alignB", "Align to the bottom edge of the image", () => arrangeRun("align", "b")),
+            act("alignCenter", "Centre in the image", () => arrangeRun("align", "c")));
+        const layerOnly = E.arrangeTo !== "layer";
+        const ONLY = layerOnly ? "\nFor a single layer only: Choose Layer under Apply to." : "";
+        const pxIn = E.el("input", "rg-num"); pxIn.type = "number"; pxIn.min = "1"; pxIn.max = "512"; pxIn.step = "1"; pxIn.value = String(growPx); pxIn.disabled = layerOnly;
+        pxIn.title = "How many image pixels to grow or shrink by" + ONLY;
+        pxIn.addEventListener("keydown", (e) => e.stopPropagation());
+        pxIn.addEventListener("change", () => { growPx = Math.max(1, Math.min(512, parseInt(pxIn.value) || 8)); pxIn.value = String(growPx); });
+        const GROW_NOTE = "\nA shape with nothing painted on it: Stays that shape; its sides move and its corners stay as they are.\n"
+            + "Anything painted (brush, lasso, fill, a selection, a shape painted or erased on): Becomes pixels." + ONLY;
+        const grow = (px) => { const L = E.selLayer(); if (!L) { E.hint("Select a layer first"); return; } E.growLayer(L, px); };
+        const edge = row("Edge", layerOnly ? "off" : "");
+        edge.append(
+            act("layerGrow", "Grow the layer by this many pixels on every side." + GROW_NOTE, () => grow(growPx), layerOnly),
+            act("layerShrink", "Shrink the layer by this many pixels on every side." + GROW_NOTE, () => grow(-growPx), layerOnly),
+            pxIn);
+        const hintPx = E.el("span", "rg-hint"); hintPx.textContent = "px"; edge.appendChild(hintPx);
     }
 
     // snap to grid: magnet (on, highlighted) / slashed magnet (off), like the labels eye

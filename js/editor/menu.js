@@ -37,6 +37,8 @@ export function* menu(E) {
                 { label: "Duplicate this layer", icon: "copy", key: keyText("edit.duplicate").split(" / ")[0] || undefined, fn: () => E.duplicate(L) },
                 { label: "Delete this layer", icon: "clear", key: keyText("edit.delete").split(" / ")[0] || undefined, fn: () => E.deleteSelected(L) }] : []),
             { label: lays.length > 1 ? `Delete region and its ${lays.length} layers` : "Delete region", icon: "close", danger: true, fn: () => deleteRegion(r) },
+            null,
+            { label: "Mirror the whole picture", icon: "mirrorImgH", title: "Every region, mirrored left to right across the image's centre line (Undo takes it back)", fn: () => E.mirrorWholePicture() },
             ...(others.length ? [null, { head: "Also here" }, ...others.map((o) => ({ label: title(o.r), swatch: o.r.color, fn: () => { pickRegion(o.r, o.L); } }))] : []),
         ];
     }
@@ -45,6 +47,8 @@ export function* menu(E) {
         return [
             { label: "Add a region", icon: "regionAdd", fn: () => E.addRegionBtn.click() },
             { label: "Paste layer", icon: "layerAdd", key: key1("edit.paste"), disabled: !CLIPBOARD.layer, fn: () => E.pasteLayer() },
+            { label: "Mirror the whole picture", icon: "mirrorImgH", disabled: !E.state.layers.length && !(E.state.poses || []).length,
+              title: "Every region, mirrored left to right across the image's centre line (Undo takes it back)", fn: () => E.mirrorWholePicture() },
             null,
             { label: "Fit the image in view", icon: "fit", key: key1("view.fit"), fn: () => { E.userView = false; E.fitView(); E.requestDraw(); } },
             { label: "Labels on the canvas", checked: E.node.properties?.rg_labels !== false, fn: () => E.labBtn.click() },

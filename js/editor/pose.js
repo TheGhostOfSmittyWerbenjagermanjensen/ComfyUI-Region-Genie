@@ -67,7 +67,7 @@ export function presetIn(key, bx0, by0, bx1, by1) {
 
 export function* pose(E) {
     Object.assign(E, { poseAssoc, takePoseInput, poses, posesOf, poseShown, drawPoses, poseDown, poseMove, poseUp, poseRows, deletePose, selectPose,
-                       poseStripSync, flipPose, toggleJoint, duplicatePose, poseKey, selPose });
+                       poseStripSync, flipPose, toggleJoint, duplicatePose, poseKey, selPose, mirrorPoseIn, movePoseIn, poseImgBox });
     yield;
 
     const FROM_IMAGE = "__image__";   // the strip's last entry: the figure is read from the person in the dragged box
@@ -157,6 +157,20 @@ export function* pose(E) {
         selectPose(poses().find((p) => p.id === id));
         return true;
     }
+    // For Arrange on regions (round 102), inside the caller's own change(): mirror a figure about the line at image px
+    // c (axis "h": x = c, "v": y = c), or move it by (dx, dy) image px. Any mirror swaps the figure's sides (a person
+    // upside down by a mirror, not a turn, has their right side where the left one was), so the pose models still
+    // read it as a person facing the same way.
+    function mirrorPoseIn(P, axis, c) {
+        const [W, H, s] = unit(), i = axis === "h" ? 0 : 1, cu = axis === "h" ? (c - W / 2) / s : (c - H / 2) / s, off = offSet(P);
+        P.pts = P.pts.map((_, k) => { const q = P.pts[SWAP[k]].slice(); q[i] = 2 * cu - q[i]; return q; });
+        P.off = [...off].map((k) => SWAP[k]).sort((a, b) => a - b);
+        if (!P.off.length) delete P.off;
+        if (P.id === E.poseSel && E.poseJoint != null) E.poseJoint = SWAP[E.poseJoint];
+    }
+    function movePoseIn(P, dx, dy) { const s = unit()[2]; P.pts = P.pts.map(([x, y]) => [x + dx / s, y + dy / s]); }
+    // its box on the image (image px), from the joints in view
+    function poseImgBox(P) { const off = offSet(P), pts = P.pts.filter((_, k) => !off.has(k)); return boxOf((pts.length ? pts : P.pts).map(toImg)); }
     // mirror the figure left-right about its middle: a mirrored person's right arm is where the left one was
     function flipPose(P = selPose()) {
         if (!P) return;

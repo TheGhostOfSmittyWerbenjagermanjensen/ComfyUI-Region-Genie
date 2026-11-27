@@ -122,11 +122,18 @@ export function* regions(E) {
     const sceneWidgets = () => [E.sceneW, E.sceneNegW, E.sceneBgW];
     const sceneNow = () => sceneWidgets().map((w) => (w ? String(w.value ?? "") : null));
     function snapshot() { return JSON.stringify({ ...E.state, __scene: sceneNow() }); }
-    function pushUndo(before) {
+    // A step can carry its own words for the Undo / Redo tooltips (round 102: "Flipping region 2 horizontally"),
+    // where comparing the two states would only list the layers that moved. They ride in the snapshot's text as
+    // "__step", and go with the step from one stack to the other
+    const STEP_RE = /^\{"__step":("(?:[^"\\]|\\.)*"),/;
+    const withStep = (text, label) => (label ? `{"__step":${JSON.stringify(label)},${text.slice(1)}` : text);
+    const stepOf = (text) => { const m = STEP_RE.exec(text || ""); return m ? JSON.parse(m[1]) : ""; };
+    const noStep = (text) => text.replace(STEP_RE, "{");
+    function pushUndo(before, label) {
         const now = snapshot();
         E.sceneKnown = JSON.stringify(sceneNow());
         if (before === now) return;
-        E.undoStack.push(before);
+        E.undoStack.push(withStep(before, label));
         if (E.undoStack.length > HISTORY) E.undoStack.shift();
         E.redoStack = [];
     }
@@ -143,19 +150,19 @@ export function* regions(E) {
         }
         E.sceneKnown = now;
     }
-    function change(fn) {
+    function change(fn, label) {
         endText();                                  // text typed before this change is a step of its own, before it
         absorbScene();
         const before = snapshot();
         fn();
-        pushUndo(before);
+        pushUndo(before, label);
         resumeText();
         save(); E.refreshUI();
         if (E.editor) { E.editor.last = "edit"; E.editor.histBtns?.refresh(); }      // the pop-up's Undo: this change was the last thing done
     }
     function restore(text) {
         const st = JSON.parse(text), scene = st.__scene;
-        delete st.__scene;
+        delete st.__scene; delete st.__step;
         E.state = st;
         let sceneSet = false;
         if (Array.isArray(scene)) sceneWidgets().forEach((w, i) => { if (w && scene[i] != null && String(w.value ?? "") !== scene[i]) { E.setWidget(w, scene[i]); sceneSet = true; } });
@@ -242,14 +249,15 @@ export function* regions(E) {
         let now = null;
         const cur = () => (now ||= JSON.parse(snapshot()));
         try {
-            const u = E.textDirty ? "The text typed since the cursor went into this box" : E.undoStack.length ? stepDiff(JSON.parse(E.undoStack[E.undoStack.length - 1]), cur(), "b") : "";
-            const r = E.redoStack.length ? stepDiff(cur(), JSON.parse(E.redoStack[E.redoStack.length - 1]), "a") : "";
+            const ut = E.undoStack[E.undoStack.length - 1], rt = E.redoStack[E.redoStack.length - 1];
+            const u = E.textDirty ? "The text typed since the cursor went into this box" : ut ? stepOf(ut) || stepDiff(JSON.parse(noStep(ut)), cur(), "b") : "";
+            const r = rt ? stepOf(rt) || stepDiff(cur(), JSON.parse(noStep(rt)), "a") : "";
             whatText = [u, r];
         } catch (e) { whatText = ["", ""]; }
         return whatText;
     }
-    function undo() { endText(); absorbScene(); if (E.undoStack.length) { E.redoStack.push(snapshot()); restore(E.undoStack.pop()); afterRestore(); } resumeText(); E.editor?.histBtns?.refresh(); }
-    function redo() { endText(); absorbScene(); if (E.redoStack.length) { E.undoStack.push(snapshot()); restore(E.redoStack.pop()); afterRestore(); } resumeText(); E.editor?.histBtns?.refresh(); }
+    function undo() { endText(); absorbScene(); if (E.undoStack.length) { const t = E.undoStack.pop(); E.redoStack.push(withStep(snapshot(), stepOf(t))); restore(noStep(t)); afterRestore(); } resumeText(); E.editor?.histBtns?.refresh(); }
+    function redo() { endText(); absorbScene(); if (E.redoStack.length) { const t = E.redoStack.pop(); E.undoStack.push(withStep(snapshot(), stepOf(t))); restore(noStep(t)); afterRestore(); } resumeText(); E.editor?.histBtns?.refresh(); }
     // ---- text boxes and Undo (round 43). A visit to a text box (click in, type, click out) is ONE step: it starts
     // when the box gets the cursor and is closed when the box is left, and before any other change or an Undo / Redo,
     // so the steps stay in the order things were done. While the cursor is in a box, the Undo keys act on that box's

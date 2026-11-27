@@ -78,6 +78,9 @@ export const ICONS = {
     arrange: '<rect x="2" y="2" width="5" height="5" rx=".8"/><rect x="9" y="9" width="5" height="5" rx=".8"/><path d="M9.5 3.5h3v3M6.5 12.5h-3v-3"/><path d="M12.5 3.5l-3 3M3.5 12.5l3-3"/>',
     flipH: '<path d="M8 1.6v12.8" stroke-dasharray="1.6 1.4"/><path d="M6 4L2 12h4z"/><path d="M10 4l4 8h-4z" fill="currentColor" stroke="none" opacity=".55"/>',
     flipV: '<path d="M1.6 8h12.8" stroke-dasharray="1.6 1.4"/><path d="M4 6L12 2v4z"/><path d="M4 10l8 4v-4z" fill="currentColor" stroke="none" opacity=".55"/>',
+    // the same flips across the image's centre line (round 102): the flip inside the image's frame
+    mirrorImgH: '<rect x="1.4" y="2.4" width="13.2" height="11.2" rx="1.2"/><path d="M8 2.4v11.2" stroke-dasharray="1.4 1.2"/><path d="M6.2 5.4L3.4 10.6h2.8z"/><path d="M9.8 5.4l2.8 5.2H9.8z" fill="currentColor" stroke="none" opacity=".55"/>',
+    mirrorImgV: '<rect x="2.4" y="1.4" width="11.2" height="13.2" rx="1.2"/><path d="M2.4 8h11.2" stroke-dasharray="1.4 1.2"/><path d="M5.4 6.2L10.6 3.4v2.8z"/><path d="M5.4 9.8l5.2 2.8V9.8z" fill="currentColor" stroke="none" opacity=".55"/>',
     alignL: '<path d="M2.4 1.8v12.4"/><rect x="4.4" y="3.6" width="8.6" height="3.2" rx=".6"/><rect x="4.4" y="9.2" width="5.4" height="3.2" rx=".6"/>',
     alignCH: '<path d="M8 1.8v12.4"/><rect x="3.4" y="3.6" width="9.2" height="3.2" rx=".6"/><rect x="5" y="9.2" width="6" height="3.2" rx=".6"/>',
     alignR: '<path d="M13.6 1.8v12.4"/><rect x="3" y="3.6" width="8.6" height="3.2" rx=".6"/><rect x="6.2" y="9.2" width="5.4" height="3.2" rx=".6"/>',

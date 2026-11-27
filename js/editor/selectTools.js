@@ -10,7 +10,7 @@ import { hexRgb } from "./colors.js";
 export function* selectTools(E) {
     Object.assign(E, {
         gradFill, fillAt, wandAt, edgeMap, pickPointer, pickSettle, pickFind, pickCancel, pickUndo, pickAccept, drawPick,
-        flipLayer, alignLayer, growLayer, layerMask,
+        flipLayer, alignLayer, growLayer, layerMask, arrangeGroups, arrangeFlip, arrangeAlign, arrangeName,
     });
     yield;
 
@@ -404,22 +404,28 @@ export function* selectTools(E) {
     // picture of that is the same as mirroring the frame's content and turning the other way (rot -> -rot). A shape's
     // outline is the same left and right but not up and down (a triangle), so upside down is done as left-right
     // plus half a turn (rot -> 180 - rot).
-    function flipLayer(L, axis) {
-        const at = pixelMid(L);                                        // image px: the line it is mirrored about runs through here
-        if (!at) return;
-        const s = E.short(), mid = E.imgToLayer(L, ...at);
-        E.change(() => {
-            E.boxCache.delete(L);
-            const own = axis === "v" && !L.shape ? "v" : "h", i = own === "h" ? 0 : 1;   // the axis mirrored in the layer's own frame
-            if (L.shape) { mirrorOps(L, "h", L.bw); mid[0] = L.bw - mid[0]; }      // a shape: about the middle of its frame
-            else mirrorOps(L, own, 2 * mid[i]);                                    // paint: about that point (the frame stays)
-            L.rot = (axis === "v" && L.shape ? 180 : 0) - L.rot;
-            L.rot = ((L.rot + 180) % 360 + 360) % 360 - 180;
-            const now = E.layerToImg(L, ...mid);                        // that point goes back where it was
-            if (Math.hypot(at[0] - now[0], at[1] - now[1]) > 1e-9) { L.ox += (at[0] - now[0]) / s; L.oy += (at[1] - now[1]) / s; }
-            E.boxCache.delete(L);
-        });
+    // The mirror of one layer, in two halves so a whole group can be done in one change(): mirrorPrep() before it
+    // (the layer's own middle on the image, which takes a raster), mirrorApply() inside it. c: the mirror line, image
+    // px (x = c for "h", y = c for "v"). With c through the layer's own middle it stays where it is (a flip in place);
+    // with another c its middle goes to the other side of that line.
+    function mirrorPrep(L) {
+        const cs = E.boxCornersImg(L), at = pixelMid(L) || (cs ? [(Math.min(...cs.map((p) => p[0])) + Math.max(...cs.map((p) => p[0]))) / 2, (Math.min(...cs.map((p) => p[1])) + Math.max(...cs.map((p) => p[1]))) / 2] : null);
+        return at ? { L, at, mid: E.imgToLayer(L, ...at) } : null;
     }
+    function mirrorApply(prep, axis, c) {
+        const { L, at } = prep, mid = prep.mid.slice(), s = E.short();
+        E.boxCache.delete(L);
+        const own = axis === "v" && !L.shape ? "v" : "h", i = own === "h" ? 0 : 1;   // the axis mirrored in the layer's own frame
+        if (L.shape) { mirrorOps(L, "h", L.bw); mid[0] = L.bw - mid[0]; }      // a shape: about the middle of its frame
+        else mirrorOps(L, own, 2 * mid[i]);                                    // paint: about that point (the frame stays)
+        L.rot = (axis === "v" && L.shape ? 180 : 0) - L.rot;
+        L.rot = ((L.rot + 180) % 360 + 360) % 360 - 180;
+        const want = axis === "h" ? [2 * c - at[0], at[1]] : [at[0], 2 * c - at[1]];
+        const now = E.layerToImg(L, ...mid);                            // that point goes where the mirror puts it
+        if (Math.hypot(want[0] - now[0], want[1] - now[1]) > 1e-9) { L.ox += (want[0] - now[0]) / s; L.oy += (want[1] - now[1]) / s; }
+        E.boxCache.delete(L);
+    }
+    function flipLayer(L, axis) { arrangeFlip(arrangeGroups({ kind: "layer", layer: L }), axis, "self"); }
     // the box around the layer's pixels on the image [x0, y0, x1, y1] (image px), or null for an empty layer.
     // A shape with nothing painted on it: worked out from its outline (exact). Anything else: counted on a raster
     function pixelBox(L) {
@@ -456,15 +462,83 @@ export function* selectTools(E) {
         return { ...R, m, canvas: c };
     }
     // Align: by the layer's own pixels (a turned layer's box has empty corners; they don't count)
-    function alignLayer(L, how) {
-        const b = pixelBox(L);
-        if (!b) return;
-        const [W, H] = E.dims(), s = Math.min(W, H), [x0, y0, x1, y1] = b;
-        let dx = 0, dy = 0;
-        if (how === "l") dx = -x0; else if (how === "r") dx = W - x1; else if (how === "ch" || how === "c") dx = W / 2 - (x0 + x1) / 2;
-        if (how === "t") dy = -y0; else if (how === "b") dy = H - y1; else if (how === "cv" || how === "c") dy = H / 2 - (y0 + y1) / 2;
-        if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
-        E.change(() => { L.ox += dx / s; L.oy += dy / s; });
+    function alignLayer(L, how) { arrangeAlign(arrangeGroups({ kind: "layer", layer: L }), how); }
+
+    // ---- Arrange on more than one layer (round 102): a region, picked regions, the whole picture --------------------
+    // target: { kind: "layer", layer } | { kind: "regions", ids: [region ids] } | { kind: "all" }.
+    // A group is what moves as one: a region's layers (its holes too: the cut-outs listed under it) and its pose
+    // figures. "all" adds the layers and figures of no region as a group of their own. each = false: everything is one
+    // group. Hidden layers and regions move with the rest but don't count for the box the group is flipped about or
+    // aligned by (when nothing in a group is shown, everything in it counts).
+    function arrangeGroups(target, each = false) {
+        const layerShown = (L) => { const rid = L.region !== UNSPEC ? L.region : E.holeOwner(L); return L.visible !== false && !(rid != null && E.regionById(rid)?.hidden); };
+        const poseOn = (P) => (E.poseShown ? E.poseShown(P) : P.visible !== false);
+        const byRegion = (rid) => ({ rid, layers: E.listedOf(rid), poses: E.posesOf ? E.posesOf(rid) : [] });
+        let groups;
+        if (target.kind === "layer") groups = target.layer ? [{ layers: [target.layer], poses: [], one: true }] : [];
+        else {
+            const ids = target.kind === "all" ? E.state.regions.filter((r) => !r.fromImage).map((r) => r.id) : (target.ids || []).filter((id) => E.regionById(id));
+            groups = ids.map(byRegion);
+            if (target.kind === "all") {
+                const known = new Set(E.state.regions.map((r) => r.id));
+                groups.push({ rid: null, layers: E.state.layers.filter((L) => L.region === UNSPEC && !known.has(E.holeOwner(L))), poses: E.posesOf ? E.posesOf(null) : [] });
+            }
+        }
+        groups = groups.filter((g) => g.layers.length || g.poses.length);
+        if (!each && groups.length > 1) groups = [{ layers: groups.flatMap((g) => g.layers), poses: groups.flatMap((g) => g.poses) }];
+        for (const g of groups) { g.shownLayers = g.layers.filter(layerShown); g.shownPoses = g.poses.filter(poseOn); }
+        return groups;
+    }
+    // the group's box on the image (image px), from what is shown in it
+    function groupBox(g) {
+        const boxes = [];
+        const fromLayers = (list) => { for (const L of list) { const b = pixelBox(L); if (b) boxes.push(b); } };
+        fromLayers(g.shownLayers);
+        if (!boxes.length && !g.shownPoses.length) fromLayers(g.layers);
+        for (const P of (boxes.length ? [] : g.shownPoses.length ? g.shownPoses : g.poses)) boxes.push(E.poseImgBox(P));
+        if (!boxes.length) return null;
+        return [Math.min(...boxes.map((b) => b[0])), Math.min(...boxes.map((b) => b[1])), Math.max(...boxes.map((b) => b[2])), Math.max(...boxes.map((b) => b[3]))];
+    }
+    // the words for a target in the Undo / Redo tooltips: layer "Rectangle 2", region 3, 3 regions, the whole picture
+    function arrangeName(target) {
+        if (target.kind === "layer") return `layer "${String(target.layer?.name || "Layer").slice(0, 28)}"`;
+        if (target.kind === "all") return "the whole picture";
+        const ids = (target.ids || []).filter((id) => E.regionById(id));
+        return ids.length === 1 ? `region ${E.state.regions.findIndex((r) => r.id === ids[0])}` : `${ids.length} regions`;
+    }
+    // Flip: about: "self": each group in its own place, about its own middle; "image": across the image's centre line
+    function arrangeFlip(groups, axis, about, label) {
+        const [W, H] = E.dims(), plans = [];
+        for (const g of groups) {
+            const b = about === "image" ? null : groupBox(g);
+            if (about !== "image" && !b) continue;
+            const c = about === "image" ? (axis === "h" ? W / 2 : H / 2) : (axis === "h" ? (b[0] + b[2]) / 2 : (b[1] + b[3]) / 2);
+            plans.push({ c, preps: g.layers.map(mirrorPrep).filter(Boolean), poses: g.poses });
+        }
+        if (!plans.some((p) => p.preps.length || p.poses.length)) return false;
+        E.change(() => { for (const p of plans) { for (const q of p.preps) mirrorApply(q, axis, p.c); for (const P of p.poses) E.mirrorPoseIn(P, axis, p.c); } }, label);
+        return true;
+    }
+    // Align each group (its box) to the image: l / ch / r, t / cv / b, c (both centres)
+    function arrangeAlign(groups, how, label) {
+        const [W, H] = E.dims(), s = Math.min(W, H), plans = [];
+        for (const g of groups) {
+            const b = groupBox(g);
+            if (!b) continue;
+            const [x0, y0, x1, y1] = b;
+            let dx = 0, dy = 0;
+            if (how === "l") dx = -x0; else if (how === "r") dx = W - x1; else if (how === "ch" || how === "c") dx = W / 2 - (x0 + x1) / 2;
+            if (how === "t") dy = -y0; else if (how === "b") dy = H - y1; else if (how === "cv" || how === "c") dy = H / 2 - (y0 + y1) / 2;
+            if (Math.abs(dx) >= 0.01 || Math.abs(dy) >= 0.01) plans.push({ g, dx, dy });
+        }
+        if (!plans.length) return false;
+        E.change(() => {
+            for (const { g, dx, dy } of plans) {
+                for (const L of g.layers) { L.ox += dx / s; L.oy += dy / s; E.boxCache.delete(L); }
+                for (const P of g.poses) E.movePoseIn(P, dx, dy);
+            }
+        }, label);
+        return true;
     }
 
     // ---- grow / shrink
