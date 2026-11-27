@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 101 (Nov 27): the start card's arrows in the large editor (0.60.1)
+- Reported by the owner: in the large editor the *Add a region* and *Separate* arrows lay on top of each other, and their arrowheads were on the left of their text, pointing back at it instead of at the buttons on the right.
+- Found: both buttons are in the list's header row beside the canvas, so both arrows were placed at the same height on the right edge; every arrow had its head before its text.
+- Fixed: an arrow pointing right has its head after its text. Arrows on the same side edge that would overlap are stacked in the card's order (Add a region above, Separate below), centred on the buttons' height. The node itself is unchanged (there the two are on the bottom edge, far apart).
+- Tests: four new checks at the end of `ui_large_editor.cjs` (they fail on the code before the fix); checked by hand in the real ComfyUI, legacy and Nodes 2.0.
+
 ## Round 100 (Nov 27): the start card on every empty canvas, with arrows; the Rectangle tool first; Separate's ▾; Undo / Redo say what they change (0.60.0)
 - Asked: a note about Separate on the start card (the shorter wording, then widened to "or not blending enough"); arrows at the canvas's edge to the buttons the card names, with the hint strip hidden meanwhile; the Rectangle tool as the first tool while there are no regions, unless the user picked one; the card whenever there are no regions, with a Setting; a ▾ on the Separate button for what its right-click opens; the Undo / Redo tooltips saying what a click would change, specifically, worded "Undo: …" / "Redo: …".
 - Found: the card already came back on an empty canvas, but only with "Hints on the canvas" on and with no layers left.
