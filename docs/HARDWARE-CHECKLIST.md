@@ -325,7 +325,7 @@ Nothing here has run on a real model yet.
 
 ## Rounds 99-100: toolbar, start card, tooltips
 - [ ] The Snap button's ▾: the grid size field takes the cursor, typing changes the grid behind the menu, the wheel steps it, Enter closes; the five sizes are easy to hit on the 4K display (and in Firefox)
-- [ ] An empty canvas: the four arrows point at their buttons at your usual node sizes and graph zooms, in the node and in the large editor (there *Add a region* and *Separate* should point sideways at the list)
+- [ ] An empty canvas: the four arrows point at their buttons at your usual node sizes and graph zooms, in the node and in the large editor (there *Add a region* and *Separate* point right at the list, stacked one above the other, arrowheads after the text)
 - [ ] A new node starts with the Rectangle tool; a loaded workflow with regions with Select; after picking any tool, Clear all does not change the tool
 - [ ] The Undo / Redo tooltips read right after your usual steps (drawing, moving, prompts, LoRAs); say which steps only read "A change to the node"
 - [ ] The Separate button's ▾ is easy to hit next to the word, and a click on the word still switches Separate

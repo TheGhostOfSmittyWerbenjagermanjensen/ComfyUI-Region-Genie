@@ -39,6 +39,7 @@ export function* canvasUi(E) {
         const box = E.cvBox.getBoundingClientRect();
         if (!box.width) return;
         const k = E.cvBox.offsetWidth / box.width;                       // screen px -> the canvas box's own px (a zoomed graph)
+        const placed = [];                                               // for the second pass: arrows on the same side edge
         ARROWS.forEach(([, get], i) => {
             const a = arrowEls[i], t = get()?.getBoundingClientRect?.();
             if (!t || !t.width) { a.style.display = "none"; return; }
@@ -52,7 +53,10 @@ export function* canvasUi(E) {
             const cornerEl = side === "up" ? E.cvBox.querySelector(".rg-imgmode") : side === "down" ? E.cvBox.querySelector(".rg-tips-btn") : null;
             const cr = cornerEl?.getClientRects().length ? cornerEl.getBoundingClientRect() : null;
             const corner = cr ? (box.right - cr.left) * k + 4 - pad : 0, maxX = W - w - pad - Math.max(0, corner);
-            const want = cx - (side === "up" || side === "down" ? 9 : w / 2), flip = (side === "up" || side === "down") && want > maxX;
+            // the arrowhead is at the end nearest its button: after the text for a button to the right (the large
+            // editor's list, round 101: it pointed back at its own text before), and for an up / down arrow that had to
+            // stop short of a corner button
+            const want = cx - (side === "up" || side === "down" ? 9 : w / 2), flip = side === "right" || ((side === "up" || side === "down") && want > maxX);
             a.style.flexDirection = flip ? "row-reverse" : "";
             a.style.padding = flip ? "1px 3px 1px 6px" : "";
             const x = side === "left" ? pad : side === "right" ? W - w - pad : Math.min(maxX, Math.max(pad, want));
@@ -60,7 +64,26 @@ export function* canvasUi(E) {
             a.style.left = `${x.toFixed(1)}px`; a.style.top = `${y.toFixed(1)}px`;
             setHTML(a.firstChild, svgIcon(side === "up" ? "up" : side === "down" ? "down" : side === "right" ? "chevronRight" : "chevronRight"));
             a.firstChild.style.transform = side === "left" ? "scaleX(-1)" : "";
+            if (side === "left" || side === "right") placed.push({ a, side, cy, h, H });
         });
+        // Two buttons at the same height beside the canvas (the large editor: Add a region and Separate share the list's
+        // header row) would put their arrows on top of each other: stacked instead, in the card's order (the first
+        // above, the next below), the pair centred on the buttons' height (round 101)
+        for (const side of ["left", "right"]) {
+            const col = placed.filter((p) => p.side === side);
+            for (let i = 0; i < col.length; ) {
+                let j = i + 1;
+                while (j < col.length && Math.abs(col[j].cy - col[j - 1].cy) < (col[j].h + col[j - 1].h) / 2 + 3) j++;
+                const grp = col.slice(i, j);
+                if (grp.length > 1) {
+                    const gap = 3, total = grp.reduce((s2, p) => s2 + p.h, 0) + gap * (grp.length - 1);
+                    const mid = grp.reduce((s2, p) => s2 + p.cy, 0) / grp.length, H = grp[0].H;
+                    let y = Math.min(H - total - 4, Math.max(4, mid - total / 2));
+                    for (const p of grp) { p.a.style.top = `${y.toFixed(1)}px`; y += p.h + gap; }
+                }
+                i = j;
+            }
+        }
     }
     // again when the canvas box changes size, when the pointer comes back from the canvas (the card shows again), and
     // shortly after the card appears (the corner buttons and the list's header are laid out after the first call)

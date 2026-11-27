@@ -114,6 +114,21 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.waitForTimeout(200);
     check("removing the node closes the window", await page.locator(".rg-big").count() === 0);
 
+    // ---- round 101: the start card's arrows in the large editor, on an empty canvas. Add a region and Separate share the
+    // list's header row beside the canvas: their arrows are stacked (Add a region above, Separate below), not on top of
+    // each other, and each arrowhead is after its text, on the side of its button
+    await page.evaluate(() => { const s = window.__node.__rgState(); s.regions = []; s.layers = []; window.__node.__rgRefresh(); });
+    if (!(await page.locator(".rg-big").count())) await btn.click();
+    await page.waitForTimeout(1200); await page.mouse.move(2, 2); await page.waitForTimeout(400);
+    const ar = await page.evaluate(() => [...document.querySelectorAll(".rg-big .rg-start-arrow")].filter((a) => a.style.display !== "none").map((a) => {
+        const r = a.getBoundingClientRect(), ic = a.querySelector("i").getBoundingClientRect(), tx = a.querySelector("span").getBoundingClientRect();
+        return { name: a.textContent, side: a.dataset.side, top: r.top, bottom: r.bottom, left: r.left, right: r.right, headAfter: ic.left >= tx.right - 0.5, headBefore: ic.right <= tx.left + 0.5 }; }));
+    const by = (n) => ar.find((a) => a.name === n);
+    const addA = by("Add a region"), sepA = by("Separate");
+    check(`large editor: Add a region and Separate point right, at the list (${ar.map((a) => a.name + ":" + a.side).join(", ")})`, addA?.side === "right" && sepA?.side === "right");
+    check(`large editor: the two are stacked, Add a region above Separate, not overlapping (${Math.round(addA?.bottom)} <= ${Math.round(sepA?.top)})`, !!addA && !!sepA && addA.bottom <= sepA.top + 0.5);
+    check("large editor: no two arrows overlap", ar.every((a, i) => ar.every((b, j) => j <= i || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)));
+    check("large editor: a right-pointing arrow has its head after its text; up arrows before theirs unless at a corner", ar.filter((a) => a.side === "right").every((a) => a.headAfter) && by("Shapes")?.headBefore);
     await browser.close();
     console.log(fails.length ? `\n${fails.length} failed` : "\nall passed");
     process.exit(fails.length ? 1 : 0);
