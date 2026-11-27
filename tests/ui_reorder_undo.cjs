@@ -127,6 +127,8 @@ const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name)
     const mid = await page.evaluate(() => { const big = document.querySelector(".rg-bar .rg-bigbtn"), sep = big.nextElementSibling, clr = sep.nextElementSibling, r = (e) => e.getBoundingClientRect();
         return [r(sep).left - r(big).right, r(clr).left - r(sep).right].map((v) => +v.toFixed(2)); });
     check(`the separator is midway between the Large button and Clear all (${mid.join(" / ")} px)`, Math.abs(mid[0] - mid[1]) <= 0.5);
+    const hts = await page.evaluate(() => [...document.querySelector(".rg-bar .rg-bigbtn").parentElement.children].filter((k) => k.tagName === "BUTTON").map((k) => [k.textContent.trim() || k.title.split(/[:\n]/)[0], +k.getBoundingClientRect().height.toFixed(1)]));
+    check(`every button of the toolbar has the same height, the Fit button too (${[...new Set(hts.map((h) => h[1]))].join(", ")} px; Fit ${hts.find((h) => h[0] === "Fit")?.[1]})`, new Set(hts.map((h) => h[1])).size === 1);
     check("the toolbar has no number field any more, and is one row", bar.nums === 0 && bar.rows === 1);
     check(`the Snap button's tooltip says the grid's size (${bar.tip.split("\n").find((l) => /Grid size/.test(l))})`, /Grid size: 64 px\./.test(bar.tip));
     const dd = page.locator(".rg-bar .rg-btn.grp.toggle .rg-grp-dd");

@@ -5,6 +5,7 @@ const STYLE = `
 .rg-wrap { display:flex; flex-direction:column; gap:3px; width:100%; height:100%; min-height:460px; box-sizing:border-box;
   font:12px sans-serif; color:var(--input-text,#ddd); pointer-events:auto; outline:none; }
 .rg-bar { display:flex; flex-wrap:wrap; align-items:center; gap:3px; }
+.rg-bar > .rg-btn { align-self:stretch; }               /* a button with a word (Fit) is as tall as the icon buttons beside it */
 .rg-btn, .rg-sel, .rg-num { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555);
   border-radius:4px; padding:2px 6px; font:inherit; }
 .rg-btn { cursor:pointer; white-space:nowrap; }
