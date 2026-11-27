@@ -7,7 +7,7 @@
 // - The keys, while the pointer is over the node: 1-9 on the number row or the numpad choose a picture, the arrow
 //   keys the one before / after.
 // - The LAST picture (the highest number) is the chosen one to start with: four pictures show "3 | 4", two "1 | 2".
-// - Picture 1 has the LAST picture on its left (around the corner); a button on the node turns that off (picture 1
+// - Picture 1 has the LAST picture on its left (the Loop button); a button on the node turns that off (picture 1
 //   then shows alone). With two pictures that means: 2 chosen is "1 | 2", 1 chosen is "2 | 1".
 // - The keys: 1-9 are fixed; the two that step (the arrows) are the user's, in the pack's shortcut list under its
 //   own section "Image Compare node" (rg_keys.js, ctx "compare"), so they can be the same keys as the editor's.
@@ -213,8 +213,8 @@ function setup(node) {
                 + "Wheel: Zoom in and out. Drag: Move the picture.";
             [...chips.children].forEach((b, i) => { b.classList.toggle("cur", i + 1 === st.cur); b.classList.toggle("prev", i + 1 === prev); b.classList.toggle("hid", p.hidden.includes(i + 1)); });
             wrapBtn.classList.toggle("on", !!p.wrap); tagBtn.classList.toggle("on", !!p.labels); bigBtn.classList.toggle("on", isBig);
-            wrapBtn.title = p.wrap ? "Around the corner: ON. The first picture has the last one on its left. Click to show the first picture alone."
-                : "Around the corner: OFF. The first picture shows alone. Click to put the last picture on its left.";
+            wrapBtn.title = p.wrap ? "Loop: ON. The first picture has the last one on its left. Click to show the first picture alone."
+                : "Loop: OFF. The first picture shows alone. Click to put the last picture on its left.";
             tagBtn.title = p.labels ? "Number labels on the picture: ON. Click to hide them." : "Number labels on the picture: OFF. Click to show them.";
             // the key in use for it (not keyed(): the editor's Large editor has the same default key)
             const k = keyText("compare.big"), kb = k ? ` (${k})` : "";

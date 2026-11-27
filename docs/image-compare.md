@@ -43,14 +43,14 @@ Flipping in place: rest the pointer on the row of numbers and press the keys. Th
 
 ## The buttons
 
-- **Around the corner** (on to start with): picture 1 has no picture before it, so the *last* picture is on its left. Off: picture 1 shows alone.
+- **Loop** (on to start with): picture 1 has no picture before it, so the *last* picture is on its left. Off: picture 1 shows alone.
 - **Number labels** (on to start with): the numbers in the picture's top corners, which say which picture is on which side.
 
 Both are saved with the workflow.
 
 ## Two pictures
 
-The usual before / after: picture 2 is chosen, so it reads **1 | 2**. Press 1 and the sides swap (**2 | 1**), because picture 1's left neighbour is the last picture. With *around the corner* off, picture 1 shows alone and picture 2 stays 1 | 2.
+The usual before / after: picture 2 is chosen, so it reads **1 | 2**. Press 1 and the sides swap (**2 | 1**), because picture 1's left neighbour is the last picture. With *Loop* off, picture 1 shows alone and picture 2 stays 1 | 2.
 
 ## Hiding a picture
 

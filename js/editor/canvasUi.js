@@ -22,7 +22,8 @@ export function* canvasUi(E) {
         + keyed("<span><i>1</i>Pick a shape (R) and drag a box on the canvas: that is your first region.</span>")
         + "<span><i>2</i>Type what belongs there: in the region's prompt in the list under the canvas, or double-click the middle of the region on the canvas.</span>"
         + "<span><i>3</i>Connect model and clip, send positive, negative and latent to the sampler, and run.</span>"
-        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span></div>"
+        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span>"
+        + keyed("<span class=\"more\">More room: The Large button above the canvas opens this editor in a large window (Alt+Enter).</span></div>")
         + "<div class=\"rg-start-card\"><b>Or without regions</b>"
         + "<span>Fill in scene_prompt_positive and scene_prompt_negative, add LoRAs under Whole image (the first row of the list under the canvas) if you like, and run. "
         + "The same workflow does plain text-to-image.</span></div>"; };

@@ -327,6 +327,7 @@ export function* lifecycle(E) {
     E.node.__rgBox = () => { const L = E.selLayer(); return L ? E.boxCornersImg(L) : null; };
     E.node.__rgLayerMask = (id) => { const L = E.state.layers.find((l) => l.id === id) || E.selLayer(); if (!L) return null; const { w, h, r, m } = E.layerMask(L); return { w, h, r, m }; };
     E.node.__rgHint = (t) => E.hint(t);
+    E.node.__rgGrid = () => E.grid;                    // tests: the grid's size
     E.node.__rgView = () => ({ ...E.view, cw: E.cv.width, ch: E.cv.height });
 
     E.setTool("select");

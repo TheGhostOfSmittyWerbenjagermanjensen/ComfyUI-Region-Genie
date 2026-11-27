@@ -282,7 +282,8 @@ export function* toolbar(E) {
 
     // snap to grid: magnet (on, highlighted) / slashed magnet (off), like the labels eye
     // Its ▾ (also right-click) opens the grid's menu: snap, the grid shown without snapping, how strong its lines are
-    const snapBtn = E.el("button", "rg-btn icon grp toggle"); snapBtn.type = "button";
+    // (round 99: "solid": as dark as the other buttons while off; its icon and its lit state already say on / off)
+    const snapBtn = E.el("button", "rg-btn icon grp toggle solid"); snapBtn.type = "button";
     const snapIc = E.el("span", "rg-grp-ic"), snapDd = E.el("span", "rg-grp-dd");
     snapDd.innerHTML = '<svg viewBox="0 0 8 16"><path d="M1.5 6.5L4 9.5l2.5-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     snapDd.title = "The grid's options (also right-click)";
@@ -293,7 +294,25 @@ export function* toolbar(E) {
         const lines = getSetting(SET.cmGridLines, "normal"), at = snapBtn.getBoundingClientRect();
         const line = (value, label, what) => ({ label, tick: lines === value, title: `Grid lines: ${what}. For every Region Genie node (also in Settings).`,
             fn: async () => { await setSetting(SET.cmGridLines, value); E.requestDraw(); } });
-        openMenu(at.left, at.bottom + 2, [{ head: "Grid" },
+        // round 99: the grid's size lives here (it was a number field next to the button): a field, and common sizes
+        const setGrid = (v) => { E.grid = Math.max(2, Math.min(4096, Math.round(v) || 64)); setSnapIcon(); E.requestDraw(); };
+        const sizeRow = E.el("label", "rg-gridsize"), sizeIn = E.el("input", "rg-num"), px = E.el("span");
+        sizeIn.type = "number"; sizeIn.min = "2"; sizeIn.max = "4096"; sizeIn.step = "1"; sizeIn.value = String(E.grid); px.textContent = "px";
+        sizeRow.title = "Grid size in image pixels: Type a size; the grid on the canvas follows as you type. Enter closes the menu.";
+        sizeRow.append(sizeIn, px);
+        const sizes = E.el("div", "rg-gridsizes");
+        const markSizes = () => { for (const b of sizes.children) b.classList.toggle("on", +b.textContent === E.grid); };
+        for (const v of [8, 16, 32, 64, 128]) {
+            const b = E.el("button", "rg-btn"); b.type = "button"; b.textContent = String(v); b.title = `Grid size ${v} px`;
+            b.addEventListener("click", (ev) => { ev.preventDefault(); setGrid(v); menu.close(); });
+            sizes.append(b);
+        }
+        markSizes();
+        sizeIn.addEventListener("input", () => { const v = parseInt(sizeIn.value); if (v >= 2) { setGrid(v); markSizes(); } });
+        sizeIn.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); menu.close(); } });
+        sizeIn.addEventListener("wheel", (ev) => { ev.preventDefault(); ev.stopPropagation(); setGrid(E.grid + (ev.deltaY < 0 ? 1 : -1)); sizeIn.value = String(E.grid); markSizes(); }, { passive: false });
+        sizeIn.addEventListener("focus", () => sizeIn.select());
+        const menu = openMenu(at.left, at.bottom + 2, [{ head: "Grid size" }, { custom: sizeRow }, { custom: sizes }, null, { head: "Grid" },
             { label: "Snap to grid", key: keyText("view.snap"), checked: !!E.snap, title: keyed("Snap to grid: Points, shapes and moves snap to the grid (G)."), fn: toggleSnap },
             { label: "Show the grid without snapping", key: keyText("view.grid"), checked: !!E.showGrid,
               title: keyed("Show the grid without snapping: The grid's lines are drawn while snap is off too (Shift+G)."), fn: toggleGrid },
@@ -310,13 +329,10 @@ export function* toolbar(E) {
         snapBtn.title = keyed((E.snap ? "Snap to grid: On. Points, shapes and moves snap to the grid; click to turn it off (G).\n"
             : "Snap to grid: Off. Click to snap points, shapes and moves to the grid (G).\n")
             + (E.showGrid && !E.snap ? "The grid is shown without snapping (Shift+G).\n" : "")
-            + "▾ or right-click: Show the grid without snapping, and how strong its lines are.");
+            + `Grid size: ${E.grid} px.\n`
+            + "▾ or right-click: The grid's size, the grid shown without snapping, and how strong its lines are.");
     }
     setSnapIcon();
-    const gridIn = E.el("input", "rg-num");
-    gridIn.type = "number"; gridIn.min = "2"; gridIn.max = "4096"; gridIn.value = String(E.grid);
-    gridIn.title = "Grid size in image pixels";
-    gridIn.addEventListener("change", () => { E.grid = Math.max(2, parseInt(gridIn.value) || 64); E.requestDraw(); });
     const undoBtn = iconBtn("undo", "Undo (Ctrl+Z)", E.undo); E.undoBtn = undoBtn;
     const redoBtn = iconBtn("redo", "Redo (Ctrl+Shift+Z / Ctrl+Y)", E.redo); E.redoBtn = redoBtn;
     const fitBtn = E.btn("Fit", "Fit the image in view (Home). Wheel zooms, middle-drag or Space+drag pans.", () => { E.userView = false; E.fitView(); E.requestDraw(); });
@@ -397,5 +413,7 @@ export function* toolbar(E) {
     // (round 40: the canvas size was repeated here; the size row at the top of the node shows it, from the same E.dims())
     const barGap = E.el("span", "rg-bargap"); E.barGap = barGap; barGap.style.marginLeft = "auto";
     // Clear all sits at the right end, away from the tools and from Undo / Redo (it looks like a layer's delete button)
-    bar1.append(sep(), undoBtn, redoBtn, sep(), snapBtn, gridIn, fitBtn, labBtn, barGap, clearBtn);
+    // (round 99: the Large editor's button goes between the gap and Clear all, with a separator: big.js)
+    const endSep = sep(); E.barEndSep = endSep;
+    bar1.append(sep(), undoBtn, redoBtn, sep(), snapBtn, fitBtn, labBtn, barGap, endSep, clearBtn);
 }

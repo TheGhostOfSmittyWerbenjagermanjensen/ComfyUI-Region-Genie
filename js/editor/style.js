@@ -89,6 +89,14 @@ const STYLE = `
 .rg-btn.variants::after { content:""; position:absolute; right:1px; bottom:1px; width:0; height:0;
   border-style:solid; border-width:0 0 5px 5px; border-color:transparent transparent currentColor transparent; opacity:.7; }
 .rg-btn.toggle:not(.on) { opacity:.55; }
+.rg-btn.toggle.solid:not(.on) { opacity:1; }
+.rg-gridsize { display:flex; align-items:center; gap:6px; font-size:12px; }
+.rg-gridsize .rg-num { width:64px; height:22px; padding:1px 4px; border-radius:4px; font:inherit; }
+.rg-gridsize span { opacity:.7; }
+.rg-gridsizes { display:flex; gap:4px; }
+.rg-gridsizes .rg-btn { flex:1 1 0; min-width:30px; height:22px; padding:0 4px; border-radius:4px; font:inherit; font-size:12px; font-variant-numeric:tabular-nums; }
+.rg-gridsizes .rg-btn:hover { border-color:var(--rg-accent,#5b8fd0); }
+.rg-btn.rg-bigbtn.mixed { gap:4px; padding:2px 6px 2px 4px; line-height:16px; }
 .rg-sep { width:1px; align-self:stretch; background:var(--border-color,#555); margin:2px 3px; }
 .rg-foot { display:flex; align-items:center; gap:4px; flex:0 0 auto; }
 /* one row at any width (round 21): the dropdowns narrow (their text cut short) before anything wraps; system fonts
