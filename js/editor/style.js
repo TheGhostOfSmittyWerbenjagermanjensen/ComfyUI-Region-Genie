@@ -5,6 +5,7 @@ const STYLE = `
 .rg-wrap { display:flex; flex-direction:column; gap:3px; width:100%; height:100%; min-height:460px; box-sizing:border-box;
   font:12px sans-serif; color:var(--input-text,#ddd); pointer-events:auto; outline:none; }
 .rg-bar { display:flex; flex-wrap:wrap; align-items:center; gap:3px; }
+.rg-bar > .rg-btn { align-self:stretch; }               /* a button with a word (Fit) is as tall as the icon buttons beside it */
 .rg-btn, .rg-sel, .rg-num { background:var(--comfy-input-bg,#222); color:inherit; border:1px solid var(--border-color,#555);
   border-radius:4px; padding:2px 6px; font:inherit; }
 .rg-btn { cursor:pointer; white-space:nowrap; }
@@ -47,8 +48,12 @@ const STYLE = `
 .rg-toolopts .rg-optlab.lead { cursor:pointer; }
 .rg-toolopts.pinned .rg-optlab.lead { color:#7fb0ea; opacity:1; }
 .rg-btn.danger { margin-left:6px; }
+.rg-sep + .rg-btn.danger { margin-left:0; }          /* after a separator (round 99): the line is midway between its two buttons */
 .rg-btn.danger:hover { background:#7a2c2c; border-color:#c0504d; color:#fff; }
-.rg-btn.rg-separate { gap:3px; padding:1px 5px 1px 4px; font-size:11px; }
+.rg-btn.rg-separate { gap:3px; padding:1px 1px 1px 4px; font-size:11px; }
+.rg-btn.rg-separate .rg-grp-dd { line-height:0; padding:0 1px; opacity:.6; border-radius:2px; align-self:stretch; display:flex; align-items:center; }
+.rg-btn.rg-separate .rg-grp-dd:hover { opacity:1; background:color-mix(in srgb, currentColor 13%, transparent); }
+.rg-btn.rg-separate .rg-grp-dd svg { width:8px; height:16px; }
 .rg-tips { position:absolute; left:48px; right:48px; bottom:6px; width:fit-content; margin:0 auto; z-index:3; box-sizing:border-box;
   display:flex; flex-wrap:wrap; justify-content:center; gap:1px 10px; padding:3px 8px; border-radius:5px; pointer-events:none; user-select:none;
   background:rgba(20,20,20,.72); color:#e8e8e8; font:11px/1.35 sans-serif; transition:opacity .15s; }
@@ -68,7 +73,12 @@ const STYLE = `
 .rg-start span { display:flex; gap:7px; align-items:baseline; }
 .rg-start i { flex:0 0 auto; font-style:normal; font-weight:700; color:#8fb8e8; }
 .rg-start .more { opacity:.7; font-size:11px; }
-.rg-cv.over .rg-start { opacity:0; }
+.rg-cv.over .rg-start, .rg-cv.over .rg-start-arrows { opacity:0; }
+.rg-start-arrows { position:absolute; inset:0; z-index:2; pointer-events:none; user-select:none; transition:opacity .15s; }
+.rg-start-arrow { position:absolute; display:flex; align-items:center; gap:3px; padding:1px 6px 1px 3px; border-radius:4px; white-space:nowrap;
+  background:rgba(28,28,28,.86); border:1px solid color-mix(in srgb, var(--rg-accent,#5b8fd0) 70%, transparent); color:#e8e8e8; font:11px/1.4 sans-serif; }
+.rg-start-arrow i { display:flex; color:var(--rg-accent,#8fb8e8); }
+.rg-start-arrow i svg { width:13px; height:13px; display:block; }
 .rg-cv.held .rg-start { display:none; }
 /* Click areas (round 39): the small controls keep their look; an unseen area around each takes the click too, at least
    24 px tall and out to the middle of the 3 px gap to its neighbour. It lies behind the control's own content, so a
@@ -89,6 +99,14 @@ const STYLE = `
 .rg-btn.variants::after { content:""; position:absolute; right:1px; bottom:1px; width:0; height:0;
   border-style:solid; border-width:0 0 5px 5px; border-color:transparent transparent currentColor transparent; opacity:.7; }
 .rg-btn.toggle:not(.on) { opacity:.55; }
+.rg-btn.toggle.solid:not(.on) { opacity:1; }
+.rg-gridsize { display:flex; align-items:center; gap:6px; font-size:12px; }
+.rg-gridsize .rg-num { width:64px; height:22px; padding:1px 4px; border-radius:4px; font:inherit; }
+.rg-gridsize span { opacity:.7; }
+.rg-gridsizes { display:flex; gap:4px; }
+.rg-gridsizes .rg-btn { flex:1 1 0; min-width:30px; height:22px; padding:0 4px; border-radius:4px; font:inherit; font-size:12px; font-variant-numeric:tabular-nums; }
+.rg-gridsizes .rg-btn:hover { border-color:var(--rg-accent,#5b8fd0); }
+.rg-btn.rg-bigbtn.mixed { gap:4px; padding:2px 6px 2px 4px; line-height:16px; }
 .rg-sep { width:1px; align-self:stretch; background:var(--border-color,#555); margin:2px 3px; }
 .rg-foot { display:flex; align-items:center; gap:4px; flex:0 0 auto; }
 /* one row at any width (round 21): the dropdowns narrow (their text cut short) before anything wraps; system fonts

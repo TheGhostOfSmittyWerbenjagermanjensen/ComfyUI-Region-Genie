@@ -32,7 +32,7 @@ Everything happens in one model pass:
   - The caption part needs `clip` and the prompt to be exactly the text `positive` encodes (the `positive` output, or the same text encoded yourself). Otherwise the LoRAs act on the image only and the console says so.
 - Each LoRA region's caption is kept separate in attention from the other regions' image and captions at every step, so one region's LoRA-changed caption and trigger words can't restyle the rest.
   - Shared text (scene prompt, regions without LoRAs) stays open to all.
-- **Keep all regions separate** (the **Separate** button with four tiles, at the right end of the list header; automatic by default):
+- **Keep all regions separate** (the **Separate** button with four tiles, at the right end of the list header; automatic by default; its small ▾, or a right-click, opens its choices):
   - Automatic: it turns on by itself with the models without a layout format, and is off with the others.
   - On: every region, with or without LoRAs, is kept separate from the others and from the background for the first part of sampling ('until') at the separation strength, and each region's caption speaks only to its own region.
   - Off: only regions with LoRAs are.

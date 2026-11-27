@@ -31,13 +31,40 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height + 60); await page.waitForTimeout(400);
         check(`the start cards hide while the pointer is on the canvas (${over}) and come back when it leaves (${await cardOp()})`, over === "0" && await cardOp() === "1");
     }
-    check("empty canvas: hints for the Select tool (click, zoom, pan)", /Click Select a layer/.test(await tips() || "") && /Wheel Zoom/.test(await tips()) && /Space\+drag Pan/.test(await tips()));
+    // round 100: an empty canvas starts with the Rectangle tool, shows no hint strip under the start card, and has an
+    // arrow at the canvas's edge for each button the card names
+    check(`empty canvas: the Rectangle tool is the active one (${await page.evaluate(() => window.__node.__rgTool())}), and no hint strip under the start card`, await page.evaluate(() => window.__node.__rgTool()) === "shape" && await tips() === null);
+    const arr = await page.evaluate(() => { const box = document.querySelector(".rg-start-arrows").parentElement.getBoundingClientRect();
+        const t = { Shapes: document.querySelector('.rg-bar [data-group="shape"]') || [...document.querySelectorAll(".rg-bar .rg-btn")].find((b) => /^Shape|Rectangle/.test(b.title)), "Large editor": document.querySelector(".rg-bar .rg-bigbtn"),
+                    "Add a region": document.querySelector('[title^="Add a region with a new color"]'), Separate: document.querySelector(".rg-separate") };
+        return [...document.querySelectorAll(".rg-start-arrow")].map((a) => { const r = a.getBoundingClientRect(), b = t[a.textContent]?.getBoundingClientRect(), ic = a.querySelector("i").getBoundingClientRect();
+            return { name: a.textContent, side: a.dataset.side, inBox: r.left >= box.left && r.right <= box.right && r.top >= box.top && r.bottom <= box.bottom, target: !!b,
+                     off: b ? Math.round(Math.abs((ic.left + ic.width / 2) - (b.left + b.width / 2))) : -1, above: b ? b.bottom <= box.top + 2 : null }; }); });
+    check(`four arrows at the canvas's edge, each inside the canvas, on the edge next to its button (${arr.map((a) => a.name + ":" + a.side + ":" + a.off).join(", ")})`,
+          arr.length === 4 && arr.every((a) => a.inBox && a.target && a.side === (a.above ? "up" : "down")));
+    check("an arrow's head is in line with its button, or as near as the canvas's corner buttons allow (within 60 px)", arr.every((a) => a.off <= 60) && arr.filter((a) => a.off <= 12).length >= 2);
+    check("no arrow covers the canvas's corner buttons", await page.evaluate(() => { const hit = (a, b) => { const x = a.getBoundingClientRect(), y = b.getBoundingClientRect(); return x.left < y.right && y.left < x.right && x.top < y.bottom && y.top < x.bottom; };
+        const corners = [...document.querySelectorAll(".rg-imgmode, .rg-tips-btn")].filter((e) => e.getClientRects().length); return [...document.querySelectorAll(".rg-start-arrow")].every((a) => corners.every((c) => !hit(a, c))); }));
+    check("the card names the Large button and Separate", await page.evaluate(() => { const t = document.querySelector(".rg-start").textContent; return /Large button above the canvas/.test(t) && /Regions mixing, or not blending enough\? Separate/.test(t); }));
+    // the Separate button's ▾ opens what its right-click opens
+    await page.evaluate(() => { window.__lastMenu = null; });
+    await page.locator(".rg-separate .rg-grp-dd").click(); await page.waitForTimeout(250);
+    const sepMenu = await page.evaluate(() => (window.__lastMenu?.items || []).map((i) => String(i.content).replace(/^[✓\s]+/, "").trim()));     // (the stub page records the menu ComfyUI would draw)
+    check(`the Separate button has a ▾ that opens its options (${sepMenu.join(" | ")})`, sepMenu.join("|") === "Keep all regions separate|Automatic (as set in Settings)|Off for this node|Share the background");
+    check("and a click on the ▾ did not switch Separate itself", !(await page.evaluate(() => { const o = window.__node.__rgState().loraOpts || {}; return o.allRegions || o.autoOff; })));
+
     check("hints and start card take no clicks", await page.evaluate(() => [".rg-tips", ".rg-start"].every((s) => getComputedStyle(document.querySelector(s)).pointerEvents === "none")));
     // ---- every tool has its own hints
     const want = { shape: /Shift Equal sides.*Alt From the centre/, brush: /Shift\+click A straight line.*Brush size/, lasso: /Enter \/ double-click Close the outline.*Backspace/,
         lassoErase: /Close the outline/, fill: /Click Fill that area/, wand: /similar color/, object: /Ctrl\+click Take that spot out of the selection.*Enter Add the selection/, erase: /Erase from the selected layer/ };
     const bad = [];
+    // (with a region on the canvas: an empty canvas shows the start card in place of the hints)
+    await page.evaluate(() => { window.__node.__rgState().regions = [{ id: 1, color: "#E76F51", prompt: "", type: "object", text: "" }]; window.__node.__rgRefresh(); }); await page.waitForTimeout(100);
+    check("with a region on the canvas the start card and its arrows are gone", !(await shown(".rg-start")) && !(await shown(".rg-start-arrows")));
     for (const [t, re] of Object.entries(want)) { await setTool(t); if (!re.test(await tips() || "")) bad.push(t); }
+    await setTool("select");
+    check("…and the Select tool's hints show (click, zoom, pan)", /Click Select a layer/.test(await tips() || "") && /Wheel Zoom/.test(await tips()) && /Space\+drag Pan/.test(await tips()));
+    await page.evaluate(() => { window.__node.__rgState().regions = []; window.__node.__rgRefresh(); }); await page.waitForTimeout(100);
     check(`each tool shows its own keys and gestures (${bad.join(", ")})`, !bad.length);
     await setTool("select");
 
@@ -66,9 +93,14 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.evaluate(() => { window.__settings["RegionGenie.Tools.Hints"] = false; window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.Hints").onChange(false); });
     check("hints off in Settings: no hints on the canvas, right away", await tips() === null);
     await page.evaluate(() => { window.__node.__rgState().layers = []; window.__node.__rgState().regions = []; window.__node.__rgRefresh(); });
-    check("hints off in Settings: no start card on an empty canvas either", !(await shown(".rg-start")));
+    check("hints off in Settings: the start card on an empty canvas stays (it has its own Setting)", await shown(".rg-start"));
+    const sc = await page.evaluate(() => { const s = window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.StartCard"); return s && { type: s.rgType || s.type, d: s.defaultValue }; });
+    check("Settings: 'Start card on an empty canvas', on by default", sc?.type === "boolean" && sc.d === true);
+    await page.evaluate(() => { window.__settings["RegionGenie.Tools.StartCard"] = false; window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.StartCard").onChange(false); });
+    check("start card off in Settings: an empty canvas shows neither the card nor its arrows", !(await shown(".rg-start")) && !(await shown(".rg-start-arrows")));
+    await page.evaluate(() => { window.__settings["RegionGenie.Tools.StartCard"] = true; window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.StartCard").onChange(true); });
     await page.evaluate(() => { window.__settings["RegionGenie.Tools.Hints"] = true; window.__settingsExt.settings.find((s) => s.id === "RegionGenie.Tools.Hints").onChange(true); });
-    check("hints on again: both are back", await tips() !== null && await shown(".rg-start"));
+    check("both on again: the start card is back on the empty canvas (and no hint strip under it)", await tips() === null && await shown(".rg-start"));
 
     // ---- Clear all: the last button of the toolbar, separate from Undo / Redo; undoable
     const bar = await page.evaluate(() => { const k = [...document.querySelector(".rg-bar").children]; const c = k.findIndex((e) => (e.title || "").startsWith("Clear all")), r = k.findIndex((e) => (e.title || "").startsWith("Redo")); return { last: c === k.length - 1, danger: k[c].classList.contains("danger"), gap: c - r }; });
@@ -134,7 +166,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         return { kinds: k.map((e) => e.tagName === "INPUT" ? "field" : e.classList.contains("rg-separate") ? "button" : e.querySelector("svg") && !e.textContent.trim() ? "icon" : "text:" + e.textContent.trim()),
             tips: k.slice(0, 4).every((e) => e.title && e.title.length > 20), same: k[0].title === k[1].title && k[2].title === k[3].title, h: Math.round(document.querySelector(".rg-head").getBoundingClientRect().height) }; });
     check(`with 'Separate' on: an icon and a field for separation, an icon and a field for until, then the button; no words (${hd.kinds.join(" ")})`, hd.kinds.join(" ") === "icon field icon field button" && hd.tips && hd.same);
-    check("the button says 'Separate'", (await page.locator(".rg-separate").innerText()).trim() === "Separate" && await page.locator(".rg-separate svg").count() === 1);
+    check("the button says 'Separate'", (await page.locator(".rg-separate").innerText()).trim() === "Separate" && await page.locator(".rg-separate svg").count() === 2);      // its icon, and since round 100 its ▾
     await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = "600px"; }); await page.waitForTimeout(150);      // the editor's width in a 620 px node
     check("the header is one line at the new default width (600 px inside a 620 px node)", await page.evaluate(() => document.querySelector(".rg-head").getBoundingClientRect().height) < 26
         && await page.evaluate(() => document.querySelector(".rg-bar").getBoundingClientRect().height) < 26);

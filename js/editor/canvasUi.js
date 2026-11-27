@@ -19,15 +19,56 @@ export function* canvasUi(E) {
     // Two cards (round 65): the steps with regions, and that none are needed. Like the gestures they hide while
     // the pointer is on the canvas (.rg-cv.over), and show only while the canvas is empty (syncTips).
     const setStartCard = () => { startCard.innerHTML = "<div class=\"rg-start-card\"><b>Start here: with regions</b>"
-        + keyed("<span><i>1</i>Pick a shape (R) and drag a box on the canvas: that is your first region.</span>")
+        + keyed("<span><i>1</i>Drag a box on the canvas: that is your first region. The Rectangle tool is ready (R); other shapes and tools are above the canvas.</span>")
         + "<span><i>2</i>Type what belongs there: in the region's prompt in the list under the canvas, or double-click the middle of the region on the canvas.</span>"
         + "<span><i>3</i>Connect model and clip, send positive, negative and latent to the sampler, and run.</span>"
-        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span></div>"
+        + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span>"
+        + keyed("<span class=\"more\">More room: The Large button above the canvas opens this editor in a large window (Alt+Enter).</span>")
+        + "<span class=\"more\">Regions mixing, or not blending enough? Separate (above the list) and the two numbers beside it set how strongly the regions are kept apart, and for how long.</span></div>"
         + "<div class=\"rg-start-card\"><b>Or without regions</b>"
         + "<span>Fill in scene_prompt_positive and scene_prompt_negative, add LoRAs under Whole image (the first row of the list under the canvas) if you like, and run. "
         + "The same workflow does plain text-to-image.</span></div>"; };
     setStartCard(); E.setStartCard = setStartCard;
-    E.cvBox.append(tips, startCard);
+    // Arrows at the canvas's edge, one for each button the card names, pointing at it (round 100). Each sits on the
+    // edge nearest its button, in line with it, so it also works in the large editor (the list is beside the canvas
+    // there). They show and fade with the card.
+    const arrowBox = E.el("div", "rg-start-arrows");
+    const ARROWS = [["Shapes", () => E.toolBtns?.shape], ["Large editor", () => E.bigBtn], ["Add a region", () => E.addRegionBtn], ["Separate", () => E.wrap.querySelector(".rg-separate")]];
+    const arrowEls = ARROWS.map(([text]) => { const a = E.el("div", "rg-start-arrow"), ic = E.el("i"), t = E.el("span"); t.textContent = text; a.append(ic, t); arrowBox.append(a); return a; });
+    function placeArrows() {
+        const box = E.cvBox.getBoundingClientRect();
+        if (!box.width) return;
+        const k = E.cvBox.offsetWidth / box.width;                       // screen px -> the canvas box's own px (a zoomed graph)
+        ARROWS.forEach(([, get], i) => {
+            const a = arrowEls[i], t = get()?.getBoundingClientRect?.();
+            if (!t || !t.width) { a.style.display = "none"; return; }
+            a.style.display = "";
+            const cx = (t.left + t.width / 2 - box.left) * k, cy = (t.top + t.height / 2 - box.top) * k, W = E.cvBox.offsetWidth, H = E.cvBox.offsetHeight;
+            const side = t.bottom <= box.top + 2 ? "up" : t.top >= box.bottom - 2 ? "down" : t.left >= box.right - 2 ? "right" : t.right <= box.left + 2 ? "left" : "up";
+            a.dataset.side = side;
+            const w = a.offsetWidth, h = a.offsetHeight, pad = 4;
+            // the canvas's right corners hold a button each (the image-mode switch, the hints button): an arrow for a
+            // button above or below them stops short of the corner, with its arrowhead at the end nearest its button
+            const cornerEl = side === "up" ? E.cvBox.querySelector(".rg-imgmode") : side === "down" ? E.cvBox.querySelector(".rg-tips-btn") : null;
+            const cr = cornerEl?.getClientRects().length ? cornerEl.getBoundingClientRect() : null;
+            const corner = cr ? (box.right - cr.left) * k + 4 - pad : 0, maxX = W - w - pad - Math.max(0, corner);
+            const want = cx - (side === "up" || side === "down" ? 9 : w / 2), flip = (side === "up" || side === "down") && want > maxX;
+            a.style.flexDirection = flip ? "row-reverse" : "";
+            a.style.padding = flip ? "1px 3px 1px 6px" : "";
+            const x = side === "left" ? pad : side === "right" ? W - w - pad : Math.min(maxX, Math.max(pad, want));
+            const y = side === "up" ? pad : side === "down" ? H - h - pad : Math.min(H - h - pad, Math.max(pad, cy - h / 2));
+            a.style.left = `${x.toFixed(1)}px`; a.style.top = `${y.toFixed(1)}px`;
+            setHTML(a.firstChild, svgIcon(side === "up" ? "up" : side === "down" ? "down" : side === "right" ? "chevronRight" : "chevronRight"));
+            a.firstChild.style.transform = side === "left" ? "scaleX(-1)" : "";
+        });
+    }
+    // again when the canvas box changes size, when the pointer comes back from the canvas (the card shows again), and
+    // shortly after the card appears (the corner buttons and the list's header are laid out after the first call)
+    const replace = () => { if (arrowBox.style.display !== "none") placeArrows(); };
+    new ResizeObserver(replace).observe(E.cvBox);
+    E.cvBox.addEventListener("pointerleave", replace);
+    E.replaceStartArrows = () => { for (const ms of [0, 250, 900]) setTimeout(replace, ms); };
+    E.cvBox.append(tips, startCard, arrowBox);
     // The keys come from the shortcut table (rg_keys.js), so the hints show the user's own; an entry whose key was
     // taken away is left out ([null, …]).
     const K = keyText, first = (id) => keyText(id).split(" / ")[0];
@@ -62,7 +103,8 @@ export function* canvasUi(E) {
     let tipsShown = null, tipsTool = null;
     function syncTips() {
         const on = getSetting(SET.toolHints, true) !== false;
-        const empty = on && !E.state.layers.length && !E.state.regions.length && E.modeW?.value !== "use as color map";
+        // the start card: whenever the canvas has no regions, with its own Setting (round 100; it went with the hints)
+        const empty = getSetting(SET.startCard, true) !== false && !E.state.regions.length && E.modeW?.value !== "use as color map";
         const list = on ? (TIPS[E.tool]?.() || []).filter((t) => t[0]) : [];
         const key = `${empty}|${list.map((t) => t.join(":")).join("|")}`;
         if (tipsBtn.classList.contains("on") !== on || !tipsBtn.title) {
@@ -71,10 +113,13 @@ export function* canvasUi(E) {
                 : "Hints on the canvas: Off. Click to show the active tool's keys and gestures along the canvas's lower edge.";
         }
         if (E.tool !== tipsTool) { if (tipsTool !== null) flashTips(); tipsTool = E.tool; }     // another tool: its gestures, for a moment
+        if (empty) placeArrows();
         if (key === tipsShown) return;
         tipsShown = key;
         startCard.style.display = empty ? "" : "none";
-        tips.style.display = list.length ? "" : "none";
+        arrowBox.style.display = empty ? "" : "none";
+        tips.style.display = list.length && !empty ? "" : "none";      // not under the start card: one thing to read at a time
+        if (empty) { placeArrows(); E.replaceStartArrows(); }
         tips.replaceChildren(...list.map(([k, text]) => {
             const s = E.el("span"), b = E.el("b"); b.textContent = k; s.append(b, " " + text); return s;
         }));
@@ -170,7 +215,7 @@ export function* canvasUi(E) {
     const addRegionBtn = E.btn("", "Add a region with a new color (it goes on top)", () => {
         E.change(() => { const r = E.newRegion(); E.selId = null; E.activateRegion(r.id); });
         E.shapeKind = "rect";
-        E.setTool("shape");                          // the next thing to do is usually drawing its box
+        E.setTool("shape", true);                    // the next thing to do is usually drawing its box
         setTimeout(() => regList.querySelector(`textarea[data-rid="${E.curRegion}"]`)?.focus(), 0);
     });
     E.addRegionBtn = addRegionBtn;
@@ -210,11 +255,12 @@ export function* canvasUi(E) {
         });
         E.refreshUI();
     });
-    allSeparateBtn.classList.add("mixed", "toggle", "variants", "rg-separate");
-    // right-click: the two choices as check items (keep all regions separate / share the background)
-    allSeparateBtn.addEventListener("pointerdown", (e) => { if (e.button === 2) e.stopPropagation(); });
-    allSeparateBtn.addEventListener("contextmenu", (e) => {
-        e.preventDefault(); e.stopPropagation();
+    allSeparateBtn.classList.add("mixed", "toggle", "rg-separate");
+    // its ▾ (round 100; it was a right-click only, with a corner mark), and still a right-click: the choices as check items
+    allSeparateBtn.addEventListener("pointerdown", (e) => { if (e.button === 2 || e.target.closest?.(".rg-grp-dd")) e.stopPropagation(); });
+    allSeparateBtn.addEventListener("click", (e) => { if (e.target.closest?.(".rg-grp-dd")) { e.preventDefault(); e.stopImmediatePropagation(); sepMenu(e); } }, true);
+    allSeparateBtn.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); sepMenu(e); });
+    function sepMenu(e) {
         const o = normLoraOpts(E.state.loraOpts);
         const mark = (on) => (on ? "✓ " : " ");
         const items = [
@@ -232,7 +278,7 @@ export function* canvasUi(E) {
             }
             E.focusSink();
         });
-    });
+    }
     let allSeparateShown = null;
     E.autoSeparate = false;          // the last run turned it on by itself (a model without a layout format, region prompts)
     function setAllSeparateBtn() {
@@ -241,7 +287,8 @@ export function* canvasUi(E) {
         const key = `${own}|${auto}|${!!opts.autoOff}|${shared}`;
         if (allSeparateShown === key) return;
         allSeparateShown = key;
-        setHTML(allSeparateBtn, svgIcon(shared ? "allSeparateShared" : "allSeparate") + "<span>Separate</span>");
+        setHTML(allSeparateBtn, svgIcon(shared ? "allSeparateShared" : "allSeparate") + "<span>Separate</span>"
+            + '<span class="rg-grp-dd" title="The options of Separate (also right-click)"><svg viewBox="0 0 8 16"><path d="M1.5 6.5L4 9.5l2.5-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>');
         allSeparateBtn.classList.toggle("on", on);
         allSeparateBtn.title = (own ? "Separate (keep all regions separate): ON."
             : auto ? "Separate (keep all regions separate): ON automatically in the last run."
@@ -258,7 +305,7 @@ export function* canvasUi(E) {
                 + "perspective and setting stay one picture.\n"
                 : "Share the background: OFF. The regions are kept separate from the background too.\n")
             + "Click: Switch what the button shows, for this node.\n"
-            + "Right-click: Keep all regions separate, Automatic, Off for this node, Share the background.";
+            + "▾ or right-click: Keep all regions separate, Automatic, Off for this node, Share the background.";
     }
     sepIn.addEventListener("change", optChange); untilIn.addEventListener("change", optChange);
     for (const i of [sepIn, untilIn]) i.addEventListener("keydown", (e) => e.stopPropagation());

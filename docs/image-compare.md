@@ -37,19 +37,20 @@ Flipping in place: rest the pointer on the row of numbers and press the keys. Th
 - **The Large view** (the third button, or Alt+Enter with the pointer over the node) opens the comparison in a large window over ComfyUI. The slider, the keys, the numbers and the buttons work as on the node.
   - **The wheel zooms into the pictures**, about the place under the pointer. Zooming out stops when the whole picture fits the window again, so there is no Fit button: zoom out until it stops.
   - **A drag moves the pictures** while zoomed in; they stop at their edges.
-  - The number left of the buttons is the picture's size on the screen: 100% is one picture pixel per screen pixel. Far in, the pictures show their own pixels without smoothing.
+  - **The size field** left of the buttons shows the picture's size on the screen in percent: 100 is one picture pixel per screen pixel. Type a size and press Enter to zoom to it, about the middle of the window; a size smaller than the whole picture fitting gives the fit.
+  - Up to 300% the pictures are smoothed as a browser smooths any scaled picture (ComfyUI's own previews are the same); from 300% they show their own pixels as sharp squares.
   - Close it with the button again, its key, Esc, or a click beside the window.
 
 ## The buttons
 
-- **Around the corner** (on to start with): picture 1 has no picture before it, so the *last* picture is on its left. Off: picture 1 shows alone.
+- **Loop** (on to start with): picture 1 has no picture before it, so the *last* picture is on its left. Off: picture 1 shows alone.
 - **Number labels** (on to start with): the numbers in the picture's top corners, which say which picture is on which side.
 
 Both are saved with the workflow.
 
 ## Two pictures
 
-The usual before / after: picture 2 is chosen, so it reads **1 | 2**. Press 1 and the sides swap (**2 | 1**), because picture 1's left neighbour is the last picture. With *around the corner* off, picture 1 shows alone and picture 2 stays 1 | 2.
+The usual before / after: picture 2 is chosen, so it reads **1 | 2**. Press 1 and the sides swap (**2 | 1**), because picture 1's left neighbour is the last picture. With *Loop* off, picture 1 shows alone and picture 2 stays 1 | 2.
 
 ## Hiding a picture
 

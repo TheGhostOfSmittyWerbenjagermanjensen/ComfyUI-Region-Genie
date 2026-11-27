@@ -252,7 +252,7 @@ export function* pointer(E) {
                 t.id = E.nextLayerId();
                 t.name = `${SHAPE_NAMES[t.shape] || "Shape"} ${t.id}`;
                 E.addLayer(t);
-                E.setTool("select");
+                E.setTool("select", true);
             }
         } else if (d.mode === "paint") {
             E.lastStrokeEnd = E.layerToImg(d.layer, ...d.op.p[d.op.p.length - 1]);

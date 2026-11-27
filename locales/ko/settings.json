@@ -168,7 +168,7 @@
   },
   "RegionGenie_Tools_Hints": {
     "name": "캔버스의 힌트",
-    "tooltip": "켬: 캔버스 아래쪽 가장자리에 현재 도구의 키와 조작 방법을 표시하고, 캔버스가 비어 있을 때는 첫 단계도 표시합니다.\n끔: 캔버스에 힌트를 표시하지 않습니다.\n모든 Region Genie 노드에 바로 적용됩니다."
+    "tooltip": "켬: 캔버스 아래쪽 가장자리에 현재 도구의 키와 조작 방법을 표시합니다.\n끔: 캔버스에 힌트를 표시하지 않습니다.\n모든 Region Genie 노드에 바로 적용됩니다."
   },
   "RegionGenie_Select_Model": {
     "name": "모델",
@@ -676,7 +676,7 @@
     "name": "이미지 크기",
     "tooltip": "새 Region Genie 노드의 크기 행이 시작되는 방식과 프리셋 목록.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
-  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
+  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas, Start card on an empty canvas": {
     "name": "캔버스 도구",
     "tooltip": "올가미, 마술봉, 채우기 버튼이 처음에 사용하는 버전, 마술봉 허용 오차, 채우기 틈 크기, 캔버스의 힌트.\nEdit…: 이 페이지에서 Region Genie 설정을 엽니다."
   },
@@ -759,5 +759,9 @@
   "RegionGenie_ModelFiles_SearchAllFoldersEverywhere": {
     "name": "ComfyUI의 모든 목록에서 모든 폴더 검색 (실험적)",
     "tooltip": "끔(기본값): 이 팩 자체의 목록만 모든 폴더를 검색합니다.\n켬: 어느 팩의 어느 노드에서든 폴더별로 정리된 파일 목록에 같은 검색을 적용합니다(Load LoRA 노드의 목록, 체크포인트 로더의 목록).\n실험적: ComfyUI와 다른 팩이 여는 메뉴에 작용합니다. 다른 팩의 메뉴가 이상하게 동작하면 끄세요."
+  },
+  "RegionGenie_Tools_StartCard": {
+    "name": "빈 캔버스의 시작 카드",
+    "tooltip": "켬: 캔버스에 영역이 없을 때마다 첫 단계를 표시하고, 거기서 말하는 버튼을 화살표로 가리킵니다.\n끔: 빈 캔버스는 비어 있는 그대로입니다.\n모든 Region Genie 노드에 바로 적용됩니다."
   }
 }

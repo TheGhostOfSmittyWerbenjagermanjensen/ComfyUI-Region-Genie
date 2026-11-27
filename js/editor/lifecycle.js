@@ -140,6 +140,9 @@ export function* lifecycle(E) {
         E.undoStack = []; E.redoStack = [];
         // another workflow's steps and typed text are gone with it (they are kept in memory only, never saved)
         E.sceneKnown = null; E.textBefore = null; E.textDirty = false; E.textHist?.clear();
+        // round 100: an empty canvas starts with the Rectangle tool (the first thing to do is drawing a region), one
+        // with regions with Select; not once the user has picked a tool on this node
+        if (!E.toolPicked && E.toolBtns) { const first = E.state.regions.length ? "select" : "shape"; if (first === "shape") E.shapeKind = "rect"; if (E.tool !== first) E.setTool(first, true); }
         E.selId = null; E.filter = ALL; E.clickPoly = null;
         E.curRegion = E.state.regions[0]?.id ?? null;
         E.lastDims = [0, 0]; E.userView = false;
@@ -327,9 +330,10 @@ export function* lifecycle(E) {
     E.node.__rgBox = () => { const L = E.selLayer(); return L ? E.boxCornersImg(L) : null; };
     E.node.__rgLayerMask = (id) => { const L = E.state.layers.find((l) => l.id === id) || E.selLayer(); if (!L) return null; const { w, h, r, m } = E.layerMask(L); return { w, h, r, m }; };
     E.node.__rgHint = (t) => E.hint(t);
+    E.node.__rgGrid = () => E.grid;                    // tests: the grid's size
     E.node.__rgView = () => ({ ...E.view, cw: E.cv.width, ch: E.cv.height });
 
-    E.setTool("select");
+    E.setTool("select", true);
     load();
     // wide enough for the whole toolbar in one row (Select ... labels eye) and a usable region list;
     // a new node gets a square canvas (legacy mode: measured once laid out, since fonts differ per system).

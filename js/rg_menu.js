@@ -22,7 +22,8 @@ const CSS = `.rg-menu { position:fixed; z-index:10600; min-width:190px; max-widt
 .rg-menu-key { flex:0 0 auto; margin-left:14px; opacity:.6; font:11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .rg-menu-head { display:flex; align-items:center; gap:8px; padding:4px 8px 5px; font-size:11.5px; opacity:.75; white-space:nowrap; }
 .rg-menu-head .rg-menu-label { font-weight:650; }
-.rg-menu-sep { height:1px; margin:4px 2px; background:var(--border-color,#555); }`;
+.rg-menu-sep { height:1px; margin:4px 2px; background:var(--border-color,#555); }
+.rg-menu-custom { padding:3px 8px 4px 32px; }`;
 
 let open = null;                                     // one menu at a time
 
@@ -42,6 +43,8 @@ export function openMenu(x, y, items, opts = {}) {
     };
     for (const it of items) {
         if (!it) { if (box.lastChild && !box.lastChild.classList.contains("rg-menu-sep")) box.append(mk("div", "rg-menu-sep")); continue; }
+        // a row of the caller's own (round 99: the grid size field and its sizes): any element, not a menu entry
+        if (it.custom) { const c = mk("div", "rg-menu-custom"); c.append(it.custom); box.append(c); continue; }
         if (it.head != null) { const h = mk("div", "rg-menu-head"); h.append(lead(it), mk("span", "rg-menu-label", it.head)); box.append(h); continue; }
         const row = mk("div", "rg-menu-item" + (it.disabled ? " off" : "") + (it.danger ? " danger" : "")); row.setAttribute("role", "menuitem");
         if (it.tick != null) { const tk = mk("span", "rg-menu-tick"); if (it.tick) tk.innerHTML = svgIcon("check"); row.append(tk); row.setAttribute("aria-checked", String(!!it.tick)); }
@@ -63,6 +66,8 @@ export function openMenu(x, y, items, opts = {}) {
     let cur = -1;
     const mark = (i) => { rows[cur]?.classList.remove("cur"); cur = i; rows[cur]?.classList.add("cur"); rows[cur]?.scrollIntoView({ block: "nearest" }); };
     const key = (e) => {
+        // typing in a field of the menu (a custom row): the keys are the field's; Esc and Tab still close the menu
+        if (e.target?.tagName === "INPUT" && box.contains(e.target) && e.key !== "Escape" && e.key !== "Tab") return;
         if (e.key === "Escape") close();
         else if (e.key === "ArrowDown") mark((cur + 1) % rows.length);
         else if (e.key === "ArrowUp") mark((cur - 1 + rows.length) % rows.length);

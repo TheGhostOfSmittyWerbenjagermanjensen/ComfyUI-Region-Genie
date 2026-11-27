@@ -23,7 +23,11 @@ export function* big(E) {
     E.big = null;                                    // while open: { ov, win, side, hole, sizeHole, fields, timer }
     const bigBtn = E.iconBtn("expand", "", () => toggleBig(), "toggle"); E.bigBtn = bigBtn;
     bigBtn.classList.add("rg-bigbtn");                       // lit under the pointer, as the pop-up buttons of the text boxes are
-    E.barGap.before(bigBtn);
+    // round 99: right of the gap, left of Clear all, with the word "Large" (the owner kept the word: the editor's
+    // large window is easy to miss as one icon among the tools), and as dark as the other buttons while off
+    bigBtn.classList.add("mixed", "solid");
+    { const t = E.el("span"); t.textContent = "Large"; bigBtn.append(t); }
+    E.barEndSep.before(bigBtn);
     function setBigBtn() {
         const k = keyLabel(bigKeyText());
         bigBtn.classList.toggle("on", !!E.big);

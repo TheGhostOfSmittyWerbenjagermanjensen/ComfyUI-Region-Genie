@@ -168,7 +168,7 @@
   },
   "RegionGenie_Tools_Hints": {
     "name": "Ayudas en el lienzo",
-    "tooltip": "Activado: El lienzo muestra en su borde inferior las teclas y los gestos de la herramienta activa, y los primeros pasos mientras está vacío.\nDesactivado: Sin ayudas en el lienzo.\nSe aplica de inmediato a todos los nodos Region Genie."
+    "tooltip": "Activado: El lienzo muestra en su borde inferior las teclas y los gestos de la herramienta activa.\nDesactivado: Sin ayudas en el lienzo.\nSe aplica de inmediato a todos los nodos Region Genie."
   },
   "RegionGenie_Select_Model": {
     "name": "Modelo",
@@ -676,7 +676,7 @@
     "name": "Tamaño de imagen",
     "tooltip": "Cómo empieza la fila de tamaño de un nodo Region Genie nuevo, y la lista de preajustes.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
-  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
+  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas, Start card on an empty canvas": {
     "name": "Herramientas del lienzo",
     "tooltip": "Con qué versión empiezan los botones de lazo, varita mágica y relleno, la tolerancia de la varita, el tamaño de hueco del relleno, las pistas en el lienzo.\nEdit…: Abre los ajustes de Region Genie en esta página."
   },
@@ -759,5 +759,9 @@
   "RegionGenie_ModelFiles_SearchAllFoldersEverywhere": {
     "name": "Buscar en todas las carpetas de todas las listas de ComfyUI (experimental)",
     "tooltip": "Desactivado (predeterminado): solo las listas de este paquete buscan en todas las carpetas.\nActivado: la misma búsqueda en toda lista de archivos ordenada en carpetas, en cualquier nodo de cualquier paquete (la lista de un nodo Load LoRA, la de un cargador de checkpoints).\nExperimental: actúa sobre menús que abren ComfyUI y otros paquetes. Desactívalo si el menú de otro paquete falla."
+  },
+  "RegionGenie_Tools_StartCard": {
+    "name": "Tarjeta de inicio en un lienzo vacío",
+    "tooltip": "Activado: Siempre que un lienzo no tiene regiones, muestra los primeros pasos, con flechas hacia los botones que nombran.\nDesactivado: Un lienzo vacío se queda vacío.\nSe aplica de inmediato a todos los nodos Region Genie."
   }
 }

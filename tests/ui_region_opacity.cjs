@@ -144,7 +144,7 @@ async function run(browser, noGL) {
     const pick = async (label) => { await page.locator(".rg-menu .rg-menu-label", { hasText: label }).first().click(); await settle(); };
     check("no grid lines while snap is off", await rowMax() < 20);
     await magnet.locator(".rg-grp-dd").click(); await page.waitForTimeout(150);
-    check("the magnet's ▾ opens the grid's menu", JSON.stringify(await menuRows()) === JSON.stringify(["Grid", "Snap to grid", "Show the grid without snapping", "Grid lines", "Faint", "Normal", "Strong"]));
+    check("the magnet's ▾ opens the grid's menu", JSON.stringify(await menuRows()) === JSON.stringify(["Grid size", "Grid", "Snap to grid", "Show the grid without snapping", "Grid lines", "Faint", "Normal", "Strong"]));
     await pick("Show the grid without snapping");
     let g = await rowMax();
     check("show the grid without snapping: lines at about 30% white, snap stays off", g >= 60 && g <= 95 && /^Snap to grid: Off/.test(await magnet.getAttribute("title")) && /shown without snapping/.test(await magnet.getAttribute("title")));

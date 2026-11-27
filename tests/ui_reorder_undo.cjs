@@ -114,6 +114,59 @@ const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name)
     await big.hover(); await page.waitForTimeout(120);
     const bg1 = await big.evaluate((b) => getComputedStyle(b).backgroundColor);
     check(`the Large editor button is lit in the highlight color under the pointer (${bg0} > ${bg1})`, bg1 === "rgb(58, 110, 165)" && bg0 !== bg1);
+    // ---- round 100: the Undo / Redo buttons' tooltips say what a click would change
+    const tipOf = (w) => barBtn(w).getAttribute("title");
+    await MOVES["a region's grip in the list"].go(); await page.waitForTimeout(150);
+    check(`Undo's tooltip says what it would undo, with the region's number in the list (${await tipOf("Undo")})`, /^Undo: Moving region 0 in the list \(Ctrl\+Z\)\.$/.test(await tipOf("Undo")));
+    check(`Redo's says there is nothing to redo (${await tipOf("Redo")})`, /^Redo: Nothing to redo \(/.test(await tipOf("Redo")));
+    await barBtn("Undo").click(); await page.waitForTimeout(170);
+    check(`after Undo, Redo's tooltip names the same step (${await tipOf("Redo")})`, /^Redo: Moving region \d in the list \(/.test(await tipOf("Redo")));
+    await page.locator('.rg-list [title^="Show / hide this region"]').nth(1).click(); await page.waitForTimeout(170);
+    check(`hiding the second region (${await tipOf("Undo")})`, /^Undo: Hiding region 1 \(/.test(await tipOf("Undo")));
+    await barBtn("Undo").click(); await page.waitForTimeout(170);
+    await page.locator(".rg-list textarea.rg-prompt").nth(2).click(); await page.keyboard.type(" more"); await page.waitForTimeout(120);
+    check(`while typing in a box (${await tipOf("Undo")})`, /^Undo: The text typed since the cursor went into this box \(/.test(await tipOf("Undo")));
+    await page.mouse.click(1100, 1000); await page.waitForTimeout(170);
+    check(`after leaving the box: the prompt, by its region (${await tipOf("Undo")})`, /^Undo: The prompt of region 2 \(/.test(await tipOf("Undo")));
+    await barBtn("Undo").click(); await page.waitForTimeout(170);
+    await page.evaluate(() => window.__node.__rgEditTab(1, "layers")); await page.waitForTimeout(250);
+    { const l = page.locator(".rg-pop .rg-pop-layers .rg-row.layer"); const nm = await l.nth(0).locator("input[type=text]").inputValue(); await dragTo(l.nth(0).locator(".rg-grip"), l.nth(2), "bottom");
+      check(`a layer moved: by its name (${await tipOf("Undo")})`, (await tipOf("Undo")).startsWith(`Undo: Moving layer "${nm}" in front of or behind others (`)); }
+    await barBtn("Undo").click(); await page.waitForTimeout(170);
+    await page.evaluate(() => window.__node.__rgCloseEditor()); await page.waitForTimeout(150);
+    // ---- round 99: the grid's size in the Snap button's menu; the Large button's place, word and shade; the start card's line
+    await page.mouse.move(5, 5); await page.waitForTimeout(150);
+    const bar = await page.evaluate(() => { const b = document.querySelector(".rg-bar .rg-bigbtn"), row = b.parentElement, kids = [...row.children], i = kids.indexOf(b);
+        const fit = kids.find((k) => k.textContent.trim() === "Fit"), snap = row.querySelector(".rg-btn.grp.toggle"), cs = (e) => getComputedStyle(e);
+        return { after: kids.slice(i + 1).map((k) => k.className.replace("rg-btn ", "").split(" ")[0] + (k.classList.contains("danger") ? ":danger" : "")).join(","), beforeGap: kids[i - 1]?.className,
+                 text: b.textContent.trim(), nums: row.querySelectorAll("input").length, big: [cs(b).opacity, cs(b).backgroundColor], snap: [cs(snap).opacity, cs(snap).backgroundColor, snap.classList.contains("on")],
+                 fit: [cs(fit).opacity, cs(fit).backgroundColor], tip: snap.title, right: Math.round(row.getBoundingClientRect().right - kids.at(-1).getBoundingClientRect().right), rows: new Set(kids.filter((k) => k.tagName === "BUTTON").map((k) => Math.round(k.getBoundingClientRect().top / 12))).size }; });
+    check(`the Large editor's button says "Large", sits right of the gap, with a separator and Clear all after it (${bar.after})`, bar.text === "Large" && /rg-bargap/.test(bar.beforeGap) && bar.after === "rg-sep,icon:danger" && bar.right <= 8);
+    check(`off, the Large button and the Snap button are as dark as the other buttons (${bar.big.join(" ")} / ${bar.snap.slice(0, 2).join(" ")} / Fit ${bar.fit.join(" ")})`,
+          !bar.snap[2] && bar.big.join() === bar.fit.join() && bar.snap.slice(0, 2).join() === bar.fit.join());
+    const mid = await page.evaluate(() => { const big = document.querySelector(".rg-bar .rg-bigbtn"), sep = big.nextElementSibling, clr = sep.nextElementSibling, r = (e) => e.getBoundingClientRect();
+        return [r(sep).left - r(big).right, r(clr).left - r(sep).right].map((v) => +v.toFixed(2)); });
+    check(`the separator is midway between the Large button and Clear all (${mid.join(" / ")} px)`, Math.abs(mid[0] - mid[1]) <= 0.5);
+    const hts = await page.evaluate(() => [...document.querySelector(".rg-bar .rg-bigbtn").parentElement.children].filter((k) => k.tagName === "BUTTON").map((k) => [k.textContent.trim() || k.title.split(/[:\n]/)[0], +k.getBoundingClientRect().height.toFixed(1)]));
+    check(`every button of the toolbar has the same height, the Fit button too (${[...new Set(hts.map((h) => h[1]))].join(", ")} px; Fit ${hts.find((h) => h[0] === "Fit")?.[1]})`, new Set(hts.map((h) => h[1])).size === 1);
+    check("the toolbar has no number field any more, and is one row", bar.nums === 0 && bar.rows === 1);
+    check(`the Snap button's tooltip says the grid's size (${bar.tip.split("\n").find((l) => /Grid size/.test(l))})`, /Grid size: 64 px\./.test(bar.tip));
+    const dd = page.locator(".rg-bar .rg-btn.grp.toggle .rg-grp-dd");
+    await dd.click(); await page.waitForTimeout(200);
+    const gm = () => page.evaluate(() => { const m = document.querySelector(".rg-menu"); if (!m) return null; return { val: m.querySelector(".rg-gridsize input")?.value, sizes: [...m.querySelectorAll(".rg-gridsizes button")].map((b) => b.textContent + (b.classList.contains("on") ? "*" : "")).join(" "),
+        heads: [...m.querySelectorAll(".rg-menu-head")].map((h) => h.textContent.trim()).join("|"), scroll: m.scrollWidth - m.clientWidth > 1 || m.scrollHeight - m.clientHeight > 1 }; });
+    let g0 = await gm();
+    check(`the Snap button's menu starts with the grid's size: a field and five sizes (${g0?.val}; ${g0?.sizes}; ${g0?.heads})`, g0?.val === "64" && g0.sizes === "8 16 32 64* 128" && g0.heads.startsWith("Grid size|Grid") && !g0.scroll);
+    await page.locator(".rg-menu .rg-gridsize input").click(); await page.keyboard.type("32"); await page.waitForTimeout(150);
+    g0 = await gm();
+    check(`typing a size changes the grid at once and keeps the menu open (grid ${await page.evaluate(() => window.__node.__rgGrid())}; ${g0?.sizes})`, await page.evaluate(() => window.__node.__rgGrid()) === 32 && g0?.sizes === "8 16 32* 64 128");
+    await page.keyboard.press("Enter"); await page.waitForTimeout(150);
+    check("Enter closes the menu and keeps the size", await page.locator(".rg-menu").count() === 0 && await page.evaluate(() => window.__node.__rgGrid()) === 32);
+    await dd.click(); await page.waitForTimeout(200);
+    await page.locator(".rg-menu .rg-gridsizes button", { hasText: "128" }).click(); await page.waitForTimeout(150);
+    check("a click on a size sets it and closes the menu; the tooltip follows", await page.locator(".rg-menu").count() === 0 && await page.evaluate(() => window.__node.__rgGrid()) === 128
+          && /Grid size: 128 px\./.test(await page.locator(".rg-bar .rg-btn.grp.toggle").getAttribute("title")));
+    check("the start card has a line about the Large editor", /Large button above the canvas/.test(await page.evaluate(() => document.querySelector(".rg-start")?.textContent || "")));
     await browser.close();
     console.log(fails.length ? `\n${fails.length} FAILED` : "\nALL PASS");
     process.exit(fails.length ? 1 : 0);

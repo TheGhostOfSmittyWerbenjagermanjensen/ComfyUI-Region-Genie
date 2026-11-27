@@ -453,6 +453,12 @@ export function* render(E) {
             E.ctx.setLineDash([3, 3]); E.ctx.strokeStyle = "rgba(0,0,0,.9)"; E.ctx.stroke(); E.ctx.setLineDash([]);
         }
         E.undoBtn.disabled = !E.undoStack.length && !E.textDirty; E.redoBtn.disabled = !E.redoStack.length;
+        {   // the tooltips say what a click would change (round 100)
+            const [u, r] = E.stepWhat();
+            const ut = `Undo: ${u || "Nothing to undo"} (Ctrl+Z).`, rt = `Redo: ${r || "Nothing to redo"} (Ctrl+Shift+Z / Ctrl+Y).`;
+            if (E.undoBtn.__rgTitle !== ut) E.keyTitle(E.undoBtn, ut);
+            if (E.redoBtn.__rgTitle !== rt) E.keyTitle(E.redoBtn, rt);
+        }
         E.arrangeBtn.disabled = !E.selLayer();
         if (E.arrangeBtn.disabled && E.arrangePop) E.closeArrange();
         E.clearBtn.disabled = !E.state.layers.length && !E.state.regions.length;
