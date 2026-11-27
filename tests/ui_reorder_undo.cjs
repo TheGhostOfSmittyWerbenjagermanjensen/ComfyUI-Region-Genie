@@ -114,6 +114,16 @@ const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name)
     await big.hover(); await page.waitForTimeout(120);
     const bg1 = await big.evaluate((b) => getComputedStyle(b).backgroundColor);
     check(`the Large editor button is lit in the highlight color under the pointer (${bg0} > ${bg1})`, bg1 === "rgb(58, 110, 165)" && bg0 !== bg1);
+    // ---- round 100: the Undo / Redo buttons' tooltips say what a click would change
+    const tipOf = (w) => barBtn(w).getAttribute("title");
+    await MOVES["a region's grip in the list"].go(); await page.waitForTimeout(150);
+    check(`Undo's tooltip says what it would take back (${(await tipOf("Undo")).split("\n")[1]})`, /^Undo \(Ctrl\+Z\)\nTakes back: The order of the regions\.$/.test(await tipOf("Undo")));
+    check(`Redo's says there is nothing to bring back (${(await tipOf("Redo")).split("\n")[1]})`, /\nNothing to bring back\.$/.test(await tipOf("Redo")));
+    await barBtn("Undo").click(); await page.waitForTimeout(170);
+    check(`after Undo, Redo's tooltip names the same step (${(await tipOf("Redo")).split("\n")[1]})`, /\nBrings back: The order of the regions\.$/.test(await tipOf("Redo")));
+    await page.locator('.rg-list [title^="Show / hide this region"]').first().click(); await page.waitForTimeout(170);
+    check(`another kind of step is named too (${(await tipOf("Undo")).split("\n")[1]})`, /\nTakes back: Hiding a region\.$/.test(await tipOf("Undo")));
+    await barBtn("Undo").click(); await page.waitForTimeout(170);
     // ---- round 99: the grid's size in the Snap button's menu; the Large button's place, word and shade; the start card's line
     await page.mouse.move(5, 5); await page.waitForTimeout(150);
     const bar = await page.evaluate(() => { const b = document.querySelector(".rg-bar .rg-bigbtn"), row = b.parentElement, kids = [...row.children], i = kids.indexOf(b);

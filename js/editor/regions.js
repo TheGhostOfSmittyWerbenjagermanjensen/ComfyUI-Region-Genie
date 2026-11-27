@@ -8,7 +8,7 @@ import { hsvHex, hexRgb, rgbLab, effectiveColors } from "./colors.js";
 export function* regions(E) {
     Object.assign(E, {
         uniqueColor, sortLayersByRegions, newRegion, ensureRegion, holeOwner, toggleHole, snapshot, pushUndo, change, undo, redo,
-        beginText, endText, textSession,
+        beginText, endText, textSession, stepWhat,
         save, slotFor, addLayer, selectLayer, regionTargets, duplicateTo, duplicate, copyLayer, pasteLayer, deleteSelected,
         eraseLayer, moveTarget, moveLayer, moveLayerToRegion, mergeDown, mergeRegion, setTool, hint,
     });
@@ -164,6 +164,67 @@ export function* regions(E) {
         save(); E.refreshUI();
         if (sceneSet) { E.wcMarkScene?.(); for (const t of Object.values(E.sceneTA || {})) t?.__rgPlaceExpand?.(); }
         E.sceneKnown = JSON.stringify(sceneNow());
+    }
+    // ---- what a click on Undo / Redo would change, in a few words, for the buttons' tooltips (round 100).
+    // The steps are whole snapshots without a name, so the words come from comparing two of them: the state before
+    // a step and after it. The most telling difference is named, a second one added, the rest summed up as "more".
+    function stepDiff(a, b) {
+        const out = [], add = (t) => { if (!out.includes(t)) out.push(t); };
+        const J = JSON.stringify, n = (k, one, many) => (k === 1 ? one : many.replace("#", k));
+        const ra = a.regions || [], rb = b.regions || [], la = a.layers || [], lb = b.layers || [];
+        if (rb.length > ra.length) add("adding " + n(rb.length - ra.length, "a region", "# regions"));
+        if (rb.length < ra.length) add("deleting " + n(ra.length - rb.length, "a region", "# regions"));
+        if (lb.length > la.length) add("adding " + n(lb.length - la.length, "a layer", "# layers"));
+        if (lb.length < la.length) add("removing " + n(la.length - lb.length, "a layer", "# layers"));
+        const ids = (x) => x.map((r) => r.id).join(","), sorted = (x) => x.map((r) => r.id).sort().join(",");
+        if (ra.length === rb.length && ids(ra) !== ids(rb) && sorted(ra) === sorted(rb)) add("the order of the regions");
+        // (a region moved takes its layers along: that is one thing, the regions' order)
+        if (la.length === lb.length && ids(la) !== ids(lb) && sorted(la) === sorted(lb) && !out.includes("the order of the regions")) add("the order of the layers");
+        const byId = (x) => new Map(x.map((r) => [r.id, r]));
+        const A = byId(ra), LA = byId(la);
+        for (const r of rb) {
+            const o = A.get(r.id); if (!o) continue;
+            if ((o.prompt || "") !== (r.prompt || "") || (o.text || "") !== (r.text || "")) add("a change to a region's prompt");
+            if (J(o.loras || []) !== J(r.loras || [])) add("a change to a region's LoRAs");
+            if (J([o.palette, o.paletteOn]) !== J([r.palette, r.paletteOn])) add("a change to a color palette");
+            if (!!o.hidden !== !!r.hidden) add(r.hidden ? "hiding a region" : "showing a region");
+            if (o.type !== r.type) add("a region's type");
+            if (o.color !== r.color) add("a region's color");
+            if (J([o.feather, o.featherLinked, o.featherEdges, o.keep, o.noControl, o.llm]) !== J([r.feather, r.featherLinked, r.featherEdges, r.keep, r.noControl, r.llm])) add("a region's options");
+        }
+        for (const l of lb) {
+            const o = LA.get(l.id); if (!o) continue;
+            if (o.region !== l.region) add("moving a layer to another region");
+            if (J([o.ox, o.oy, o.bw, o.bh, o.sx, o.sy, o.rot, o.shape, o.sides, o.radius]) !== J([l.ox, l.oy, l.bw, l.bh, l.sx, l.sy, l.rot, l.shape, l.sides, l.radius])) add("moving or reshaping a layer");
+            if (J(o.ops || []) !== J(l.ops || [])) add("painting on a layer");
+            if ((o.visible !== false) !== (l.visible !== false)) add(l.visible === false ? "hiding a layer" : "showing a layer");
+            if (o.name !== l.name) add("a layer's name");
+            if (J(o.grad || null) !== J(l.grad || null)) add("a layer's fade");
+        }
+        if (J(a.__scene || null) !== J(b.__scene || null)) add("a change to a scene prompt");
+        if (J(a.sceneLoras || []) !== J(b.sceneLoras || [])) add("a change to the whole image's LoRAs");
+        if (J(a.loraOpts || null) !== J(b.loraOpts || null)) add("a change to Separate or its numbers");
+        if (J(a.poses || []) !== J(b.poses || [])) add("a change to the pose figures");
+        if (J([a.controls, a.editLoras, a.editOff, a.editMask]) !== J([b.controls, b.editLoras, b.editOff, b.editMask])) add("a change to the Control or Edit rows");
+        if (J(a.feather || 0) !== J(b.feather || 0)) add("the feather");
+        if (!out.length) add("a change to the node");
+        const t = out.length > 2 ? `${out[0]}, ${out[1]} and more` : out.join(" and ");
+        return t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    let whatKey = "", whatText = ["", ""];
+    // [what Undo would take back, what Redo would bring back]; "" where there is nothing
+    function stepWhat() {
+        const key = `${E.undoStack.length}|${E.redoStack.length}|${E.version}|${!!E.textDirty}`;
+        if (key === whatKey) return whatText;
+        whatKey = key;
+        let now = null;
+        const cur = () => (now ||= JSON.parse(snapshot()));
+        try {
+            const u = E.textDirty ? "The text typed since the cursor went into the box" : E.undoStack.length ? stepDiff(JSON.parse(E.undoStack[E.undoStack.length - 1]), cur()) : "";
+            const r = E.redoStack.length ? stepDiff(cur(), JSON.parse(E.redoStack[E.redoStack.length - 1])) : "";
+            whatText = [u, r];
+        } catch (e) { whatText = ["", ""]; }
+        return whatText;
     }
     function undo() { endText(); absorbScene(); if (E.undoStack.length) { E.redoStack.push(snapshot()); restore(E.undoStack.pop()); afterRestore(); } resumeText(); E.editor?.histBtns?.refresh(); }
     function redo() { endText(); absorbScene(); if (E.redoStack.length) { E.undoStack.push(snapshot()); restore(E.redoStack.pop()); afterRestore(); } resumeText(); E.editor?.histBtns?.refresh(); }

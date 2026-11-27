@@ -35,7 +35,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     // arrow at the canvas's edge for each button the card names
     check(`empty canvas: the Rectangle tool is the active one (${await page.evaluate(() => window.__node.__rgTool())}), and no hint strip under the start card`, await page.evaluate(() => window.__node.__rgTool()) === "shape" && await tips() === null);
     const arr = await page.evaluate(() => { const box = document.querySelector(".rg-start-arrows").parentElement.getBoundingClientRect();
-        const t = { Shapes: document.querySelector('.rg-bar [data-group="shape"]') || [...document.querySelectorAll(".rg-bar .rg-btn")].find((b) => /^Shape|Rectangle/.test(b.title)), Large: document.querySelector(".rg-bar .rg-bigbtn"),
+        const t = { Shapes: document.querySelector('.rg-bar [data-group="shape"]') || [...document.querySelectorAll(".rg-bar .rg-btn")].find((b) => /^Shape|Rectangle/.test(b.title)), "Large editor": document.querySelector(".rg-bar .rg-bigbtn"),
                     "Add a region": document.querySelector('[title^="Add a region with a new color"]'), Separate: document.querySelector(".rg-separate") };
         return [...document.querySelectorAll(".rg-start-arrow")].map((a) => { const r = a.getBoundingClientRect(), b = t[a.textContent]?.getBoundingClientRect(), ic = a.querySelector("i").getBoundingClientRect();
             return { name: a.textContent, side: a.dataset.side, inBox: r.left >= box.left && r.right <= box.right && r.top >= box.top && r.bottom <= box.bottom, target: !!b,

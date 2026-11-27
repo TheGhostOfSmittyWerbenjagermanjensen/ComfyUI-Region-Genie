@@ -33,7 +33,7 @@ export function* canvasUi(E) {
     // edge nearest its button, in line with it, so it also works in the large editor (the list is beside the canvas
     // there). They show and fade with the card.
     const arrowBox = E.el("div", "rg-start-arrows");
-    const ARROWS = [["Shapes", () => E.toolBtns?.shape], ["Large", () => E.bigBtn], ["Add a region", () => E.addRegionBtn], ["Separate", () => E.wrap.querySelector(".rg-separate")]];
+    const ARROWS = [["Shapes", () => E.toolBtns?.shape], ["Large editor", () => E.bigBtn], ["Add a region", () => E.addRegionBtn], ["Separate", () => E.wrap.querySelector(".rg-separate")]];
     const arrowEls = ARROWS.map(([text]) => { const a = E.el("div", "rg-start-arrow"), ic = E.el("i"), t = E.el("span"); t.textContent = text; a.append(ic, t); arrowBox.append(a); return a; });
     function placeArrows() {
         const box = E.cvBox.getBoundingClientRect();
