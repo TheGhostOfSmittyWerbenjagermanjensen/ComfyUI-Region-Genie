@@ -117,13 +117,23 @@ const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name)
     // ---- round 100: the Undo / Redo buttons' tooltips say what a click would change
     const tipOf = (w) => barBtn(w).getAttribute("title");
     await MOVES["a region's grip in the list"].go(); await page.waitForTimeout(150);
-    check(`Undo's tooltip says what it would take back (${(await tipOf("Undo")).split("\n")[1]})`, /^Undo \(Ctrl\+Z\)\nTakes back: The order of the regions\.$/.test(await tipOf("Undo")));
-    check(`Redo's says there is nothing to bring back (${(await tipOf("Redo")).split("\n")[1]})`, /\nNothing to bring back\.$/.test(await tipOf("Redo")));
+    check(`Undo's tooltip says what it would undo, with the region's number in the list (${await tipOf("Undo")})`, /^Undo: Moving region 0 in the list \(Ctrl\+Z\)\.$/.test(await tipOf("Undo")));
+    check(`Redo's says there is nothing to redo (${await tipOf("Redo")})`, /^Redo: Nothing to redo \(/.test(await tipOf("Redo")));
     await barBtn("Undo").click(); await page.waitForTimeout(170);
-    check(`after Undo, Redo's tooltip names the same step (${(await tipOf("Redo")).split("\n")[1]})`, /\nBrings back: The order of the regions\.$/.test(await tipOf("Redo")));
-    await page.locator('.rg-list [title^="Show / hide this region"]').first().click(); await page.waitForTimeout(170);
-    check(`another kind of step is named too (${(await tipOf("Undo")).split("\n")[1]})`, /\nTakes back: Hiding a region\.$/.test(await tipOf("Undo")));
+    check(`after Undo, Redo's tooltip names the same step (${await tipOf("Redo")})`, /^Redo: Moving region \d in the list \(/.test(await tipOf("Redo")));
+    await page.locator('.rg-list [title^="Show / hide this region"]').nth(1).click(); await page.waitForTimeout(170);
+    check(`hiding the second region (${await tipOf("Undo")})`, /^Undo: Hiding region 1 \(/.test(await tipOf("Undo")));
     await barBtn("Undo").click(); await page.waitForTimeout(170);
+    await page.locator(".rg-list textarea.rg-prompt").nth(2).click(); await page.keyboard.type(" more"); await page.waitForTimeout(120);
+    check(`while typing in a box (${await tipOf("Undo")})`, /^Undo: The text typed since the cursor went into this box \(/.test(await tipOf("Undo")));
+    await page.mouse.click(1100, 1000); await page.waitForTimeout(170);
+    check(`after leaving the box: the prompt, by its region (${await tipOf("Undo")})`, /^Undo: The prompt of region 2 \(/.test(await tipOf("Undo")));
+    await barBtn("Undo").click(); await page.waitForTimeout(170);
+    await page.evaluate(() => window.__node.__rgEditTab(1, "layers")); await page.waitForTimeout(250);
+    { const l = page.locator(".rg-pop .rg-pop-layers .rg-row.layer"); const nm = await l.nth(0).locator("input[type=text]").inputValue(); await dragTo(l.nth(0).locator(".rg-grip"), l.nth(2), "bottom");
+      check(`a layer moved: by its name (${await tipOf("Undo")})`, (await tipOf("Undo")).startsWith(`Undo: Moving layer "${nm}" in front of or behind others (`)); }
+    await barBtn("Undo").click(); await page.waitForTimeout(170);
+    await page.evaluate(() => window.__node.__rgCloseEditor()); await page.waitForTimeout(150);
     // ---- round 99: the grid's size in the Snap button's menu; the Large button's place, word and shade; the start card's line
     await page.mouse.move(5, 5); await page.waitForTimeout(150);
     const bar = await page.evaluate(() => { const b = document.querySelector(".rg-bar .rg-bigbtn"), row = b.parentElement, kids = [...row.children], i = kids.indexOf(b);

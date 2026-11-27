@@ -180,7 +180,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const afterCtrlZ = (await st()).regions.length;
     await page.keyboard.press("Control+u"); await page.waitForTimeout(80);
     check("P picks the brush; Ctrl+Z no longer undoes, Ctrl+U does", viaP === "brush" && afterCtrlZ === n0 + 1 && (await st()).regions.length === n0);
-    check("tooltips and the menu follow: Undo (Ctrl+U), Fit (Shift+F2)", /^Undo \(Ctrl\+U\)/.test(await page.locator('.rg-bar [title^="Undo"]').getAttribute("title"))
+    check("tooltips and the menu follow: Undo (Ctrl+U), Fit (Shift+F2)", /^Undo: .*\(Ctrl\+U\)\.$/.test(await page.locator('.rg-bar [title^="Undo"]').getAttribute("title"))
         && /\(Shift\+F2\)/.test(await page.locator('.rg-bar [title^="Fit the image"]').getAttribute("title")));
     await page.keyboard.press("F9"); await page.waitForTimeout(300);
     const bigOpen = await page.locator(".rg-big").count();

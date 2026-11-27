@@ -168,45 +168,67 @@ export function* regions(E) {
     // ---- what a click on Undo / Redo would change, in a few words, for the buttons' tooltips (round 100).
     // The steps are whole snapshots without a name, so the words come from comparing two of them: the state before
     // a step and after it. The most telling difference is named, a second one added, the rest summed up as "more".
-    function stepDiff(a, b) {
+    // now: which of the two is what the user sees ("a" for Redo, "b" for Undo): a region is called by its number in
+    // the list there (or in the other state, when it only exists in that one), a layer by its name
+    function stepDiff(a, b, now) {
         const out = [], add = (t) => { if (!out.includes(t)) out.push(t); };
-        const J = JSON.stringify, n = (k, one, many) => (k === 1 ? one : many.replace("#", k));
+        const J = JSON.stringify;
         const ra = a.regions || [], rb = b.regions || [], la = a.layers || [], lb = b.layers || [];
-        if (rb.length > ra.length) add("adding " + n(rb.length - ra.length, "a region", "# regions"));
-        if (rb.length < ra.length) add("deleting " + n(ra.length - rb.length, "a region", "# regions"));
-        if (lb.length > la.length) add("adding " + n(lb.length - la.length, "a layer", "# layers"));
-        if (lb.length < la.length) add("removing " + n(la.length - lb.length, "a layer", "# layers"));
-        const ids = (x) => x.map((r) => r.id).join(","), sorted = (x) => x.map((r) => r.id).sort().join(",");
-        if (ra.length === rb.length && ids(ra) !== ids(rb) && sorted(ra) === sorted(rb)) add("the order of the regions");
-        // (a region moved takes its layers along: that is one thing, the regions' order)
-        if (la.length === lb.length && ids(la) !== ids(lb) && sorted(la) === sorted(lb) && !out.includes("the order of the regions")) add("the order of the layers");
-        const byId = (x) => new Map(x.map((r) => [r.id, r]));
-        const A = byId(ra), LA = byId(la);
+        const seen = now === "a" ? ra : rb, other = now === "a" ? rb : ra;
+        const reg = (id) => { let k = seen.findIndex((r) => r.id === id); if (k < 0) k = other.findIndex((r) => r.id === id); return `region ${k}`; };
+        const lay = (l) => `layer "${String(l.name || "Layer").slice(0, 28)}"`;
+        const idsOf = (x) => new Set(x.map((r) => r.id));
+        const RA = idsOf(ra), RB = idsOf(rb), LAY_A = idsOf(la), LAY_B = idsOf(lb);
+        const newR = rb.filter((r) => !RA.has(r.id)), goneR = ra.filter((r) => !RB.has(r.id)), newL = lb.filter((l) => !LAY_A.has(l.id)), goneL = la.filter((l) => !LAY_B.has(l.id));
+        if (newR.length) add(newR.length === 1 ? `adding ${reg(newR[0].id)}` : `adding ${newR.length} regions`);
+        if (goneR.length) add(goneR.length === 1 ? `deleting ${reg(goneR[0].id)}` : `deleting ${goneR.length} regions`);
+        // (a region's own layers come and go with it: named only when the layers changed without their region)
+        const own = (l, set) => set.some((r) => r.id === l.region);
+        const nl = newL.filter((l) => !own(l, newR)), gl = goneL.filter((l) => !own(l, goneR));
+        if (nl.length) add(nl.length === 1 ? `adding ${lay(nl[0])}` : `adding ${nl.length} layers`);
+        if (gl.length) add(gl.length === 1 ? `removing ${lay(gl[0])}` : `removing ${gl.length} layers`);
+        // an order changed: the one that moved the furthest is named
+        const moved = (x, y) => { let best = null, far = 0; y.forEach((r, k) => { const j = x.findIndex((q) => q.id === r.id); if (j >= 0 && Math.abs(j - k) > far) { far = Math.abs(j - k); best = r; } }); return best; };
+        const same = (x, y) => x.length === y.length && x.every((r) => y.some((q) => q.id === r.id));
+        const order = (x) => x.map((r) => r.id).join(",");
+        let regionMoved = false;
+        if (same(ra, rb) && order(ra) !== order(rb)) { regionMoved = true; add(`moving ${reg(moved(ra, rb).id)} in the list`); }
+        if (!regionMoved && same(la, lb) && order(la) !== order(lb)) add(`moving ${lay(moved(la, lb))} in front of or behind others`);
+        const A = new Map(ra.map((r) => [r.id, r])), LA = new Map(la.map((l) => [l.id, l]));
         for (const r of rb) {
             const o = A.get(r.id); if (!o) continue;
-            if ((o.prompt || "") !== (r.prompt || "") || (o.text || "") !== (r.text || "")) add("a change to a region's prompt");
-            if (J(o.loras || []) !== J(r.loras || [])) add("a change to a region's LoRAs");
-            if (J([o.palette, o.paletteOn]) !== J([r.palette, r.paletteOn])) add("a change to a color palette");
-            if (!!o.hidden !== !!r.hidden) add(r.hidden ? "hiding a region" : "showing a region");
-            if (o.type !== r.type) add("a region's type");
-            if (o.color !== r.color) add("a region's color");
-            if (J([o.feather, o.featherLinked, o.featherEdges, o.keep, o.noControl, o.llm]) !== J([r.feather, r.featherLinked, r.featherEdges, r.keep, r.noControl, r.llm])) add("a region's options");
+            const R = reg(r.id);
+            if ((o.prompt || "") !== (r.prompt || "")) add(`the prompt of ${R}`);
+            if ((o.text || "") !== (r.text || "")) add(`the text to render of ${R}`);
+            if (J(o.loras || []) !== J(r.loras || [])) add(`the LoRAs of ${R}`);
+            if (J([o.palette, o.paletteOn]) !== J([r.palette, r.paletteOn])) add(`the color palette of ${R}`);
+            if (!!o.hidden !== !!r.hidden) add(`${r.hidden ? "hiding" : "showing"} ${R}`);
+            if (o.type !== r.type) add(`the type of ${R}`);
+            if (o.color !== r.color) add(`the color of ${R}`);
+            if (J([o.feather, o.featherLinked, o.featherEdges]) !== J([r.feather, r.featherLinked, r.featherEdges])) add(`the feather of ${R}`);
+            if (J([o.keep, o.noControl, o.llm]) !== J([r.keep, r.noControl, r.llm])) add(`the options of ${R}`);
         }
         for (const l of lb) {
             const o = LA.get(l.id); if (!o) continue;
-            if (o.region !== l.region) add("moving a layer to another region");
-            if (J([o.ox, o.oy, o.bw, o.bh, o.sx, o.sy, o.rot, o.shape, o.sides, o.radius]) !== J([l.ox, l.oy, l.bw, l.bh, l.sx, l.sy, l.rot, l.shape, l.sides, l.radius])) add("moving or reshaping a layer");
-            if (J(o.ops || []) !== J(l.ops || [])) add("painting on a layer");
-            if ((o.visible !== false) !== (l.visible !== false)) add(l.visible === false ? "hiding a layer" : "showing a layer");
-            if (o.name !== l.name) add("a layer's name");
-            if (J(o.grad || null) !== J(l.grad || null)) add("a layer's fade");
+            const L = lay(l);
+            if (o.region !== l.region) add(`moving ${L} to ${reg(l.region)}`);
+            if (J([o.ox, o.oy, o.bw, o.bh, o.sx, o.sy, o.rot, o.shape, o.sides, o.radius]) !== J([l.ox, l.oy, l.bw, l.bh, l.sx, l.sy, l.rot, l.shape, l.sides, l.radius])) add(`moving or reshaping ${L}`);
+            if (J(o.ops || []) !== J(l.ops || [])) add(`painting on ${L}`);
+            if ((o.visible !== false) !== (l.visible !== false)) add(`${l.visible === false ? "hiding" : "showing"} ${L}`);
+            if (o.name !== l.name) add(`the name of ${L}`);
+            if (J(o.grad || null) !== J(l.grad || null)) add(`the fade of ${L}`);
         }
-        if (J(a.__scene || null) !== J(b.__scene || null)) add("a change to a scene prompt");
-        if (J(a.sceneLoras || []) !== J(b.sceneLoras || [])) add("a change to the whole image's LoRAs");
-        if (J(a.loraOpts || null) !== J(b.loraOpts || null)) add("a change to Separate or its numbers");
-        if (J(a.poses || []) !== J(b.poses || [])) add("a change to the pose figures");
-        if (J([a.controls, a.editLoras, a.editOff, a.editMask]) !== J([b.controls, b.editLoras, b.editOff, b.editMask])) add("a change to the Control or Edit rows");
-        if (J(a.feather || 0) !== J(b.feather || 0)) add("the feather");
+        const sa = a.__scene || [], sb = b.__scene || [];
+        ["scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background"].forEach((name, k) => { if ((sa[k] ?? null) !== (sb[k] ?? null)) add(name); });
+        if (J(a.sceneLoras || []) !== J(b.sceneLoras || [])) add("the LoRAs of the whole image");
+        const oa = a.loraOpts || {}, ob = b.loraOpts || {};
+        if (J([oa.allRegions, oa.autoOff, oa.shareBg]) !== J([ob.allRegions, ob.autoOff, ob.shareBg])) add("the Separate button");
+        if (oa.separation !== ob.separation) add("the separation number");
+        if (oa.until !== ob.until) add("the until number");
+        if (J(a.poses || []) !== J(b.poses || [])) add("the pose figures");
+        if (J(a.controls || []) !== J(b.controls || [])) add("the Control rows");
+        if (J([a.editLoras, a.editOff, a.editMask]) !== J([b.editLoras, b.editOff, b.editMask])) add("the Edit rows");
+        if (J(a.feather || 0) !== J(b.feather || 0)) add("the shared feather");
         if (!out.length) add("a change to the node");
         const t = out.length > 2 ? `${out[0]}, ${out[1]} and more` : out.join(" and ");
         return t.charAt(0).toUpperCase() + t.slice(1);
@@ -220,8 +242,8 @@ export function* regions(E) {
         let now = null;
         const cur = () => (now ||= JSON.parse(snapshot()));
         try {
-            const u = E.textDirty ? "The text typed since the cursor went into the box" : E.undoStack.length ? stepDiff(JSON.parse(E.undoStack[E.undoStack.length - 1]), cur()) : "";
-            const r = E.redoStack.length ? stepDiff(cur(), JSON.parse(E.redoStack[E.redoStack.length - 1])) : "";
+            const u = E.textDirty ? "The text typed since the cursor went into this box" : E.undoStack.length ? stepDiff(JSON.parse(E.undoStack[E.undoStack.length - 1]), cur(), "b") : "";
+            const r = E.redoStack.length ? stepDiff(cur(), JSON.parse(E.redoStack[E.redoStack.length - 1]), "a") : "";
             whatText = [u, r];
         } catch (e) { whatText = ["", ""]; }
         return whatText;

@@ -455,7 +455,7 @@ export function* render(E) {
         E.undoBtn.disabled = !E.undoStack.length && !E.textDirty; E.redoBtn.disabled = !E.redoStack.length;
         {   // the tooltips say what a click would change (round 100)
             const [u, r] = E.stepWhat();
-            const ut = "Undo (Ctrl+Z)\n" + (u ? `Takes back: ${u}.` : "Nothing to take back."), rt = "Redo (Ctrl+Shift+Z / Ctrl+Y)\n" + (r ? `Brings back: ${r}.` : "Nothing to bring back.");
+            const ut = `Undo: ${u || "Nothing to undo"} (Ctrl+Z).`, rt = `Redo: ${r || "Nothing to redo"} (Ctrl+Shift+Z / Ctrl+Y).`;
             if (E.undoBtn.__rgTitle !== ut) E.keyTitle(E.undoBtn, ut);
             if (E.redoBtn.__rgTitle !== rt) E.keyTitle(E.redoBtn, rt);
         }
