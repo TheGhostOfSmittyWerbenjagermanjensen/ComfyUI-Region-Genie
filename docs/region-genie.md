@@ -91,9 +91,9 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
 ### Right-click menu
 
 - **Right-click on the canvas** opens a menu.
-  - On a region (which becomes the active one): Edit prompt, Hide region, Move up / down in the list, Hide, Duplicate or Delete the layer under the pointer, Delete region.
+  - On a region (which becomes the active one): Edit prompt, Hide region, Move up / down in the list, Hide, Duplicate or Delete the layer under the pointer, Delete region, Mirror the whole picture.
   - Where regions overlap, the others under the pointer are listed under *Also here*.
-  - On empty canvas: Add a region, Paste layer, Fit the image in view, Labels on / off, Snap to grid on / off, Show the grid without snapping, the large editor and the shortcut sheet.
+  - On empty canvas: Add a region, Paste layer, Mirror the whole picture, Fit the image in view, Labels on / off, Snap to grid on / off, Show the grid without snapping, the large editor and the shortcut sheet.
   - Everything in it can be undone with Ctrl+Z like the buttons it stands for.
 
 ### Node size and the large editor
@@ -423,11 +423,22 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 
 ### Arrange: flip, align, grow / shrink
 
-- **Arrange** (the button after the tools, enabled with a layer selected) opens a small panel: **Flip**, **Align** and **Edge**. All undoable.
-- **Flip** horizontally / vertically: the layer becomes its mirror picture on the image (left-right, or upside down) and stays where it is, also when it is turned or stretched.
+- **Arrange** (the button after the tools, enabled whenever there is something on the canvas) opens a small panel: **Apply to**, **Flip**, **Align** and **Edge**. Every action is one Undo step, and the Undo button's tooltip names it ("Undo: Flipping region 2 horizontally").
+- **Apply to** says what is arranged:
+  - **Layer:** the selected layer.
+  - **Region N:** the active region (its row is marked in the list): all its layers as one, as if they were merged.
+  - **All:** every region and what belongs to no region: the whole picture.
+  - **Pick…:** the regions you click in the row of chips under it (*All* / *None* pick every one or none; a region with nothing on it can't be picked).
+  - It opens on the selected layer, or on the active region when no layer is selected, and keeps your last choice while the page is open.
+- **Multiple** (shown when more than one region is arranged): **Together** moves them as one block (centre the whole scene, flip it in place), **Each** arranges every region on its own (each centred, each flipped in its own place).
+- **What goes along with a region:** its hidden layers, its holes and its pose figures move with it; hidden layers and hidden regions stay hidden and don't count for where the region is (its box is that of what is shown). On a flip, a pose figure's left and right joints swap, so it is still read as a person facing the same way.
+- **Flip** horizontally / vertically (the first two buttons): what Apply to names becomes its mirror picture on the image (left-right, or upside down) and stays where it is, also when it is turned or stretched. With *All* (and Together), the flip is across the image's centre line: the whole picture is mirrored.
+- **Mirror across the image** (the two buttons after the line): the same flips across the image's vertical or horizontal centre line, for a layer, a region or picked regions too: what is on the left goes to the right.
+- **Mirror the whole picture** in the canvas's right-click menu does the same for everything in one click, left to right: an alternate, mirrored version of the same prompt.
+  - What lies under the regions (Edit Mode's source picture, the image input) is an input of the node and is not mirrored; a note says so.
   - A shape stays that shape (a rectangle turned 30° is then turned the other way; a triangle flipped upside down points down).
 - **Align** to the left, centre, right, top, middle or bottom of the image, or centre it: by the layer's own pixels, so a turned ellipse really touches the edge.
-- **Edge**: grow or shrink the layer by a number of pixels on every side.
+- **Edge**: grow or shrink the layer by a number of pixels on every side. For a single layer only (choose *Layer* under Apply to).
   - A shape with nothing painted on it stays that shape and can still be resized and turned afterwards. Its sides move by that many pixels and its corners stay corners (a rectangle stays a rectangle, a star a star).
   - A rounded rectangle's corners get a radius that much larger or smaller; a heart grows by its box.
   - Anything painted (brush strokes, lasso outlines, fills, selections, and a shape that was painted or erased on) becomes pixels. Every point of its edge moves by that many pixels, measured straight, so round ends stay round.

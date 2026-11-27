@@ -82,7 +82,7 @@ const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name)
     const rowNames = () => pop.evaluate((p) => [...p.querySelectorAll(".rg-arrange-row > .rg-hint:first-child")].map((h) => h.textContent).join("|"));
     const choices = await pop.evaluate((p) => [...p.querySelectorAll(".rg-arrange-row:first-child .rg-btn")].map((b) => b.textContent + (b.disabled ? "(off)" : "") + (b.classList.contains("on") ? "*" : "")).join(" "));
     check(`"Apply to" has Layer, Region, All and Pick…; with nothing selected Layer is off (${choices})`, /^Layer\(off\) Region\S* All\S* Pick…\S*$/.test(choices));
-    check(`the rows: ${await rowNames()}`, /^Apply to\|(Several\|)?Flip\|Align\|Edge$/.test(await rowNames()));
+    check(`the rows: ${await rowNames()}`, /^Apply to\|(Multiple\|)?Flip\|Align\|Edge$/.test(await rowNames()));
     const flipBtns = await pop.evaluate((p) => [...p.querySelectorAll(".rg-arrange-row")].find((r) => r.firstChild.textContent === "Flip").querySelectorAll("button").length);
     check(`the Flip row has four buttons: two in place, two across the image (${flipBtns})`, flipBtns === 4);
 
@@ -137,9 +137,9 @@ const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name)
     await applyTo("Pick");
     const chips = await pop.evaluate((p) => [...p.querySelectorAll(".rg-arrange-chip")].map((c) => c.textContent + (c.disabled ? "(off)" : "") + (c.classList.contains("on") ? "*" : "")).join(" "));
     check(`Pick shows a chip per region; the empty one is off, the active one picked (${chips})`, chips === "0* 1 2(off)");
-    check("with one region picked there is no Together / Each switch", !/Several/.test(await rowNames()));
+    check("with one region picked there is no Together / Each switch", !/Multiple/.test(await rowNames()));
     await pop.locator(".rg-arrange-chip", { hasText: "1" }).click(); await page.waitForTimeout(120);
-    check(`with two picked the Together / Each switch shows (${await rowNames()})`, /Several/.test(await rowNames()));
+    check(`with two picked the Together / Each switch shows (${await rowNames()})`, /Multiple/.test(await rowNames()));
     await keepBefore();
     await page.evaluate(() => { const T = window.__T, b = T.box(T.union([10, 11, 12, 30])); T.dx = T.W / 2 - (b[0] + b[2]) / 2; });
     await press("Centre horizontally");

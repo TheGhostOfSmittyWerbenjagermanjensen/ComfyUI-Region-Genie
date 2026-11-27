@@ -2,6 +2,12 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
+## Round 102 (Nov 27): Arrange on regions and the whole picture (0.61.0)
+- Asked: run the Arrange tools on a whole region or several regions at once (a region as one layer even when its layers aren't merged; single layers still possible); hidden layers follow while staying hidden. For the owner: flip the whole picture for a mirrored version of a prompt, and centre a character.
+- Decided by the owner (from a written plan): an "Apply to" row in the Arrange pop-up (Layer / Region / All / Pick…, words kept) plus "Mirror the whole picture" in the canvas's right-click menu (not in a row's menu); flips in place, except All, which mirrors across the image's centre; two more buttons that mirror across the image's centre lines for anything; a Together / Each switch (row "Multiple"); Edge for single layers only; pose figures and hidden regions follow.
+- Built: `arrangeGroups` / `arrangeFlip` / `arrangeAlign` / `arrangeName` in `selectTools.js` (the single-layer flip and align now go through them); `mirrorPoseIn` / `movePoseIn` / `poseImgBox` in `pose.js`; the pop-up's new rows in `toolbar.js`; icons `mirrorImgH` / `mirrorImgV`; a step's own words for the Undo tooltip (`change(fn, label)`, carried in the snapshot as `__step`).
+- Tests: new `ui_arrange_regions.cjs` (judged by pixels). Changed: `ui_footer_tools.cjs` (Arrange is enabled with something on the canvas, not only with a selected layer).
+
 ## Round 101 (Nov 27): the start card's arrows in the large editor (0.60.1)
 - Reported by the owner: in the large editor the *Add a region* and *Separate* arrows lay on top of each other, and their arrowheads were on the left of their text, pointing back at it instead of at the buttons on the right.
 - Found: both buttons are in the list's header row beside the canvas, so both arrows were placed at the same height on the right edge; every arrow had its head before its text.

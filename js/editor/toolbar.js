@@ -334,7 +334,7 @@ export function* toolbar(E) {
         }
         const t = arrangeTarget();
         if (manyRegions(t)) {
-            row("Several").append(seg([
+            row("Multiple").append(seg([
                 [false, "Together", "Together: The regions move as one block (centre the whole scene, flip it in place)."],
                 [true, "Each", "Each: Every region on its own (each centred, each flipped in its own place)."],
             ], E.arrangeEach, (v) => { E.arrangeEach = v; fillArrange(); }));

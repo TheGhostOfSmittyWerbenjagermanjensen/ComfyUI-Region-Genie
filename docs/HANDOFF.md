@@ -401,6 +401,12 @@ The owner's choices on the six items left from the round-33 review (see the chan
 
 ## 6. How it was tested (for the next session)
 
+**Round 102: Arrange on regions** (`selectTools.js`, `toolbar.js`):
+- `arrangeGroups(target, each)` turns a target (`{kind: "layer", layer}`, `{kind: "regions", ids}`, `{kind: "all"}`) into groups `{layers, poses, shownLayers, shownPoses}`: a region's layers come from `E.listedOf` (its holes too), its figures from `E.posesOf`; All adds a group of what belongs to no region. `each = false` merges them into one group.
+- `arrangeFlip(groups, axis, "self" | "image", label)`: per layer, `mirrorPrep` (its pixel middle, before the change) and `mirrorApply` (mirror its frame, then put that middle on the other side of the line). `arrangeAlign` moves every layer and figure of a group by the group box's offset. The box counts only shown layers (all of them when none is shown).
+- The pop-up keeps `E.arrangeTo`, `E.arrangePick`, `E.arrangeEach`; render.js refills it when the selected layer, the active region or the regions change while it is open (`E.arrangeStale`).
+- Undo words: `E.change(fn, label)` stores the label in the "before" snapshot as a leading `"__step"` key; undo / redo carry it to the other stack, `stepWhat` uses it before comparing states, `restore` drops it.
+
 **Rounds 99-100:**
 - Toolbar: the grid's size is in the Snap button's menu (`gridMenu` in `toolbar.js`; `rg_menu.js` takes `{ custom: element }` rows); the Large editor's button says "Large" and sits between the gap and Clear all (`E.barEndSep`); `.solid` toggles are not dimmed while off.
 - Start card (`canvasUi.js`): shown whenever there are no regions and Setting `startCard` is on (no longer tied to `toolHints`); `placeArrows()` puts one arrow per named button on the canvas edge nearest it, clear of `.rg-imgmode` / `.rg-tips-btn`; the hint strip is hidden while the card shows. Round 101: an arrow's head is on the side it points to (after the text for `right`), and a second pass stacks arrows on the same side edge that would overlap (the large editor's Add a region and Separate share one row). The card takes no clicks and fades under the pointer, so nothing in it can be a link.

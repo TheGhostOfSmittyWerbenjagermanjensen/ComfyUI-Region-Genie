@@ -330,3 +330,8 @@ Nothing here has run on a real model yet.
 - [ ] The Undo / Redo tooltips read right after your usual steps (drawing, moving, prompts, LoRAs); say which steps only read "A change to the node"
 - [ ] The Separate button's ▾ is easy to hit next to the word, and a click on the word still switches Separate
 
+## Round 102: Arrange on regions
+- [ ] Mirror the whole picture (canvas right-click) on one of your own layouts, then run it: the picture comes out mirrored, the prompts still in their places
+- [ ] A character region with several layers and a pose figure: Region + Centre horizontally, then Flip horizontally; the figure's pose map is mirrored the right way round (check the pose preview)
+- [ ] Pick… with two regions, Together and Each, with your usual node size: the chips and the two switches are easy to hit on the 4K display and in Firefox
+
