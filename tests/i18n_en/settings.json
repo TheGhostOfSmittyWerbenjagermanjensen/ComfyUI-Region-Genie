@@ -1,7 +1,7 @@
 {
   "RegionGenie_Tools_Hints": {
     "name": "Hints on the canvas",
-    "tooltip": "On: The canvas shows the active tool's keys and gestures along its bottom edge, and the first steps while it is empty.\nOff: No hints on the canvas.\nApplies to every Region Genie node right away."
+    "tooltip": "On: The canvas shows the active tool's keys and gestures along its bottom edge.\nOff: No hints on the canvas.\nApplies to every Region Genie node right away."
   },
   "RegionGenie_Main_Snap": {
     "name": "Snap to grid on",
@@ -30,7 +30,7 @@
     "name": "Region Genie node",
     "tooltip": "What a new Region Genie node starts with (image mode, feather, separation, the grid, region colors, tag autocomplete, wildcards).\nEdit…: Opens the Region Genie settings on this page."
   },
-  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
+  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas, Start card on an empty canvas": {
     "name": "Canvas tools",
     "tooltip": "Which version the lasso, magic wand and fill buttons start as, the wand tolerance, the fill gap size, the hints on the canvas.\nEdit…: Opens the Region Genie settings on this page."
   },
@@ -233,6 +233,10 @@
   "RegionGenie_Tools_FillGap": {
     "name": "Fill: gap size (px)",
     "tooltip": "Fill, closing small gaps: Openings narrower than about twice this many pixels are closed."
+  },
+  "RegionGenie_Tools_StartCard": {
+    "name": "Start card on an empty canvas",
+    "tooltip": "On: Whenever a canvas has no regions, it shows the first steps, with arrows to the buttons they name.\nOff: An empty canvas stays empty.\nApplies to every Region Genie node right away."
   },
   "RegionGenie_Select_Model": {
     "name": "Model",

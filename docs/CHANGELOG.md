@@ -2,12 +2,25 @@
 
 Each round is one request from the owner: what was asked, what was decided (and by whom), what was built and how it was tested. Later rounds sometimes reverse earlier ones; `docs/HANDOFF.md` section 4 has the current design. Test file names are the current ones (renamed by subject in round 24; e.g. `real_comfy12.cjs` is now `real_fields_popups.cjs`).
 
-## Round 98 (Nov 26): Image Compare, Large view: the size can be typed (0.59.1)
+## Round 100 (Nov 27): the start card on every empty canvas, with arrows; the Rectangle tool first; Separate's ▾; Undo / Redo say what they change (0.60.0)
+- Asked: a note about Separate on the start card (the shorter wording, then widened to "or not blending enough"); arrows at the canvas's edge to the buttons the card names, with the hint strip hidden meanwhile; the Rectangle tool as the first tool while there are no regions, unless the user picked one; the card whenever there are no regions, with a Setting; a ▾ on the Separate button for what its right-click opens; the Undo / Redo tooltips saying what a click would change, specifically, worded "Undo: …" / "Redo: …".
+- Found: the card already came back on an empty canvas, but only with "Hints on the canvas" on and with no layers left.
+- Built: `placeArrows` (each arrow on the edge nearest its button, clear of the canvas's corner buttons); Setting `startCard`; `setTool(t, auto)` and `E.toolPicked`; `sepMenu` behind the ▾; `stepDiff` / `stepWhat` in `regions.js` (the steps are unnamed snapshots: the words come from comparing two).
+- Not as asked: the card's line about the Large editor is not clickable (the card fades while the pointer is on the canvas, so a link in it can't be reached).
+- Tests changed: `ui_hints_notes.cjs` (no Select hints on an empty canvas; the card no longer goes with the hints Setting; two icons on Separate), `ui_settings_window.cjs` (8 rows on Canvas tools), `ui_review_items.cjs` (the Undo tooltip's new form).
+
+## Round 99 (Nov 27): the grid's size in the Snap menu; the Large button; Loop (0.60.0)
+- Asked: move the grid size field into the Snap button's menu (with common sizes; the size in the tooltip only); make the Large editor easier to find (the word "Large" on its button, right of the gap and left of Clear all; a line on the start card); Snap and Large as dark as the other buttons while off; the separator midway between Large and Clear all; Fit as tall as the other buttons; Image Compare's "Around the corner" renamed "Loop".
+- Built: a `custom` row kind in `rg_menu.js` (any element in the pack's menu; keys typed in a field of it stay the field's); `.rg-btn.toggle.solid`; `.rg-bar > .rg-btn { align-self:stretch }`.
+- Tests changed: `ui_region_opacity.cjs` (the grid menu starts with "Grid size"), `real_fields_popups.cjs` (4 number fields on a new node, was 5).
+- The version is 0.60.0 for rounds 97 to 100 (0.59.1 was never released).
+
+## Round 98 (Nov 26): Image Compare, Large view: the size can be typed (0.60.0)
 - Asked: control the zoom by the percentage the Large view shows; on the node it can be left out.
 - Built: the readout is a field: type a percent of the picture's own pixels and press Enter; the zoom is about the middle of the frame, and less than fitting gives the fit. Not on the node (it has no zoom of its own).
 - `real_smoke.cjs` (legacy) timed out a fourth time, now past 10 minutes, so "a slow model load" was the wrong diagnosis. Found: it only fails when the stand-in model file (1.75 GB) has dropped out of the machine's disk cache (106 s to load, then the first selection stalls); with the file cached the load takes 2 s and the whole check 40 s. `verify.py` now reads the file once before the checks that load it. The test's limit is back at 4 minutes.
 
-## Round 97 (Nov 26): the Whole image row's pop-up opens by its row (0.59.1)
+## Round 97 (Nov 26): the Whole image row's pop-up opens by its row (0.60.0)
 - Reported by the owner: the pop-up that the Whole image row's LoRAs button opens appeared near the top, above the canvas, not just above or below the row.
 - Found: that pop-up is the scene prompt's (on its LoRAs tab), and it was always placed by the scene prompt's text box, which is above the canvas. Reproduced in the real ComfyUI before the fix.
 - Fixed: opened from the row (the LoRAs button, a LoRA chip), it goes just below the row, or just above it when there is no room below, as a region's pop-up does with its row. Opened from the scene text box's own button it is by the text box as before.

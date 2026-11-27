@@ -168,7 +168,7 @@
   },
   "RegionGenie_Tools_Hints": {
     "name": "画布上的提示",
-    "tooltip": "开启：画布底部边缘显示当前工具的按键和操作手势，画布为空时还显示入门步骤。\n关闭：画布上不显示提示。\n立即应用于每个 Region Genie 节点。"
+    "tooltip": "开启：画布底部边缘显示当前工具的按键和操作手势。\n关闭：画布上不显示提示。\n立即应用于每个 Region Genie 节点。"
   },
   "RegionGenie_Select_Model": {
     "name": "模型",
@@ -676,7 +676,7 @@
     "name": "图像尺寸",
     "tooltip": "新建 Region Genie 节点的尺寸行如何开始，以及预设列表。\nEdit…：在此页打开 Region Genie 设置。"
   },
-  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
+  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas, Start card on an empty canvas": {
     "name": "画布工具",
     "tooltip": "套索、魔棒和填充按钮初始使用哪个版本，魔棒容差、填充间隙大小、画布上的提示。\nEdit…：在此页打开 Region Genie 设置。"
   },
@@ -759,5 +759,9 @@
   "RegionGenie_ModelFiles_SearchAllFoldersEverywhere": {
     "name": "在 ComfyUI 的所有列表中搜索所有文件夹（实验性）",
     "tooltip": "关闭（默认）：只有本节点包自己的列表会搜索所有文件夹。\n开启：对任何节点包的任何节点上按文件夹分类的文件列表使用同样的搜索（Load LoRA 节点的列表、检查点加载器的列表）。\n实验性：它会作用于 ComfyUI 和其他节点包打开的菜单。如果其他节点包的菜单出现异常，请将其关闭。"
+  },
+  "RegionGenie_Tools_StartCard": {
+    "name": "空画布上的入门卡片",
+    "tooltip": "开启：只要画布上没有区域，就显示入门步骤，并用箭头指向其中提到的按钮。\n关闭：空画布保持空白。\n立即应用于每个 Region Genie 节点。"
   }
 }

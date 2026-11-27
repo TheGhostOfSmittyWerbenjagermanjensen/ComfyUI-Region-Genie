@@ -59,13 +59,17 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - `scene_prompt_positive` and `scene_prompt_negative` are the prompts; `positive`, `negative`, `latent` and `model` go to the sampler as always.
   - The size row sets the image size, and the **＋LoRA** button on *Whole image* adds LoRAs for the whole picture.
   - `prompt` is then your scene prompt as plain text (Ideogram 4: its caption JSON with no elements). Hiding every region (the eye buttons) does the same without deleting anything.
-- **An empty canvas** shows two cards. They hide while the pointer is on the canvas.
-  - **Start here: with regions** has three steps: pick a shape and drag a box (your first region), type its prompt (in the list, or double-click the middle of the region), connect and run.
+- **A canvas without regions** shows two cards, every time it has none. They hide while the pointer is on the canvas.
+  - **Start here: with regions** has three steps: drag a box (your first region; the Rectangle tool is already the active one), type its prompt (in the list, or double-click the middle of the region), connect and run. Three small lines under them name the ▢＋ button, the Large editor and the Separate button.
+  - **Arrows at the canvas's edge** point at the buttons the card names: *Shapes* and *Large editor* above the canvas, *Add a region* and *Separate* below it (in the large editor, beside it).
+  - While the cards show, the line of hints along the bottom edge is hidden.
+  - **Settings > Region Genie > Canvas tools > Start card on an empty canvas** turns the cards and their arrows off.
+- **The first tool:** a node without regions starts with the Rectangle tool, a node with regions with Select. Once you have picked a tool yourself on a node, it no longer changes by itself.
   - **Or without regions** says how to use the node for plain text-to-image: the two scene prompts, and LoRAs on *Whole image*.
 - **The line along the canvas's bottom edge** shows the keys and gestures of the tool in use (for the Rectangle: drag, Shift for equal sides, Alt from the centre).
   - It fades while the pointer is on the canvas (so it never covers what you work on), comes back when the pointer leaves, and shows for a few seconds when you switch tools.
   - The small **?** button in the canvas's lower right corner hides or shows the hints with one click (the same switch as in Settings).
-  - **Settings > Region Genie > Canvas tools > Hints on the canvas** turns it and the first steps off.
+  - **Settings > Region Genie > Canvas tools > Hints on the canvas** turns it off (the start cards have their own switch).
 - **Tooltips:** point at any button, field or switch for what it does. A shortcut is shown as a key next to the text.
 - **In-app help:** select the node and press **Node Info** in ComfyUI's toolbar (or the Info tab of the side panel) for a short guide with a numbered picture of the node. Every node of the pack has one.
 - **Small buttons are easier to hit:** a click just above, below or beside a small button, a row's grip still counts (the area is at least 24 px tall).
@@ -98,7 +102,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - In legacy node mode that is about 1186 px, with the sockets a new node shows.
   - In Nodes 2.0 ComfyUI shares the height between the scene prompt boxes and the editor, so the canvas starts wider than tall there.
   - Drag the node's corner to resize it, or use the large editor (the bar between the canvas and the list is described below).
-- **The large editor** (the button with two arrows, right of the labels button in the tool bar; or **Alt+Enter** while the pointer is over the editor): the same editor in a window that fills the ComfyUI page.
+- **The large editor** (the **Large** button near the right end of the tool bar, left of Clear all; or **Alt+Enter** while the pointer is over the editor): the same editor in a window that fills the ComfyUI page.
   - The tools stay in their row above the canvas, which takes the left; on the right are the size row, the scene prompts, the region list (with room for many regions) and the bottom bar.
   - It is the node's own editor moved there, so every tool, pop-up, shortcut and Ctrl+Z works as on the node, and nothing has to be saved or applied.
   - Close it with the button again, **✕**, the key, or **Esc** with nothing selected: the editor is back in the node as you left it.
@@ -470,7 +474,9 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 
 - **Snap** (the magnet button, highlighted when on; slashed magnet when off; or G) snaps drawing, moving and resizing to a grid set in image pixels. Arrow keys nudge (Shift ×10).
   - The grid's lines are drawn while snap is on.
-  - The magnet's ▾ (or a right-click on it) has the rest: **Show the grid without snapping** (Shift+G) and **Grid lines** (Faint, Normal, Strong; for every node).
+  - The magnet's ▾ (or a right-click on it) has the rest:
+    - **Grid size** in image pixels: a field (the grid on the canvas follows as you type; Enter closes the menu) and the sizes 8, 16, 32, 64 and 128 to click. The button's tooltip says the size in use.
+    - **Show the grid without snapping** (Shift+G) and **Grid lines** (Faint, Normal, Strong; for every node).
 - **View:** the image sits in a checkered margin.
   - Shapes can hang off the edge, and only the part inside the image is output.
   - The mouse wheel zooms, middle-drag or Space+drag pans, Fit (Home) resets the view, and Alt+wheel or `[` `]` changes brush size.
@@ -588,6 +594,7 @@ The details:
 ## Undo and redo
 
 - **Undo and redo:** Ctrl+Z and Ctrl+Shift+Z / Ctrl+Y work on the editor, not on the ComfyUI graph, while you're using the editor.
+- **The Undo and Redo buttons say what a click would change,** in their tooltips: "Undo: The prompt of region 2", "Undo: Moving layer "Rectangle 5" in front of or behind others", "Redo: Hiding region 1". A region is called by its number in the list, a layer by its name; a step that changed several things names two and adds "and more".
 - **Text is part of Undo.** Every visit to a text box (click in, type, click out) is one step of the editor's Undo, in order with drawing and everything else.
   - This covers the scene prompts, a region's prompt and its text to render, on the node, in the large editor and in the pop-up editors.
   - So after typing a prompt, clicking out and drawing a shape, Undo takes back the shape and then the whole prompt edit.

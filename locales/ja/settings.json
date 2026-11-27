@@ -168,7 +168,7 @@
   },
   "RegionGenie_Tools_Hints": {
     "name": "キャンバス上のヒント",
-    "tooltip": "オン: キャンバスの下端に、使用中のツールのキーと操作方法を表示します。キャンバスが空のときは最初の手順も表示します。\nオフ: キャンバスにヒントを表示しません。\nすべての Region Genie ノードにすぐに適用されます。"
+    "tooltip": "オン: キャンバスの下端に、使用中のツールのキーと操作方法を表示します。\nオフ: キャンバスにヒントを表示しません。\nすべての Region Genie ノードにすぐに適用されます。"
   },
   "RegionGenie_Select_Model": {
     "name": "モデル",
@@ -676,7 +676,7 @@
     "name": "画像サイズ",
     "tooltip": "新しい Region Genie ノードのサイズ行の初期状態と、プリセットの一覧。\nEdit…: このページで Region Genie の設定を開きます。"
   },
-  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas": {
+  "RegionGenie_Page_tools: Lasso: default, Lasso erase: default, Magic wand: default, Magic wand: tolerance, Fill: default, Fill: gap size px , Hints on the canvas, Start card on an empty canvas": {
     "name": "キャンバスツール",
     "tooltip": "投げ縄、マジックワンド、塗りつぶしの各ボタンが最初に使うバージョン、ワンドの許容値、塗りつぶしの隙間サイズ、キャンバス上のヒント。\nEdit…: このページで Region Genie の設定を開きます。"
   },
@@ -759,5 +759,9 @@
   "RegionGenie_ModelFiles_SearchAllFoldersEverywhere": {
     "name": "ComfyUI のすべての一覧ですべてのフォルダーを検索（実験的）",
     "tooltip": "オフ（既定）：このパック自身の一覧だけがすべてのフォルダーを検索します。\nオン：どのパックのどのノードでも、フォルダーごとに分けられたファイル一覧で同じ検索を行います（Load LoRA ノードの一覧、チェックポイントローダーの一覧）。\n実験的：ComfyUI や他のパックが開くメニューに作用します。他のパックのメニューの動作がおかしい場合はオフにしてください。"
+  },
+  "RegionGenie_Tools_StartCard": {
+    "name": "空のキャンバスのスタートカード",
+    "tooltip": "オン: キャンバスに領域がないときはいつでも最初の手順を表示し、そこで触れているボタンを矢印で示します。\nオフ: 空のキャンバスは空のままです。\nすべての Region Genie ノードにすぐに適用されます。"
   }
 }

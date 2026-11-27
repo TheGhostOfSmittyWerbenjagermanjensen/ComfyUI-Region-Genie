@@ -322,3 +322,11 @@ Nothing here has run on a real model yet.
 - [ ] Image Compare, Large view with real pictures: the wheel's zoom speed feels right; zooming out stops at the whole picture; a drag moves it; at high zoom single pixels are sharp; the percent readout is right for a picture you know the size of
 - [ ] Image Compare: number keys and arrows with the pointer on the node's title and on its input names
 - [ ] Image Compare (round 96): a middle-button drag over the node's picture, its numbers and its title moves the graph as over the empty graph; no autoscroll circle appears (Firefox, Windows)
+
+## Rounds 99-100: toolbar, start card, tooltips
+- [ ] The Snap button's ▾: the grid size field takes the cursor, typing changes the grid behind the menu, the wheel steps it, Enter closes; the five sizes are easy to hit on the 4K display (and in Firefox)
+- [ ] An empty canvas: the four arrows point at their buttons at your usual node sizes and graph zooms, in the node and in the large editor (there *Add a region* and *Separate* should point sideways at the list)
+- [ ] A new node starts with the Rectangle tool; a loaded workflow with regions with Select; after picking any tool, Clear all does not change the tool
+- [ ] The Undo / Redo tooltips read right after your usual steps (drawing, moving, prompts, LoRAs); say which steps only read "A change to the node"
+- [ ] The Separate button's ▾ is easy to hit next to the word, and a click on the word still switches Separate
+
