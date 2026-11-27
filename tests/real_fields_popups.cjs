@@ -85,7 +85,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.evaluate(() => [...document.querySelectorAll(".rg-wrap button")].find((b) => b.textContent.trim() === "▼ All")?.click());
     await sleep(300);
     let f = await numFit();
-    check(`${M}: number fields fit 1 to 5 digits, decimals and minus (${f.n} fields)` + (f.bad.length ? ": " + f.bad.slice(0, 4).join("; ") : ""), f.n >= 5 && !f.bad.length);
+    check(`${M}: number fields fit 1 to 5 digits, decimals and minus (${f.n} fields)` + (f.bad.length ? ": " + f.bad.slice(0, 4).join("; ") : ""), f.n >= 4 && !f.bad.length);      // 4 since round 99: the grid's size moved from the toolbar into the Snap button's menu
     let a = await tipAudit();
     check(`${M}: every control has a tooltip and isn't redrawn (${a.n} controls)` + (a.bad.length ? ": " + a.bad.slice(0, 5).join("; ") : ""), a.n > 30 && !a.bad.length);
     const linkTip = await page.evaluate(async () => {
