@@ -50,7 +50,10 @@ const STYLE = `
 .rg-btn.danger { margin-left:6px; }
 .rg-sep + .rg-btn.danger { margin-left:0; }          /* after a separator (round 99): the line is midway between its two buttons */
 .rg-btn.danger:hover { background:#7a2c2c; border-color:#c0504d; color:#fff; }
-.rg-btn.rg-separate { gap:3px; padding:1px 5px 1px 4px; font-size:11px; }
+.rg-btn.rg-separate { gap:3px; padding:1px 1px 1px 4px; font-size:11px; }
+.rg-btn.rg-separate .rg-grp-dd { line-height:0; padding:0 1px; opacity:.6; border-radius:2px; align-self:stretch; display:flex; align-items:center; }
+.rg-btn.rg-separate .rg-grp-dd:hover { opacity:1; background:color-mix(in srgb, currentColor 13%, transparent); }
+.rg-btn.rg-separate .rg-grp-dd svg { width:8px; height:16px; }
 .rg-tips { position:absolute; left:48px; right:48px; bottom:6px; width:fit-content; margin:0 auto; z-index:3; box-sizing:border-box;
   display:flex; flex-wrap:wrap; justify-content:center; gap:1px 10px; padding:3px 8px; border-radius:5px; pointer-events:none; user-select:none;
   background:rgba(20,20,20,.72); color:#e8e8e8; font:11px/1.35 sans-serif; transition:opacity .15s; }
