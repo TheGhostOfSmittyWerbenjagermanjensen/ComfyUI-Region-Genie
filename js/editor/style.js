@@ -47,6 +47,7 @@ const STYLE = `
 .rg-toolopts .rg-optlab.lead { cursor:pointer; }
 .rg-toolopts.pinned .rg-optlab.lead { color:#7fb0ea; opacity:1; }
 .rg-btn.danger { margin-left:6px; }
+.rg-sep + .rg-btn.danger { margin-left:0; }          /* after a separator (round 99): the line is midway between its two buttons */
 .rg-btn.danger:hover { background:#7a2c2c; border-color:#c0504d; color:#fff; }
 .rg-btn.rg-separate { gap:3px; padding:1px 5px 1px 4px; font-size:11px; }
 .rg-tips { position:absolute; left:48px; right:48px; bottom:6px; width:fit-content; margin:0 auto; z-index:3; box-sizing:border-box;

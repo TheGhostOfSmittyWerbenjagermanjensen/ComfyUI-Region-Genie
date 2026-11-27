@@ -124,6 +124,9 @@ const check = (name, ok, note) => { console.log((ok ? "PASS " : "FAIL ") + name)
     check(`the Large editor's button says "Large", sits right of the gap, with a separator and Clear all after it (${bar.after})`, bar.text === "Large" && /rg-bargap/.test(bar.beforeGap) && bar.after === "rg-sep,icon:danger" && bar.right <= 8);
     check(`off, the Large button and the Snap button are as dark as the other buttons (${bar.big.join(" ")} / ${bar.snap.slice(0, 2).join(" ")} / Fit ${bar.fit.join(" ")})`,
           !bar.snap[2] && bar.big.join() === bar.fit.join() && bar.snap.slice(0, 2).join() === bar.fit.join());
+    const mid = await page.evaluate(() => { const big = document.querySelector(".rg-bar .rg-bigbtn"), sep = big.nextElementSibling, clr = sep.nextElementSibling, r = (e) => e.getBoundingClientRect();
+        return [r(sep).left - r(big).right, r(clr).left - r(sep).right].map((v) => +v.toFixed(2)); });
+    check(`the separator is midway between the Large button and Clear all (${mid.join(" / ")} px)`, Math.abs(mid[0] - mid[1]) <= 0.5);
     check("the toolbar has no number field any more, and is one row", bar.nums === 0 && bar.rows === 1);
     check(`the Snap button's tooltip says the grid's size (${bar.tip.split("\n").find((l) => /Grid size/.test(l))})`, /Grid size: 64 px\./.test(bar.tip));
     const dd = page.locator(".rg-bar .rg-btn.grp.toggle .rg-grp-dd");
