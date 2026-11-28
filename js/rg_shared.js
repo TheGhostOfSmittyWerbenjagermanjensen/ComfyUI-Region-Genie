@@ -167,10 +167,6 @@ if (typeof document !== "undefined" && !document.getElementById("rg-ib-style")) 
 export const setHTML = (e, html) => { if (e && e.__rgHtml !== html) { e.__rgHtml = html; e.innerHTML = html; } };
 
 
-// ---------------------------------------------------------------- widget values
-// Widget values are saved by position, and some frontend versions line positions up differently on load
-// (they count connection-only inputs), which shifts values into the wrong widgets. Keep a copy by name
-// in the node's properties and put each value back where it belongs after loading.
 // A middle-button drag over a node's own HTML moves ComfyUI's graph, as it does over any other part of a node (the
 // Image Compare node since round 93, the Region Genie node's editor outside its canvas since round 103). As with the
 // wheel: where ComfyUI already does it by itself nothing is added. When the first movement did not move the graph,
@@ -230,6 +226,10 @@ export function widgetSockets(node) {
     return { set, linked: (n) => { const at = find(n); return at >= 0 && node.inputs[at].link != null; } };
 }
 
+// ---------------------------------------------------------------- widget values
+// Widget values are saved by position, and some frontend versions line positions up differently on load
+// (they count connection-only inputs), which shifts values into the wrong widgets. Keep a copy by name
+// in the node's properties and put each value back where it belongs after loading.
 export function keepWidgetValuesByName(node, names) {
     // the values a new node starts with: a loaded value that can't be right for its widget (a choice not in its
     // list, or another type, e.g. a workflow saved before a widget was added shifts its neighbour's value into it)

@@ -676,8 +676,8 @@ def prompt_family(model, clip, choice="auto", hint=None, edit=False, pick=None, 
     """Which format the 'prompt' output (and 'positive') uses: "moss" (MOSS-Image layout JSON), "ideogram"
     (Ideogram 4 caption JSON) or "plain" (text). Returns (family, where it came from).
 
-    pick: the model picked in the node's model dropdown (one of MODEL_PICKS), else None (auto). choice: the old
-    hidden format value ("auto" or one of PROMPT_FORMATS; kept for API prompts). In auto: the connected model, else
+    pick: the model picked in the node's model dropdown (one of MODEL_PICKS), else None (auto). choice: no longer
+    used (round 103; it was the old hidden format value). In auto: the connected model, else
     the connected clip's text encoder, else `hint` (the front end follows the 'prompt' output to the text encoder it
     feeds, and that encoder's loader), else MOSS.
     MOSS-Image takes plain text instead of its layout JSON in Edit Mode (the edit LoRA takes an instruction), in its
@@ -697,8 +697,6 @@ def prompt_family(model, clip, choice="auto", hint=None, edit=False, pick=None, 
 def _prompt_family(model, clip, choice, hint, pick):
     if pick in MODEL_PICKS:
         return MODEL_FAMILY.get(pick, "plain"), pick + " (picked on the node)"
-    if choice in FAMILY_OF_FORMAT:
-        return FAMILY_OF_FORMAT[choice], "the hidden prompt_format input"
     from . import regional_lora as hl
     arch = hl.model_arch(model) if model is not None else None
     if arch is not None:
@@ -1026,10 +1024,6 @@ class RegionGenie:
                 "size_from": ("IMAGE,LATENT", {"tooltip": ("Optional. Take the image size from this image or latent "
                                                            "(a latent: 16x for MOSS-Image / Flux.2 latents, 8x for SD / SDXL / Flux.1). "
                                                            "It comes before the size row and the width / height inputs.")}),
-                "size_from_image": ("IMAGE", {"tooltip": "Take width/height from this image. Takes priority over "
-                                                         "size_from_latent and the width/height widgets."}),
-                "size_from_latent": ("LATENT", {"tooltip": "Take width/height from this latent (auto-detects 16x for "
-                                                           "MOSS-Image / Flux.2 latents, 8x for SD/SDXL/Flux.1)."}),
                 "import_mode": (IMPORT_MODES, {"default": IMPORT_MODES[0],
                                                "tooltip": ("What a new import_json does when the canvas already has layers.\n"
                                                            "ask before replacing: The node asks first (this run keeps the canvas).\n"
@@ -1041,10 +1035,8 @@ class RegionGenie:
                                                                    "'background' its caption JSON requires. Shown only while the model is Ideogram 4; other models "
                                                                    "don't use it.")}),
                 "prompt_format": (PROMPT_FORMATS, {"default": "auto",
-                                                   "tooltip": ("Hidden (kept for API prompts and old workflows). The node's model dropdown sets the format of "
-                                                               "'prompt' and 'positive'.\n"
-                                                               "auto: Follows the connected model, else the clip, else the text encoder 'prompt' is connected "
-                                                               "to.")}),
+                                                   "tooltip": ("Hidden and no longer used: The node's model dropdown sets the format of 'prompt' and "
+                                                               "'positive'. It stays so that saved workflows keep their other values in place.")}),
                 "mode": (MODES, {"default": MODES[0],
                                  "tooltip": ("generate: A new image.\n"
                                              "edit: The image on the 'image' input is the source to change (image-to-image). 'latent' is that "
@@ -1144,11 +1136,17 @@ class RegionGenie:
 
     def run(self, width, height, scene_prompt_positive, scene_prompt_negative, image_mode, min_region_pixels, paint_data,
             image=None,
-            size_from_image=None, size_from_latent=None, import_json=None, import_mode=IMPORT_MODES[0],
+            import_json=None, import_mode=IMPORT_MODES[0],
             model=None, clip=None, scene_prompt_background="", prompt_format="auto", vae=None, mode=MODES[0],
             edit_area=EDIT_AREAS[0], width_in=None, height_in=None, wildcard_seed=0, control_image=None,
-            size_from=None, outputs_shown="", unique_id=None, pose_keypoint=None):
+            size_from=None, outputs_shown="", unique_id=None, pose_keypoint=None, **old_inputs):
         from .bbox_masks import _resolve_size        # shared with BBoxes to Masks
+        # Round 103: the size_from_image / size_from_latent inputs are gone (size_from takes either since round 40).
+        # An API prompt that still has a wire on one of them says so here, where it would otherwise run at another size.
+        gone = [k for k in ("size_from_image", "size_from_latent") if old_inputs.get(k) is not None]
+        if gone:
+            raise ValueError(f"Region Genie: the input {' / '.join(gone)} no longer exists. Connect the image or latent to "
+                             "'size_from' (it takes either).")
         # A node that shows only some of its outputs numbers them 0, 1, 2 ... in the workflow; the editor's script
         # replaces those by the real output numbers when it queues the workflow, and empties this value. If it is
         # still set, that step didn't happen and the links would deliver the wrong outputs: stop instead.
@@ -1156,7 +1154,8 @@ class RegionGenie:
             raise ValueError("Region Genie: the workflow reached ComfyUI without the node's output numbers being set "
                              "(the node shows only some of its outputs). Reload the ComfyUI page and queue again; in an "
                              "API prompt, leave 'outputs_shown' empty and use the node's real output numbers.")
-        # size_from takes an image or a latent; it comes before the two older sockets
+        # size_from takes an image or a latent
+        size_from_image = size_from_latent = None
         if size_from is not None:
             if isinstance(size_from, dict):
                 size_from_image, size_from_latent = None, size_from
@@ -1405,7 +1404,7 @@ class RegionGenie:
         pd = pdata if isinstance(pdata, dict) else {}
         hint = pd.get("promptFormatHint")
         pick = pd.get("modelPick") if pd.get("modelPick") in MODEL_PICKS else None
-        family, family_from = prompt_family(model, clip, prompt_format if prompt_format in PROMPT_FORMATS else "auto",
+        family, family_from = prompt_family(model, clip, "auto",
                                             hint, edit, pick=pick, layout=pd.get("mossLayout") is not False,
                                             regions=bool(items))
         if family == "ideogram":

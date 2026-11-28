@@ -50,7 +50,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check(`${M}: 16:9 sets 1368 x 768 (as Resolution Selector)`, JSON.stringify(wv2) === "[1368,768]");
     await page.screenshot({ path: require("path").join(__dirname, "out", `real9_${vue ? "vue" : "legacy"}.png`), clip: { x: 0, y: 0, width: 800, height: 700 } });
 
-    // ---------------- a workflow saved before the size row: width linked to a primitive, no rg_size
+    // ---------------- a workflow saved before the size row: no rg_size
     const old = await page.evaluate(async () => {
         const app = window.app, LG = window.LiteGraph;
         const g = app.graph.serialize();
@@ -58,25 +58,14 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         delete n.properties.rg_size;
         n.properties.rg_widget_values = { ...(n.properties.rg_widget_values || {}), width: 832, height: 1216 };
         const wv = n.widgets_values; if (Array.isArray(wv)) { const i = wv.indexOf(1368); if (i >= 0) { wv[i] = 832; wv[i + 1] = 1216; } }
-        // an old 'width' widget socket with a link from an Int node
-        const src = { id: 900, type: "PrimitiveInt", pos: [-300, 40], size: [220, 80], flags: {}, order: 0, mode: 0, inputs: [],
-                      outputs: [{ name: "INT", type: "INT", links: [901] }], properties: {}, widgets_values: [640, "fixed"] };
-        n.inputs = [...(n.inputs || []), { name: "width", type: "INT", widget: { name: "width" }, link: 901 }];
-        g.nodes.push(src);
-        g.links.push([901, 900, 0, n.id, n.inputs.length - 1, "INT"]);
-        g.last_link_id = Math.max(g.last_link_id || 0, 901); g.last_node_id = Math.max(g.last_node_id || 0, 900);
         await app.loadGraphData(g);
         await new Promise((r) => setTimeout(r, 1500));
         const rg = app.graph.nodes.find((x) => x.type === "Region-Genie_Main"); window.__rg = rg;
         const W = (k) => rg.widgets.find((w) => w.name === k).value;
-        const wi = rg.inputs.find((i) => i.name === "width_in");
-        const l = wi?.link != null ? (app.graph.links.get?.(wi.link) ?? app.graph.links[wi.link]) : null;
-        return { mode: rg.properties.rg_size?.mode, wv: [W("width"), W("height")], moved: !!l && String(l.origin_id) === "900",
-                 oldGone: !rg.inputs.some((i) => i.name === "width"), out: document.querySelector(".rg-size-out")?.textContent };
+        return { mode: rg.properties.rg_size?.mode, wv: [W("width"), W("height")], out: document.querySelector(".rg-size-out")?.textContent };
     });
     check(`${M}: old workflow opens in manual mode with its size`, old.mode === "manual" && JSON.stringify(old.wv) === "[832,1216]");
-    check(`${M}: its width link moved to the new 'width' input`, old.moved && old.oldGone);
-    check(`${M}: the input decides the width (640 x 1216)`, /640 × 1216/.test(old.out || ""));
+    // (round 103: a wire into the old 'width' field's socket is no longer moved to the width input; that check went with the step)
 
     // ---------------- a real run: Resolution Selector into width / height, one region hidden
     const run = await page.evaluate(async () => {

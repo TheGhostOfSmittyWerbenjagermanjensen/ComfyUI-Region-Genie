@@ -44,7 +44,7 @@ export function* lifecycle(E) {
 
     // ---------------- layout import / export ----------------
     const sizeLinked = () => (E.node.inputs || []).some((i) =>
-        ["width_in", "height_in", "size_from", "size_from_image", "size_from_latent"].includes(i.name) && i.link != null);
+        ["width_in", "height_in", "size_from"].includes(i.name) && i.link != null);
     // Edit Mode on: add the edit LoRA set in Settings for the model of the last run (for every model with one
     // when no run has said which), to the 'Whole image' LoRAs; off: remove the rows it added
     function onEditModeChanged() {
@@ -226,7 +226,7 @@ export function* lifecycle(E) {
     };
     chain(E.node, "onExecuted", function (message) { E.background(() => onRun(message)); });
     chain(E.node, "onConfigure", function (saved) { E.applySockets(saved); E.configured = true;
-        E.moveSizeLinks(); E.renumberLinks(); setTimeout(() => { E.sizeCfg(); E.syncSizeRow(true); E.onDimsChanged(); }, 0); E.fixImportMode(); E.migrateFormat(); if (E.node.properties?.rg_list_h) E.cvBox.style.minHeight = E.CV_MIN + "px"; E.applyListH(); load(); E.pushLlmCache(); E.syncLlm(); E.updateLlmButtons(); });
+        E.renumberLinks(); setTimeout(() => { E.sizeCfg(); E.syncSizeRow(true); E.onDimsChanged(); }, 0); E.fixImportMode(); E.migrateFormat(); if (E.node.properties?.rg_list_h) E.cvBox.style.minHeight = E.CV_MIN + "px"; E.applyListH(); load(); E.pushLlmCache(); E.syncLlm(); E.updateLlmButtons(); });
     for (const w of [E.wW, E.hW]) if (w) chain(w, "callback", () => E.onDimsChanged());
     if (E.modeW) chain(E.modeW, "callback", () => E.requestDraw());
 

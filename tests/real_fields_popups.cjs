@@ -361,7 +361,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         mossNames.length >= 6 && mossNames.every((t) => !/MOSS Image/.test(t)));
     check(`${M}: Settings has 'MOSS-Image: keep all regions separate automatically', sent with the run (${mossSeparate.name}; ${mossSeparate.keys}; ${mossSeparate.sent})`,
         /^MOSS-Image/.test(mossSeparate.name) && mossSeparate.sent === "off");
-    // an old workflow with the format select set
+    // a workflow with the old format field set (the format select of the first versions)
     const mig = await page.evaluate(async () => {
         const app = window.app;
         const out = {};
@@ -379,8 +379,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         }
         return out;
     });
-    check(`${M}: old workflow, format 'Ideogram JSON': Ideogram 4 picked`, mig.ideo.pick === "Ideogram 4" && mig.ideo.fmt === "auto");
-    check(`${M}: old workflow, format 'text': MOSS standard mode`, mig.text.layout === false && mig.text.fmt === "auto");
+    // (round 103: the old format choice is no longer turned into a model choice; the hidden field goes back to "auto" and nothing reads it)
+    check(`${M}: a workflow with the old format field set to 'Ideogram JSON': the field is 'auto' again, no model is picked from it (${JSON.stringify(mig.ideo)})`, mig.ideo.pick === "" && mig.ideo.fmt === "auto");
+    check(`${M}: …and with 'text': 'auto' again, the layout switch untouched (${JSON.stringify(mig.text)})`, mig.text.layout !== false && mig.text.fmt === "auto");
     // round 17: a workflow saved when the model was stored as 'MOSS Image' loads as MOSS-Image (pick, edit / control LoRA tags)
     const old = await page.evaluate(async () => {
         const app = window.app;

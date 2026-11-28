@@ -48,14 +48,6 @@
         "name": "尺寸来源",
         "tooltip": "可选。从此图像或 Latent 获取图像尺寸（Latent：MOSS-Image / Flux.2 的 Latent 为 16 倍，SD / SDXL / Flux.1 为 8 倍）。它优先于尺寸行以及宽度 / 高度输入。"
       },
-      "size_from_image": {
-        "name": "尺寸来自图像",
-        "tooltip": "从此图像获取宽度 / 高度。优先于“尺寸来自Latent”和宽度 / 高度控件。"
-      },
-      "size_from_latent": {
-        "name": "尺寸来自Latent",
-        "tooltip": "从此 Latent 获取宽度 / 高度（自动识别：MOSS-Image / Flux.2 的 Latent 为 16 倍，SD / SDXL / Flux.1 为 8 倍）。"
-      },
       "import_mode": {
         "name": "导入模式",
         "tooltip": "画布上已有图层时，新的“导入JSON”如何处理。\n替换前询问：节点先询问（本次运行保留画布）。\n始终替换：新布局立即替换画布。\n空画布总是会被填入。在 设置 > Region Genie > Region Genie 节点 中设定（编辑器每次运行都会发送该值）；此隐藏值仅作后备。"
@@ -66,7 +58,7 @@
       },
       "prompt_format": {
         "name": "提示词格式",
-        "tooltip": "隐藏（为 API 提示词和旧工作流保留）。“提示词”和“正面条件”的格式由节点的模型下拉框决定。\n自动：跟随所连接的模型，其次是 clip，再其次是“提示词”所连接的文本编码器。"
+        "tooltip": "已隐藏且不再使用：“prompt”和“positive”的格式由节点的模型下拉菜单决定。保留它是为了让已保存的工作流中其他数值保持在原位。"
       },
       "mode": {
         "name": "模式",

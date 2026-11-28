@@ -1,8 +1,7 @@
 // The node's sockets (round 40): fewer of them by default, and a checklist to choose which show.
 // One part of the Region Genie node's editor (see parts.js).
 //
-// Inputs. A new node shows model, clip, vae, image and size_from. size_from takes an image or a latent (it replaces
-// the size_from_image and size_from_latent sockets: their links are moved here on load). width / height and
+// Inputs. A new node shows model, clip, vae, image and size_from. size_from takes an image or a latent. width / height and
 // import_json and pose_keypoint show when ticked in the sockets list; control_image shows while the node has a Control row.
 //
 // Outputs. The Python node always returns all 14, in a fixed order. The node here shows the ticked ones only, so the
@@ -20,8 +19,7 @@ import { linkOf, remapOutputs } from "./graph.js";
 
 const NODE = "Region-Genie_Main";
 const SAMPLER_OUTS = ["model", "positive", "negative", "latent"];       // what a new node shows
-const OLD_SIZE = ["size_from_image", "size_from_latent"];
-const HIDDEN_BY_DEFAULT = [...OLD_SIZE, "width_in", "height_in", "import_json", "pose_keypoint", "control_image"];
+const HIDDEN_BY_DEFAULT = ["width_in", "height_in", "import_json", "pose_keypoint", "control_image"];
 
 // ---------------------------------------------------------------- the prompt: shown outputs -> real output numbers
 let outNames = null;
@@ -235,23 +233,10 @@ export function* sockets(E) {
                 o.type = OUT_T[OUT.indexOf(o.name)] ?? o.type; dress(o, proto.out[o.name]);
             }
         }
-        // size_from_image / size_from_latent -> size_from (an image comes first, as it did)
         if (findIn("size_from") < 0) addIn("size_from");
-        for (const name of OLD_SIZE) {
-            const i = findIn(name); if (i < 0) continue;
-            const id = N.inputs[i].link, j = findIn("size_from");
-            if (id != null && j >= 0 && N.inputs[j].link == null) {
-                const l = linkOf(N.graph, id);
-                if (l) { l.target_slot = j; N.inputs[j].link = id; N.inputs[i].link = null; }
-            }
-            if (N.inputs[i].link != null) { try { N.graph?.removeLink(N.inputs[i].link); } catch (e) { /* gone */ } N.inputs[i].link = null; }      // both were connected: the image's link won
-            removeIn(name);
-        }
-        if (old) {                                          // everything that isn't connected goes, like on a new node
-            for (const name of ["import_json", "pose_keypoint", "control_image"]) removeIn(name);
-            if (!linkedIn("width_in") && !linkedIn("height_in")) { removeIn("width_in"); removeIn("height_in"); }
-            for (const name of OUT.slice().reverse()) if (!SAMPLER_OUTS.includes(name)) removeOut(name);
-        }
+        // (Round 103: a node saved without the marker, i.e. before round 40 or written by hand, keeps the sockets it was
+        // saved with. The step that moved wires from size_from_image / size_from_latent to size_from and took its
+        // unconnected sockets away is gone with those two inputs; its outputs are still matched by name, above.)
     }
     // what the sockets list shows: [{ name, label, on, linked, why }]
     function socketState() {

@@ -9,7 +9,7 @@ import { inputLabel } from "../rg_i18n.js";
 
 export function* sizeRow(E) {
     Object.assign(E, {
-        sizeDefaults, sizeCfg, applySize, setManualSize, syncSizeRow, moveSizeLinks, el, opt, btn,
+        sizeDefaults, sizeCfg, applySize, setManualSize, syncSizeRow, el, opt, btn,
     });
     yield;
 
@@ -392,20 +392,6 @@ export function* sizeRow(E) {
         }
     }; E.labelSizeInputs = labelSizeInputs;
     labelSizeInputs();
-    // workflows from before the size row: links into the old width / height sockets move to the new ones
-    function moveSizeLinks() {
-        for (const [from, to] of [["width", "width_in"], ["height", "height_in"]]) {
-            const i = (E.node.inputs || []).findIndex((x) => x.name === from);
-            if (i < 0) continue;
-            const id = E.node.inputs[i].link, j = E.node.inputs.findIndex((x) => x.name === to);
-            if (id != null && j >= 0 && E.node.inputs[j].link == null) {
-                const l = linkOf(E.node.graph, id);
-                if (l) { l.target_slot = j; E.node.inputs[j].link = id; E.node.inputs[i].link = null; }
-            }
-            E.node.removeInput((E.node.inputs || []).findIndex((x) => x.name === from));
-        }
-        labelSizeInputs();
-    }
     keepWidgetValuesByName(E.node, ["wildcard_seed", "width", "height", "scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background", "image_mode",
                                   "min_region_pixels", "import_mode", "prompt_format", "mode", "edit_area"]);
     // ComfyUI's right-side properties panel renders the selected node's widgets and writes its own

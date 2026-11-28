@@ -185,7 +185,9 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
     check(`${M}: …and its links still carry the right numbers (${round.links.join(", ")})`, round.links.some((x) => /images=5$/.test(x)) && round.links.some((x) => /=12$/.test(x)));
     check(`${M}: …a connected optional input (width) is still there and still connected`, round.widthLinked === true && round.after.inputs.includes("width_in") && round.after.inputs.includes("height_in"));
 
-    // ---------------- a workflow saved before round 40 (every socket, the old size inputs connected)
+    // ---------------- a workflow without the marker (saved before round 40, or written by hand): every socket, the
+    // outputs in the Python node's order. Round 103: its sockets stay as saved (the step that moved wires from the old
+    // size inputs and took unconnected sockets away is gone); its outputs are still matched by name
     const old = await page.evaluate(async (OUT) => {
         const app = window.app, LG = window.LiteGraph; app.graph.clear();
         const rg = LG.createNode("Region-Genie_Main"); rg.pos = [520, 260]; app.graph.add(rg);
@@ -195,14 +197,13 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
         const pv = LG.createNode("PreviewImage"); pv.pos = [1400, 700]; app.graph.add(pv);
         rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), pv, 0);
         const data = JSON.parse(JSON.stringify(app.graph.serialize()));
-        // make it look as it was saved then: no marker, the outputs in the Python node's order, size_from_latent in place of size_from
+        // make it look as it was saved then: no marker, the outputs in the Python node's order
         const n = data.nodes.find((x) => String(x.id) === String(rg.id)); delete n.properties.rg_sockets;
         const byName = Object.fromEntries(n.outputs.map((o) => [o.name, o]));
         n.outputs = OUT.map((name, i) => ({ ...byName[name], slot_index: i }));
         const cm = OUT.indexOf("color_map");
         for (const L of data.links) if (L[1] === rg.id) L[2] = cm;
-        const sf = n.inputs.find((i) => i.name === "size_from"); sf.name = "size_from_latent"; sf.type = "LATENT"; delete sf.label; delete sf.localized_name;
-        n.inputs.splice(n.inputs.indexOf(sf), 0, { name: "size_from_image", type: "IMAGE", link: null });
+        const sf = n.inputs.find((i) => i.name === "size_from");
         const lid = Math.max(0, ...data.links.map((L) => (Array.isArray(L) ? L[0] : L.id))) + 1; if (data.last_link_id != null) data.last_link_id = lid; if (data.state?.lastLinkId != null) data.state.lastLinkId = lid;
         sf.link = lid; data.links.push([lid, el.id, 0, rg.id, n.inputs.indexOf(sf), "LATENT"]);
         const eln = data.nodes.find((x) => String(x.id) === String(el.id)); eln.outputs[0].links = [lid];
@@ -214,10 +215,9 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
             links: Object.values(p.output).flatMap((x) => Object.entries(x.inputs || {}).filter(([, v]) => Array.isArray(v) && String(v[0]) === String(m.id)).map(([k, v]) => `${x.class_type}.${k}=${v[1]}`)),
             sizeIn: Object.keys(p.output[String(m.id)].inputs).filter((k) => /^size_from/.test(k)) };
     }, OUT);
-    check(`${M}: an older workflow: the latent's link moved to size_from (${old.sizeIn.join(", ")}), the canvas takes its size (${old.dims.join(" x ")})`, old.sizeLinked && old.sizeIn.join() === "size_from" && old.dims.join() === "640,960"
-        && !old.s.inputs.includes("size_from_latent") && !old.s.inputs.includes("size_from_image"));
-    check(`${M}: …sockets that weren't connected are gone, the connected output stays and still means color_map (${old.s.outputs.join(", ")}; ${old.links.join(", ")})`,
-        old.s.outputs.join() === "model,positive,negative,latent,color_map" && old.s.inputs.join() === "model,clip,vae,image,size_from" && old.links.join() === "PreviewImage.images=5");
+    check(`${M}: a workflow without the marker: the latent on size_from is still there (${old.sizeIn.join(", ")}), the canvas takes its size (${old.dims.join(" x ")})`, old.sizeLinked && old.sizeIn.join() === "size_from" && old.dims.join() === "640,960");
+    check(`${M}: …every socket it was saved with stays, and the connected output still means color_map (${old.s.outputs.length} outputs; ${old.links.join(", ")})`,
+        old.s.outputs.join() === OUT.join() && old.links.join() === `PreviewImage.images=${OUT.indexOf("color_map")}`);
     check(`${M}: …and the node's box is as it was saved (${old.h.join(" -> ")})`, Math.abs(old.h[0] - old.h[1]) <= 2);
 
     // ---- round 103: scene_prompt_background's input socket is there only while its field shows (Ideogram 4) or it
