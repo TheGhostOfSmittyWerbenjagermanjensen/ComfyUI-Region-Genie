@@ -100,6 +100,7 @@ export function* footer(E) {
         const elB = E.sceneBgW.element || E.sceneBgW.inputEl;
         if (elB) elB.style.display = show ? "" : "none";
         if (!show && E.editor?.which === "background") E.closeEditor(true);
+        E.syncBgSocket?.();          // its input socket goes and comes with it (sockets.js)
         E.node.setDirtyCanvas?.(true, true);
     }
     // a workflow saved with the old format select: its choice becomes a model pick (or MOSS's standard mode)

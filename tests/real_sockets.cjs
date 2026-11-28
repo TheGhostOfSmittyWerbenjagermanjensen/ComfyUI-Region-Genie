@@ -220,6 +220,45 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
         old.s.outputs.join() === "model,positive,negative,latent,color_map" && old.s.inputs.join() === "model,clip,vae,image,size_from" && old.links.join() === "PreviewImage.images=5");
     check(`${M}: …and the node's box is as it was saved (${old.h.join(" -> ")})`, Math.abs(old.h[0] - old.h[1]) <= 2);
 
+    // ---- round 103: scene_prompt_background's input socket is there only while its field shows (Ideogram 4) or it
+    // has a wire. Before, the hidden field's socket stayed behind on the node and took wires. Wires on the inputs
+    // before it keep their inputs through all of it, also after saving and loading.
+    {
+        const BG = "scene_prompt_background";
+        const look = () => page.evaluate((BG) => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"), g = window.app.graph;
+            const from = Object.fromEntries(n.inputs.filter((i) => i.link != null).map((i) => { const l = g.links.get ? g.links.get(i.link) : g.links[i.link]; return [i.name, `${g.getNodeById(l.origin_id).title}>${n.inputs[l.target_slot]?.name}`]; }));
+            return { bg: n.inputs.some((i) => i.name === BG), stale: n.inputs.filter((i) => i.widget && n.widgets.find((w) => w.name === i.widget.name)?.hidden && i.link == null).map((i) => i.name), from: JSON.stringify(from) }; }, BG);
+        await page.evaluate(async () => {
+            const app = window.app, LG = window.LiteGraph; app.graph.clear();
+            const n = LG.createNode("Region-Genie_Main"); n.pos = [500, 100]; app.graph.add(n);
+            await new Promise((r) => setTimeout(r, 1500));
+            const mk = (type, title, y) => { const x = LG.createNode(type); x.title = title; x.pos = [40, y]; app.graph.add(x); return x; };
+            const at = (name) => n.inputs.findIndex((i) => i.name === name);
+            mk("EmptyImage", "IMG", 40).connect(0, n, at("image")); mk("PrimitiveStringMultiline", "POS", 300).connect(0, n, at("scene_prompt_positive"));
+            await new Promise((r) => setTimeout(r, 500));
+        });
+        const WIRES = JSON.stringify({ image: "IMG>image", scene_prompt_positive: "POS>scene_prompt_positive" });
+        const pick = async (v) => { await page.locator("select.rg-model").first().selectOption(v); await sleep(800); };
+        const other = (await page.locator("select.rg-model").first().evaluate((s) => [...s.options].map((o) => o.value))).find((o) => /Krea/.test(o));
+        const reload = async () => { await page.evaluate(async () => { const d = window.app.graph.serialize(); await window.app.loadGraphData(JSON.parse(JSON.stringify(d))); }); await sleep(2500); };
+        let a = await look();
+        check(`${M}: a new node has no socket for the hidden background field, nor for any other hidden field (${JSON.stringify(a)})`, !a.bg && !a.stale.length && a.from === WIRES);
+        await pick("Ideogram 4"); a = await look();
+        check(`${M}: Ideogram 4: the background field shows and has its socket; the other wires are where they were (${JSON.stringify(a)})`, a.bg && a.from === WIRES);
+        await reload(); a = await look();
+        check(`${M}: saved and loaded with Ideogram 4: the socket is there, the wires on their inputs (${JSON.stringify(a)})`, a.bg && a.from === WIRES);
+        await page.evaluate(async (BG) => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"), x = window.LiteGraph.createNode("PrimitiveStringMultiline"); x.title = "BGSRC"; x.pos = [40, 700]; window.app.graph.add(x);
+            x.connect(0, n, n.inputs.findIndex((i) => i.name === BG)); await new Promise((r) => setTimeout(r, 400)); }, BG);
+        await pick(other); a = await look();
+        const WIRED = JSON.stringify({ ...JSON.parse(WIRES), [BG]: `BGSRC>${BG}` });
+        check(`${M}: another model with a wire on the background: the socket and its wire stay (${JSON.stringify(a)})`, a.bg && a.from === WIRED);
+        await page.evaluate(async (BG) => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"); n.disconnectInput(n.inputs.findIndex((i) => i.name === BG)); await new Promise((r) => setTimeout(r, 300)); }, BG);
+        await pick("Ideogram 4"); await pick(other); a = await look();
+        check(`${M}: unplugged, and the field hidden again: the socket is gone, the other wires on their inputs (${JSON.stringify(a)})`, !a.bg && !a.stale.length && a.from === WIRES);
+        await reload(); a = await look();
+        check(`${M}: saved and loaded without it: still gone, the wires on their inputs (${JSON.stringify(a)})`, !a.bg && !a.stale.length && a.from === WIRES);
+    }
+
     const errs = errors.filter((e) => !/ResizeObserver/.test(e));
     check(`${M}: no script errors${errs.length ? ` (${errs.slice(0, 2).join(" | ")})` : ""}`, !errs.length);
     await browser.close();

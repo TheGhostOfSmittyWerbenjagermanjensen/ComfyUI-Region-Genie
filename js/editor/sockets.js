@@ -61,7 +61,7 @@ export function installOutputMapping(names) {
 let panel = null;                                    // one sockets list at a time, on the whole page
 
 export function* sockets(E) {
-    Object.assign(E, { applySockets, syncSockets, toggleSockets, closeSockets, keepBottom, socketState, renumberLinks });
+    Object.assign(E, { applySockets, syncSockets, toggleSockets, closeSockets, keepBottom, socketState, renumberLinks, syncBgSocket });
     yield;
 
     const N = E.node, def = E.nodeData || {};
@@ -148,9 +148,24 @@ export function* sockets(E) {
         else if (!want && has) keepBottom(() => removeIn("control_image"));
     }
 
+    // ---- scene_prompt_background's own socket: there while its field is shown (Ideogram 4), or connected (round 103).
+    // ComfyUI gives every field an input socket at the field's place and keeps it, and connects it, when the field is
+    // hidden: it stayed behind where the field last was. Taking it away or putting it back changes the numbers of the
+    // inputs after it, and a workflow's wires know their input by number: while a node is being loaded this waits
+    // (settling), and is done inside applySockets(), before renumberLinks() gives every wire its socket's number.
+    const BG = "scene_prompt_background";
+    let settling = false;
+    function syncBgSocket() {
+        if (!real || settling || !E.sceneBgW || E.sceneBgW.__rgShown == null || !proto.in[BG]) return;
+        const want = E.sceneBgW.__rgShown || linkedIn(BG), has = findIn(BG) >= 0;
+        if (want && !has) { N.addInput(BG, inType(BG)); const slot = N.inputs[N.inputs.length - 1]; dress(slot, proto.in[BG]); slot.widget = { ...(proto.in[BG].widget || { name: BG }) }; N.setDirtyCanvas?.(true, true); }
+        else if (!want && has) { removeIn(BG); N.setDirtyCanvas?.(true, true); }
+    }
+
     // ---- a new node: the short lists
     function newNodeSockets() {
         if (!real) return;
+        syncBgSocket();
         for (const name of HIDDEN_BY_DEFAULT) removeIn(name);
         for (const name of OUT.slice().reverse()) if (!SAMPLER_OUTS.includes(name)) removeOut(name);
         syncShown();
@@ -180,6 +195,14 @@ export function* sockets(E) {
     if (real && typeof configure0 === "function") {
         N.configure = function (saved) {
             try { if (saved?.properties?.rg_sockets) shapeLikeSaved(saved); } catch (e) { console.error("[Region Genie] sockets", e); }
+            // scene_prompt_background's socket: as it was saved (a saved wire to it needs the socket), and no change
+            // to it until the node is loaded (applySockets; the timer is for a load that never gets there)
+            try {
+                const savedBg = (saved?.inputs || []).some((i) => i?.name === BG);
+                if (savedBg && findIn(BG) < 0 && proto.in[BG]) { N.addInput(BG, inType(BG)); const slot = N.inputs[N.inputs.length - 1]; dress(slot, proto.in[BG]); slot.widget = { ...(proto.in[BG].widget || { name: BG }) }; }
+            } catch (e) { console.error("[Region Genie] sockets", e); }
+            settling = true;
+            setTimeout(() => { if (settling) { settling = false; syncBgSocket(); } }, 0);
             return configure0.apply(this, arguments);
         };
     }
@@ -190,7 +213,7 @@ export function* sockets(E) {
         const old = !saved?.properties?.rg_sockets;        // saved before round 40: every socket was there
         if (N.properties) delete N.properties.rg_sockets;
         loading = true;
-        try { settle(old); } finally { loading = false; }
+        try { settle(old); settling = false; syncBgSocket(); } finally { loading = false; settling = false; }
         renumberLinks();
         E.labelSizeInputs?.();
         syncShown();
