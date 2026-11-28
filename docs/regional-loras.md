@@ -157,7 +157,7 @@ Region Genie ─────────── masks ──►                �
 
 ## Separation and until
 
-Two numbers in the list header decide how much the regions are kept from influencing each other. They show once a region has a LoRA or **Separate** is on.
+Two numbers in the list header decide how much the regions are kept from influencing each other. They are greyed (still editable) while they have no effect: with **Separate** off and no LoRA on the node.
 
 **separation** (0 to 1): how strongly.
 
@@ -174,7 +174,7 @@ Good starting points:
 | Goal | separation | until |
 |---|---|---|
 | Regions placed reliably (the default) | 0.85 | 0.1 |
-| Smoother blending of objects, characters and styles | 0.4 | 0.1 |
+| Better cohesion across regions | 0.4-0.5 | 0.1 |
 | Strongest style separation | 0.85–0.99 | 0.1–0.5 |
 
 If one region still takes on the other's style:

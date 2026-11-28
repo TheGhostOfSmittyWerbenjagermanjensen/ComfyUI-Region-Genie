@@ -1,6 +1,6 @@
 # Region Genie ✨
 
-![Version](https://img.shields.io/badge/version-0.60.1-8f73d6)
+![Version](https://img.shields.io/badge/version-0.61.0-8f73d6)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-2f9e8f)
 
@@ -195,7 +195,7 @@ Connect a picture to `image` and let the node find the regions:
 
 A region can be made of several **layers**. Move, resize and turn each one later, cut holes with a hole layer, reorder them by dragging, and copy or paste them (also into another node).
 
-**Arrange** works on the selected layer: flip it, align it to an edge or the centre of the image, and grow or shrink it by a number of pixels.
+**Arrange** works on the selected layer, a whole region, several regions or the whole picture: flip it in place or mirror it across the image, align it to an edge or the centre, and grow or shrink a layer by a number of pixels. *Mirror the whole picture* in the canvas's right-click menu gives a mirrored version of the same prompt in one click.
 
 → [Layers](docs/region-genie.md#layers) · [Arrange](docs/region-genie.md#arrange-flip-align-grow--shrink)
 
@@ -225,7 +225,7 @@ The **LoRAs** button on a region's row adds LoRAs that act only inside that regi
 
 ### Separation and until
 
-Two numbers in the list header decide how much the regions are kept from influencing each other. They show once a region has a LoRA or **Separate** is on.
+Two numbers in the list header decide how much the regions are kept from influencing each other. They are greyed (still editable) while they have no effect: with **Separate** off and no LoRA on the node.
 
 **separation** (0 to 1): how strongly.
 
@@ -242,7 +242,7 @@ Good starting points:
 | Goal | separation | until |
 |---|---|---|
 | Regions placed reliably (the default) | 0.85 | 0.1 |
-| Smoother blending of objects, characters and styles | 0.4 | 0.1 |
+| Better cohesion across regions | 0.4-0.5 | 0.1 |
 | Strongest style separation | 0.85–0.99 | 0.1–0.5 |
 
 → [More in the manual](docs/regional-loras.md#separation-and-until)

@@ -146,7 +146,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.locator(".rg-row.region").nth(1).locator(".rg-idx").click({ button: "right" }); await page.waitForTimeout(150);
     const rm = await page.evaluate(() => [...document.querySelectorAll(".rg-menu .rg-menu-label")].map((x) => x.textContent));
     check(`right-click on a row opens the region's menu, with an entry for each tab of its pop-up (${rm.slice(1).join(" | ")})`,
-          JSON.stringify(rm.slice(1)) === JSON.stringify(["Edit prompt…", "LoRAs…", "Layers…", "Color palette…", "Options…", "Hide region", "Move up (in front)", "Move down (behind)", rm[rm.length - 1]]) && /^Delete region/.test(rm[rm.length - 1]));
+          JSON.stringify(rm.slice(1)) === JSON.stringify(["Edit prompt…", "LoRAs…", "Layers…", "Color palette…", "Options…", "Hide region", "Move up (in front)", "Move down (behind)", rm[rm.length - 1]]) && /^Delete region/.test(rm[rm.length - 1]));      // (round 102: "Mirror the whole picture" is the canvas menu's only)
     check("…and makes that region the active one", (await st()).regions[1].id === await page.evaluate(() => window.__node.__rgActive()));
     await page.locator(".rg-menu .rg-menu-label", { hasText: "Options…" }).click(); await page.waitForTimeout(200);
     check("its Options… opens the pop-up on the Options tab", await page.evaluate(() => document.querySelector(".rg-pop .rg-pop-tabs .on")?.dataset.tab) === "options");

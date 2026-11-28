@@ -16,7 +16,8 @@ export function* menu(E) {
     const numOf = (r) => { const i = E.state.regions.indexOf(r), el = E.regList?.querySelector(`.rg-idx[data-k="${i}"]`); return el?.textContent?.trim() || String(i); };
     const title = (r) => `${numOf(r)}: ${short(r)}`;
 
-    function regionItems(r, L, others) {
+    // onCanvas: the canvas's own menu (not a row's in the list): it also has "Mirror the whole picture" (round 102)
+    function regionItems(r, L, others, onCanvas = false) {
         const i = E.state.regions.indexOf(r), n = E.state.regions.length;
         const lays = E.state.layers.filter((l) => l.region === r.id);
         const move = (d) => E.change(() => { [E.state.regions[i + d], E.state.regions[i]] = [E.state.regions[i], E.state.regions[i + d]]; E.sortLayersByRegions(); });
@@ -37,6 +38,7 @@ export function* menu(E) {
                 { label: "Duplicate this layer", icon: "copy", key: keyText("edit.duplicate").split(" / ")[0] || undefined, fn: () => E.duplicate(L) },
                 { label: "Delete this layer", icon: "clear", key: keyText("edit.delete").split(" / ")[0] || undefined, fn: () => E.deleteSelected(L) }] : []),
             { label: lays.length > 1 ? `Delete region and its ${lays.length} layers` : "Delete region", icon: "close", danger: true, fn: () => deleteRegion(r) },
+            ...(onCanvas ? [null, { label: "Mirror the whole picture", icon: "mirrorImgH", title: "Every region, mirrored left to right across the image's centre line (Undo takes it back)", fn: () => E.mirrorWholePicture() }] : []),
             ...(others.length ? [null, { head: "Also here" }, ...others.map((o) => ({ label: title(o.r), swatch: o.r.color, fn: () => { pickRegion(o.r, o.L); } }))] : []),
         ];
     }
@@ -45,6 +47,8 @@ export function* menu(E) {
         return [
             { label: "Add a region", icon: "regionAdd", fn: () => E.addRegionBtn.click() },
             { label: "Paste layer", icon: "layerAdd", key: key1("edit.paste"), disabled: !CLIPBOARD.layer, fn: () => E.pasteLayer() },
+            { label: "Mirror the whole picture", icon: "mirrorImgH", disabled: !E.state.layers.length && !(E.state.poses || []).length,
+              title: "Every region, mirrored left to right across the image's centre line (Undo takes it back)", fn: () => E.mirrorWholePicture() },
             null,
             { label: "Fit the image in view", icon: "fit", key: key1("view.fit"), fn: () => { E.userView = false; E.fitView(); E.requestDraw(); } },
             { label: "Labels on the canvas", checked: E.node.properties?.rg_labels !== false, fn: () => E.labBtn.click() },
@@ -88,7 +92,7 @@ export function* menu(E) {
         }
         E.focusSink();
         if (here.length) pickRegion(here[0].r, here[0].L);
-        const items = here.length ? regionItems(here[0].r, here[0].L, here.slice(1)) : emptyItems();
+        const items = here.length ? regionItems(here[0].r, here[0].L, here.slice(1), true) : emptyItems();
         openMenu(e.clientX, e.clientY, items, { onClose: () => { if (E.wrap.isConnected) E.focusSink(); } });
     }
     E.cv.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); canvasMenu(e); });

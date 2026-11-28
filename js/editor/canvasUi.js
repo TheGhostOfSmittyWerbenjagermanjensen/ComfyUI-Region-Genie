@@ -24,7 +24,7 @@ export function* canvasUi(E) {
         + "<span><i>3</i>Connect model and clip, send positive, negative and latent to the sampler, and run.</span>"
         + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span>"
         + keyed("<span class=\"more\">More room: The Large button above the canvas opens this editor in a large window (Alt+Enter).</span>")
-        + "<span class=\"more\">Regions mixing, or not blending enough? Separate (above the list) and the two numbers beside it set how strongly the regions are kept apart, and for how long.</span></div>"
+        + "<span class=\"more\">Are things not landing where you placed them, or does the image look disjointed? Use the Separate button and the two numbers beside it - raise them for better placement, lower them for more cohesion.</span></div>"
         + "<div class=\"rg-start-card\"><b>Or without regions</b>"
         + "<span>Fill in scene_prompt_positive and scene_prompt_negative, add LoRAs under Whole image (the first row of the list under the canvas) if you like, and run. "
         + "The same workflow does plain text-to-image.</span></div>"; };
@@ -123,11 +123,19 @@ export function* canvasUi(E) {
                        ["Shift+click", "Add it and start the next"], [first("draw.back"), "Remove the last point"], [first("draw.cancel"), "Discard"]],
         erase: () => [["Drag", "Erase from the selected layer"], ["Shift+click", "A straight line from the last stroke"], [size(), "Eraser size"]],
     };
+    // no layer and no pose figure is drawn on the canvas: there is none, or each is hidden itself or with its region
+    function nothingShown() {
+        const hidden = (rid) => rid != null && !!E.regionById(rid)?.hidden;
+        if (E.state.layers.some((L) => L.visible !== false && !hidden(L.region !== UNSPEC ? L.region : E.holeOwner(L)))) return false;
+        return !(E.state.poses || []).some((P) => (E.poseShown ? E.poseShown(P) : P.visible !== false));
+    }
     let tipsShown = null, tipsTool = null;
     function syncTips() {
         const on = getSetting(SET.toolHints, true) !== false;
-        // the start card: whenever the canvas has no regions, with its own Setting (round 100; it went with the hints)
-        const empty = getSetting(SET.startCard, true) !== false && !E.state.regions.length && E.modeW?.value !== "use as color map";
+        // the start card: whenever nothing is shown on the canvas, with its own Setting (round 100; it went with the
+        // hints). Round 102: "nothing shown", not "no regions": a region left in the list after its layer was deleted,
+        // or regions that are all hidden, leave the canvas as empty as a new node's (a new user doesn't see why the card went)
+        const empty = getSetting(SET.startCard, true) !== false && nothingShown() && E.modeW?.value !== "use as color map";
         const list = on ? (TIPS[E.tool]?.() || []).filter((t) => t[0]) : [];
         const key = `${empty}|${list.map((t) => t.join(":")).join("|")}`;
         if (tipsBtn.classList.contains("on") !== on || !tipsBtn.title) {
@@ -263,6 +271,7 @@ export function* canvasUi(E) {
     const loraOptsBox = E.el("span", "rg-loraopts");
     const sepIn = E.el("input", "rg-num"); E.sepIn = sepIn; sepIn.type = "number"; sepIn.min = "0"; sepIn.max = "1"; sepIn.step = "0.05";
     sepIn.title = SEPARATION_TIP;
+    E.sepTip = SEPARATION_TIP; E.untilTip = UNTIL_TIP;      // (renderRegions puts a line before them while the fields have no effect)
     const untilIn = E.el("input", "rg-num"); E.untilIn = untilIn; untilIn.type = "number"; untilIn.min = "0"; untilIn.max = "1"; untilIn.step = "0.05";
     untilIn.title = UNTIL_TIP;
     const optChange = () => E.change(() => {

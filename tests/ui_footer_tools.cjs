@@ -244,7 +244,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
 
     // ---- arrange: flip, align, grow
     const arrange = page.locator('.rg-bar .rg-btn.icon[title^="Arrange"]');
-    check("arrange disabled with no layer selected", await arrange.isDisabled());
+    // (round 102: Arrange also works on a region or the whole picture, so it needs layers, not a selected one)
+    { const n = await page.evaluate(() => window.__node.__rgState().layers.length + (window.__node.__rgState().poses || []).length);
+      check(`arrange is enabled when there is something on the canvas, also with no layer selected (${n} things)`, n ? !(await arrange.isDisabled()) : await arrange.isDisabled()); }
     await page.evaluate(() => { const s = window.__node.__rgState(); s.layers = []; });
     await page.locator('.rg-bar .rg-btn.icon[title^="Brush"]').click();
     await dragImg([[40, 40], [100, 40], [100, 80]]);

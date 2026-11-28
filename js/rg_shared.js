@@ -78,6 +78,9 @@ export const ICONS = {
     arrange: '<rect x="2" y="2" width="5" height="5" rx=".8"/><rect x="9" y="9" width="5" height="5" rx=".8"/><path d="M9.5 3.5h3v3M6.5 12.5h-3v-3"/><path d="M12.5 3.5l-3 3M3.5 12.5l3-3"/>',
     flipH: '<path d="M8 1.6v12.8" stroke-dasharray="1.6 1.4"/><path d="M6 4L2 12h4z"/><path d="M10 4l4 8h-4z" fill="currentColor" stroke="none" opacity=".55"/>',
     flipV: '<path d="M1.6 8h12.8" stroke-dasharray="1.6 1.4"/><path d="M4 6L12 2v4z"/><path d="M4 10l8 4v-4z" fill="currentColor" stroke="none" opacity=".55"/>',
+    // the same flips across the image's centre line (round 102): the flip inside the image's frame
+    mirrorImgH: '<rect x="1.4" y="2.4" width="13.2" height="11.2" rx="1.2"/><path d="M8 2.4v11.2" stroke-dasharray="1.4 1.2"/><path d="M6.2 5.4L3.4 10.6h2.8z"/><path d="M9.8 5.4l2.8 5.2H9.8z" fill="currentColor" stroke="none" opacity=".55"/>',
+    mirrorImgV: '<rect x="2.4" y="1.4" width="11.2" height="13.2" rx="1.2"/><path d="M2.4 8h11.2" stroke-dasharray="1.4 1.2"/><path d="M5.4 6.2L10.6 3.4v2.8z"/><path d="M5.4 9.8l5.2 2.8V9.8z" fill="currentColor" stroke="none" opacity=".55"/>',
     alignL: '<path d="M2.4 1.8v12.4"/><rect x="4.4" y="3.6" width="8.6" height="3.2" rx=".6"/><rect x="4.4" y="9.2" width="5.4" height="3.2" rx=".6"/>',
     alignCH: '<path d="M8 1.8v12.4"/><rect x="3.4" y="3.6" width="9.2" height="3.2" rx=".6"/><rect x="5" y="9.2" width="6" height="3.2" rx=".6"/>',
     alignR: '<path d="M13.6 1.8v12.4"/><rect x="3" y="3.6" width="8.6" height="3.2" rx=".6"/><rect x="6.2" y="9.2" width="5.4" height="3.2" rx=".6"/>',
@@ -2269,9 +2272,9 @@ const shortcutsSettingType = () => () => {
 // rounds 52 to 67, which blend more). Before round 52: 0.85 / 0.25.
 export const SEPARATION_DEFAULT = 0.85, UNTIL_DEFAULT = 0.1;
 export const SEPARATION_TIP = "separation: How strongly the regions are kept from influencing each other while the image forms (0 to 1; higher = more separate).\n"
-    + "Regions placed reliably: 0.85 with until 0.1 (the default).\nSmoother blending of objects, characters and styles: 0.4 with until 0.1.\nStrongest style separation: 0.85-0.99 with until 0.1-0.5.";
+    + "Regions placed reliably: 0.85 with until 0.1 (the default).\nBetter cohesion across regions: 0.4-0.5 with until 0.1.\nStrongest style separation: 0.85-0.99 with until 0.1-0.5.";
 export const UNTIL_TIP = "until: The share of the steps, counted from the start, in which the regions are kept separate (0 to 1); the remaining steps blend them together.\n"
-    + "Regions placed reliably: 0.1 with separation 0.85 (the default).\nSmoother blending of objects, characters and styles: 0.1 with separation 0.4.\nStrongest style separation: 0.1-0.5 with separation 0.85-0.99.";
+    + "Regions placed reliably: 0.1 with separation 0.85 (the default).\nBetter cohesion across regions: 0.1 with separation 0.4-0.5.\nStrongest style separation: 0.1-0.5 with separation 0.85-0.99.";
 const CAT = (section, key) => ["Region Genie", section, key];
 const SETTINGS = [
         // first: the model-file settings below take their form from it when they are registered
@@ -2424,7 +2427,7 @@ const SETTINGS = [
         },
         {
             id: SET.startCard, name: "Start card on an empty canvas", type: "boolean", defaultValue: true,
-            tooltip: "On: Whenever a canvas has no regions, it shows the first steps, with arrows to the buttons they name.\n"
+            tooltip: "On: Whenever nothing is shown on a canvas (no regions, or every region or layer hidden or deleted), it shows the first steps, with arrows to the buttons they name.\n"
                 + "Off: An empty canvas stays empty.\nApplies to every Region Genie node right away.",
             category: CAT("Canvas tools", "75 start card"),
             onChange: () => { for (const f of hintsListeners) f(); },

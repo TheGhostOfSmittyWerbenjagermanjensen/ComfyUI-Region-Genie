@@ -45,7 +45,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("an arrow's head is in line with its button, or as near as the canvas's corner buttons allow (within 60 px)", arr.every((a) => a.off <= 60) && arr.filter((a) => a.off <= 12).length >= 2);
     check("no arrow covers the canvas's corner buttons", await page.evaluate(() => { const hit = (a, b) => { const x = a.getBoundingClientRect(), y = b.getBoundingClientRect(); return x.left < y.right && y.left < x.right && x.top < y.bottom && y.top < x.bottom; };
         const corners = [...document.querySelectorAll(".rg-imgmode, .rg-tips-btn")].filter((e) => e.getClientRects().length); return [...document.querySelectorAll(".rg-start-arrow")].every((a) => corners.every((c) => !hit(a, c))); }));
-    check("the card names the Large button and Separate", await page.evaluate(() => { const t = document.querySelector(".rg-start").textContent; return /Large button above the canvas/.test(t) && /Regions mixing, or not blending enough\? Separate/.test(t); }));
+    check("the card names the Large button and Separate", await page.evaluate(() => { const t = document.querySelector(".rg-start").textContent; return /Large button above the canvas/.test(t) && /does the image look disjointed\? Use the Separate button and the two numbers beside it - raise them for better placement, lower them for more cohesion\./.test(t); }));
     // the Separate button's ▾ opens what its right-click opens
     await page.evaluate(() => { window.__lastMenu = null; });
     await page.locator(".rg-separate .rg-grp-dd").click(); await page.waitForTimeout(250);
@@ -59,7 +59,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         lassoErase: /Close the outline/, fill: /Click Fill that area/, wand: /similar color/, object: /Ctrl\+click Take that spot out of the selection.*Enter Add the selection/, erase: /Erase from the selected layer/ };
     const bad = [];
     // (with a region on the canvas: an empty canvas shows the start card in place of the hints)
-    await page.evaluate(() => { window.__node.__rgState().regions = [{ id: 1, color: "#E76F51", prompt: "", type: "object", text: "" }]; window.__node.__rgRefresh(); }); await page.waitForTimeout(100);
+    // (round 102: a region with a layer that is shown; a region alone no longer takes the card away, see below)
+    await page.evaluate(() => { const s = window.__node.__rgState(); s.regions = [{ id: 1, color: "#E76F51", prompt: "", type: "object", text: "" }];
+        s.layers = [{ id: 1, name: "L1", region: 1, visible: true, shape: "rect", sides: 5, bw: 0.2, bh: 0.2, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0, ops: [] }]; window.__node.__rgRefresh(); }); await page.waitForTimeout(100);
     check("with a region on the canvas the start card and its arrows are gone", !(await shown(".rg-start")) && !(await shown(".rg-start-arrows")));
     for (const [t, re] of Object.entries(want)) { await setTool(t); if (!re.test(await tips() || "")) bad.push(t); }
     await setTool("select");
@@ -75,7 +77,23 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.keyboard.press("r");
     check("R while pointing at the region list picks the Rectangle tool", await page.locator('.rg-bar .rg-btn.grp[data-group="shape"].on').count() === 1);
 
+    // ---- round 102: the start card shows whenever nothing is shown on the canvas, also with regions in the list
+    { const card = async () => (await shown(".rg-start")) && (await shown(".rg-start-arrows"));
+      const set = (fn) => page.evaluate((fn) => { new Function("s", fn)(window.__node.__rgState()); window.__node.__rgRefresh(); }, fn).then(() => page.waitForTimeout(120));
+      await set("s.regions = [{ id: 1, color: '#E76F51', prompt: '', type: 'object', text: '' }]; s.layers = [{ id: 1, name: 'L1', region: 1, visible: true, shape: 'rect', sides: 5, bw: 0.2, bh: 0.2, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0, ops: [] }]");
+      check("a region with a layer that is shown: no card", !(await shown(".rg-start")));
+      await set("s.regions[0].hidden = true");
+      check("the only region hidden: the start card and its arrows are back, with no hint strip under them", await card() && await tips() === null);
+      await set("delete s.regions[0].hidden");
+      check("shown again: the card is gone", !(await shown(".rg-start")));
+      await set("s.layers[0].visible = false");
+      check("its only layer hidden: the card is back", await card());
+      await set("s.layers[0].visible = true; s.regions.push({ id: 2, color: '#2A9D8F', prompt: '', type: 'object', text: '', hidden: true })");
+      check("one region shown and one hidden: no card", !(await shown(".rg-start")));
+      await set("s.regions.pop(); s.layers = []");
+      check("the layer deleted, its region still in the list: the card is back", await card() && (await st()).regions.length === 1); }
     // ---- drawing: the hints fade while the button is held, the start card goes with the first layer
+    await setTool("shape");
     let [x, y] = await toClient(200, 200);
     await page.mouse.move(x, y); await page.mouse.down();
     [x, y] = await toClient(600, 700); await page.mouse.move(x, y, { steps: 5 });
@@ -146,9 +164,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     const tipsSU = await page.evaluate(() => [...document.querySelectorAll(".rg-loraopts input")].map((i) => i.title));
     check(`the header's fields show them (${await flds()})`, (await flds()).join() === "0.85,0.1");
     check("their tooltips: what it does, then the default's values, the smoother blend's, the strongest separation's", /^separation: How strongly the regions are kept from influencing each other/.test(tipsSU[0])
-        && tipsSU[0].endsWith("Regions placed reliably: 0.85 with until 0.1 (the default).\nSmoother blending of objects, characters and styles: 0.4 with until 0.1.\nStrongest style separation: 0.85-0.99 with until 0.1-0.5.")
+        && tipsSU[0].endsWith("Regions placed reliably: 0.85 with until 0.1 (the default).\nBetter cohesion across regions: 0.4-0.5 with until 0.1.\nStrongest style separation: 0.85-0.99 with until 0.1-0.5.")
         && /^until: The share of the steps, counted from the start/.test(tipsSU[1])
-        && tipsSU[1].endsWith("Regions placed reliably: 0.1 with separation 0.85 (the default).\nSmoother blending of objects, characters and styles: 0.1 with separation 0.4.\nStrongest style separation: 0.1-0.5 with separation 0.85-0.99.") && !/LoRA/.test(tipsSU.join(" ")));
+        && tipsSU[1].endsWith("Regions placed reliably: 0.1 with separation 0.85 (the default).\nBetter cohesion across regions: 0.1 with separation 0.4-0.5.\nStrongest style separation: 0.1-0.5 with separation 0.85-0.99.") && !/LoRA/.test(tipsSU.join(" ")));
     const saved52 = await page.evaluate(() => JSON.stringify(window.__node.__rgState().loraOpts));
     // a workflow saved before: its data has no values; loading it (configure) gives it the earlier defaults
     await page.evaluate(() => { const n = window.__node, w = n.widgets.find((x) => x.name === "paint_data"), d = JSON.parse(w.value || "{}"); delete d.loraOpts; w.value = JSON.stringify(d); n.onConfigure?.({ widgets_values: n.widgets.map((x) => x.value), properties: n.properties }); });
@@ -157,6 +175,23 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...s.loraOpts, allRegions: true }; n.__rgRefresh(); }); await page.waitForTimeout(200);
     check(`a node whose saved data doesn't say (saved before this version): 0.85 and 0.25 as before (${JSON.stringify(legacy)}; fields ${await flds()})`, !!legacy && legacy.separation === 0.85 && legacy.until === 0.25 && (await flds()).join() === "0.85,0.25");
     await page.evaluate((t) => { const n = window.__node, s = n.__rgState(); s.loraOpts = JSON.parse(t); delete s.loraOpts.allRegions; n.__rgRefresh(); }, saved52); await page.waitForTimeout(150);
+
+    // ---- round 102: the two number fields beside Separate are always shown; greyed, with a line in their tooltip,
+    // while they change nothing (Separate off and no LoRA), and still editable
+    { const look = () => page.evaluate(() => { const b = document.querySelector(".rg-loraopts"), k = [...b.children].filter((e) => !e.classList.contains("rg-separate"));
+          return { shown: k.filter((e) => e.getClientRects().length).length, idle: k.filter((e) => e.classList.contains("rg-idle")).length, dim: k.every((e) => +getComputedStyle(e).opacity < 0.6),
+                   tip: k.every((e) => /^No effect right now: /.test(e.title)), off: [...b.querySelectorAll("input")].some((i) => i.disabled) }; });
+      const setOpts = (o) => page.evaluate((o) => { const n = window.__node, s = n.__rgState(); if (o) s.loraOpts = { ...(s.loraOpts || {}), ...o }; else delete s.loraOpts; n.__rgRefresh(); }, o);
+      await setOpts(null); await page.waitForTimeout(150);
+      const a = await look();
+      check(`with Separate off and no LoRA the two fields and their icons are shown, greyed, and say so in their tooltips; they can still be typed in (${JSON.stringify(a)})`, a.shown === 4 && a.idle === 4 && a.dim && a.tip && !a.off);
+      await setOpts({ allRegions: true }); await page.waitForTimeout(150);
+      const b = await look();
+      check(`with Separate on they are not greyed (${JSON.stringify(b)})`, b.shown === 4 && b.idle === 0 && !b.dim && !b.tip);
+      await setOpts({ allRegions: false, autoOff: true }); await page.waitForTimeout(150);
+      const c = await look();
+      check(`switched off again: greyed again (${JSON.stringify(c)})`, c.shown === 4 && c.idle === 4 && c.tip);
+      await setOpts(null); await page.waitForTimeout(150); }
 
     // ---- round 48: the list header. Icons for separation / until, 'Separate' on the button; a message that doesn't
     // fit beside them gets a line of its own for as long as it shows
@@ -179,7 +214,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.evaluate(() => { const n = window.__node, s = n.__rgState(); s.loraOpts = { ...(s.loraOpts || {}), allRegions: false, autoOff: true }; n.__rgRefresh(); });
     await page.waitForTimeout(200);
     const m2 = await headMsg("Select a layer first");
-    check(`a message that fits (the fields are hidden with 'Separate' off): on the header's own line (${JSON.stringify(m2)})`, !m2.wide && m2.all && m2.headH < 26);
+    check(`a message that fits (the fields are greyed with 'Separate' off): on the header's own line (${JSON.stringify(m2)})`, !m2.wide && m2.all && m2.headH < 26);
     await page.waitForTimeout(3700);
     check("after 3.5 s the message is gone and the header is one line again", await page.evaluate(() => { const s = document.querySelector(".rg-head .rg-status"); return !s.textContent && !s.classList.contains("wide") && document.querySelector(".rg-head").getBoundingClientRect().height < 26; }));
     await page.evaluate(() => { document.querySelector(".rg-wrap").style.width = ""; const n = window.__node, s = n.__rgState(); delete s.loraOpts; n.__rgRefresh(); }); await page.waitForTimeout(150);

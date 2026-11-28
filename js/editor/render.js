@@ -459,8 +459,9 @@ export function* render(E) {
             if (E.undoBtn.__rgTitle !== ut) E.keyTitle(E.undoBtn, ut);
             if (E.redoBtn.__rgTitle !== rt) E.keyTitle(E.redoBtn, rt);
         }
-        E.arrangeBtn.disabled = !E.selLayer();
+        E.arrangeBtn.disabled = !E.state.layers.length && !(E.state.poses || []).length;     // (round 102: a region or the whole picture too)
         if (E.arrangeBtn.disabled && E.arrangePop) E.closeArrange();
+        else if (E.arrangeStale?.()) E.fillArrange();
         E.clearBtn.disabled = !E.state.layers.length && !E.state.regions.length;
         E.syncOpacity();
     }
