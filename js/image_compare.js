@@ -231,7 +231,9 @@ function setup(node) {
             const r = view.getBoundingClientRect(); if (!r.width) return;
             if (drag) {
                 if (!drag.on && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 3) { drag.on = true; view.classList.add("panning"); }
-                if (drag.on) { u.tx = drag.tx + e.clientX - drag.x; u.ty = drag.ty + e.clientY - drag.y; u.draw(); return; }
+                // (round 103: the line between the two pictures follows the pointer while they are dragged too; it
+                // stayed where the press was until the button was let go)
+                if (drag.on) { u.tx = drag.tx + e.clientX - drag.x; u.ty = drag.ty + e.clientY - drag.y; }
             }
             u.x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); u.over = true; u.draw();
         };

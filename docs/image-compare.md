@@ -36,7 +36,7 @@ Flipping in place: rest the pointer on the row of numbers and press the keys. Th
 - **On the node, the wheel zooms ComfyUI's graph** and a middle-button drag moves it, as anywhere else, also with the pointer on the picture or the row of numbers. The node only takes its own keys. Zoom the graph in to look closer, or drag the node's corner to make the picture larger.
 - **The Large view** (the third button, or Alt+Enter with the pointer over the node) opens the comparison in a large window over ComfyUI. The slider, the keys, the numbers and the buttons work as on the node.
   - **The wheel zooms into the pictures**, about the place under the pointer. Zooming out stops when the whole picture fits the window again, so there is no Fit button: zoom out until it stops.
-  - **A drag moves the pictures** while zoomed in; they stop at their edges.
+  - **A drag moves the pictures** while zoomed in, with the left or the middle mouse button; they stop at their edges. The line between the two pictures keeps following the pointer while you drag.
   - **The size field** left of the buttons shows the picture's size on the screen in percent: 100 is one picture pixel per screen pixel. Type a size and press Enter to zoom to it, about the middle of the window; a size smaller than the whole picture fitting gives the fit.
   - Up to 300% the pictures are smoothed as a browser smooths any scaled picture (ComfyUI's own previews are the same); from 300% they show their own pixels as sharp squares.
   - Close it with the button again, its key, Esc, or a click beside the window.
