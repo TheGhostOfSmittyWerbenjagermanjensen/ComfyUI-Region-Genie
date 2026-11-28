@@ -121,7 +121,14 @@ export function* pointer(E) {
                     }
                     return;
                 }
-                if (E.insideBox(L, ix, iy) && !e.altKey) { E.drag = { mode: "move", L, c0: [L.ox, L.oy], start: [ix, iy], before }; return; }
+                // Round 103: what is seen on top at the pointer is what a press takes (before: anywhere inside the
+                // selected layer's box it stayed with that layer, also where another layer lay over it or showed in an
+                // empty corner of the box, and the wrong one was moved). The selected layer keeps the press where it is
+                // the top one itself, or where no layer shows inside its box (a thin outline stays easy to grab).
+                // Alt+drag moves the selected layer from anywhere on the canvas: the way to drag one that is covered.
+                // The layer is chosen at the press only: a drag keeps it, also behind others.
+                const top = e.altKey ? null : E.hitLayer(dx, dy);
+                if (e.altKey || top === L || (!top && E.insideBox(L, ix, iy))) { E.drag = { mode: "move", L, c0: [L.ox, L.oy], start: [ix, iy], before }; return; }
             }
             const H2 = E.hitLayer(dx, dy);
             E.selectLayer(H2);

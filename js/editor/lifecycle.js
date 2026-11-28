@@ -314,6 +314,7 @@ export function* lifecycle(E) {
     E.node.__rgEditTab = (rid, tab) => E.editPrompt(rid, null, "prompt", null, tab);        // tests: a region's pop-up on one of its tabs
     E.node.__rgCloseEditor = () => E.closeEditor(true);
     E.node.__rgSelectLayer = (id) => E.selectLayer(E.state.layers.find((l) => l.id === id) || null);    // tests
+    E.node.__rgSelected = () => (E.selLayer() ? E.selId : null);    // tests: the selected layer's id
     E.node.__rgToolTips = () => Object.values(E.GROUPS).flatMap((g) => g.entries().map((e) => e[2]));   // tests: every tool version's tooltip
     E.node.__rgSetBackdrop = (img, ref) => { E.backdrop = img; E.backdropKey = "test:" + Math.random(); E.backdropRef = ref || null; E.requestDraw(); };
     // regions in output order (what Mask Picker / Regional LoRAs index into)
