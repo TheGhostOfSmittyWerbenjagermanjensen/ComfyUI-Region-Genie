@@ -24,7 +24,7 @@ export function* canvasUi(E) {
         + "<span><i>3</i>Connect model and clip, send positive, negative and latent to the sampler, and run.</span>"
         + "<span class=\"more\">More regions: The ▢＋ button under the canvas. Every button explains itself when you point at it.</span>"
         + keyed("<span class=\"more\">More room: The Large button above the canvas opens this editor in a large window (Alt+Enter).</span>")
-        + "<span class=\"more\">Regions mixing, or not blending enough? Separate (above the list) and the two numbers beside it set how strongly the regions are kept apart, and for how long.</span></div>"
+        + "<span class=\"more\">Are things not landing where you placed them, or does the image look disjointed? Use the Separate button and the two numbers beside it - raise them for better placement, lower them for more cohesion.</span></div>"
         + "<div class=\"rg-start-card\"><b>Or without regions</b>"
         + "<span>Fill in scene_prompt_positive and scene_prompt_negative, add LoRAs under Whole image (the first row of the list under the canvas) if you like, and run. "
         + "The same workflow does plain text-to-image.</span></div>"; };

@@ -45,7 +45,7 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     check("an arrow's head is in line with its button, or as near as the canvas's corner buttons allow (within 60 px)", arr.every((a) => a.off <= 60) && arr.filter((a) => a.off <= 12).length >= 2);
     check("no arrow covers the canvas's corner buttons", await page.evaluate(() => { const hit = (a, b) => { const x = a.getBoundingClientRect(), y = b.getBoundingClientRect(); return x.left < y.right && y.left < x.right && x.top < y.bottom && y.top < x.bottom; };
         const corners = [...document.querySelectorAll(".rg-imgmode, .rg-tips-btn")].filter((e) => e.getClientRects().length); return [...document.querySelectorAll(".rg-start-arrow")].every((a) => corners.every((c) => !hit(a, c))); }));
-    check("the card names the Large button and Separate", await page.evaluate(() => { const t = document.querySelector(".rg-start").textContent; return /Large button above the canvas/.test(t) && /Regions mixing, or not blending enough\? Separate/.test(t); }));
+    check("the card names the Large button and Separate", await page.evaluate(() => { const t = document.querySelector(".rg-start").textContent; return /Large button above the canvas/.test(t) && /does the image look disjointed\? Use the Separate button and the two numbers beside it - raise them for better placement, lower them for more cohesion\./.test(t); }));
     // the Separate button's ▾ opens what its right-click opens
     await page.evaluate(() => { window.__lastMenu = null; });
     await page.locator(".rg-separate .rg-grp-dd").click(); await page.waitForTimeout(250);
