@@ -59,7 +59,7 @@ New here? The [quick start](../README.md#-quick-start) in the README gets a firs
   - `scene_prompt_positive` and `scene_prompt_negative` are the prompts; `positive`, `negative`, `latent` and `model` go to the sampler as always.
   - The size row sets the image size, and the **＋LoRA** button on *Whole image* adds LoRAs for the whole picture.
   - `prompt` is then your scene prompt as plain text (Ideogram 4: its caption JSON with no elements). Hiding every region (the eye buttons) does the same without deleting anything.
-- **A canvas without regions** shows two cards, every time it has none. They hide while the pointer is on the canvas.
+- **A canvas with nothing shown on it** shows two cards, every time: with no regions, and also when regions are in the list but every one is hidden or has no layer left that is shown (a region stays in the list after its last layer is deleted). They hide while the pointer is on the canvas.
   - **Start here: with regions** has three steps: drag a box (your first region; the Rectangle tool is already the active one), type its prompt (in the list, or double-click the middle of the region), connect and run. Three small lines under them name the ▢＋ button, the Large editor and the Separate button.
   - **Arrows at the canvas's edge** point at the buttons the card names: *Shapes* and *Large editor* above the canvas, *Add a region* and *Separate* below it (in the large editor, beside it).
   - While the cards show, the line of hints along the bottom edge is hidden.

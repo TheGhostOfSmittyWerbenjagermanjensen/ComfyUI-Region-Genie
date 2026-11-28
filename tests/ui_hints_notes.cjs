@@ -59,7 +59,9 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
         lassoErase: /Close the outline/, fill: /Click Fill that area/, wand: /similar color/, object: /Ctrl\+click Take that spot out of the selection.*Enter Add the selection/, erase: /Erase from the selected layer/ };
     const bad = [];
     // (with a region on the canvas: an empty canvas shows the start card in place of the hints)
-    await page.evaluate(() => { window.__node.__rgState().regions = [{ id: 1, color: "#E76F51", prompt: "", type: "object", text: "" }]; window.__node.__rgRefresh(); }); await page.waitForTimeout(100);
+    // (round 102: a region with a layer that is shown; a region alone no longer takes the card away, see below)
+    await page.evaluate(() => { const s = window.__node.__rgState(); s.regions = [{ id: 1, color: "#E76F51", prompt: "", type: "object", text: "" }];
+        s.layers = [{ id: 1, name: "L1", region: 1, visible: true, shape: "rect", sides: 5, bw: 0.2, bh: 0.2, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0, ops: [] }]; window.__node.__rgRefresh(); }); await page.waitForTimeout(100);
     check("with a region on the canvas the start card and its arrows are gone", !(await shown(".rg-start")) && !(await shown(".rg-start-arrows")));
     for (const [t, re] of Object.entries(want)) { await setTool(t); if (!re.test(await tips() || "")) bad.push(t); }
     await setTool("select");
@@ -75,7 +77,23 @@ const check = (name, ok) => { console.log((ok ? "PASS " : "FAIL ") + name); if (
     await page.keyboard.press("r");
     check("R while pointing at the region list picks the Rectangle tool", await page.locator('.rg-bar .rg-btn.grp[data-group="shape"].on').count() === 1);
 
+    // ---- round 102: the start card shows whenever nothing is shown on the canvas, also with regions in the list
+    { const card = async () => (await shown(".rg-start")) && (await shown(".rg-start-arrows"));
+      const set = (fn) => page.evaluate((fn) => { new Function("s", fn)(window.__node.__rgState()); window.__node.__rgRefresh(); }, fn).then(() => page.waitForTimeout(120));
+      await set("s.regions = [{ id: 1, color: '#E76F51', prompt: '', type: 'object', text: '' }]; s.layers = [{ id: 1, name: 'L1', region: 1, visible: true, shape: 'rect', sides: 5, bw: 0.2, bh: 0.2, sx: 1, sy: 1, rot: 0, ox: 0, oy: 0, ops: [] }]");
+      check("a region with a layer that is shown: no card", !(await shown(".rg-start")));
+      await set("s.regions[0].hidden = true");
+      check("the only region hidden: the start card and its arrows are back, with no hint strip under them", await card() && await tips() === null);
+      await set("delete s.regions[0].hidden");
+      check("shown again: the card is gone", !(await shown(".rg-start")));
+      await set("s.layers[0].visible = false");
+      check("its only layer hidden: the card is back", await card());
+      await set("s.layers[0].visible = true; s.regions.push({ id: 2, color: '#2A9D8F', prompt: '', type: 'object', text: '', hidden: true })");
+      check("one region shown and one hidden: no card", !(await shown(".rg-start")));
+      await set("s.regions.pop(); s.layers = []");
+      check("the layer deleted, its region still in the list: the card is back", await card() && (await st()).regions.length === 1); }
     // ---- drawing: the hints fade while the button is held, the start card goes with the first layer
+    await setTool("shape");
     let [x, y] = await toClient(200, 200);
     await page.mouse.move(x, y); await page.mouse.down();
     [x, y] = await toClient(600, 700); await page.mouse.move(x, y, { steps: 5 });

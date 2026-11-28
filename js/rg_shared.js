@@ -2427,7 +2427,7 @@ const SETTINGS = [
         },
         {
             id: SET.startCard, name: "Start card on an empty canvas", type: "boolean", defaultValue: true,
-            tooltip: "On: Whenever a canvas has no regions, it shows the first steps, with arrows to the buttons they name.\n"
+            tooltip: "On: Whenever nothing is shown on a canvas (no regions, or every region or layer hidden or deleted), it shows the first steps, with arrows to the buttons they name.\n"
                 + "Off: An empty canvas stays empty.\nApplies to every Region Genie node right away.",
             category: CAT("Canvas tools", "75 start card"),
             onChange: () => { for (const f of hintsListeners) f(); },

@@ -123,11 +123,19 @@ export function* canvasUi(E) {
                        ["Shift+click", "Add it and start the next"], [first("draw.back"), "Remove the last point"], [first("draw.cancel"), "Discard"]],
         erase: () => [["Drag", "Erase from the selected layer"], ["Shift+click", "A straight line from the last stroke"], [size(), "Eraser size"]],
     };
+    // no layer and no pose figure is drawn on the canvas: there is none, or each is hidden itself or with its region
+    function nothingShown() {
+        const hidden = (rid) => rid != null && !!E.regionById(rid)?.hidden;
+        if (E.state.layers.some((L) => L.visible !== false && !hidden(L.region !== UNSPEC ? L.region : E.holeOwner(L)))) return false;
+        return !(E.state.poses || []).some((P) => (E.poseShown ? E.poseShown(P) : P.visible !== false));
+    }
     let tipsShown = null, tipsTool = null;
     function syncTips() {
         const on = getSetting(SET.toolHints, true) !== false;
-        // the start card: whenever the canvas has no regions, with its own Setting (round 100; it went with the hints)
-        const empty = getSetting(SET.startCard, true) !== false && !E.state.regions.length && E.modeW?.value !== "use as color map";
+        // the start card: whenever nothing is shown on the canvas, with its own Setting (round 100; it went with the
+        // hints). Round 102: "nothing shown", not "no regions": a region left in the list after its layer was deleted,
+        // or regions that are all hidden, leave the canvas as empty as a new node's (a new user doesn't see why the card went)
+        const empty = getSetting(SET.startCard, true) !== false && nothingShown() && E.modeW?.value !== "use as color map";
         const list = on ? (TIPS[E.tool]?.() || []).filter((t) => t[0]) : [];
         const key = `${empty}|${list.map((t) => t.join(":")).join("|")}`;
         if (tipsBtn.classList.contains("on") !== on || !tipsBtn.title) {
