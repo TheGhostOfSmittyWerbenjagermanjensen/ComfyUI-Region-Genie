@@ -25,7 +25,7 @@
 // are the last run's, like ComfyUI's own preview.
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { svgIcon } from "./rg_shared.js";
+import { svgIcon, middleToGraph } from "./rg_shared.js";
 import { keyIs, keyText, SHORTCUTS_EVENT } from "./rg_keys.js";
 
 const NODE = "Region-Genie_ImageCompare";
@@ -113,28 +113,6 @@ function wheelToGraph(e) {
     const copy = { deltaX: e.deltaX, deltaY: e.deltaY, deltaZ: e.deltaZ, deltaMode: e.deltaMode, clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY,
                    ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey, bubbles: true, cancelable: true };
     setTimeout(() => { if (`${ds.scale}|${ds.offset[0]}|${ds.offset[1]}` === before) cv.dispatchEvent(new WheelEvent("wheel", copy)); }, 0);
-}
-
-// a middle-button drag over the node moves ComfyUI's graph, as it does over any other part of a node. As with the
-// wheel: where ComfyUI already does it by itself nothing is added. When the first movement did not move the graph,
-// the press is handed to the graph's canvas (at the place it happened), and the canvas follows the pointer from there
-function middleToGraph(e) {
-    if (e.button !== 1) return;
-    const c = app.canvas, cv = c?.canvas, ds = c?.ds;
-    if (!cv || !ds) return;
-    e.preventDefault();                                              // no autoscroll of the browser
-    const before = `${ds.offset[0]}|${ds.offset[1]}`, at = { x: e.clientX, y: e.clientY };
-    const init = { clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY, button: 1, buttons: 4, pointerId: e.pointerId, pointerType: e.pointerType || "mouse",
-                   isPrimary: true, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey, bubbles: true, cancelable: true };
-    const onMove = (m) => {
-        if (Math.hypot(m.clientX - at.x, m.clientY - at.y) < 3) return;
-        stop();
-        if (`${ds.offset[0]}|${ds.offset[1]}` !== before) return;    // ComfyUI is already moving the graph
-        cv.dispatchEvent(new PointerEvent("pointerdown", init));
-        cv.dispatchEvent(new PointerEvent("pointermove", { ...init, clientX: m.clientX, clientY: m.clientY, button: -1 }));
-    };
-    const stop = () => { window.removeEventListener("pointermove", onMove, true); window.removeEventListener("pointerup", stop, true); };
-    window.addEventListener("pointermove", onMove, true); window.addEventListener("pointerup", stop, true);
 }
 
 function setup(node) {
@@ -253,7 +231,9 @@ function setup(node) {
             const r = view.getBoundingClientRect(); if (!r.width) return;
             if (drag) {
                 if (!drag.on && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 3) { drag.on = true; view.classList.add("panning"); }
-                if (drag.on) { u.tx = drag.tx + e.clientX - drag.x; u.ty = drag.ty + e.clientY - drag.y; u.draw(); return; }
+                // (round 103: the line between the two pictures follows the pointer while they are dragged too; it
+                // stayed where the press was until the button was let go)
+                if (drag.on) { u.tx = drag.tx + e.clientX - drag.x; u.ty = drag.ty + e.clientY - drag.y; }
             }
             u.x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); u.over = true; u.draw();
         };
@@ -261,9 +241,11 @@ function setup(node) {
         view.addEventListener("pointerenter", move);
         view.addEventListener("pointerleave", () => { if (drag?.on) return; u.over = false; u.draw(); });
         if (isBig) {
-            view.addEventListener("pointerdown", (e) => { if (e.button !== 0 || u.z <= 1) return; drag = { x: e.clientX, y: e.clientY, tx: u.tx, ty: u.ty, on: false }; try { view.setPointerCapture(e.pointerId); } catch (err) { /* gone */ } });
+            // (round 103: the middle button moves the pictures too: in this window nobody is moving ComfyUI's graph)
+            view.addEventListener("pointerdown", (e) => { if ((e.button !== 0 && e.button !== 1) || u.z <= 1) return; if (e.button === 1) e.preventDefault(); drag = { x: e.clientX, y: e.clientY, tx: u.tx, ty: u.ty, on: false }; try { view.setPointerCapture(e.pointerId); } catch (err) { /* gone */ } });
             const end = (e) => { if (!drag) return; drag = null; view.classList.remove("panning"); try { view.releasePointerCapture(e.pointerId); } catch (err) { /* gone */ } move(e); };
             view.addEventListener("pointerup", end); view.addEventListener("pointercancel", end);
+            for (const ev of ["mousedown", "auxclick"]) wrap.addEventListener(ev, (e) => { if (e.button === 1) e.preventDefault(); });      // no autoscroll of the browser, no paste
             view.addEventListener("wheel", (e) => {
                 e.preventDefault(); e.stopPropagation();
                 const r = view.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;

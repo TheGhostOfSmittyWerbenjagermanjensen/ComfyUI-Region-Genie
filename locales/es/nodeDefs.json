@@ -48,14 +48,6 @@
         "name": "tamaño_desde",
         "tooltip": "Opcional. Toma el tamaño de la imagen de esta imagen o de este latente (un latente: 16x para latentes de MOSS-Image / Flux.2, 8x para SD/SDXL/Flux.1). Tiene prioridad sobre la fila de tamaño y las entradas ancho/alto."
       },
-      "size_from_image": {
-        "name": "tamaño_desde_imagen",
-        "tooltip": "Toma ancho/alto de esta imagen. Tiene prioridad sobre tamaño_desde_latente y los widgets ancho/alto."
-      },
-      "size_from_latent": {
-        "name": "tamaño_desde_latente",
-        "tooltip": "Toma ancho/alto de este latente (detecta automáticamente 16x para latentes de MOSS-Image / Flux.2, 8x para SD/SDXL/Flux.1)."
-      },
       "import_mode": {
         "name": "modo_de_importación",
         "tooltip": "Qué hace un nuevo importar_json cuando el lienzo ya tiene capas.\npreguntar antes de reemplazar: El nodo pregunta primero (esta ejecución conserva el lienzo).\nreemplazar siempre: El nuevo diseño reemplaza el lienzo de inmediato.\nUn lienzo vacío siempre se rellena. Se ajusta en Configuración > Region Genie > Nodo Region Genie (el editor lo envía en cada ejecución); este valor oculto es solo un respaldo."
@@ -66,7 +58,7 @@
       },
       "prompt_format": {
         "name": "formato_de_prompt",
-        "tooltip": "Oculto (se conserva para prompts de API y flujos de trabajo antiguos). El desplegable de modelo del nodo fija el formato de 'prompt' y 'positivo'.\nauto: Sigue al modelo conectado; si no lo hay, al clip; si tampoco, al codificador de texto al que está conectado 'prompt'."
+        "tooltip": "Oculto y ya sin uso: El desplegable de modelo del nodo fija el formato de 'prompt' y 'positive'. Se conserva para que los flujos de trabajo guardados mantengan sus otros valores en su sitio."
       },
       "mode": {
         "name": "modo",

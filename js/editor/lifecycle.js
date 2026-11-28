@@ -44,7 +44,7 @@ export function* lifecycle(E) {
 
     // ---------------- layout import / export ----------------
     const sizeLinked = () => (E.node.inputs || []).some((i) =>
-        ["width_in", "height_in", "size_from", "size_from_image", "size_from_latent"].includes(i.name) && i.link != null);
+        ["width_in", "height_in", "size_from"].includes(i.name) && i.link != null);
     // Edit Mode on: add the edit LoRA set in Settings for the model of the last run (for every model with one
     // when no run has said which), to the 'Whole image' LoRAs; off: remove the rows it added
     function onEditModeChanged() {
@@ -226,7 +226,7 @@ export function* lifecycle(E) {
     };
     chain(E.node, "onExecuted", function (message) { E.background(() => onRun(message)); });
     chain(E.node, "onConfigure", function (saved) { E.applySockets(saved); E.configured = true;
-        E.moveSizeLinks(); E.renumberLinks(); setTimeout(() => { E.sizeCfg(); E.syncSizeRow(true); E.onDimsChanged(); }, 0); E.fixImportMode(); E.migrateFormat(); if (E.node.properties?.rg_list_h) E.cvBox.style.minHeight = E.CV_MIN + "px"; E.applyListH(); load(); E.pushLlmCache(); E.syncLlm(); E.updateLlmButtons(); });
+        E.renumberLinks(); setTimeout(() => { E.sizeCfg(); E.syncSizeRow(true); E.onDimsChanged(); }, 0); E.fixImportMode(); E.migrateFormat(); if (E.node.properties?.rg_list_h) E.cvBox.style.minHeight = E.CV_MIN + "px"; E.applyListH(); load(); E.pushLlmCache(); E.syncLlm(); E.updateLlmButtons(); });
     for (const w of [E.wW, E.hW]) if (w) chain(w, "callback", () => E.onDimsChanged());
     if (E.modeW) chain(E.modeW, "callback", () => E.requestDraw());
 
@@ -314,6 +314,7 @@ export function* lifecycle(E) {
     E.node.__rgEditTab = (rid, tab) => E.editPrompt(rid, null, "prompt", null, tab);        // tests: a region's pop-up on one of its tabs
     E.node.__rgCloseEditor = () => E.closeEditor(true);
     E.node.__rgSelectLayer = (id) => E.selectLayer(E.state.layers.find((l) => l.id === id) || null);    // tests
+    E.node.__rgSelected = () => (E.selLayer() ? E.selId : null);    // tests: the selected layer's id
     E.node.__rgToolTips = () => Object.values(E.GROUPS).flatMap((g) => g.entries().map((e) => e[2]));   // tests: every tool version's tooltip
     E.node.__rgSetBackdrop = (img, ref) => { E.backdrop = img; E.backdropKey = "test:" + Math.random(); E.backdropRef = ref || null; E.requestDraw(); };
     // regions in output order (what Mask Picker / Regional LoRAs index into)

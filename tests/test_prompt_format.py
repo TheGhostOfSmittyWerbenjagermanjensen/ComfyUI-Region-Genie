@@ -59,12 +59,14 @@ check("picked Ideogram 4: caption JSON with the background", f == "Ideogram JSON
 for m in ("Krea 2", "Flux.1", "Flux.2", "Flux 3", "Anima", "SDXL", "SD1.5"):
     p, f = run({"modelPick": m})
     check(f"picked {m}: plain text, no background", f == "text" and "a red cat" in p and "green grass" not in p)
+# round 103: the old hidden format value is not read any more (the model picked on the node, or found, decides)
 p, f = run({"modelPick": "Krea 2"}, prompt_format="MOSS JSON")
-check("a model picked on the node wins over the old hidden format value", f == "text")
+check("the old hidden format value is ignored beside a picked model", f == "text")
+p, f0 = run({})
 p, f = run({}, prompt_format="Ideogram JSON")
-check("old hidden format value still works without a pick (API prompts)", f == "Ideogram JSON")
-p, f = run({"modelPick": "nonsense"}, prompt_format="text")
-check("an unknown pick is ignored", f == "text")
+check(f"the old hidden format value is ignored without a pick too (the format is what auto gives: {f0})", f == f0)
+p, f = run({"modelPick": "nonsense"})
+check("an unknown pick is ignored", f == f0)
 fam, why = rg.prompt_family(None, None, "auto", None, edit=True, pick="MOSS-Image")
 check("MOSS-Image in Edit Mode: plain instruction (also when picked)", fam == "plain" and "edit" in why)
 fam, why = rg.prompt_family(None, None, "MOSS JSON", None, edit=True)
@@ -118,9 +120,14 @@ img = torch.zeros((1, 48, 80, 3))                       # an image batch: height
 lat = {"samples": torch.zeros((1, 4, 16, 24))}          # an SD-style latent: 8x -> 192 x 128
 check("size_from with an image: its size", size_of(size_from=img) == (80, 48))
 check("size_from with a latent: its size times the latent scale", size_of(size_from=lat) == (192, 128))
-check("size_from comes before the older size_from_latent socket", size_of(size_from=img, size_from_latent=lat) == (80, 48))
-check("a latent on size_from comes before an image on the older size_from_image socket", size_of(size_from=lat, size_from_image=img) == (192, 128))
-check("the older sockets still work (API prompts, old workflows)", size_of(size_from_image=img) == (80, 48) and size_of(size_from_latent=lat) == (192, 128))
+# round 103: the two older size inputs are gone; a prompt that still has something on one is told so
+def gone(**kw):
+    try:
+        size_of(**kw)
+    except ValueError as e:
+        return "no longer exists" in str(e) and "size_from" in str(e)
+    return False
+check("something on the removed size_from_image / size_from_latent inputs: a message that names size_from", gone(size_from_image=img) and gone(size_from_latent=lat))
 check("nothing connected: the size row's width and height", size_of() == (64, 64))
 try:
     size_of(outputs_shown="model,positive,masks")

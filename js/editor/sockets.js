@@ -1,8 +1,7 @@
 // The node's sockets (round 40): fewer of them by default, and a checklist to choose which show.
 // One part of the Region Genie node's editor (see parts.js).
 //
-// Inputs. A new node shows model, clip, vae, image and size_from. size_from takes an image or a latent (it replaces
-// the size_from_image and size_from_latent sockets: their links are moved here on load). width / height and
+// Inputs. A new node shows model, clip, vae, image and size_from. size_from takes an image or a latent. width / height and
 // import_json and pose_keypoint show when ticked in the sockets list; control_image shows while the node has a Control row.
 //
 // Outputs. The Python node always returns all 14, in a fixed order. The node here shows the ticked ones only, so the
@@ -20,8 +19,7 @@ import { linkOf, remapOutputs } from "./graph.js";
 
 const NODE = "Region-Genie_Main";
 const SAMPLER_OUTS = ["model", "positive", "negative", "latent"];       // what a new node shows
-const OLD_SIZE = ["size_from_image", "size_from_latent"];
-const HIDDEN_BY_DEFAULT = [...OLD_SIZE, "width_in", "height_in", "import_json", "pose_keypoint", "control_image"];
+const HIDDEN_BY_DEFAULT = ["width_in", "height_in", "import_json", "pose_keypoint", "control_image"];
 
 // ---------------------------------------------------------------- the prompt: shown outputs -> real output numbers
 let outNames = null;
@@ -61,7 +59,7 @@ export function installOutputMapping(names) {
 let panel = null;                                    // one sockets list at a time, on the whole page
 
 export function* sockets(E) {
-    Object.assign(E, { applySockets, syncSockets, toggleSockets, closeSockets, keepBottom, socketState, renumberLinks });
+    Object.assign(E, { applySockets, syncSockets, toggleSockets, closeSockets, keepBottom, socketState, renumberLinks, syncBgSocket });
     yield;
 
     const N = E.node, def = E.nodeData || {};
@@ -90,6 +88,8 @@ export function* sockets(E) {
     // renumberLinks() gives every link its socket's number once the lists are final.
     let loading = false;
     function removeIn(name) { const i = findIn(name); if (i < 0 || N.inputs[i].link != null) return; if (loading) N.inputs.splice(i, 1); else N.removeInput(i); }
+    // while a saved node is being shaped: out of the list, without asking for its wire (see shapeLikeSaved)
+    function dropIn(name) { const i = findIn(name); if (i >= 0) N.inputs.splice(i, 1); }
     function renumberLinks() {
         (N.inputs || []).forEach((inp, i) => { const l = inp.link != null ? linkOf(N.graph, inp.link) : null; if (l) l.target_slot = i; });
         (N.outputs || []).forEach((o, i) => { for (const id of o.links || []) { const l = linkOf(N.graph, id); if (l) l.origin_slot = i; } });
@@ -148,9 +148,24 @@ export function* sockets(E) {
         else if (!want && has) keepBottom(() => removeIn("control_image"));
     }
 
+    // ---- scene_prompt_background's own socket: there while its field is shown (Ideogram 4), or connected (round 103).
+    // ComfyUI gives every field an input socket at the field's place and keeps it, and connects it, when the field is
+    // hidden: it stayed behind where the field last was. Taking it away or putting it back changes the numbers of the
+    // inputs after it, and a workflow's wires know their input by number: while a node is being loaded this waits
+    // (settling), and is done inside applySockets(), before renumberLinks() gives every wire its socket's number.
+    const BG = "scene_prompt_background";
+    let settling = false;
+    function syncBgSocket() {
+        if (!real || settling || !E.sceneBgW || E.sceneBgW.__rgShown == null || !proto.in[BG]) return;
+        const want = E.sceneBgW.__rgShown || linkedIn(BG), has = findIn(BG) >= 0;
+        if (want && !has) { N.addInput(BG, inType(BG)); const slot = N.inputs[N.inputs.length - 1]; dress(slot, proto.in[BG]); slot.widget = { ...(proto.in[BG].widget || { name: BG }) }; N.setDirtyCanvas?.(true, true); }
+        else if (!want && has) { removeIn(BG); N.setDirtyCanvas?.(true, true); }
+    }
+
     // ---- a new node: the short lists
     function newNodeSockets() {
         if (!real) return;
+        syncBgSocket();
         for (const name of HIDDEN_BY_DEFAULT) removeIn(name);
         for (const name of OUT.slice().reverse()) if (!SAMPLER_OUTS.includes(name)) removeOut(name);
         syncShown();
@@ -173,13 +188,27 @@ export function* sockets(E) {
                 for (const n of names) { if (OUT.includes(n)) addOut(n); else N.addOutput(n, "*"); }     // (an unknown one keeps its place; applySockets drops it)
             }
             const kept = new Set((saved.inputs || []).map((i) => i?.name));
-            for (const name of HIDDEN_BY_DEFAULT) if (!kept.has(name)) removeIn(name);
+            // Taken out whether or not it looks connected (round 103). In ComfyUI's newer frontends an input doesn't
+            // hold its wire: which wire it has is looked up by the input's number, and at this moment the saved wires'
+            // numbers meet a new node that still has every input, so a wire saved on input 7 (a prompt field) seems to
+            // sit on import_json. Asking "connected?" here kept such inputs: optional inputs came back on loading, one
+            // for each wire into a field after the second. An input the saved node doesn't have can't have a saved wire.
+            for (const name of HIDDEN_BY_DEFAULT) if (!kept.has(name)) dropIn(name);
         } finally { loading = false; }
     }
     const configure0 = N.configure;
     if (real && typeof configure0 === "function") {
         N.configure = function (saved) {
             try { if (saved?.properties?.rg_sockets) shapeLikeSaved(saved); } catch (e) { console.error("[Region Genie] sockets", e); }
+            // scene_prompt_background's socket: as it was saved (a saved wire to it needs the socket), and no change
+            // to it until the node is loaded (applySockets; the timer is for a load that never gets there)
+            try {
+                const savedBg = (saved?.inputs || []).some((i) => i?.name === BG);
+                if (!savedBg && saved?.properties?.rg_sockets) dropIn(BG);          // (like the optional inputs in shapeLikeSaved)
+                else if (savedBg && findIn(BG) < 0 && proto.in[BG]) { N.addInput(BG, inType(BG)); const slot = N.inputs[N.inputs.length - 1]; dress(slot, proto.in[BG]); slot.widget = { ...(proto.in[BG].widget || { name: BG }) }; }
+            } catch (e) { console.error("[Region Genie] sockets", e); }
+            settling = true;
+            setTimeout(() => { if (settling) { settling = false; syncBgSocket(); } }, 0);
             return configure0.apply(this, arguments);
         };
     }
@@ -190,7 +219,7 @@ export function* sockets(E) {
         const old = !saved?.properties?.rg_sockets;        // saved before round 40: every socket was there
         if (N.properties) delete N.properties.rg_sockets;
         loading = true;
-        try { settle(old); } finally { loading = false; }
+        try { settle(old); settling = false; syncBgSocket(); } finally { loading = false; settling = false; }
         renumberLinks();
         E.labelSizeInputs?.();
         syncShown();
@@ -204,23 +233,10 @@ export function* sockets(E) {
                 o.type = OUT_T[OUT.indexOf(o.name)] ?? o.type; dress(o, proto.out[o.name]);
             }
         }
-        // size_from_image / size_from_latent -> size_from (an image comes first, as it did)
         if (findIn("size_from") < 0) addIn("size_from");
-        for (const name of OLD_SIZE) {
-            const i = findIn(name); if (i < 0) continue;
-            const id = N.inputs[i].link, j = findIn("size_from");
-            if (id != null && j >= 0 && N.inputs[j].link == null) {
-                const l = linkOf(N.graph, id);
-                if (l) { l.target_slot = j; N.inputs[j].link = id; N.inputs[i].link = null; }
-            }
-            if (N.inputs[i].link != null) { try { N.graph?.removeLink(N.inputs[i].link); } catch (e) { /* gone */ } N.inputs[i].link = null; }      // both were connected: the image's link won
-            removeIn(name);
-        }
-        if (old) {                                          // everything that isn't connected goes, like on a new node
-            for (const name of ["import_json", "pose_keypoint", "control_image"]) removeIn(name);
-            if (!linkedIn("width_in") && !linkedIn("height_in")) { removeIn("width_in"); removeIn("height_in"); }
-            for (const name of OUT.slice().reverse()) if (!SAMPLER_OUTS.includes(name)) removeOut(name);
-        }
+        // (Round 103: a node saved without the marker, i.e. before round 40 or written by hand, keeps the sockets it was
+        // saved with. The step that moved wires from size_from_image / size_from_latent to size_from and took its
+        // unconnected sockets away is gone with those two inputs; its outputs are still matched by name, above.)
     }
     // what the sockets list shows: [{ name, label, on, linked, why }]
     function socketState() {

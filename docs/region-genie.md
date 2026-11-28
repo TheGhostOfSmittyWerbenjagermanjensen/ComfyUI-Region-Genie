@@ -183,7 +183,7 @@ The row at the top of the node sets the size of the picture. Three buttons on th
 
 ### What decides the size
 
-- **size_from** takes an image or a latent and gives the node its size (it replaces the two inputs `size_from_image` and `size_from_latent`; workflows that used them load with their link on `size_from`).
+- **size_from** takes an image or a latent and gives the node its size. (The node's two older inputs `size_from_image` and `size_from_latent` were removed in version 0.62.0; an API prompt that still uses one gets a message that names `size_from`.)
 - The optional **width** and **height** inputs (tick them in the sockets list) override the row, e.g. from a Resolution Selector or a Primitive.
   - `size_from` still comes first.
   - In Edit Mode only the pixel count counts (the source image sets the shape).
@@ -337,6 +337,7 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
   - Point at it to open it. It stays open while you type in it, or while a selection waits for ✓ / ✕.
   - Click the icon to keep it open (click again to fold it).
 - **Alt+click** with any painting tool (brush, lasso, fill, wand, select object, eraser) is an **eyedropper**: the region under the pointer becomes the active region.
+- **The middle mouse button** moves the picture inside the canvas. Anywhere else on the node (the tools, the list, the bottom bar) it moves ComfyUI's graph, as it does over other nodes; a text box that has the cursor keeps it.
 - **Clear all** (the bin at the right end of the tool bar, red when you point at it) removes every layer and region. Ctrl+Z brings them back.
 - The defaults of the tools with versions (lasso, lasso erase, magic wand, fill) and the wand tolerance and fill gap size are in **Settings > Region Genie > Canvas tools**.
 
@@ -355,6 +356,9 @@ The tools are the icons in the bar above the canvas. Point at one for its name a
 - Select (V):
   - Click to select. Clicking anywhere outside the canvas hides the box and handles; the layer stays selected, so brush, lasso and fill still paint into it.
   - Drag to move.
+  - **What you see is what you take:** where layers overlap, a press takes the one on top at that spot, also while another layer is selected and also in an empty corner of the selected layer's box. Where no layer shows inside the selected layer's box, the press still moves the selected layer (a thin outline stays easy to grab).
+  - **Alt+drag** moves the selected layer from anywhere on the canvas: the way to drag one that lies under another.
+  - A drag keeps its layer: once grabbed, it follows the pointer also behind other layers.
   - Square handles resize. Shift keeps proportions. **Alt** resizes from the centre, so the opposite side moves the same amount the other way. Both can be held together.
   - The round handle rotates (Shift snaps to 15°).
 
@@ -743,7 +747,7 @@ MOSS-Image takes its layout JSON (each region's box) or a plain text prompt. The
 
 ### Workflows from earlier versions
 
-Workflows saved with the old **format** control (removed before version 0.23, in November 2026) keep their choice: *MOSS JSON* becomes MOSS-Image picked in the model dropdown, *Ideogram JSON* becomes Ideogram 4, *text* becomes MOSS-Image's standard mode. API prompts can still set the hidden `prompt_format` value; a model picked on the node comes first. Workflows that picked the model as "MOSS Image" (with a space, before it was stored by its official name) load with MOSS-Image picked, and their edit / control LoRAs keep working.
+The old **format** control of the first versions (removed before version 0.23) is no longer read: since version 0.62.0 a workflow that still carries its choice follows the model dropdown, and the hidden `prompt_format` value is ignored, also in API prompts. Workflows that picked the model as "MOSS Image" (with a space, before it was stored by its official name) load with MOSS-Image picked, and their edit / control LoRAs keep working.
 
 Workflows saved before `prompt` existed load with their links moved to the outputs of the same name; links from `moss_layout_json`, `ideogram_json` and `text_prompt` all go to `prompt` (which then gives the format auto picks: pick the model in the bottom bar if a link needs a particular one).
 

@@ -6,7 +6,7 @@
 // inputs are hidden until they are ticked in the node's inputs list (the cable button on the right of the node's input
 // rows, just above filename_prefix).
 import { app } from "../../scripts/app.js";
-import { getSetting, SET, keepWidgetValuesByName, svgIcon, socksStyle } from "./rg_shared.js";
+import { getSetting, SET, keepWidgetValuesByName, svgIcon, socksStyle, widgetSockets } from "./rg_shared.js";
 
 const NODE = "Region-Genie_SaveImage";
 const FIELDS = {
@@ -100,6 +100,7 @@ app.registerExtension({
             // takes the height of its content.
             const fitVue = () => { const h = node.computeSize?.()[1]; if (h && node.size[1] > h) node.setSize([node.size[0], h]); };
             const sizeOf = new Map();                // the widgets' own computeSize, put back when shown again
+            const socks = widgetSockets(node);       // a hidden field's input socket goes with it (round 103)
 
             // only the chosen format's fields (webp_quality not while lossless; invert_mask only with a mask linked)
             function sync() {
@@ -113,11 +114,12 @@ app.registerExtension({
                 if (masked && fmt !== "jpeg") want.add("invert_mask");
                 let changed = false;
                 const legacy = !app.extensionManager?.setting?.get?.("Comfy.VueNodes.Enabled");
-                const before = legacy ? node.computeSize?.()[1] : 0;
+                const before = legacy ? node.computeSize?.()[1] : 0, h0 = node.size[1];     // (h0: adding a socket can make the node taller by itself)
                 for (const n of ALL) {
                     const w = W(n);
                     if (!w) continue;
-                    const show = want.has(n);
+                    const show = want.has(n) || socks.linked(n);      // (a field with a wire stays, whatever the format)
+                    if (socks.set(n, show)) changed = true;
                     if (!w.hidden === show) continue;
                     changed = true;
                     if (!sizeOf.has(w)) sizeOf.set(w, Object.getOwnPropertyDescriptor(w, "computeSize") || null);
@@ -128,7 +130,7 @@ app.registerExtension({
                 if (changed) {
                     // legacy: grow or shrink by what the fields add or take, so a node made taller by hand stays taller
                     const after = legacy ? node.computeSize?.()[1] : 0;
-                    if (legacy && after && before) node.setSize([node.size[0], Math.max(after, node.size[1] + after - before)]);
+                    if (legacy && after && before) node.setSize([node.size[0], Math.max(after, h0 + after - before)]);
                     else if (!legacy) fitVue();
                     node.setDirtyCanvas?.(true, true);
                 }

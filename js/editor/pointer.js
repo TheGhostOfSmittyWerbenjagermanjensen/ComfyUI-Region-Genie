@@ -1,6 +1,7 @@
 // Mouse, pen and keyboard on the canvas.
 // One part of the Region Genie node's editor (see parts.js for how the parts work together).
 import { LASSO_MODES, SHAPE_NAMES, UNSPEC } from "./shared.js";
+import { middleToGraph } from "../rg_shared.js";
 import { snapToEdge, snapSegment, dedupe, simplifyClosed, smoothClosed, closedSpline } from "./geometry.js";
 
 export function* pointer(E) {
@@ -121,7 +122,14 @@ export function* pointer(E) {
                     }
                     return;
                 }
-                if (E.insideBox(L, ix, iy) && !e.altKey) { E.drag = { mode: "move", L, c0: [L.ox, L.oy], start: [ix, iy], before }; return; }
+                // Round 103: what is seen on top at the pointer is what a press takes (before: anywhere inside the
+                // selected layer's box it stayed with that layer, also where another layer lay over it or showed in an
+                // empty corner of the box, and the wrong one was moved). The selected layer keeps the press where it is
+                // the top one itself, or where no layer shows inside its box (a thin outline stays easy to grab).
+                // Alt+drag moves the selected layer from anywhere on the canvas: the way to drag one that is covered.
+                // The layer is chosen at the press only: a drag keeps it, also behind others.
+                const top = e.altKey ? null : E.hitLayer(dx, dy);
+                if (e.altKey || top === L || (!top && E.insideBox(L, ix, iy))) { E.drag = { mode: "move", L, c0: [L.ox, L.oy], start: [ix, iy], before }; return; }
             }
             const H2 = E.hitLayer(dx, dy);
             E.selectLayer(H2);
@@ -291,6 +299,18 @@ export function* pointer(E) {
     window.addEventListener("pointerdown", hideSelOutside, true);
     const noAutoScroll = (e) => { if (e.button === 1 && e.target === E.cv) e.preventDefault(); }; E.noAutoScroll = noAutoScroll;
     window.addEventListener("mousedown", noAutoScroll, true);
+    // Round 103: the middle button outside the canvas moves ComfyUI's graph. In legacy mode the editor is one HTML
+    // block over the node and kept every middle press (the toolbar, the list, the bottom bar), where it means nothing:
+    // the graph didn't move, as it does under the pointer anywhere else on a node. Not the canvas's box (the middle
+    // button moves the picture there, see midPan), not the large editor (no graph behind it to move), and not a text
+    // box that has the cursor (the browser's own middle button there).
+    const midOutside = (e) => {
+        if (e.button !== 1 || E.big || E.cvBox?.contains(e.target) || e.target === E.cv) return false;
+        const a = document.activeElement;
+        return !(a && a === e.target && (a.tagName === "TEXTAREA" || a.tagName === "INPUT" || a.isContentEditable));
+    };
+    E.wrap.addEventListener("pointerdown", (e) => { if (midOutside(e)) middleToGraph(e); }, true);       // before a row keeps its presses to itself
+    for (const ev of ["mousedown", "auxclick"]) E.wrap.addEventListener(ev, (e) => { if (midOutside(e)) e.preventDefault(); }, true);       // no autoscroll of the browser, no paste
     E.cv.addEventListener("pointercancel", finish);
     E.cv.addEventListener("dblclick", (e) => {
         if (E.clickPoly) { e.preventDefault(); e.stopPropagation(); E.clickPoly.pts.pop(); finishClickPoly(); return; }

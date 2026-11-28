@@ -48,14 +48,6 @@
         "name": "size_from",
         "tooltip": "Optional. Take the image size from this image or latent (a latent: 16x for MOSS-Image / Flux.2 latents, 8x for SD / SDXL / Flux.1). It comes before the size row and the width / height inputs."
       },
-      "size_from_image": {
-        "name": "size_from_image",
-        "tooltip": "Take width/height from this image. Takes priority over size_from_latent and the width/height widgets."
-      },
-      "size_from_latent": {
-        "name": "size_from_latent",
-        "tooltip": "Take width/height from this latent (auto-detects 16x for MOSS-Image / Flux.2 latents, 8x for SD/SDXL/Flux.1)."
-      },
       "import_mode": {
         "name": "import_mode",
         "tooltip": "What a new import_json does when the canvas already has layers.\nask before replacing: The node asks first (this run keeps the canvas).\nalways replace: The new layout replaces the canvas right away.\nAn empty canvas is always filled. Set in Settings > Region Genie > Region Genie node (the editor sends it with each run); this hidden value is only a fallback."
@@ -66,7 +58,7 @@
       },
       "prompt_format": {
         "name": "prompt_format",
-        "tooltip": "Hidden (kept for API prompts and old workflows). The node's model dropdown sets the format of 'prompt' and 'positive'.\nauto: Follows the connected model, else the clip, else the text encoder 'prompt' is connected to."
+        "tooltip": "Hidden and no longer used: The node's model dropdown sets the format of 'prompt' and 'positive'. It stays so that saved workflows keep their other values in place."
       },
       "mode": {
         "name": "mode",

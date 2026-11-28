@@ -83,7 +83,7 @@ export function* footer(E) {
         + "the regions set to change; the rest is kept (like inpainting).\nWhole image: Everything except the regions "
         + "set to keep (no mask when none is kept); the regions still steer where each prompt goes.");
     // the model dropdown (and MOSS-Image's layout / standard switch) go here; they also set the prompt format
-    // (the old 'format' select is gone: the hidden prompt_format widget stays "auto", see migrateFormat)
+    // (the old 'format' select is gone: the hidden prompt_format widget stays "auto" and is not read, see migrateFormat)
     const modelBox = E.el("span", "rg-modelbox"); E.modelBox = modelBox;
     E.lastFormat = null;                 // the format the last run used (in the model dropdown's tooltip)
     // scene_prompt_background is Ideogram 4's alone (its caption JSON requires one): shown only while the model is
@@ -100,21 +100,16 @@ export function* footer(E) {
         const elB = E.sceneBgW.element || E.sceneBgW.inputEl;
         if (elB) elB.style.display = show ? "" : "none";
         if (!show && E.editor?.which === "background") E.closeEditor(true);
+        E.syncBgSocket?.();          // its input socket goes and comes with it (sockets.js)
         E.node.setDirtyCanvas?.(true, true);
     }
     // a workflow saved with the old format select: its choice becomes a model pick (or MOSS's standard mode)
     function migrateFormat() {
         // saved before the model was stored as MOSS-Image (its official name)
         if (E.node.properties?.rg_model_pick === OLD_MOSS) E.node.properties.rg_model_pick = MOSS;
-        const v = E.fmtW?.value;
-        if (!E.fmtW || !v || v === "auto") return;
-        E.node.properties = E.node.properties || {};
-        if (!E.node.properties.rg_model_pick) {
-            if (v === "MOSS JSON") E.node.properties.rg_model_pick = "MOSS-Image";
-            else if (v === "Ideogram JSON") E.node.properties.rg_model_pick = "Ideogram 4";
-        }
-        if (v === "text") E.node.properties.rg_moss_layout = false;
-        E.fmtW.value = "auto";
+        // the hidden prompt_format field is no longer used (round 103: an old workflow's "MOSS JSON" / "Ideogram JSON" /
+        // "text" is not turned into a model choice any more, and the Python node doesn't read it): it stays "auto"
+        if (E.fmtW && E.fmtW.value !== "auto") E.fmtW.value = "auto";
     }
     const acCtl = autocompleteToggle(E.node, E.el);
     const llmSetBtn = E.iconBtn("shape", "LLM Prompt Enhancer settings: What the LLM sees, the preset for each prompt type, and the "

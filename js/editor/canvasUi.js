@@ -105,7 +105,7 @@ export function* canvasUi(E) {
         [first("draw.back"), "Remove the last point"], [first("draw.cancel"), "Cancel"]];
     const TIPS = {
         select: () => (E.selLayer()
-            ? [["Drag", "Move"], ["Square handles", "Resize (Shift: Keep proportions, Alt: From the centre)"], ["Round handle", "Rotate (Shift: 15° steps)"],
+            ? [["Drag", "Move"], ["Alt+drag", "Move it from anywhere, also where it is covered"], ["Square handles", "Resize (Shift: Keep proportions, Alt: From the centre)"], ["Round handle", "Rotate (Shift: 15° steps)"],
                [arrows(), "Nudge (Shift: ×10)"], [first("edit.duplicate"), "Duplicate"], [ccp(), "Copy, cut, paste"]]
             : [["Click", "Select a layer"], ["Double-click a label", "Edit that region"], ...VIEW_TIPS(), [first("view.fit"), "Fit"]]),
         pose: () => (E.selPose()

@@ -135,19 +135,17 @@ export function* view(E) {
         } catch (e) { /* graph being edited */ }
         return null;
     }
-    // size_from_image > size_from_latent > width/height widgets (same priority as the Python side).
+    // size_from > width/height inputs > the size row (same priority as the Python side).
     // What the editor can read from the graph is a guess; after a run the node reports the real size,
     // which is used until the guess changes (e.g. a different latent size is set).
     E.execGuess = null;
-    // Edit Mode with the image connected (and no size_from_* input): the image's shape at the pixel count of
+    // Edit Mode with the image connected (and nothing on size_from): the image's shape at the pixel count of
     // width x height, in steps of 16 (edit_size in region_genie.py)
-    // the size input in use (size_from; the two older sockets only until a loaded workflow's links are moved), and
-    // whether an image or a latent feeds it
-    const sizeFromName = () => ["size_from", "size_from_image", "size_from_latent"].find((n) => isLinked(n)) || null;
+    // the size input in use, and whether an image or a latent feeds it
+    const sizeFromName = () => (isLinked("size_from") ? "size_from" : null);
     const sizeFromKind = () => {
         const n = sizeFromName();
         if (!n) return null;
-        if (n !== "size_from") return n === "size_from_image" ? "image" : "latent";
         const f = feeder(E.node, n);
         return /LATENT/i.test(String(f?.src?.outputs?.[f.slot]?.type || "")) ? "latent" : "image";
     }; E.sizeFromKind = sizeFromKind;

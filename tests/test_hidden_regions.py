@@ -12,9 +12,10 @@ from rgpack import region_genie as rg  # noqa: E402
 node = rg.RegionGenie()
 
 
-def run(pd, **kw):
+def run(pd, model="Krea 2", **kw):
+    # (round 103: the format comes from the model picked on the node; the old hidden prompt_format value is not read)
     args = dict(width=64, height=64, scene_prompt_positive="", scene_prompt_negative="",
-                image_mode=rg.IMAGE_MODES[0], min_region_pixels=64, paint_data=json.dumps(pd), prompt_format="text")
+                image_mode=rg.IMAGE_MODES[0], min_region_pixels=64, paint_data=json.dumps({**pd, "modelPick": pd.get("modelPick") or model}))
     args.update(kw)
     return node.run(**args)
 
@@ -96,7 +97,7 @@ out = run(pd, scene_prompt_positive="a __color__ sky", wildcard_seed=1)
 P = R(out, "prompt")
 check("run: region prompt filled (seed 1 -> green)", "a green car" in P and "__color__" not in P)
 check("run: scene prompt filled with the same seed", "a green sky" in P)
-check("run: text to render filled (MOSS JSON carries it)", '"text":"NO"' in R(run(pd, wildcard_seed=1, prompt_format="MOSS JSON"), "prompt").replace(" ", ""))
+check("run: text to render filled (MOSS JSON carries it)", '"text":"NO"' in R(run(pd, wildcard_seed=1, model="MOSS-Image"), "prompt").replace(" ", ""))
 filled = json.loads(out["ui"]["wildcards"][0])
 check("run: the UI gets raw and filled text per field", filled.get("r1") == {"raw": "a __color__ car", "filled": "a green car"}
       and set(filled) == {"scene", "r1", "r2.text"})

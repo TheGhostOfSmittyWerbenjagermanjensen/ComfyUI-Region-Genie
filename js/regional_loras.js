@@ -142,6 +142,9 @@ function setup(node) {
         if (w?.options) { w.options.getMinHeight = () => 48; w.options.getMaxHeight = () => 96; }
     }
     const dataW = node.widgets?.find((w) => w.name === DATA);
+    // its data field is never shown: its input socket goes too (round 103: a hidden widget's socket stays behind
+    // where ComfyUI last put it and takes wires; see widgetSockets() in rg_shared.js)
+    { const i = node.inputs?.findIndex((inp) => inp.widget?.name === DATA && inp.link == null) ?? -1; if (i >= 0) node.removeInput(i); }
     // some frontend versions leave a combo empty on new nodes: fall back to its default
     const modeW = node.widgets?.find((w) => w.name === "lora_masking");
     const fixMode = () => {

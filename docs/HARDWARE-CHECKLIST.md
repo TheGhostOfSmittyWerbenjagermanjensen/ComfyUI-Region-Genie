@@ -330,6 +330,13 @@ Nothing here has run on a real model yet.
 - [ ] The Undo / Redo tooltips read right after your usual steps (drawing, moving, prompts, LoRAs); say which steps only read "A change to the node"
 - [ ] The Separate button's ▾ is easy to hit next to the word, and a click on the word still switches Separate
 
+## Round 103: Select, sockets, loading, the middle button
+- [ ] Select tool on your own layouts with overlapping regions: a press takes the region you see; Alt+drag moves a covered one; Firefox too
+- [ ] Middle-button drag from the toolbar, the list and the bottom bar of the Region Genie node moves the graph (legacy mode and Nodes 2.0, Firefox); on the canvas it still moves the picture
+- [ ] Save Image, Tiled Upscale: drag a wire along the node's left edge: no dots below the fields; change the format / fold the settings and look again
+- [ ] Open your own saved workflows (0.57.0 and later), above all ones with wires into the prompt fields: every wire where it was, no extra inputs
+- [ ] Image Compare, Large view: middle-button drag moves the pictures; the line follows the pointer while dragging
+
 ## Round 102: Arrange on regions
 - [ ] Mirror the whole picture (canvas right-click) on one of your own layouts, then run it: the picture comes out mirrored, the prompts still in their places
 - [ ] A character region with several layers and a pose figure: Region + Centre horizontally, then Flip horizontally; the figure's pose map is mirrored the right way round (check the pose preview)

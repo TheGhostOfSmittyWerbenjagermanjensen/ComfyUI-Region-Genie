@@ -185,7 +185,9 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
     check(`${M}: …and its links still carry the right numbers (${round.links.join(", ")})`, round.links.some((x) => /images=5$/.test(x)) && round.links.some((x) => /=12$/.test(x)));
     check(`${M}: …a connected optional input (width) is still there and still connected`, round.widthLinked === true && round.after.inputs.includes("width_in") && round.after.inputs.includes("height_in"));
 
-    // ---------------- a workflow saved before round 40 (every socket, the old size inputs connected)
+    // ---------------- a workflow without the marker (saved before round 40, or written by hand): every socket, the
+    // outputs in the Python node's order. Round 103: its sockets stay as saved (the step that moved wires from the old
+    // size inputs and took unconnected sockets away is gone); its outputs are still matched by name
     const old = await page.evaluate(async (OUT) => {
         const app = window.app, LG = window.LiteGraph; app.graph.clear();
         const rg = LG.createNode("Region-Genie_Main"); rg.pos = [520, 260]; app.graph.add(rg);
@@ -195,14 +197,13 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
         const pv = LG.createNode("PreviewImage"); pv.pos = [1400, 700]; app.graph.add(pv);
         rg.connect(rg.outputs.findIndex((o) => o.name === "color_map"), pv, 0);
         const data = JSON.parse(JSON.stringify(app.graph.serialize()));
-        // make it look as it was saved then: no marker, the outputs in the Python node's order, size_from_latent in place of size_from
+        // make it look as it was saved then: no marker, the outputs in the Python node's order
         const n = data.nodes.find((x) => String(x.id) === String(rg.id)); delete n.properties.rg_sockets;
         const byName = Object.fromEntries(n.outputs.map((o) => [o.name, o]));
         n.outputs = OUT.map((name, i) => ({ ...byName[name], slot_index: i }));
         const cm = OUT.indexOf("color_map");
         for (const L of data.links) if (L[1] === rg.id) L[2] = cm;
-        const sf = n.inputs.find((i) => i.name === "size_from"); sf.name = "size_from_latent"; sf.type = "LATENT"; delete sf.label; delete sf.localized_name;
-        n.inputs.splice(n.inputs.indexOf(sf), 0, { name: "size_from_image", type: "IMAGE", link: null });
+        const sf = n.inputs.find((i) => i.name === "size_from");
         const lid = Math.max(0, ...data.links.map((L) => (Array.isArray(L) ? L[0] : L.id))) + 1; if (data.last_link_id != null) data.last_link_id = lid; if (data.state?.lastLinkId != null) data.state.lastLinkId = lid;
         sf.link = lid; data.links.push([lid, el.id, 0, rg.id, n.inputs.indexOf(sf), "LATENT"]);
         const eln = data.nodes.find((x) => String(x.id) === String(el.id)); eln.outputs[0].links = [lid];
@@ -214,11 +215,80 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
             links: Object.values(p.output).flatMap((x) => Object.entries(x.inputs || {}).filter(([, v]) => Array.isArray(v) && String(v[0]) === String(m.id)).map(([k, v]) => `${x.class_type}.${k}=${v[1]}`)),
             sizeIn: Object.keys(p.output[String(m.id)].inputs).filter((k) => /^size_from/.test(k)) };
     }, OUT);
-    check(`${M}: an older workflow: the latent's link moved to size_from (${old.sizeIn.join(", ")}), the canvas takes its size (${old.dims.join(" x ")})`, old.sizeLinked && old.sizeIn.join() === "size_from" && old.dims.join() === "640,960"
-        && !old.s.inputs.includes("size_from_latent") && !old.s.inputs.includes("size_from_image"));
-    check(`${M}: …sockets that weren't connected are gone, the connected output stays and still means color_map (${old.s.outputs.join(", ")}; ${old.links.join(", ")})`,
-        old.s.outputs.join() === "model,positive,negative,latent,color_map" && old.s.inputs.join() === "model,clip,vae,image,size_from" && old.links.join() === "PreviewImage.images=5");
+    check(`${M}: a workflow without the marker: the latent on size_from is still there (${old.sizeIn.join(", ")}), the canvas takes its size (${old.dims.join(" x ")})`, old.sizeLinked && old.sizeIn.join() === "size_from" && old.dims.join() === "640,960");
+    check(`${M}: …every socket it was saved with stays, and the connected output still means color_map (${old.s.outputs.length} outputs; ${old.links.join(", ")})`,
+        old.s.outputs.join() === OUT.join() && old.links.join() === `PreviewImage.images=${OUT.indexOf("color_map")}`);
     check(`${M}: …and the node's box is as it was saved (${old.h.join(" -> ")})`, Math.abs(old.h[0] - old.h[1]) <= 2);
+
+    // ---- round 103: scene_prompt_background's input socket is there only while its field shows (Ideogram 4) or it
+    // has a wire. Before, the hidden field's socket stayed behind on the node and took wires. Wires on the inputs
+    // before it keep their inputs through all of it, also after saving and loading.
+    {
+        const BG = "scene_prompt_background";
+        const look = () => page.evaluate((BG) => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"), g = window.app.graph;
+            const from = Object.fromEntries(n.inputs.filter((i) => i.link != null).map((i) => { const l = g.links.get ? g.links.get(i.link) : g.links[i.link]; return [i.name, `${g.getNodeById(l.origin_id).title}>${n.inputs[l.target_slot]?.name}`]; }));
+            return { bg: n.inputs.some((i) => i.name === BG), stale: n.inputs.filter((i) => i.widget && n.widgets.find((w) => w.name === i.widget.name)?.hidden && i.link == null).map((i) => i.name), from: JSON.stringify(from) }; }, BG);
+        await page.evaluate(async () => {
+            const app = window.app, LG = window.LiteGraph; app.graph.clear();
+            const n = LG.createNode("Region-Genie_Main"); n.pos = [500, 100]; app.graph.add(n);
+            await new Promise((r) => setTimeout(r, 1500));
+            const mk = (type, title, y) => { const x = LG.createNode(type); x.title = title; x.pos = [40, y]; app.graph.add(x); return x; };
+            const at = (name) => n.inputs.findIndex((i) => i.name === name);
+            mk("EmptyImage", "IMG", 40).connect(0, n, at("image")); mk("PrimitiveStringMultiline", "POS", 300).connect(0, n, at("scene_prompt_positive"));
+            await new Promise((r) => setTimeout(r, 500));
+        });
+        const WIRES = JSON.stringify({ image: "IMG>image", scene_prompt_positive: "POS>scene_prompt_positive" });
+        const pick = async (v) => { await page.locator("select.rg-model").first().selectOption(v); await sleep(800); };
+        const other = (await page.locator("select.rg-model").first().evaluate((s) => [...s.options].map((o) => o.value))).find((o) => /Krea/.test(o));
+        const reload = async () => { await page.evaluate(async () => { const d = window.app.graph.serialize(); await window.app.loadGraphData(JSON.parse(JSON.stringify(d))); }); await sleep(2500); };
+        let a = await look();
+        check(`${M}: a new node has no socket for the hidden background field, nor for any other hidden field (${JSON.stringify(a)})`, !a.bg && !a.stale.length && a.from === WIRES);
+        await pick("Ideogram 4"); a = await look();
+        check(`${M}: Ideogram 4: the background field shows and has its socket; the other wires are where they were (${JSON.stringify(a)})`, a.bg && a.from === WIRES);
+        await reload(); a = await look();
+        check(`${M}: saved and loaded with Ideogram 4: the socket is there, the wires on their inputs (${JSON.stringify(a)})`, a.bg && a.from === WIRES);
+        await page.evaluate(async (BG) => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"), x = window.LiteGraph.createNode("PrimitiveStringMultiline"); x.title = "BGSRC"; x.pos = [40, 700]; window.app.graph.add(x);
+            x.connect(0, n, n.inputs.findIndex((i) => i.name === BG)); await new Promise((r) => setTimeout(r, 400)); }, BG);
+        await pick(other); a = await look();
+        const WIRED = JSON.stringify({ ...JSON.parse(WIRES), [BG]: `BGSRC>${BG}` });
+        check(`${M}: another model with a wire on the background: the socket and its wire stay (${JSON.stringify(a)})`, a.bg && a.from === WIRED);
+        await page.evaluate(async (BG) => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"); n.disconnectInput(n.inputs.findIndex((i) => i.name === BG)); await new Promise((r) => setTimeout(r, 300)); }, BG);
+        await pick("Ideogram 4"); await pick(other); a = await look();
+        check(`${M}: unplugged, and the field hidden again: the socket is gone, the other wires on their inputs (${JSON.stringify(a)})`, !a.bg && !a.stale.length && a.from === WIRES);
+        await reload(); a = await look();
+        check(`${M}: saved and loaded without it: still gone, the wires on their inputs (${JSON.stringify(a)})`, !a.bg && !a.stale.length && a.from === WIRES);
+    }
+
+    // ---- round 103: loading a node with wires into its fields. ComfyUI's newer frontends look an input's wire up by
+    // the input's number; while a saved node is being loaded the new node still has every input, so a wire saved on a
+    // prompt field seemed to sit on an optional input, which then stayed: import_json, pose_keypoint, width came back,
+    // one more with each load. Each case: the inputs and where every wire ends, the same after three loads.
+    {
+        const state = () => page.evaluate(() => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"), g = window.app.graph;
+            const wires = n.inputs.map((i, k) => { const l = n.getInputLink ? n.getInputLink(k) : (i.link != null ? (g.links.get ? g.links.get(i.link) : g.links[i.link]) : null); return l ? `${g.getNodeById(l.origin_id).title}>${i.name}` : null; }).filter(Boolean).sort().join(" ");
+            return { names: n.inputs.map((i) => i.name).sort().join(","), wires }; });
+        const CASES = {
+            "three prompt fields and the image": { model: "Ideogram 4", wires: ["image", "scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background"] },
+            "import_json shown and connected, two prompt fields": { add: [["import_json", "STRING"]], wires: ["import_json", "scene_prompt_positive", "scene_prompt_negative"] },
+            "the background connected while its field is hidden": { model: "Ideogram 4", then: true, wires: ["scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background"] },
+            "width and height shown, width connected": { add: [["width_in", "INT"], ["height_in", "INT"]], wires: ["width_in", "scene_prompt_positive", "image"] },
+        };
+        for (const [name, sc] of Object.entries(CASES)) {
+            await page.evaluate(async () => { window.app.graph.clear(); const n = window.LiteGraph.createNode("Region-Genie_Main"); n.pos = [600, 100]; window.app.graph.add(n); await new Promise((r) => setTimeout(r, 1500)); });
+            const sel = page.locator("select.rg-model").first();
+            if (sc.model) { await sel.selectOption(sc.model); await sleep(800); }
+            await page.evaluate(async (sc) => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"), LG = window.LiteGraph;
+                for (const [a, t] of sc.add || []) n.addInput(a, t);
+                let y = 40;
+                for (const w of sc.wires) { const x = LG.createNode(w === "image" ? "EmptyImage" : /width|height/.test(w) ? "PrimitiveInt" : "PrimitiveStringMultiline"); x.title = "to_" + w; x.pos = [40, y]; y += 220; window.app.graph.add(x); x.connect(0, n, n.inputs.findIndex((i) => i.name === w)); }
+                await new Promise((r) => setTimeout(r, 500)); }, sc);
+            if (sc.then) { await sel.selectOption((await sel.evaluate((s) => [...s.options].map((o) => o.value))).find((o) => /Krea/.test(o))); await sleep(800); }
+            const first = await state(), want = sc.wires.map((w) => `to_${w}>${w}`).sort().join(" "), seen = [];
+            for (let r = 0; r < 3; r++) { await page.evaluate(async () => { const d = window.app.graph.serialize(); await window.app.loadGraphData(JSON.parse(JSON.stringify(d))); }); await sleep(2200); seen.push(await state()); }
+            check(`${M}: ${name}: every wire on its own input, and after three loads the same inputs and wires (${first.names} | ${seen[2].names} | ${seen[2].wires})`,
+                  first.wires === want && seen.every((x) => x.names === first.names && x.wires === want));
+        }
+    }
 
     const errs = errors.filter((e) => !/ResizeObserver/.test(e));
     check(`${M}: no script errors${errs.length ? ` (${errs.slice(0, 2).join(" | ")})` : ""}`, !errs.length);

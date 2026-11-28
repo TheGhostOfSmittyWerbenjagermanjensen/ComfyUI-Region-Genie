@@ -401,6 +401,13 @@ The owner's choices on the six items left from the round-33 review (see the chan
 
 ## 6. How it was tested (for the next session)
 
+**Round 103: sockets, loading, the middle button, Select:**
+- `input.link` is deprecated in newer frontends (1.59.1: a getter by the input's number; `= null` disconnects). Don't read it while a node is being shaped for loading, and never set it. `linkedIn()` is fine once a node is loaded. The remaining readers are `removeIn`, `renumberLinks`, `linkedIn` in `sockets.js`.
+- A hidden widget's socket: `widgetSockets(node)` (`rg_shared.js`) for nodes that show and hide fields; on the main node `syncBgSocket` (the only field hidden there that isn't removed for good in `core.js`). A new hidden field needs one of the two, or its socket stays on the node and takes wires.
+- Loading order on the main node: `N.configure` wrapper (shape like the saved node: `dropIn` for inputs it doesn't have, the background socket as saved) -> ComfyUI's configure (inputs merged by name) -> `applySockets` (`settle`, `syncBgSocket`, `renumberLinks`). A node without `rg_sockets` in its saved properties keeps its saved sockets; outputs are matched by name (`remapOutputs`).
+- The hidden `prompt_format` input is declared but unread (Python and editor); it stays because fields are saved by position.
+- Select: `hitLayer` at the press decides (pointer.js); Alt+drag moves the selected layer from anywhere. The middle button outside `E.cvBox` goes to the graph (`middleToGraph`, shared with Image Compare).
+
 **Round 102: Arrange on regions** (`selectTools.js`, `toolbar.js`):
 - `arrangeGroups(target, each)` turns a target (`{kind: "layer", layer}`, `{kind: "regions", ids}`, `{kind: "all"}`) into groups `{layers, poses, shownLayers, shownPoses}`: a region's layers come from `E.listedOf` (its holes too), its figures from `E.posesOf`; All adds a group of what belongs to no region. `each = false` merges them into one group.
 - `arrangeFlip(groups, axis, "self" | "image", label)`: per layer, `mirrorPrep` (its pixel middle, before the change) and `mirrorApply` (mirror its frame, then put that middle on the other side of the line). `arrangeAlign` moves every layer and figure of a group by the group box's offset. The box counts only shown layers (all of them when none is shown).

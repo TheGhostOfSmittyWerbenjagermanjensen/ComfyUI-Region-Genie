@@ -80,6 +80,7 @@ const FIXED = {
         [null, "Shift", "Equal sides; a straight brush line from the last stroke; 15° steps when rotating"],
         [null, "Alt", "Draw or resize from the centre"],
         [null, "Alt+Click", "Make the region under the pointer the active one"],
+        [null, "Alt+Drag", "Select tool: Move the selected layer from anywhere on the canvas, also where another layer covers it"],
         [null, "Ctrl+Click", "Select object: Take a spot out of the selection when it covers too much (a red point). After a search by text: leave a found object out, or bring it back"],
         ["draw.accept", "Double-click", "Close the lasso outline"],
     ],
