@@ -171,6 +171,29 @@ export const setHTML = (e, html) => { if (e && e.__rgHtml !== html) { e.__rgHtml
 // Widget values are saved by position, and some frontend versions line positions up differently on load
 // (they count connection-only inputs), which shifts values into the wrong widgets. Keep a copy by name
 // in the node's properties and put each value back where it belongs after loading.
+// A middle-button drag over a node's own HTML moves ComfyUI's graph, as it does over any other part of a node (the
+// Image Compare node since round 93, the Region Genie node's editor outside its canvas since round 103). As with the
+// wheel: where ComfyUI already does it by itself nothing is added. When the first movement did not move the graph,
+// the press is handed to the graph's canvas (at the place it happened), and the canvas follows the pointer from there
+export function middleToGraph(e) {
+    if (e.button !== 1) return;
+    const c = app.canvas, cv = c?.canvas, ds = c?.ds;
+    if (!cv || !ds) return;
+    e.preventDefault();                                              // no autoscroll of the browser
+    const before = `${ds.offset[0]}|${ds.offset[1]}`, at = { x: e.clientX, y: e.clientY };
+    const init = { clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY, button: 1, buttons: 4, pointerId: e.pointerId, pointerType: e.pointerType || "mouse",
+                   isPrimary: true, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey, bubbles: true, cancelable: true };
+    const onMove = (m) => {
+        if (Math.hypot(m.clientX - at.x, m.clientY - at.y) < 3) return;
+        stop();
+        if (`${ds.offset[0]}|${ds.offset[1]}` !== before) return;    // ComfyUI is already moving the graph
+        cv.dispatchEvent(new PointerEvent("pointerdown", init));
+        cv.dispatchEvent(new PointerEvent("pointermove", { ...init, clientX: m.clientX, clientY: m.clientY, button: -1 }));
+    };
+    const stop = () => { window.removeEventListener("pointermove", onMove, true); window.removeEventListener("pointerup", stop, true); };
+    window.addEventListener("pointermove", onMove, true); window.addEventListener("pointerup", stop, true);
+}
+
 // A hidden widget keeps its input socket (round 103). ComfyUI gives every widget an input socket at the widget's
 // place, and draws and connects it without asking whether the widget is shown: a hidden widget is skipped by the layout,
 // so its socket stays where the widget last was, over other fields or in the empty lower part of the node, and takes

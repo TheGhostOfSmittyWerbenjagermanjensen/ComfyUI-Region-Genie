@@ -191,6 +191,16 @@ const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];          // image_1 …
     await zf.click(); await page.keyboard.type(String(fitPct * 2)); await page.keyboard.press("Enter"); await sleep(200);
     bl = await bigLook();
     check(`${M}: Large view: a typed size sets the zoom (${fitPct}% fits; typed ${fitPct * 2}%: ${(await S()).big.zoom.toFixed(2)}×), about the middle of the frame`, Math.abs((await S()).big.zoom - 2) < 0.02 && Math.abs(bl.stage[0] + bl.view[0] / 2) <= 2 && Math.abs(bl.stage[1] + bl.view[1] / 2) <= 2 && (await zf.inputValue()) === String(fitPct * 2));
+    // round 103: in the Large view the middle button moves the pictures, like the left one; the graph behind stays
+    { const v = await page.locator(".rg-ic-big .rg-ic-view").boundingBox(), x = v.x + v.width / 2, y = v.y + v.height / 2, s0 = (await bigLook()).stage, g0 = await offs();
+      await page.mouse.move(x, y, { steps: 2 }); await page.mouse.down({ button: "middle" });
+      await page.mouse.move(x - 40, y - 30, { steps: 5 }); await page.mouse.move(x - 80, y - 60, { steps: 5 }); await page.mouse.up({ button: "middle" }); await sleep(250);
+      const s1 = (await bigLook()).stage;
+      check(`${M}: Large view: a middle-button drag moves the pictures (${s0.slice(0, 2).join(", ")} -> ${s1.slice(0, 2).join(", ")})`, Math.abs(s1[0] - s0[0] + 80) <= 3 && Math.abs(s1[1] - s0[1] + 60) <= 3);
+      check(`${M}: Large view: …and the graph behind it did not move`, (await offs()).join() === g0.join());
+      await page.mouse.move(x, y, { steps: 2 }); await page.mouse.down(); await page.mouse.move(x + 40, y + 30, { steps: 5 }); await page.mouse.move(x + 80, y + 60, { steps: 5 }); await page.mouse.up(); await sleep(250);
+      const s2 = (await bigLook()).stage;
+      check(`${M}: Large view: the left button still moves them (back to ${s2.slice(0, 2).join(", ")})`, Math.abs(s2[0] - s0[0]) <= 3 && Math.abs(s2[1] - s0[1]) <= 3); }
     await page.keyboard.press("3"); await sleep(100);
     await zf.click(); await page.keyboard.type("1"); await page.keyboard.press("Enter"); await sleep(200);
     check(`${M}: Large view: a size smaller than the whole picture fitting gives the fit (shown as ${await zf.inputValue()}%)`, (await S()).big.zoom === 1 && (await zf.inputValue()) === String(fitPct));

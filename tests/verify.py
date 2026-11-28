@@ -57,6 +57,7 @@ RULES = [
     ("real_run_wildcards.cjs", BOTH, ("wildcards.py", "region_genie.py", "regional_lora.py", "js/editor/sizeRow.js", "js/editor/model.js", "js/editor/lifecycle.js", "js/editor/sockets.js"), None,
      "a real run, the size row, old workflows or wildcards may be touched"),
     ("real_fields_popups.cjs", BOTH, ("js/editor/*.js", "js/rg_shared.js", "js/region_genie.js"), None, "the editor changed"),
+    ("real_middle_pan.cjs", BOTH, ("js/editor/pointer.js", "js/editor/core.js", "js/editor/list.js", "js/rg_shared.js"), r"middle|button === 1|pointerdown", "the middle mouse button on the node may be touched"),
     ("real_save_image.cjs", BOTH, ("save_image.py", "js/save_image.js", "gen_params.py"), None, "the save node changed"),
     ("real_tooltips.cjs", BOTH, ANY_JS + ("*.py", "tests/tooltip_rules.cjs"), r"title|tooltip|keyTitle|keyed\(", "a tooltip changed"),
     ("real_settings.cjs", ("",), ("js/rg_settings_window.js", "js/rg_keys.js"), None, "the settings window or the shortcut list changed"),
