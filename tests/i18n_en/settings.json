@@ -407,11 +407,11 @@
   },
   "RegionGenie_Main_RegionSeparation": {
     "name": "separation",
-    "tooltip": "separation: How strongly the regions are kept from influencing each other while the image forms (0 to 1; higher = more separate).\nRegions placed reliably: 0.85 with until 0.1 (the default).\nSmoother blending of objects, characters and styles: 0.4 with until 0.1.\nStrongest style separation: 0.85-0.99 with until 0.1-0.5.\nApplies to nodes added from now on; nodes already in a workflow keep their own value."
+    "tooltip": "separation: How strongly the regions are kept from influencing each other while the image forms (0 to 1; higher = more separate).\nRegions placed reliably: 0.85 with until 0.1 (the default).\nBetter cohesion across regions: 0.4-0.5 with until 0.1.\nStrongest style separation: 0.85-0.99 with until 0.1-0.5.\nApplies to nodes added from now on; nodes already in a workflow keep their own value."
   },
   "RegionGenie_Main_SeparationUntil": {
     "name": "until",
-    "tooltip": "until: The share of the steps, counted from the start, in which the regions are kept separate (0 to 1); the remaining steps blend them together.\nRegions placed reliably: 0.1 with separation 0.85 (the default).\nSmoother blending of objects, characters and styles: 0.1 with separation 0.4.\nStrongest style separation: 0.1-0.5 with separation 0.85-0.99.\nApplies to nodes added from now on; nodes already in a workflow keep their own value."
+    "tooltip": "until: The share of the steps, counted from the start, in which the regions are kept separate (0 to 1); the remaining steps blend them together.\nRegions placed reliably: 0.1 with separation 0.85 (the default).\nBetter cohesion across regions: 0.1 with separation 0.4-0.5.\nStrongest style separation: 0.1-0.5 with separation 0.85-0.99.\nApplies to nodes added from now on; nodes already in a workflow keep their own value."
   },
   "RegionGenie_Main_AllRegionsSeparate": {
     "name": "Keep all regions separate (not only those with LoRAs)",

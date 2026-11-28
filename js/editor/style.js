@@ -370,6 +370,7 @@ button.rg-paldots i { width:8px; height:8px; border-radius:2px; display:block; }
 .rg-trig { display:flex; flex-wrap:wrap; gap:3px; margin:0 0 2px 46px; align-items:center; font-size:10px; }
 .rg-loraopts { display:flex; align-items:center; gap:3px; font-weight:normal; margin-left:auto; }
 .rg-loraopts .rg-num { width:52px; }
+.rg-loraopts .rg-idle { opacity:.45; }
 .rg-head { display:flex; align-items:center; gap:3px; flex-wrap:wrap; font-weight:600; }
 .rg-head .rg-btn { font-weight:normal; padding:1px 5px; }
 .rg-head .rg-status { flex:1 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

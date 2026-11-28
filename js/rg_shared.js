@@ -2272,9 +2272,9 @@ const shortcutsSettingType = () => () => {
 // rounds 52 to 67, which blend more). Before round 52: 0.85 / 0.25.
 export const SEPARATION_DEFAULT = 0.85, UNTIL_DEFAULT = 0.1;
 export const SEPARATION_TIP = "separation: How strongly the regions are kept from influencing each other while the image forms (0 to 1; higher = more separate).\n"
-    + "Regions placed reliably: 0.85 with until 0.1 (the default).\nSmoother blending of objects, characters and styles: 0.4 with until 0.1.\nStrongest style separation: 0.85-0.99 with until 0.1-0.5.";
+    + "Regions placed reliably: 0.85 with until 0.1 (the default).\nBetter cohesion across regions: 0.4-0.5 with until 0.1.\nStrongest style separation: 0.85-0.99 with until 0.1-0.5.";
 export const UNTIL_TIP = "until: The share of the steps, counted from the start, in which the regions are kept separate (0 to 1); the remaining steps blend them together.\n"
-    + "Regions placed reliably: 0.1 with separation 0.85 (the default).\nSmoother blending of objects, characters and styles: 0.1 with separation 0.4.\nStrongest style separation: 0.1-0.5 with separation 0.85-0.99.";
+    + "Regions placed reliably: 0.1 with separation 0.85 (the default).\nBetter cohesion across regions: 0.1 with separation 0.4-0.5.\nStrongest style separation: 0.1-0.5 with separation 0.85-0.99.";
 const CAT = (section, key) => ["Region Genie", section, key];
 const SETTINGS = [
         // first: the model-file settings below take their form from it when they are registered

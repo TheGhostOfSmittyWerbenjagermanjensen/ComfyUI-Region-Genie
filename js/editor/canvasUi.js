@@ -263,6 +263,7 @@ export function* canvasUi(E) {
     const loraOptsBox = E.el("span", "rg-loraopts");
     const sepIn = E.el("input", "rg-num"); E.sepIn = sepIn; sepIn.type = "number"; sepIn.min = "0"; sepIn.max = "1"; sepIn.step = "0.05";
     sepIn.title = SEPARATION_TIP;
+    E.sepTip = SEPARATION_TIP; E.untilTip = UNTIL_TIP;      // (renderRegions puts a line before them while the fields have no effect)
     const untilIn = E.el("input", "rg-num"); E.untilIn = untilIn; untilIn.type = "number"; untilIn.min = "0"; untilIn.max = "1"; untilIn.step = "0.05";
     untilIn.title = UNTIL_TIP;
     const optChange = () => E.change(() => {

@@ -1546,14 +1546,14 @@ class RegionalLoRAs:
                                                   "while the image forms (0 to 1; higher = more separate). It applies to the regions "
                                                   "with LoRAs, or to every mask with separate_all_regions.\n"
                                                   "Regions placed reliably: 0.85 with separation_until 0.1 (the default).\n"
-                                                  "Smoother blending of objects, characters and styles: 0.4 with separation_until 0.1.\n"
+                                                  "Better cohesion across regions: 0.4-0.5 with separation_until 0.1.\n"
                                                   "Strongest style separation: 0.85-0.99 with separation_until 0.1-0.5.")}),
                 "separation_until": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.05,
                                      "tooltip": ("inside the model only.\n"
                                                  "separation_until: The share of the steps, counted from the start, in which the "
                                                  "regions are kept separate (0 to 1); the remaining steps blend them together.\n"
                                                  "Regions placed reliably: 0.1 with region_separation 0.85 (the default).\n"
-                                                 "Smoother blending of objects, characters and styles: 0.1 with region_separation 0.4.\n"
+                                                 "Better cohesion across regions: 0.1 with region_separation 0.4-0.5.\n"
                                                  "Strongest style separation: 0.1-0.5 with region_separation 0.85-0.99.")}),
                 "loras_data": ("STRING", {"default": '{"v":2,"rows":[]}', "multiline": False}),
                 # after loras_data, so workflows saved before it existed keep their widget values

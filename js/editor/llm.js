@@ -222,7 +222,13 @@ export function* llm(E) {
         E.untilIn.value = String(normLoraOpts(E.state.loraOpts).until);
         const anyLora = (E.state.sceneLoras || []).length || E.state.regions.some((r) => (r.loras || []).length);
         const showSep = anyLora || normLoraOpts(E.state.loraOpts).allRegions || (E.autoSeparate && !normLoraOpts(E.state.loraOpts).autoOff);
-        for (const e of [E.sepLbl, E.sepIn, E.untilLbl, E.untilIn]) e.style.display = showSep ? "" : "none";
+        // always shown (round 102; hidden before while they had no effect, and the start card names them): greyed
+        // while they change nothing, still editable, so they can be set before Separate is switched on
+        if (E.sepIdle !== !showSep) {
+            E.sepIdle = !showSep;
+            const idle = showSep ? "" : "No effect right now: Switch on Separate, or add a LoRA.\n";
+            for (const e of [E.sepLbl, E.sepIn, E.untilLbl, E.untilIn]) { e.classList.toggle("rg-idle", !showSep); e.title = idle + (e === E.sepLbl || e === E.sepIn ? E.sepTip : E.untilTip); }
+        }
         E.setAllSeparateBtn();
         E.syncEditMaskBox();
         E.updateExpandButtons();
