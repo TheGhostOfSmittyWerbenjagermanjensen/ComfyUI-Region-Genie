@@ -90,6 +90,8 @@ export function* sockets(E) {
     // renumberLinks() gives every link its socket's number once the lists are final.
     let loading = false;
     function removeIn(name) { const i = findIn(name); if (i < 0 || N.inputs[i].link != null) return; if (loading) N.inputs.splice(i, 1); else N.removeInput(i); }
+    // while a saved node is being shaped: out of the list, without asking for its wire (see shapeLikeSaved)
+    function dropIn(name) { const i = findIn(name); if (i >= 0) N.inputs.splice(i, 1); }
     function renumberLinks() {
         (N.inputs || []).forEach((inp, i) => { const l = inp.link != null ? linkOf(N.graph, inp.link) : null; if (l) l.target_slot = i; });
         (N.outputs || []).forEach((o, i) => { for (const id of o.links || []) { const l = linkOf(N.graph, id); if (l) l.origin_slot = i; } });
@@ -188,7 +190,12 @@ export function* sockets(E) {
                 for (const n of names) { if (OUT.includes(n)) addOut(n); else N.addOutput(n, "*"); }     // (an unknown one keeps its place; applySockets drops it)
             }
             const kept = new Set((saved.inputs || []).map((i) => i?.name));
-            for (const name of HIDDEN_BY_DEFAULT) if (!kept.has(name)) removeIn(name);
+            // Taken out whether or not it looks connected (round 103). In ComfyUI's newer frontends an input doesn't
+            // hold its wire: which wire it has is looked up by the input's number, and at this moment the saved wires'
+            // numbers meet a new node that still has every input, so a wire saved on input 7 (a prompt field) seems to
+            // sit on import_json. Asking "connected?" here kept such inputs: optional inputs came back on loading, one
+            // for each wire into a field after the second. An input the saved node doesn't have can't have a saved wire.
+            for (const name of HIDDEN_BY_DEFAULT) if (!kept.has(name)) dropIn(name);
         } finally { loading = false; }
     }
     const configure0 = N.configure;
@@ -199,7 +206,8 @@ export function* sockets(E) {
             // to it until the node is loaded (applySockets; the timer is for a load that never gets there)
             try {
                 const savedBg = (saved?.inputs || []).some((i) => i?.name === BG);
-                if (savedBg && findIn(BG) < 0 && proto.in[BG]) { N.addInput(BG, inType(BG)); const slot = N.inputs[N.inputs.length - 1]; dress(slot, proto.in[BG]); slot.widget = { ...(proto.in[BG].widget || { name: BG }) }; }
+                if (!savedBg && saved?.properties?.rg_sockets) dropIn(BG);          // (like the optional inputs in shapeLikeSaved)
+                else if (savedBg && findIn(BG) < 0 && proto.in[BG]) { N.addInput(BG, inType(BG)); const slot = N.inputs[N.inputs.length - 1]; dress(slot, proto.in[BG]); slot.widget = { ...(proto.in[BG].widget || { name: BG }) }; }
             } catch (e) { console.error("[Region Genie] sockets", e); }
             settling = true;
             setTimeout(() => { if (settling) { settling = false; syncBgSocket(); } }, 0);

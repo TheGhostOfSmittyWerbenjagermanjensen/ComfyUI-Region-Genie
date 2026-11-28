@@ -259,6 +259,37 @@ const OUT = ["model", "positive", "negative", "latent", "prompt", "color_map", "
         check(`${M}: saved and loaded without it: still gone, the wires on their inputs (${JSON.stringify(a)})`, !a.bg && !a.stale.length && a.from === WIRES);
     }
 
+    // ---- round 103: loading a node with wires into its fields. ComfyUI's newer frontends look an input's wire up by
+    // the input's number; while a saved node is being loaded the new node still has every input, so a wire saved on a
+    // prompt field seemed to sit on an optional input, which then stayed: import_json, pose_keypoint, width came back,
+    // one more with each load. Each case: the inputs and where every wire ends, the same after three loads.
+    {
+        const state = () => page.evaluate(() => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"), g = window.app.graph;
+            const wires = n.inputs.map((i, k) => { const l = n.getInputLink ? n.getInputLink(k) : (i.link != null ? (g.links.get ? g.links.get(i.link) : g.links[i.link]) : null); return l ? `${g.getNodeById(l.origin_id).title}>${i.name}` : null; }).filter(Boolean).sort().join(" ");
+            return { names: n.inputs.map((i) => i.name).sort().join(","), wires }; });
+        const CASES = {
+            "three prompt fields and the image": { model: "Ideogram 4", wires: ["image", "scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background"] },
+            "import_json shown and connected, two prompt fields": { add: [["import_json", "STRING"]], wires: ["import_json", "scene_prompt_positive", "scene_prompt_negative"] },
+            "the background connected while its field is hidden": { model: "Ideogram 4", then: true, wires: ["scene_prompt_positive", "scene_prompt_negative", "scene_prompt_background"] },
+            "width and height shown, width connected": { add: [["width_in", "INT"], ["height_in", "INT"]], wires: ["width_in", "scene_prompt_positive", "image"] },
+        };
+        for (const [name, sc] of Object.entries(CASES)) {
+            await page.evaluate(async () => { window.app.graph.clear(); const n = window.LiteGraph.createNode("Region-Genie_Main"); n.pos = [600, 100]; window.app.graph.add(n); await new Promise((r) => setTimeout(r, 1500)); });
+            const sel = page.locator("select.rg-model").first();
+            if (sc.model) { await sel.selectOption(sc.model); await sleep(800); }
+            await page.evaluate(async (sc) => { const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_Main"), LG = window.LiteGraph;
+                for (const [a, t] of sc.add || []) n.addInput(a, t);
+                let y = 40;
+                for (const w of sc.wires) { const x = LG.createNode(w === "image" ? "EmptyImage" : /width|height/.test(w) ? "PrimitiveInt" : "PrimitiveStringMultiline"); x.title = "to_" + w; x.pos = [40, y]; y += 220; window.app.graph.add(x); x.connect(0, n, n.inputs.findIndex((i) => i.name === w)); }
+                await new Promise((r) => setTimeout(r, 500)); }, sc);
+            if (sc.then) { await sel.selectOption((await sel.evaluate((s) => [...s.options].map((o) => o.value))).find((o) => /Krea/.test(o))); await sleep(800); }
+            const first = await state(), want = sc.wires.map((w) => `to_${w}>${w}`).sort().join(" "), seen = [];
+            for (let r = 0; r < 3; r++) { await page.evaluate(async () => { const d = window.app.graph.serialize(); await window.app.loadGraphData(JSON.parse(JSON.stringify(d))); }); await sleep(2200); seen.push(await state()); }
+            check(`${M}: ${name}: every wire on its own input, and after three loads the same inputs and wires (${first.names} | ${seen[2].names} | ${seen[2].wires})`,
+                  first.wires === want && seen.every((x) => x.names === first.names && x.wires === want));
+        }
+    }
+
     const errs = errors.filter((e) => !/ResizeObserver/.test(e));
     check(`${M}: no script errors${errs.length ? ` (${errs.slice(0, 2).join(" | ")})` : ""}`, !errs.length);
     await browser.close();

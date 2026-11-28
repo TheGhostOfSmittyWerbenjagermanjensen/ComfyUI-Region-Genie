@@ -54,7 +54,7 @@ RULES = [
     ("test_control.py", ("",), ("control.py", "pose_map.py", "pose_detect.py"), None, "Control or the pose code changed"),
     ("test_tiled.py", ("",), ("tiled_diffusion.py", "regional_lora.py"), None, "tiled sampling or the regional engine changed"),
     ("real_smoke.cjs", BOTH, ANY_JS + ("*.py",), None, "the pack's code changed"),
-    ("real_run_wildcards.cjs", BOTH, ("wildcards.py", "region_genie.py", "regional_lora.py", "js/editor/sizeRow.js", "js/editor/model.js", "js/editor/lifecycle.js"), None,
+    ("real_run_wildcards.cjs", BOTH, ("wildcards.py", "region_genie.py", "regional_lora.py", "js/editor/sizeRow.js", "js/editor/model.js", "js/editor/lifecycle.js", "js/editor/sockets.js"), None,
      "a real run, the size row, old workflows or wildcards may be touched"),
     ("real_fields_popups.cjs", BOTH, ("js/editor/*.js", "js/rg_shared.js", "js/region_genie.js"), None, "the editor changed"),
     ("real_save_image.cjs", BOTH, ("save_image.py", "js/save_image.js", "gen_params.py"), None, "the save node changed"),
