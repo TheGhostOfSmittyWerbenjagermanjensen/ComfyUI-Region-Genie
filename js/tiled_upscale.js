@@ -3,7 +3,7 @@
 // the owner chose this over rows of two settings). The line is the pack's own, so it works with legacy nodes and with
 // Nodes 2.0. Folded settings are ComfyUI's own widgets, only hidden; one with a cable connected to it always stays.
 import { app } from "../../scripts/app.js";
-import { keepWidgetValuesByName, svgIcon } from "./rg_shared.js";
+import { keepWidgetValuesByName, svgIcon, widgetSockets } from "./rg_shared.js";
 
 const NODE = "Region-Genie_TiledUpscale";
 const MORE = ["resize_method", "tile_blend", "upscale_model_tile_size", "upscale_model_half_precision",
@@ -61,6 +61,7 @@ app.registerExtension({
             }
 
             const sizeOf = new Map();                // the widgets' own computeSize, put back when shown again
+            const socks = widgetSockets(node);       // a folded setting's input socket goes with it (round 103)
             // which widgets this script has folded. Not read from w.hidden: ComfyUI also reports a widget as hidden
             // while a cable feeds it (it then draws the input's row in its place)
             const folded = new Set();
@@ -83,12 +84,13 @@ app.registerExtension({
                 loaded = loaded === true || justLoaded; justLoaded = false;
                 const open = isOpen();
                 const legacy = !app.extensionManager?.setting?.get?.("Comfy.VueNodes.Enabled");
-                const before = legacy ? node.computeSize?.()[1] : 0;
+                const before = legacy ? node.computeSize?.()[1] : 0, h0 = node.size[1];     // (h0: adding a socket can make the node taller by itself)
                 let changed = false;
                 for (const n of MORE) {
                     const w = W(n);
                     if (!w) continue;
                     const show = open || linked(n);
+                    if (socks.set(n, show)) changed = true;        // a folded setting's input socket goes with it (round 103)
                     if (!folded.has(w) === show) continue;
                     changed = true;
                     if (show) folded.delete(w); else folded.add(w);
@@ -103,7 +105,7 @@ app.registerExtension({
                 // Nodes 2.0: the node's size is the least height of its box; down to what the shown settings need
                 const after = node.computeSize?.()[1] || 0;
                 if (loaded === true) { if (after && node.size[1] < after) node.setSize([node.size[0], after]); }
-                else if (legacy && after && before) node.setSize([node.size[0], Math.max(after, node.size[1] + after - before)]);
+                else if (legacy && after && before) node.setSize([node.size[0], Math.max(after, h0 + after - before)]);
                 else if (!legacy && after && (node.size[1] > after || open)) node.setSize([node.size[0], after]);
                 node.setDirtyCanvas?.(true, true);
             }

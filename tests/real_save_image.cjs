@@ -404,6 +404,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         rgRun.out && (info.parameters || "").startsWith("a harbour at dawn") && /\nNegative prompt: blurry, low quality\n/.test(info.parameters) && /Version: ComfyUI$/.test(info.parameters));
 
     await page.screenshot({ path: path.join(__dirname, "out", `real_save_${vue ? "vue" : "legacy"}.png`) });
+    // round 103: a hidden field leaves no input socket behind (ComfyUI keeps and connects a hidden widget's socket
+    // where the widget last was), and a field that is shown has its socket
+    { const sock = await page.evaluate(async () => {
+          const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+          const n = window.app.graph._nodes.find((x) => x.type === "Region-Genie_SaveImage");
+          const look = () => ({ stale: n.inputs.filter((i) => i.widget && n.widgets.find((w) => w.name === i.widget.name)?.hidden).map((i) => i.name),
+                                missing: n.widgets.filter((w) => !w.hidden && n.constructor.nodeData?.input && ({ ...n.constructor.nodeData.input.required, ...n.constructor.nodeData.input.optional })[w.name]
+                                    && !n.inputs.some((i) => i.widget?.name === w.name)).map((w) => w.name) });
+          const res = [look()];
+          const f = n.widgets.find((w) => w.name === "format"), was = f.value;
+          for (const v of ["webp", "jpeg", "exr", "png", was]) { f.value = v; f.callback?.(v); await wait(250); res.push(look()); }
+          return res; });
+      check(`${M}: no input socket is left of a hidden field, and every shown field has its own (${JSON.stringify(sock)})`, sock.length > 0 && sock.every((s) => !s.stale.length && !s.missing.length)); }
     check(`${M}: no page errors` + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""), !errors.length);
     await page.evaluate(async () => { await window.app.extensionManager.setting.set("RegionGenie.Save.PngLevel", 9); });
     await browser.close();

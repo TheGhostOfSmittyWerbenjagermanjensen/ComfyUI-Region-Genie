@@ -171,6 +171,42 @@ export const setHTML = (e, html) => { if (e && e.__rgHtml !== html) { e.__rgHtml
 // Widget values are saved by position, and some frontend versions line positions up differently on load
 // (they count connection-only inputs), which shifts values into the wrong widgets. Keep a copy by name
 // in the node's properties and put each value back where it belongs after loading.
+// A hidden widget keeps its input socket (round 103). ComfyUI gives every widget an input socket at the widget's
+// place, and draws and connects it without asking whether the widget is shown: a hidden widget is skipped by the layout,
+// so its socket stays where the widget last was, over other fields or in the empty lower part of the node, and takes
+// wires (the owner found them by dragging a wire along the Save Image node's edge). So a node that hides fields takes
+// the socket of each hidden one away, and puts it back when the field shows again.
+//   const socks = widgetSockets(node);  socks.linked(name);  socks.set(name, shown) -> true when it changed something
+// A socket with a wire is never taken away (show such a field). Before a workflow is loaded into the node they are all
+// put back, so a saved wire to one of them finds its socket.
+export function widgetSockets(node) {
+    const kept = new Map();                              // widget name -> what its socket was made of
+    const find = (n) => node.inputs?.findIndex((i) => i.widget?.name === n) ?? -1;
+    const typeOf = (n) => {                              // from the node's definition, when the socket was never seen here
+        const def = node.constructor?.nodeData?.input, spec = def?.required?.[n] || def?.optional?.[n];
+        return Array.isArray(spec?.[0]) ? "COMBO" : spec?.[0] || "*";
+    };
+    function set(n, show) {
+        const at = find(n);
+        if (!show && at >= 0 && node.inputs[at].link == null) {
+            const s = node.inputs[at], extra = { widget: { ...s.widget } };
+            for (const k of ["label", "localized_name", "shape", "tooltip"]) if (s[k] != null) extra[k] = s[k];
+            kept.set(n, { type: s.type, extra });
+            node.removeInput(at);
+            return true;
+        }
+        if (show && at < 0 && node.widgets?.some((w) => w.name === n)) {
+            const k = kept.get(n) || { type: typeOf(n), extra: { widget: { name: n } } };
+            node.addInput(n, k.type, { ...k.extra, widget: { ...k.extra.widget } });
+            return true;
+        }
+        return false;
+    }
+    const conf = node.configure;
+    node.configure = function () { for (const n of [...kept.keys()]) set(n, true); return conf.apply(this, arguments); };
+    return { set, linked: (n) => { const at = find(n); return at >= 0 && node.inputs[at].link != null; } };
+}
+
 export function keepWidgetValuesByName(node, names) {
     // the values a new node starts with: a loaded value that can't be right for its widget (a choice not in its
     // list, or another type, e.g. a workflow saved before a widget was added shifts its neighbour's value into it)
